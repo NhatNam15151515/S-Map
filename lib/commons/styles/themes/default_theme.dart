@@ -54,7 +54,7 @@ class DefaultTheme extends AppStyle {
     unselectedWidgetColor: AppColors.tangledWeb,
     scaffoldBackgroundColor: AppColors.lynxWhite,
     fontFamily: 'Montserrat',
-    cardTheme: CardThemeData(
+    cardTheme: CardTheme(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
