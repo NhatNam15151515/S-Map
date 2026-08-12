@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "vi"
+early_access: false
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "lib/commons/cubits/**"
+      instructions: |
+        Review Cubit/Bloc implementations:
+        - All Cubits/Blocs MUST override emit() with: @override void emit(state) { if (isClosed) return; super.emit(state); }
+        - Use Cubit by default. Only use Bloc when event transformers (restartable, droppable, sequential) are needed.
+        - Check for proper state immutability (Equatable or freezed).
+    - path: "lib/services/**"
+      instructions: |
+        Review service implementations:
+        - Services should be singleton or injected via repository pattern.
+        - Native bridge services must handle MethodChannel errors gracefully.
+    - path: "android/**"
+      instructions: |
+        Review Android native code:
+        - Check ProGuard/R8 rules for GraphHopper reflection.
+        - Verify MethodChannel handler registration.
+    - path: "pubspec.yaml"
+      instructions: |
+        Review dependency changes:
+        - Warn if adding dependencies not listed in the project BRD.
+        - Check for version conflicts.
+chat:
+  auto_reply: true
