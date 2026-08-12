@@ -5,16 +5,16 @@
       "multiply_by": 0.0
     },
     {
-      "else_if": "road_class == TRUNK && max_speed > 80",
+      "else_if": "road_class == TRUNK && max_speed > 60",
       "multiply_by": 0.0
     },
     {
       "else_if": "road_class == TRUNK",
-      "multiply_by": 0.6
+      "multiply_by": 0.4
     },
     {
       "else_if": "road_class == PRIMARY",
-      "multiply_by": 0.8
+      "multiply_by": 0.7
     },
     {
       "else_if": "road_class == SECONDARY",
@@ -30,7 +30,7 @@
     },
     {
       "else_if": "road_class == SERVICE",
-      "multiply_by": 0.8
+      "multiply_by": 0.9
     },
     {
       "else_if": "road_class == UNCLASSIFIED",
@@ -42,16 +42,30 @@
     },
 
     {
-      "if": "road_access == PRIVATE",
+      "if": "road_access == PRIVATE || road_access == NO",
       "multiply_by": 0.0
     },
+    {
+      "if": "road_access == DESTINATION || road_access == DELIVERY",
+      "multiply_by": 0.1
+    },
+
     {
       "if": "road_environment == FERRY",
       "multiply_by": 0.0
     },
     {
       "if": "road_environment == TUNNEL",
-      "multiply_by": 0.5
+      "multiply_by": 0.3
+    },
+
+    {
+      "if": "lanes > 4 && road_class == TRUNK",
+      "multiply_by": 0.0
+    },
+    {
+      "if": "lanes > 4 && road_class == PRIMARY",
+      "multiply_by": 0.3
     },
 
     {
@@ -64,27 +78,27 @@
     },
 
     {
-      "if": "toll == ALL",
-      "multiply_by": 0.3
+      "if": "toll == ALL || toll == HGV",
+      "multiply_by": 0.1
     }
   ],
 
   "speed": [
     {
       "if": "road_class == TRUNK",
-      "limit_to": 60
-    },
-    {
-      "else_if": "road_class == PRIMARY",
       "limit_to": 50
     },
     {
+      "else_if": "road_class == PRIMARY",
+      "limit_to": 40
+    },
+    {
       "else_if": "road_class == SECONDARY",
-      "limit_to": 45
+      "limit_to": 40
     },
     {
       "else_if": "road_class == TERTIARY",
-      "limit_to": 40
+      "limit_to": 35
     },
     {
       "else_if": "road_class == RESIDENTIAL",
@@ -114,9 +128,9 @@
 
     {
       "if": "urban_density == CITY",
-      "limit_to": 35
+      "limit_to": 30
     }
   ],
 
-  "distance_influence": 40
+  "distance_influence": 50
 }

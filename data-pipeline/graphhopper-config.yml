@@ -8,7 +8,7 @@ graphhopper:
   graph.location: ./graph-cache
 
   # Encoded values cần thiết cho custom model
-  graph.encoded_values: road_class,road_environment,road_access,surface,toll,urban_density,max_speed,country
+  graph.encoded_values: road_class,road_environment,road_access,surface,toll,urban_density,max_speed,lanes,country
 
   profiles:
     - name: moped_vn
@@ -27,10 +27,11 @@ graphhopper:
   # graph.elevation.provider: srtm
   # graph.elevation.cache_dir: ./srtm-cache
 
-  # Server settings (cho test trên PC)
-  server:
-    application_connectors:
-      - type: http
-        port: 8989
-    request_log:
-      appenders: []
+# Server settings (cho test trên PC) - PHẢI ở YAML root, không nằm trong graphhopper
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: localhost
+  request_log:
+    appenders: []

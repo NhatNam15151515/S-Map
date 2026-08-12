@@ -4,7 +4,7 @@ Thư mục chứa các file cấu hình và tools để build offline data cho S
 
 ## Cấu trúc
 
-```
+```text
 data-pipeline/
 ├── custom_model_moped.json     # Custom routing model cho xe máy VN
 ├── graphhopper-config.yml      # Config GraphHopper server
@@ -35,6 +35,7 @@ Xe máy ở Việt Nam có đặc thù riêng so với ô tô:
 | SECONDARY | 0.9 | Tốt |
 | TERTIARY | **1.0** | ✅ Ưu tiên cao nhất |
 | RESIDENTIAL | **1.0** | ✅ Ưu tiên cao nhất |
+| SERVICE | 0.9 | Hẻm nhỏ, đường nội bộ — ưu tiên cao |
 | TRACK | 0.3 | Đường đất, rất ít dùng |
 
 ### Speed Limits (km/h)
