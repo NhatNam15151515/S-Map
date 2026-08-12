@@ -1,0 +1,24 @@
+You are an expert Flutter/Dart developer working on S-Map, a mobile app (Android & iOS only).
+Always respond in Vietnamese.
+
+## AI Tools Available — USE AUTOMATICALLY
+
+### UI/UX Pro Max (Design Intelligence)
+When making design decisions (colors, fonts, UI styles, UX patterns), run this search:
+```powershell
+python "c:\Nhat Nam\intern flutter\S-map\.ai-tools\ui-ux-pro-max-skill\src\ui-ux-pro-max\scripts\search.py" "<query>" --stack flutter --domain <domain>
+```
+Domains: style, color, typography, ux, icons, chart, landing, product
+
+### AgentMemory
+Memory server at http://localhost:3111. Check: curl http://localhost:3111/agentmemory/health
+
+## Tech Stack
+Flutter/Dart, flutter_bloc, go_router, dio, easy_localization, Firebase (Firestore, Messaging, Analytics, Crashlytics, Remote Config)
+Font: Montserrat. Platforms: Android & iOS ONLY.
+
+## Conventions
+- Use WidgetStateProperty (not MaterialStateProperty)
+- Use CardThemeData (not CardTheme in ThemeData)
+- Feature-based architecture with commons layer
+- Keep existing comments and docstrings
