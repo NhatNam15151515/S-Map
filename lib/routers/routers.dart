@@ -17,6 +17,12 @@ import 'package:boilerplate/screens/main/main_screen.dart';
 import 'package:boilerplate/screens/main/notification/notification_screen.dart';
 import 'package:boilerplate/screens/main/slip/cart_screen.dart';
 import 'package:boilerplate/screens/main/user/user_screen.dart';
+import 'package:boilerplate/screens/map/map_screen.dart';
+import 'package:boilerplate/screens/search/search_screen.dart';
+import 'package:boilerplate/screens/navigation/navigation_screen.dart';
+import 'package:boilerplate/screens/route_drawing/route_drawing_screen.dart';
+import 'package:boilerplate/screens/stats/stats_screen.dart';
+import 'package:boilerplate/screens/settings/settings_screen.dart';
 import 'package:boilerplate/services/remote_config_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -58,6 +64,30 @@ class Routes extends NavigatorObserver {
         GoRoute(
           path: LoginScreen.path,
           builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: MapScreen.path,
+          builder: (context, state) => const MapScreen(),
+        ),
+        GoRoute(
+          path: SearchScreen.path,
+          builder: (context, state) => const SearchScreen(),
+        ),
+        GoRoute(
+          path: NavigationScreen.path,
+          builder: (context, state) => const NavigationScreen(),
+        ),
+        GoRoute(
+          path: RouteDrawingScreen.path,
+          builder: (context, state) => const RouteDrawingScreen(),
+        ),
+        GoRoute(
+          path: StatsScreen.path,
+          builder: (context, state) => const StatsScreen(),
+        ),
+        GoRoute(
+          path: SettingsScreen.path,
+          builder: (context, state) => const SettingsScreen(),
         ),
         GoRoute(
           path: FullImageScreen.path,

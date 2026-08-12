@@ -1,5 +1,5 @@
 name: boilerplate
-description: "The Aaron's Boilerplate"
+description: "S-Map: Offline Motorbike Map for Vietnam"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,6 +34,8 @@ dependencies:
   flutter_bloc: ^8.1.6
   easy_localization: ^3.0.7
   go_router: ^14.2.0
+  sqflite: ^2.3.3+1
+  maplibre_gl: ^0.16.0
   rxdart: ^0.27.7
   logger: ^2.3.0
   flutter_svg: ^2.0.10+1
