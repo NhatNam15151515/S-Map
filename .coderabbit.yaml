@@ -5,29 +5,17 @@ reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
-  high_level_summary_placeholder: |
-    ## 🤖 AI Review
-
-    **MR**: #{pr_number}
-
-    ### Kết luận
-    {summary_verdict}
-
-    ### Findings
-    {findings_list}
-
-    ### Test nên chạy
-    {test_suggestions}
-
-    ### Ghi chú scope
-    {scope_notes}
+  high_level_summary_placeholder: "@coderabbitai summary"
   poem: false
   review_status: true
   collapse_walkthrough: false
+  # Tổng hợp review thành 1 comment duy nhất thay vì comment từng file
+  tools:
+    github-checks:
+      enabled: true
   auto_review:
     enabled: true
     drafts: false
-    # Chỉ review 1 lần khi tạo PR, KHÔNG review lại khi push thêm commit
     ignore_title_keywords:
       - "WIP"
       - "DO NOT REVIEW"
@@ -41,13 +29,10 @@ reviews:
       - dev-w6
       - dev-w7
       - dev-w8
-  tools:
-    github-checks:
-      enabled: true
   path_instructions:
     - path: "**"
       instructions: |
-        QUAN TRỌNG: Hãy review code và trả lời theo format sau:
+        QUAN TRỌNG: Review code và trả lời TỔNG HỢP trong 1 comment duy nhất, theo format sau:
 
         ## Kết luận
         Chọn 1 trong: PASS | PASS_WITH_NOTES | NEEDS_CHANGES | REJECT
@@ -57,15 +42,15 @@ reviews:
         Liệt kê các phát hiện theo format:
         - [Mức độ: Critical/High/Medium/Low] `file_path:line` - Mô tả vấn đề.
           **Gợi ý fix:**
-          ```dart
-          // code fix gợi ý ở đây (dùng diff format nếu cần)
+          ```
+          // code fix gợi ý (diff format nếu cần)
           ```
 
         ## Test nên chạy
-        Liệt kê các test case cụ thể cần kiểm tra cho thay đổi này.
+        Liệt kê các test case cụ thể cần kiểm tra.
 
         ## Ghi chú scope
-        Nhận xét về scope của PR: có phù hợp không, có cần tách nhỏ không.
+        Nhận xét về scope của PR.
     - path: "lib/commons/cubits/**"
       instructions: |
         Review Cubit/Bloc implementations:
