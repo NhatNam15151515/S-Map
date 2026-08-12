@@ -11,6 +11,16 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    base_branches:
+      - main
+      - dev-w1
+      - dev-w2
+      - dev-w3
+      - dev-w4
+      - dev-w5
+      - dev-w6
+      - dev-w7
+      - dev-w8
   path_instructions:
     - path: "lib/commons/cubits/**"
       instructions: |
