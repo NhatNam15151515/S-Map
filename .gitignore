@@ -1,3 +1,8 @@
+# AI Agent config (local only)
+.agents/
+.cursorrules
+CLAUDE.md
+
 # Miscellaneous
 *.class
 *.log
