@@ -9,7 +9,6 @@ reviews:
   poem: false
   review_status: true
   collapse_walkthrough: false
-  # Tổng hợp review thành 1 comment duy nhất thay vì comment từng file
   tools:
     github-checks:
       enabled: true
@@ -32,25 +31,13 @@ reviews:
   path_instructions:
     - path: "**"
       instructions: |
-        QUAN TRỌNG: Review code và trả lời TỔNG HỢP trong 1 comment duy nhất, theo format sau:
-
-        ## Kết luận
-        Chọn 1 trong: PASS | PASS_WITH_NOTES | NEEDS_CHANGES | REJECT
-        Giải thích ngắn gọn lý do.
-
-        ## Findings
-        Liệt kê các phát hiện theo format:
-        - [Mức độ: Critical/High/Medium/Low] `file_path:line` - Mô tả vấn đề.
-          **Gợi ý fix:**
-          ```
-          // code fix gợi ý (diff format nếu cần)
-          ```
-
-        ## Test nên chạy
-        Liệt kê các test case cụ thể cần kiểm tra.
-
-        ## Ghi chú scope
-        Nhận xét về scope của PR.
+        Khi review, hãy tập trung vào:
+        - Functional Correctness: logic có đúng không?
+        - Security: có lỗ hổng bảo mật không?
+        - Performance: có bottleneck không?
+        - Mỗi finding cần kèm gợi ý code fix cụ thể (diff format).
+        - Phân loại mức độ: Critical / High / Medium / Low.
+        - Nếu không có lỗi, ghi rõ "Không phát hiện lỗi nghiêm trọng."
     - path: "lib/commons/cubits/**"
       instructions: |
         Review Cubit/Bloc implementations:
