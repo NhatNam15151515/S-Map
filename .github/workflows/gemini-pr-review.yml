@@ -1,7 +1,9 @@
 name: Gemini AI PR Reviewer
 
+# SECURITY: Dùng pull_request_target để script chạy từ default branch,
+# không chạy code từ PR (tránh bị inject script đánh cắp secrets)
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
     branches: [main, dev-w1, dev-w2, dev-w3, dev-w4, dev-w5, dev-w6, dev-w7, dev-w8]
 
@@ -15,10 +17,12 @@ jobs:
     name: Gemini AI Code Review
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      # Checkout code từ BASE branch (default), KHÔNG checkout PR code
+      - name: Checkout base branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ github.base_ref }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,9 +34,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install google-genai
 
-      - name: Generate PR Diff
+      # Lấy diff qua GitHub API, KHÔNG dùng git diff từ PR code
+      - name: Fetch PR Diff via GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git diff origin/${{ github.base_ref }}...HEAD > pr_diff.patch
+          curl -s -L \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3.diff" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
+            > pr_diff.patch
 
       - name: Run Gemini Review Script
         env:
