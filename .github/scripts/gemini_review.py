@@ -60,35 +60,39 @@ DƯỚI ĐÂY LÀ DIFF CỦA PULL REQUEST:
 ```
 """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_api_key}"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": prompt}
-                ]
-            }
-        ]
-    }
+    # Google AI Studio API endpoints for Gemini models
+    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-pro"]
+    review_comment = None
 
-    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers)
-    try:
-        with urllib.request.urlopen(req) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            review_comment = res_data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception as e:
-        print(f"Error calling Gemini API: {e}")
-        # Fallback to gemini-1.5-flash if 2.5 is not available
-        url_fallback = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_api_key}"
-        req_fb = urllib.request.Request(url_fallback, data=json.dumps(payload).encode("utf-8"), headers=headers)
+    for model in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_api_key}"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                }
+            ]
+        }
+
+        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers)
         try:
-            with urllib.request.urlopen(req_fb) as response:
+            with urllib.request.urlopen(req) as response:
                 res_data = json.loads(response.read().decode("utf-8"))
                 review_comment = res_data["candidates"][0]["content"]["parts"][0]["text"]
-        except Exception as e2:
-            print(f"Error calling Gemini API fallback: {e2}")
-            return
+                print(f"Successfully generated review using model: {model}")
+                break
+        except urllib.error.HTTPError as err:
+            err_msg = err.read().decode('utf-8', errors='ignore')
+            print(f"HTTP Error {err.code} for model {model}: {err_msg}")
+        except Exception as e:
+            print(f"Error calling model {model}: {e}")
+
+    if not review_comment:
+        print("Failed to get review response from all Gemini models.")
+        return
 
     # Post comment to GitHub PR
     gh_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
