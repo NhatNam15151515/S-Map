@@ -63,23 +63,39 @@ DƯỚI ĐÂY LÀ DIFF CỦA PULL REQUEST:
     client = genai.Client(api_key=gemini_api_key)
     
     review_comment = None
-    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"]
+
+    # Try Interactions API first (newest), then fallback to generate_content
+    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
     
     for model_name in models_to_try:
+        # Try Interactions API
         try:
-            print(f"Trying model: {model_name}...")
+            print(f"Trying Interactions API with model: {model_name}...")
+            interaction = client.interactions.create(
+                model=model_name,
+                input=prompt,
+            )
+            review_comment = interaction.output_text
+            print(f"Successfully generated review using Interactions API: {model_name}")
+            break
+        except Exception as e:
+            print(f"Interactions API error for {model_name}: {e}")
+        
+        # Fallback to generate_content
+        try:
+            print(f"Trying generate_content with model: {model_name}...")
             response = client.models.generate_content(
                 model=model_name,
                 contents=prompt,
             )
             review_comment = response.text
-            print(f"Successfully generated review using model: {model_name}")
+            print(f"Successfully generated review using generate_content: {model_name}")
             break
         except Exception as e:
-            print(f"Error calling model {model_name}: {e}")
+            print(f"generate_content error for {model_name}: {e}")
 
     if not review_comment:
-        print("Failed to get review response from all Gemini models.")
+        print("Failed to get review from all models. Exiting.")
         return
 
     # Post comment to GitHub PR
