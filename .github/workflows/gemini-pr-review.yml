@@ -1,9 +1,9 @@
 name: Gemini AI PR Reviewer
 
-# SECURITY: Dùng pull_request_target để script chạy từ default branch,
-# không chạy code từ PR (tránh bị inject script đánh cắp secrets)
+# Dùng pull_request cho private repo (chỉ trusted contributors)
+# Nếu chuyển sang public repo, cần đổi sang pull_request_target
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, synchronize]
     branches: [main, dev-w1, dev-w2, dev-w3, dev-w4, dev-w5, dev-w6, dev-w7, dev-w8]
 
@@ -17,12 +17,10 @@ jobs:
     name: Gemini AI Code Review
     runs-on: ubuntu-latest
     steps:
-      # Checkout code từ BASE branch (default), KHÔNG checkout PR code
-      - name: Checkout base branch
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.base_ref }}
-          persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
