@@ -5,12 +5,32 @@ reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
+  high_level_summary_placeholder: |
+    ## 🤖 AI Review
+
+    **MR**: #{pr_number}
+
+    ### Kết luận
+    {summary_verdict}
+
+    ### Findings
+    {findings_list}
+
+    ### Test nên chạy
+    {test_suggestions}
+
+    ### Ghi chú scope
+    {scope_notes}
   poem: false
   review_status: true
   collapse_walkthrough: false
   auto_review:
     enabled: true
     drafts: false
+    # Chỉ review 1 lần khi tạo PR, KHÔNG review lại khi push thêm commit
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT REVIEW"
     base_branches:
       - main
       - dev-w1
@@ -21,7 +41,27 @@ reviews:
       - dev-w6
       - dev-w7
       - dev-w8
+  tools:
+    github-checks:
+      enabled: true
   path_instructions:
+    - path: "**"
+      instructions: |
+        QUAN TRỌNG: Hãy review code và trả lời theo format sau:
+
+        ## Kết luận
+        Chọn 1 trong: PASS | PASS_WITH_NOTES | NEEDS_CHANGES | REJECT
+        Giải thích ngắn gọn lý do.
+
+        ## Findings
+        Liệt kê các phát hiện theo format:
+        - [Mức độ: Critical/High/Medium/Low] Mô tả vấn đề. Nếu có, gợi ý fix.
+
+        ## Test nên chạy
+        Liệt kê các test case cần kiểm tra cho thay đổi này.
+
+        ## Ghi chú scope
+        Nhận xét về scope của PR: có phù hợp không, có cần tách nhỏ không.
     - path: "lib/commons/cubits/**"
       instructions: |
         Review Cubit/Bloc implementations:
