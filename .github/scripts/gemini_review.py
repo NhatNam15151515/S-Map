@@ -1,7 +1,7 @@
 import os
 import json
 import urllib.request
-import google.generativeai as genai
+from google import genai
 
 def main():
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
@@ -25,7 +25,6 @@ def main():
         print("Empty diff. Skipping Gemini review.")
         return
 
-    # Truncate diff if too long (> 30,000 chars) to stay safely within limits
     if len(diff_text) > 30000:
         diff_text = diff_text[:30000] + "\n... (diff truncated)"
 
@@ -61,15 +60,18 @@ DƯỚI ĐÂY LÀ DIFF CỦA PULL REQUEST:
 ```
 """
 
-    genai.configure(api_key=gemini_api_key)
+    client = genai.Client(api_key=gemini_api_key)
     
     review_comment = None
-    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-pro"]
+    models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"]
     
     for model_name in models_to_try:
         try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
+            print(f"Trying model: {model_name}...")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
             review_comment = response.text
             print(f"Successfully generated review using model: {model_name}")
             break
