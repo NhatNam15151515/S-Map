@@ -58,8 +58,9 @@ REGIONS = {
 }
 
 OSM_URL = "https://download.geofabrik.de/asia/vietnam-latest.osm.pbf"
-RAW_PBF = "vietnam-latest.osm.pbf"
-OUTPUT_DIR = Path("output_ghz")
+DATA_DIR = Path("data-pipeline/data")
+RAW_PBF = DATA_DIR / "raw" / "vietnam-latest.osm.pbf"
+OUTPUT_DIR = DATA_DIR / "output_ghz"
 
 def format_size(size_bytes):
     """Chuyển bytes sang MB/KB dễ đọc"""
@@ -94,8 +95,9 @@ def check_tools():
 def download_osm_data():
     """Tải OSM data Việt Nam từ Geofabrik nếu chưa có"""
     print("\n=== 2. Tải OSM Data Việt Nam ===")
-    if os.path.exists(RAW_PBF):
-        size = os.path.getsize(RAW_PBF)
+    RAW_PBF.parent.mkdir(parents=True, exist_ok=True)
+    if RAW_PBF.exists():
+        size = RAW_PBF.stat().st_size
         print(f"[OK] File {RAW_PBF} đã tồn tại ({format_size(size)}).")
         return True
 
