@@ -1,11 +1,12 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
-import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
-import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
+import 'package:s_map/screens/map/cubits/map_display_cubit/map_display_cubit.dart';
+import 'package:s_map/screens/map/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
 import 'package:s_map/screens/map/widgets/map_fab_buttons.dart';
 import 'package:s_map/screens/map/widgets/map_view.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class MapScreen extends StatefulWidget {
   static const String path = '/map';
@@ -50,7 +51,7 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
               if (state.status == MapDisplayStatus.error)
                 MapErrorOverlay(
                   errorMessage:
-                      state.errorMessage ?? 'Không thể tải dữ liệu bản đồ',
+                      state.errorMessage ?? tr('map.error_load'),
                   onRetry: cubit.locateMe,
                 ),
             ],
