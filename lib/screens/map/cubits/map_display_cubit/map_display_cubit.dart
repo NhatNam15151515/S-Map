@@ -35,7 +35,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
         );
       }
     } catch (e, stackTrace) {
-      DLog.error('Lỗi lấy vị trí hiện tại: $e', error: e, stackTrace: stackTrace);
+      DLog.error('Lỗi lấy vị trí hiện tại: $e');
       // Fallback vị trí mặc định TP.HCM mà không crash app
       emit(state.copyWith(
         currentPosition: state.currentPosition ?? const LatLng(10.7769, 106.7009),
