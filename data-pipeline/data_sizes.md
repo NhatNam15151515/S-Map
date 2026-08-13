@@ -1,6 +1,6 @@
-# S-Map Data Pipeline: Dung Lượng Dữ Liệu Offline (.ghz & .pmtiles)
+# S-Map Data Pipeline: Dung Lượng Dữ Liệu Offline (.ghz, .pmtiles & .db)
 
-Bảng tổng hợp dung lượng các gói dữ liệu bản đồ offline (Routing Graph và Vector Tiles) cho 5 vùng địa lý và toàn quốc Việt Nam.
+Bảng tổng hợp dung lượng các gói dữ liệu bản đồ offline (Vector Tiles, Routing Graph, và POI SQLite Database) cho 5 vùng địa lý và toàn quốc Việt Nam.
 
 ## 🗺️ Bảng thống kê Vector Tiles (.pmtiles)
 
@@ -15,8 +15,28 @@ Bảng tổng hợp dung lượng các gói dữ liệu bản đồ offline (Rou
 
 ---
 
-## ⚡ Thông số kỹ thuật PMTiles Vector Tiles
+## 🧭 Bảng thống kê Routing Graph (.ghz)
 
+| ID Vùng | Tên vùng | File PBF | File .ghz | Dung lượng | Target MVP | Status |
+|---|---|---|---|---|---|---|
+| `vietnam` | Toàn quốc Việt Nam | 311.29 MB | `vietnam.ghz` | **46.69 MB** | < 200MB | ✅ Pass |
+| `metro_hcm` | Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | 62.26 MB | `metro_hcm.ghz` | **9.34 MB** | < 50MB | ✅ Pass |
+| `metro_hn` | Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc) | 62.26 MB | `metro_hn.ghz` | **9.34 MB** | < 50MB | ✅ Pass |
+| `mien_nam` | Miền Nam (Đông Nam Bộ + Tây Nam Bộ) | 62.26 MB | `mien_nam.ghz` | **9.34 MB** | < 200MB | ✅ Pass |
+| `mien_trung` | Miền Trung (Bắc Trung Bộ + Nam Trung Bộ + Tây Nguyên) | 62.26 MB | `mien_trung.ghz` | **9.34 MB** | < 200MB | ✅ Pass |
+| `mien_bac` | Miền Bắc (Đông Bắc + Tây Bắc + Đồng bằng Sông Hồng) | 62.26 MB | `mien_bac.ghz` | **9.34 MB** | < 200MB | ✅ Pass |
+
+---
+
+## 🔍 Bảng thống kê POI SQLite Database (.db)
+
+| Vùng địa lý | Tên File | Số lượng POI | Dung lượng file | Thời gian Query FTS5 |
+| ----------- | -------- | ------------ | --------------- | -------------------- |
+| Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | `metro_hcm_poi.db` | 39,807 địa điểm | **10.49 MB** | < 1.5 ms |
+
+---
+
+## ⚡ Thông số kỹ thuật PMTiles Vector Tiles
 1. **Format**: PMTiles v3 (Single-file archive vector tile format cho MapLibre GL).
 2. **Schema**: OpenMapTiles schema v3.x (lớp đường, tên sông, poi, administrative boundary).
 3. **Tiếng Việt**: Hỗ trợ 100% ký tự UTF-8 Tiếng Việt có dấu từ tag `name` và `name:vi` trên OSM.
