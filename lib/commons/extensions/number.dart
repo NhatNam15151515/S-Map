@@ -1,5 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:boilerplate/commons/extensions/string.dart';
+import 'package:s_map/commons/extensions/string.dart';
 
 extension FormatNumber on num {
   ///[keepDecimalDigitLikeOrigin] set to true if you want to keep all the rest of digits numbers value

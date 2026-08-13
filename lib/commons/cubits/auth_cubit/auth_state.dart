@@ -1,5 +1,5 @@
-import 'package:boilerplate/commons/enums/enums.dart';
-import 'package:boilerplate/models/user.dart';
+import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/models/user.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class AuthState {

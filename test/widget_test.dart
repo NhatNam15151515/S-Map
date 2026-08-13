@@ -6,7 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:boilerplate/flavor/flavor_enum.dart';
+import 'package:s_map/flavor/flavor_enum.dart';
 
 void main() {
   group('FlavorEnum', () {

@@ -1,6 +1,7 @@
-import 'package:boilerplate/commons/mixin/app_bar_mixin.dart';
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
+import 'package:s_map/commons/mixin/app_bar_mixin.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,14 +16,14 @@ class AppBarContainer extends StatelessWidget with AppMixin {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: styles.light.appBarTheme.backgroundColor,
-        boxShadow: kElevationToShadow[1],
-        borderRadius: const BorderRadius.only(
-          bottomRight: Radius.circular(32),
-          bottomLeft: Radius.circular(32),
+        color: AppColors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.outlineVariant.withAlpha(128),
+            width: 0.5,
+          ),
         ),
       ),
-      clipBehavior: Clip.hardEdge,
       child: Padding(
         padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
         child: child,
@@ -49,11 +50,11 @@ class TitleAppBar extends StatelessWidget with AppMixin, AppBarMixin {
           alignment: Alignment.center,
           children: [
             if (leftWidget != null) Positioned(
-                right: 0,
+                left: 0,
                 child: leftWidget!),
             Text(
               title,
-              style: styles.whiteTextColor.textTheme.subTitleStyle.copyWith(
+              style: styles.blackTextColor.textTheme.subTitleStyle.copyWith(
                 fontSize: 18,
               ),
             ),
@@ -67,7 +68,7 @@ class TitleAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   }
 
   @override
-  double get appBarDesignHeight => 70;
+  double get appBarDesignHeight => 56;
 
 }
 
@@ -88,26 +89,29 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
           alignment: Alignment.center,
           children: [
             Positioned(
-              left: 0,
+              left: 4,
               child: IconButton(
                 onPressed: () {
                   context.pop();
                 },
                 icon: Icon(
-                  Icons.arrow_back,
-                  size: 22,
-                  color: styles.whiteTextColor,
+                  Icons.arrow_back_rounded,
+                  size: 24,
+                  color: styles.blackTextColor,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.transparent,
                 ),
               ),
             ),
             Text(
               title,
-              style: styles.whiteTextColor.textTheme.subTitleStyle.copyWith(
+              style: styles.blackTextColor.textTheme.subTitleStyle.copyWith(
                 fontSize: 18,
               ),
             ),
             if (trailingWidgets != null) Positioned(
-                right: 0,
+                right: 4,
                 child: trailingWidgets!)
           ],
         ),
@@ -116,9 +120,9 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   }
 
   @override
-  double get appBarDesignHeight => 70;
+  double get appBarDesignHeight => 56;
 
-  static double designHeight = 70;
+  static double designHeight = 56;
 }
 
 class AppSliverBar extends SliverPersistentHeaderDelegate with AppMixin {
@@ -140,11 +144,9 @@ class AppSliverBar extends SliverPersistentHeaderDelegate with AppMixin {
   double get min => MediaQuery.paddingOf(appContext).top;
 
   @override
-  // TODO: implement maxExtent
   double get maxExtent => min + TitleBackAppBar.designHeight;
 
   @override
-  // TODO: implement minExtent
   double get minExtent => min;
 
   @override

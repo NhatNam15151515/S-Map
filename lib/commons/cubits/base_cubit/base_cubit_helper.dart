@@ -1,4 +1,4 @@
-import 'package:boilerplate/commons/cubits/base_cubit/base_cubit.dart';
+import 'package:s_map/commons/cubits/base_cubit/base_cubit.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

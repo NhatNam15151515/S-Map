@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:isolate';
 
-import 'package:boilerplate/models/division.dart';
+import 'package:s_map/models/division.dart';
 import 'package:flutter/services.dart';
 
 class BundleLoadService {
