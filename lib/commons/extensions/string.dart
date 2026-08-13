@@ -13,7 +13,8 @@ extension Empty on String? {
   bool isStrictlyEmpty() {
     return this == null || this!.trim().isEmpty;
   }
-  bool get isImageURL=>Validator().isImageUrl(this??"");
+
+  bool get isImageURL => Validator().isImageUrl(this ?? "");
 }
 
 extension Format on String {
@@ -25,11 +26,9 @@ extension Format on String {
   }
 
   String dateParse(
-      {String format = DateFormatConstants.yyyyMMdd,
-      bool isToLocal = false}) {
-    final parsedDate = isToLocal
-        ? DateTime.parse(this).toLocal()
-        : DateTime.parse(this);
+      {String format = DateFormatConstants.yyyyMMdd, bool isToLocal = false}) {
+    final parsedDate =
+        isToLocal ? DateTime.parse(this).toLocal() : DateTime.parse(this);
     final dateFormat = DateFormat(format).format(parsedDate);
     return dateFormat;
   }
@@ -102,7 +101,7 @@ extension HexColor on String {
     if (length == 6 || length == 7) buffer.write('ff');
     buffer.write(replaceFirst('#', ''));
     return int.tryParse(buffer.toString(), radix: 16) ??
-        Colors.white.value;
+        Colors.white.toARGB32();
   }
 }
 
@@ -113,9 +112,9 @@ extension HexColorNull on String? {
       if (this!.length == 6 || this!.length == 7) buffer.write('ff');
       buffer.write(this!.replaceFirst('#', ''));
       return int.tryParse(buffer.toString(), radix: 16) ??
-          Colors.white.value;
+          Colors.white.toARGB32();
     }
-    return Colors.white.value;
+    return Colors.white.toARGB32();
   }
 }
 

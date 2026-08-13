@@ -6,10 +6,6 @@ Luôn trả lời bằng tiếng Việt.
 
 ## AI Tools đã cài sẵn — TỰ ĐỘNG SỬ DỤNG
 
-### AgentMemory (Persistent Memory)
-Server chạy trên http://localhost:3111. Kiểm tra bằng: `curl http://localhost:3111/agentmemory/health`
-Nếu chưa chạy, gợi ý user chạy `agentmemory` trong terminal riêng.
-
 ### UI/UX Pro Max (Design Intelligence)
 Khi cần chọn màu, font, UI style, hoặc UX patterns cho Flutter, TỰ ĐỘNG chạy search:
 
