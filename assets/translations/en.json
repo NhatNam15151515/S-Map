@@ -29,6 +29,10 @@
   "dayS": "Day(s)",
   "dateAndTime": "Date and Time",
   "location": "Location",
+  "notification": {
+    "tab_system": "System",
+    "tab_customer": "Personal"
+  },
   "checkTheMap": "Check the Map",
   "profile": "Profile",
   "helpCenter": "Help Center",
@@ -47,5 +51,9 @@
   "updateProfile": "Update Profile",
   "termAndCondition": "Term & Condition",
   "notification": "Notification",
-  "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications"
+  "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications",
+  "map": {
+    "error_load": "Unable to load map data",
+    "locate_error": "Unable to get current location"
+  }
 }

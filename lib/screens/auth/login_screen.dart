@@ -1,13 +1,13 @@
-import 'package:boilerplate/commons/cubits/generic_cubit/generic_cubit.dart';
-import 'package:boilerplate/commons/cubits/generic_cubit/generic_cubit_helper.dart';
-import 'package:boilerplate/commons/extensions/button.dart';
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/commons/validators/validator.dart';
-import 'package:boilerplate/commons/widgets/app_text_field.dart';
-import 'package:boilerplate/constants/app_asset.dart';
-import 'package:boilerplate/models/user.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/validators/validator.dart';
+import 'package:s_map/commons/widgets/app_text_field.dart';
+import 'package:s_map/constants/app_asset.dart';
+import 'package:s_map/models/user.dart';
 import 'package:flutter/material.dart';
+
+import 'package:s_map/services/firebase_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   static const String path = '/LoginScreen';
@@ -20,33 +20,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with AppMixin {
   late CustomTextEditingController usernameController;
   late CustomTextEditingController passwordController;
-  late GenericCubit<User> loginCubit;
-  late GenericCubit<User> socialLogin;
+  bool isLoading = false;
 
   @override
   void initState() {
     usernameController = CustomTextEditingController(text: "");
     passwordController = CustomTextEditingController(text: "");
-    loginCubit = GenericCubit(() => appRepos.authRepos.login(usernameController.text, passwordController.text));
-    loginCubit.listenToState(
-      onStateError: (err) => showError(err?.message),
-      onStateSuccess: (value) {
-        authCubit.onLoggedIn(value);
-      },
-    );
-    socialLogin = GenericCubit(() => appRepos.authRepos.login(usernameController.text, passwordController.text));
-    socialLogin.listenToState(
-      onStateError: (err) => showError(err?.message),
-      onStateSuccess: (value) {
-        authCubit.onLoggedIn(value);
-      },
-    );
     super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
   }
 
   @override
@@ -56,149 +36,262 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
     super.dispose();
   }
 
+  void _handleGoogleSignIn() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final user = await FirebaseAuthService.instance.signInWithGoogle();
+      if (user != null) {
+        authCubit.onLoggedIn(user);
+      }
+    } catch (e) {
+      showError("Đăng nhập Google thất bại: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _handleLogin({String? username}) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final user = User(
+        username: username ?? (usernameController.text.isNotEmpty ? usernameController.text : "Người dùng S-Map"),
+      );
+
+      // Lưu trạng thái đăng nhập và vào màn hình chính
+      authCubit.onLoggedIn(user);
+    } catch (e) {
+      showError("Đăng nhập thất bại: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: SafeArea(
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AppAsset.logo.image.build(
-                size: const Size(50, 50),
-              ),
-              const SizedBox(height: 40),
-              Text(
-                locale.loginToYourAccount,
-                style: styles.colorScheme.primary.textTheme.textTitleStyle.copyWith(
-                  fontSize: 24,
+              // Header with gradient & App Logo
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 36),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.sMapTealSurface,
+                      AppColors.white,
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              AppTextField(
-                title: locale.login,
-                controller: usernameController,
-                focusedBorder: styles.defaultBorder,
-                unfocusedBorder: styles.defaultBorder,
-                hint: locale.login,
-                validator: (value) => Validator.instance.isEmpty(value) ? "Tên đăng nhập không hợp lệ" : null,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                title: locale.password,
-                controller: passwordController,
-                focusedBorder: styles.defaultBorder,
-                unfocusedBorder: styles.defaultBorder,
-                hint: locale.password,
-                validator: (value) => Validator.instance.isEmpty(value) ? "Mật khẩu không hợp lệ" : null,
-                obscure: true,
-              ),
-              const SizedBox(height: 20),
-              loginCubit.blocBuilder(
-                builder: (context, snapshot) {
-                  return ElevatedButton(
-                    onPressed: () {
-                      final res = usernameController.validate() == true
-                          && passwordController.validate() == true;
-                      if(res) loginCubit.getData();
-                    },
-                    child: Text(
-                      locale.login,
-                      style: styles.greysTextColor.last.textTheme.textTitleStyle.copyWith(
-                        fontSize: 12,
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.sMapLightTeal,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.sMapTeal.withAlpha(30),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: AppAsset.logo.image.build(
+                        size: const Size(56, 56),
+                        color: AppColors.sMapTeal,
                       ),
                     ),
-                  ).buildLoadingButton(loginCubit.isLoadingState);
-                }
-              ),
-              // Container(
-              //   alignment: Alignment.center,
-              //   padding: const EdgeInsets.symmetric(vertical: 12.0),
-              //   child: Text(
-              //     locale.or().toLowerCase(),
-              //     style: styles.greysTextColor.first.textTheme.textTitleStyle.copyWith(
-              //       fontSize: 12,
-              //     ),
-              //   ),
-              // ),
-              // OutlinedButton(
-              //   style: styles.outlineButtonStyle.mergeOutlineColor(styles.defaultBorder.borderSide.color),
-              //   onPressed: () {
-              //     appRepos.authRepos.loginGoogle();
-              //   },
-              //   child: Row(
-              //     mainAxisSize: MainAxisSize.min,
-              //     children: [
-              //       AppAsset.google.image.build(),
-              //       const SizedBox(width: 8),
-              //       Text(
-              //         locale.continueWithGoogle(),
-              //         style: styles.greysTextColor[2].textTheme.subTitleStyle,
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              // const SizedBox(height: 12),
-              // OutlinedButton(
-              //   style: styles.outlineButtonStyle.mergeOutlineColor(styles.defaultBorder.borderSide.color),
-              //   onPressed: () {
-              //     appRepos.authRepos.loginFacebook();
-              //   },
-              //   child: Row(
-              //     mainAxisSize: MainAxisSize.min,
-              //     children: [
-              //       AppAsset.facebook.image.build(),
-              //       const SizedBox(width: 8),
-              //       Text(
-              //         locale.continueWithFacebook(),
-              //         style: styles.greysTextColor[2].textTheme.subTitleStyle,
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Text(
-                    locale.dontHaveAccountYet,
-                    style: styles.blackTextColor.textTheme.textStyle,
-                  ),
-                  const SizedBox(width: 4),
-                  TextButton(
-                    onPressed: () {
-                      // context.pushReplacement(SignUpScreen.path);
-                    },
-                    child: Text(
-                      locale.createOne,
-                      style: styles.colorScheme.primary.textTheme.textStyle.copyWith(
-                        decoration: TextDecoration.underline,
+                    const SizedBox(height: 16),
+                    Text(
+                      "S-Map",
+                      style: AppColors.sMapDarkTeal.textTheme.headlineStyle.copyWith(
+                        letterSpacing: 1,
+                        fontSize: 28,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Text(
-                    locale.forgotYourPassword,
-                    style: styles.blackTextColor.textTheme.textStyle,
-                  ),
-                  const SizedBox(width: 4),
-                  TextButton(
-                    onPressed: () {
-                      // context.pushReplacement(ForgotPasswordScreen.path);
-                    },
-                    child: Text(
-                      locale.resetIt,
-                      style: styles.colorScheme.primary.textTheme.textStyle.copyWith(
-                        decoration: TextDecoration.underline,
+                    const SizedBox(height: 6),
+                    Text(
+                      "Khám phá và lưu trữ địa điểm của bạn",
+                      style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                        fontSize: 14,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+
+              // Form Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Username / Email input
+                    AppTextField(
+                      title: "Tài khoản",
+                      controller: usernameController,
+                      hint: "Email hoặc tên đăng nhập",
+                      validator: (value) => Validator.instance.isEmpty(value)
+                          ? "Vui lòng nhập tên đăng nhập"
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Password input
+                    AppTextField(
+                      title: "Mật khẩu",
+                      controller: passwordController,
+                      hint: "Nhập mật khẩu",
+                      validator: (value) => Validator.instance.isEmpty(value)
+                          ? "Vui lòng nhập mật khẩu"
+                          : null,
+                      obscure: true,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Primary Login button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                final res = usernameController.validate() == true &&
+                                    passwordController.validate() == true;
+                                if (res) _handleLogin();
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.sMapTeal,
+                          foregroundColor: AppColors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(
+                                "Đăng nhập",
+                                style: AppColors.white.textTheme.subTitleStyle.copyWith(
+                                  fontSize: 16,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Divider with "hoặc"
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: AppColors.outlineVariant.withAlpha(150),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            "hoặc",
+                            style: AppColors.onSurfaceVariant.textTheme.captionStyle.copyWith(
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: AppColors.outlineVariant.withAlpha(150),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Google Sign-In Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton(
+                        onPressed: isLoading ? null : _handleGoogleSignIn,
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: AppColors.white,
+                          side: BorderSide(
+                            color: AppColors.outlineVariant.withAlpha(180),
+                            width: 1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          elevation: 0.5,
+                          shadowColor: Colors.black.withAlpha(15),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const _GoogleLogoWidget(size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              "Đăng nhập bằng Google",
+                              style: styles.blackTextColor.textTheme.boldStyle.copyWith(
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Guest / Skip login button (Trải nghiệm ngay)
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          _handleLogin(username: "Khách");
+                        },
+                        child: Text(
+                          "Trải nghiệm không cần đăng nhập",
+                          style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ],
           ),
@@ -206,4 +299,75 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
       ),
     );
   }
+}
+
+/// Official Google 4-Color Logo Widget
+class _GoogleLogoWidget extends StatelessWidget {
+  final double size;
+  const _GoogleLogoWidget({this.size = 24});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _GoogleLogoPainter(),
+      ),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double w = size.width;
+    final double h = size.height;
+    final center = Offset(w / 2, h / 2);
+    final radius = w / 2;
+
+    final strokeWidth = w * 0.22;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt;
+
+    final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
+
+    // Blue arc (bottom right to top right)
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect, -0.7, 1.4, false, paint);
+
+    // Green arc (bottom right to bottom left)
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(rect, 0.7, 1.3, false, paint);
+
+    // Yellow arc (bottom left to top left)
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(rect, 2.0, 1.4, false, paint);
+
+    // Red arc (top left to top right)
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect, 3.4, 1.2, false, paint);
+
+    // Blue horizontal bar
+    final barPaint = Paint()
+      ..color = const Color(0xFF4285F4)
+      ..style = PaintingStyle.fill;
+
+    final barHeight = strokeWidth;
+    final barWidth = radius + strokeWidth / 2;
+    canvas.drawRect(
+      Rect.fromLTWH(
+        center.dx,
+        center.dy - barHeight / 2,
+        barWidth - strokeWidth * 0.4,
+        barHeight,
+      ),
+      barPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

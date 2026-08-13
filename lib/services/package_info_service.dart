@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:boilerplate/flavor/flavor.dart';
+import 'package:s_map/flavor/flavor.dart';
 
 class PackageInfoService {
   PackageInfoService._() {

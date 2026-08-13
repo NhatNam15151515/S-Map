@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "779346109460",
-    "project_id": "boilerplate-aaron-tech",
-    "storage_bucket": "boilerplate-aaron-tech.appspot.com"
+    "project_number": "495182969568",
+    "project_id": "vn-s-map",
+    "storage_bucket": "vn-s-map.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:779346109460:android:11b0bd1bdd7dd8629b7301",
+        "mobilesdk_app_id": "1:495182969568:android:c4083fca783d0d9cd46e85",
         "android_client_info": {
-          "package_name": "com.aarontech.boilerplate.dev"
+          "package_name": "com.vnsmap.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "495182969568-fvs19etk25pk47i3gqgatpmhipc9a8ed.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vnsmap.app",
+            "certificate_hash": "002e3a046583204540de845b3bbe317fafd17c7f"
+          }
+        },
+        {
+          "client_id": "495182969568-86n8vjbstj6tunmrt1nqi2e9sddl0m5e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDKXo2tcww6Zt4G4ndxMELYsKrWvuX5VGI"
+          "current_key": "AIzaSyBd3_1M-0IErOc-NdHjC9mgAdS03Cx7DHQ"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "495182969568-86n8vjbstj6tunmrt1nqi2e9sddl0m5e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

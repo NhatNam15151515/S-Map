@@ -1,35 +1,33 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:boilerplate/services/api_service/api_response/base_api_response.dart';
-
+import 'package:s_map/models/app_error.dart';
 import 'generic_list_cubit.dart';
 import 'generic_list_cubit_state.dart';
 
-extension GenericListCubitHelper<T> on GenericListCubit<T> {
-
-  void listenToState({
-    Function(List<T>)? onStateSuccess,
-    Function(ErrorResponse?)? onStateError,
-    Function? onStateLoading,
-  }){
-    stream.listen((event) {
-      switch(event.type) {
-        case GenericListStateType.succeed: onStateSuccess?.call(state.value); return;
-        case GenericListStateType.loading: onStateLoading?.call(); return;
-        case GenericListStateType.error: onStateError?.call(state.errorResponse); return;
-        default: return;
+extension GenericListCubitListenState<T> on GenericListCubit<T> {
+  StreamSubscription<GenericListState<T>> listenToState({
+    Function(List<T> value)? onStateSuccess,
+    Function(AppError? err)? onStateError,
+    Function(GenericListStateType type)? onStateChange,
+  }) {
+    return stream.listen((event) {
+      onStateChange?.call(event.type);
+      if (event.type == GenericListStateType.succeed) {
+        onStateSuccess?.call(event.value);
+      }
+      if (event.type == GenericListStateType.error) {
+        onStateError?.call(event.errorMessage);
       }
     });
   }
 
   Widget blocBuilder({
-    required BlocWidgetBuilder<GenericListState<T>> builder,
-    BlocBuilderCondition<GenericListState<T>>? buildWhen,
-  }){
-    return BlocBuilder(
+    required Widget Function(BuildContext context, GenericListState<T> state) builder,
+  }) {
+    return BlocBuilder<GenericListCubit<T>, GenericListState<T>>(
       bloc: this,
       builder: builder,
-      buildWhen: buildWhen,
     );
   }
 }

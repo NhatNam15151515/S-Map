@@ -1,61 +1,50 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:boilerplate/models/user.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:boilerplate/services/api_service/interceptors/auth_interceptor.dart';
+import '../models/user.dart';
 
 class AppSecureStorage {
-  static const repos = FlutterSecureStorage(
-      aOptions: AndroidOptions(
-    encryptedSharedPreferences: true,
-  ));
+  static const FlutterSecureStorage repos = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
 
-  static const String loggedInProfile = "logged_in_profile";
-  static const String appAccessToken = "app_access_token";
-  static const String requestLocalAuth = "req_local_auth";
-  static const String firstInstall = "first_install";
+  static const String appAccessToken = "appAccessToken";
+  static const String loggedInProfile = "loggedInProfile";
+  static const String requestLocalAuth = "requestLocalAuth";
 
-  static Future<void> saveProfile(User profile) {
-    final value = json.encode(profile.toJson());
-    return repos.write(key: loggedInProfile, value: value);
+  static Future<void> saveAuthToken(String token) async {
+    await repos.write(key: appAccessToken, value: token);
+  }
+
+  static Future<String?> getStoredAuthToken() async {
+    final token = await repos.read(key: appAccessToken);
+    return token;
+  }
+
+  static Future<void> saveProfile(User user) async {
+    await repos.write(key: loggedInProfile, value: jsonEncode(user.toJson()));
   }
 
   static Future<User?> getStoredProfile() async {
-    final res = await repos.read(key: loggedInProfile);
-
-    if (res == null) return Future.value(null);
-
-    final map = json.decode(res);
-    return User.fromJson(map);
+    final rawProfile = await repos.read(key: loggedInProfile);
+    if (rawProfile != null) {
+      try {
+        return User.fromJson(jsonDecode(rawProfile));
+      } catch (_) {}
+    }
+    return null;
   }
 
-  static Future<void> saveAuthToken(AuthToken authToken) {
-    final value = json.encode(authToken.toJson());
-    return repos.write(key: appAccessToken, value: value);
-  }
-
-  static Future<AuthToken?> getStoredAuthToken() async {
-    final res = await repos.read(key: appAccessToken);
-
-    if (res == null) return Future.value(null);
-
-    final map = json.decode(res);
-    return AuthToken.fromJson(map);
-  }
-
-  static Future<void> saveReqAuth(bool accepted) {
-    return accepted
-        ? repos.write(key: requestLocalAuth, value: "true")
-        : repos.delete(key: requestLocalAuth);
+  static Future<void> saveReqAuth(bool value) async {
+    await repos.write(key: requestLocalAuth, value: value ? "1" : "0");
   }
 
   static Future<bool> getReqAuth() async {
-    final res = await repos.read(key: requestLocalAuth);
-
-    if (res == "true") return true;
-
-    return false;
+    final raw = await repos.read(key: requestLocalAuth);
+    return raw == "1";
   }
 
   static Future<void> onLogOutClear() {
@@ -71,13 +60,11 @@ class AppSharedPreferences {
   late SharedPreferences prefs;
   Completer<bool> initComplete = Completer();
   static const String firstInstall = "first_install";
-  static const String cart = "cart";
   static const String savedStore = "savedStore";
 
   static AppSharedPreferences? _instance;
 
-  factory AppSharedPreferences() =>
-      _instance ??= AppSharedPreferences._();
+  factory AppSharedPreferences() => _instance ??= AppSharedPreferences._();
 
   AppSharedPreferences._() {
     initial();
@@ -88,17 +75,13 @@ class AppSharedPreferences {
     initComplete.complete(true);
   }
 
-  Future<bool> save1stInstall() async {
-    await initComplete.future;
-    return prefs.setBool(firstInstall, true);
-  }
-
   Future<bool> get1stInstall() async {
     await initComplete.future;
-    return prefs.getBool(firstInstall) == null;
+    return prefs.getBool(firstInstall) ?? true;
   }
 
-  Future<void> onLogOutClear() async {
-    return;
+  Future<void> save1stInstall() async {
+    await initComplete.future;
+    await prefs.setBool(firstInstall, false);
   }
 }
