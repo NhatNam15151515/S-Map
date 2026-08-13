@@ -7,10 +7,10 @@ plugins {
 }
 
 def env = [
-        DISPLAY_NAME: 'Boilerplate',
+        DISPLAY_NAME: 'S-Map',
         FLUTTER_BUILD_NAME: '1.0.0',
         FLUTTER_BUILD_NUMBER_ANDROID: '1',
-        BUNDLE_ID: 'com.aarontech.boilerplate.dev',
+        BUNDLE_ID: 'com.vnsmap.app',
         FLAVOR: 'dev',
 ]
 
@@ -48,13 +48,17 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.aarontech.boilerplate"
+    namespace = "com.vnsmap.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     sourceSets {
@@ -75,10 +79,17 @@ android {
 
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-            storePassword keystoreProperties['storePassword']
+            if (keystoreProperties['storeFile'] != null && file(keystoreProperties['storeFile']).exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            } else {
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+                storeFile file("${System.getProperty('user.home')}/.android/debug.keystore")
+                storePassword 'android'
+            }
         }
     }
 
@@ -100,3 +111,15 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core:1.15.0'
+        force 'androidx.core:core-ktx:1.15.0'
+    }
+}
+

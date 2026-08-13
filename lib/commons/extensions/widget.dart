@@ -1,4 +1,4 @@
-import 'package:boilerplate/commons/styles/styles.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 

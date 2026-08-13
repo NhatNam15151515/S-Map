@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:boilerplate/services/api_service/api_response/base_api_response.dart';
+import 'package:s_map/models/app_error.dart';
 import 'generic_cubit_state.dart';
 
 typedef GenericCubitInputFuture<T> = Future<T> Function();
@@ -10,24 +10,22 @@ class GenericCubit<T> extends Cubit<GenericState<T>> {
   final GenericCubitInputFuture<T?> future;
 
   bool get isLoadingState => state.type == GenericStateType.loading;
-
   bool get isErrorState => state.type == GenericStateType.error;
-
   bool get isSuccessState => state.type == GenericStateType.succeed;
 
   void getData() async {
     emit(GenericState<T>(type: GenericStateType.loading));
     try {
       final res = await future.call();
-      if(res != null) {
+      if (res != null) {
         emit(GenericState<T>(type: GenericStateType.succeed, value: res));
       } else {
-        emit(GenericState<T>(type: GenericStateType.error, errorMessage: ErrorResponse.defaultError()));
+        emit(GenericState<T>(type: GenericStateType.error, errorMessage: AppError.defaultError()));
       }
-    } on ErrorResponse catch(e) {
+    } on AppError catch (e) {
       emit(GenericState<T>(type: GenericStateType.error, errorMessage: e));
-    } catch(e) {
-      emit(GenericState<T>(type: GenericStateType.error, errorMessage: ErrorResponse.defaultError(
+    } catch (e) {
+      emit(GenericState<T>(type: GenericStateType.error, errorMessage: AppError.defaultError(
         statusMessage: e.toString(),
       )));
     }
@@ -35,7 +33,7 @@ class GenericCubit<T> extends Cubit<GenericState<T>> {
 
   @override
   void emit(GenericState<T> state) {
-    if(isClosed) return;
+    if (isClosed) return;
     super.emit(state);
   }
 }
@@ -46,20 +44,18 @@ class GenericNonNullCubit<T> extends Cubit<GenericState<T>> {
   final GenericCubitInputFuture<T> future;
 
   bool get isLoadingState => state.type == GenericStateType.loading;
+  bool get isErrorState => state.type == GenericStateType.error;
+  bool get isSuccessState => state.type == GenericStateType.succeed;
 
   void getData() async {
     emit(GenericState<T>(type: GenericStateType.loading));
     try {
       final res = await future.call();
-      if(res != null) {
-        emit(GenericState<T>(type: GenericStateType.succeed, value: res));
-      } else {
-        emit(GenericState<T>(type: GenericStateType.error, errorMessage: ErrorResponse.defaultError()));
-      }
-    } on ErrorResponse catch(e) {
+      emit(GenericState<T>(type: GenericStateType.succeed, value: res));
+    } on AppError catch (e) {
       emit(GenericState<T>(type: GenericStateType.error, errorMessage: e));
-    } catch(e) {
-      emit(GenericState<T>(type: GenericStateType.error, errorMessage: ErrorResponse.defaultError(
+    } catch (e) {
+      emit(GenericState<T>(type: GenericStateType.error, errorMessage: AppError.defaultError(
         statusMessage: e.toString(),
       )));
     }
@@ -67,7 +63,7 @@ class GenericNonNullCubit<T> extends Cubit<GenericState<T>> {
 
   @override
   void emit(GenericState<T> state) {
-    if(isClosed) return;
+    if (isClosed) return;
     super.emit(state);
   }
 }

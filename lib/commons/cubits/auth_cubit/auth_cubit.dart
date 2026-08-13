@@ -1,10 +1,10 @@
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_state.dart';
-import 'package:boilerplate/commons/log/log.dart';
-import 'package:boilerplate/models/user.dart';
-import 'package:boilerplate/services/firebase_analytics_service.dart';
-import 'package:boilerplate/services/flutter_secure.dart';
-import 'package:boilerplate/services/local_auth_service.dart';
+import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_state.dart';
+import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/models/user.dart';
+import 'package:s_map/services/firebase_analytics_service.dart';
+import 'package:s_map/services/flutter_secure.dart';
+import 'package:s_map/services/local_auth_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -92,7 +92,6 @@ class AuthCubit extends Cubit<AuthState> {
     emit(UnAuthenticated());
     profileController.onLogout();
     await AppSecureStorage.onLogOutClear();
-    await AppSharedPreferences().onLogOutClear();
     if(requestLogout) await _requestLogout();
   }
 

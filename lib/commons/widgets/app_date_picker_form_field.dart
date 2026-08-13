@@ -1,11 +1,11 @@
-import 'package:boilerplate/commons/styles/themes/default_theme.dart';
-import 'package:boilerplate/commons/utils/app_colors.dart';
+import 'package:s_map/commons/styles/themes/default_theme.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
 
 class DatePickerFormField extends FormField<DateTime> {
 

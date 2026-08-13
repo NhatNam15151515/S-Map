@@ -1,4 +1,4 @@
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 

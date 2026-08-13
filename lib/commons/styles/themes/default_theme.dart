@@ -1,81 +1,98 @@
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/commons/utils/app_colors.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class DefaultTheme extends AppStyle {
   @override
-  // TODO: implement colorScheme
   ColorScheme get colorScheme => const ColorScheme(
         brightness: Brightness.light,
-        primary: AppColors.sonicBlue,
-        onPrimary: AppColors.emperorJade,
-        secondary: AppColors.burningTrail,
-        onSecondary: AppColors.peachesLaCrMe,
-        error: AppColors.redPigment,
-        onError: AppColors.redPigment,
+        primary: AppColors.sMapTeal,
+        onPrimary: AppColors.white,
+        secondary: AppColors.sMapDarkTeal,
+        onSecondary: AppColors.white,
+        error: AppColors.googleRed,
+        onError: AppColors.white,
         surface: AppColors.white,
-        onSurface: AppColors.lynxWhite,
+        onSurface: AppColors.googleDarkText,
+        surfaceContainerHighest: AppColors.surfaceContainerHighest,
+        outline: AppColors.outlineVariant,
       );
 
   @override
   InputBorder get defaultBorder => OutlineInputBorder(
-        borderSide: BorderSide(
+        borderSide: const BorderSide(
           width: 1,
-          color: greysTextColor[1],
+          color: AppColors.outlineVariant,
         ),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(12),
       );
 
   @override
   InputBorder get errorBorder => OutlineInputBorder(
         borderSide: const BorderSide(
-          width: 1,
-          color: AppColors.redPigment,
+          width: 1.5,
+          color: AppColors.googleRed,
         ),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(12),
       );
 
   @override
-  // TODO: implement searchContainer
   BoxDecoration get searchContainer => BoxDecoration(
-        color: greysTextColor.last,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: greysTextColor[3],
-          width: 1,
-        ),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       );
 
   @override
-  // TODO: implement light
   ThemeData get light => ThemeData(
         brightness: Brightness.light,
         colorScheme: colorScheme,
-        unselectedWidgetColor: AppColors.tangledWeb,
-        scaffoldBackgroundColor: AppColors.lynxWhite,
+        useMaterial3: true,
+        unselectedWidgetColor: AppColors.onSurfaceVariant,
+        scaffoldBackgroundColor: AppColors.surfaceDim,
         fontFamily: 'Montserrat',
         cardTheme: CardThemeData(
+          elevation: 0.5,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          surfaceTintColor: Colors.transparent,
+          color: AppColors.white,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: AppColors.googleDarkText,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
-        snackBarTheme: const SnackBarThemeData(
-          backgroundColor: AppColors.antarcticDeep,
-        ),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           type: BottomNavigationBarType.fixed,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          backgroundColor: colorScheme.primary,
-          selectedItemColor: whiteTextColor,
-          unselectedItemColor: AppColors.grey,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          backgroundColor: AppColors.white,
+          selectedItemColor: AppColors.sMapTeal,
+          unselectedItemColor: AppColors.onSurfaceVariant,
           selectedLabelStyle: TextStyle(
-            fontSize: 11,
-            color: colorScheme.secondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.sMapTeal,
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 11,
-            color: AppColors.grey,
+          unselectedLabelStyle: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: AppColors.onSurfaceVariant,
           ),
         ),
         textButtonTheme: TextButtonThemeData(
@@ -88,79 +105,120 @@ class DefaultTheme extends AppStyle {
           style: outlineButtonStyle,
         ),
         inputDecorationTheme: InputDecorationTheme(
-          // isDense: true,
-          // isCollapsed: true,
-          // contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16).add(EdgeInsets.only(top: 4)),
-          hintStyle: greysTextColor[0].textTheme.textStyle.copyWith(
-                fontSize: 13,
-              ),
+          filled: true,
+          fillColor: AppColors.surfaceContainer,
+          hintStyle: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+            fontSize: 14,
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: AppColors.sMapTeal,
+              width: 1.5,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: AppColors.googleRed,
+              width: 1.5,
+            ),
+          ),
         ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: colorScheme.primary,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.white,
+          foregroundColor: AppColors.googleDarkText,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          surfaceTintColor: Colors.transparent,
+        ),
+        dividerTheme: const DividerThemeData(
+          color: AppColors.outlineVariant,
+          thickness: 0.5,
+          space: 0,
+        ),
+        chipTheme: ChipThemeData(
+          backgroundColor: AppColors.surfaceContainer,
+          selectedColor: AppColors.sMapLightTeal,
+          labelStyle: AppColors.googleDarkText.textTheme.boldStyle
+              .copyWith(fontSize: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          side: BorderSide.none,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
       );
 
   @override
-  // TODO: implement blackTextColor
-  Color get blackTextColor => AppColors.black;
+  Color get blackTextColor => AppColors.googleDarkText;
 
   @override
-  // TODO: implement whiteTextColor
   Color get whiteTextColor => AppColors.white;
 
   @override
-  // TODO: implement greysTextColor
   List<Color> get greysTextColor => [
-        AppColors.millionGrey, //900
-        AppColors.argent, //800
-        AppColors.doveGrey, //6c
-        AppColors.extraordinaryAbundanceOfTinge, //100
+        AppColors.onSurfaceVariant, //600
+        AppColors.argent, //500
+        AppColors.doveGrey, //400
+        AppColors.outlineVariant, //200
         AppColors.whiteOut, //50
       ];
 
   @override
-  // TODO: implement buttonStyle
   ButtonStyle get buttonStyle => ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(colorScheme.secondary),
+        backgroundColor: WidgetStateProperty.all(colorScheme.primary),
+        foregroundColor: WidgetStateProperty.all(AppColors.white),
         elevation: WidgetStateProperty.all(0),
-        minimumSize: WidgetStateProperty.all(Size.zero),
-        padding: WidgetStateProperty.all(const EdgeInsets.all(10)),
+        minimumSize: WidgetStateProperty.all(const Size(0, 48)),
+        padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
         shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0))),
-        overlayColor:
-            WidgetStatePropertyAll(AppColors.cascadingWhite.withAlpha(51)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+        overlayColor: WidgetStatePropertyAll(AppColors.white.withAlpha(30)),
       );
 
   @override
-  // TODO: implement outlineButtonStyle
   ButtonStyle get outlineButtonStyle => ButtonStyle(
         backgroundColor: WidgetStateProperty.all(AppColors.white),
+        foregroundColor: WidgetStateProperty.all(AppColors.googleDarkText),
         elevation: WidgetStateProperty.all(0),
-        minimumSize: WidgetStateProperty.all(Size.zero),
-        padding: WidgetStateProperty.all(const EdgeInsets.all(10)),
+        minimumSize: WidgetStateProperty.all(const Size(0, 48)),
+        padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
         shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0))),
-        side: WidgetStateProperty.all(BorderSide(
-          color: colorScheme.primary, // your color here
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+        side: WidgetStateProperty.all(const BorderSide(
+          color: AppColors.outlineVariant,
           width: 1,
         )),
       );
 
   @override
-  // TODO: implement textButtonStyle
   ButtonStyle get textButtonStyle => ButtonStyle(
         minimumSize: WidgetStateProperty.all(Size.zero),
         padding: WidgetStateProperty.all(EdgeInsets.zero),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: WidgetStateProperty.all(AppColors.sMapTeal),
       );
 
   @override
-  // TODO: implement whiteButton
   ButtonStyle get whiteButton => buttonStyle
       .mergeBackgroundColor(
         Colors.white,
       )
       .copyWith(
+        foregroundColor: const WidgetStatePropertyAll(AppColors.googleDarkText),
         overlayColor: WidgetStatePropertyAll(AppColors.grey.withAlpha(26)),
       );
 }
@@ -170,13 +228,12 @@ extension ButtonStyleExtension on ButtonStyle {
       ? this
       : copyWith(
           backgroundColor: WidgetStateProperty.all(color),
-          // overlayColor: WidgetStateProperty.all(color)
         );
   ButtonStyle mergeOutlineColor(Color? color) => color == null
       ? this
       : copyWith(
           side: WidgetStateProperty.all(BorderSide(
-          color: color, // your color here
+          color: color,
           width: 1,
         )));
 }

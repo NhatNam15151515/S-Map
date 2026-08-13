@@ -2,7 +2,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:boilerplate/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
 
 mixin UploadImageMixin {
   Widget buildShimmerImage(

@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/models/notification_model.dart';
-import 'package:boilerplate/models/user.dart';
-import 'package:boilerplate/routers/routers.dart';
-import 'package:boilerplate/services/firebase_messaging_services.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_cubit.dart';
+import 'package:s_map/models/notification_model.dart';
+import 'package:s_map/models/user.dart';
+import 'package:s_map/routers/routers.dart';
+import 'package:s_map/services/firebase_messaging_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

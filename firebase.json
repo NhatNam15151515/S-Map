@@ -3,14 +3,14 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "boilerplate-aaron-tech",
+          "projectId": "vn-s-map",
           "appId": "1:779346109460:android:11b0bd1bdd7dd8629b7301",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "ios": {
         "default": {
-          "projectId": "boilerplate-aaron-tech",
+          "projectId": "vn-s-map",
           "appId": "1:779346109460:ios:43c1a3e120f0b4dd9b7301",
           "uploadDebugSymbols": true,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
@@ -18,7 +18,7 @@
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "boilerplate-aaron-tech",
+          "projectId": "vn-s-map",
           "configurations": {
             "android": "1:779346109460:android:11b0bd1bdd7dd8629b7301",
             "ios": "1:779346109460:ios:43c1a3e120f0b4dd9b7301"

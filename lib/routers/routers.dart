@@ -1,29 +1,29 @@
 import 'dart:async';
 
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/commons/enums/enums.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/commons/utils/app_colors.dart';
-import 'package:boilerplate/commons/utils/app_image.dart';
-import 'package:boilerplate/commons/widgets/maintenance_popup.dart';
-import 'package:boilerplate/commons/widgets/update_popup.dart';
-import 'package:boilerplate/constants/app_asset.dart';
-import 'package:boilerplate/generated/locale_keys.g.dart';
-import 'package:boilerplate/screens/auth/login_screen.dart';
-import 'package:boilerplate/screens/initial/initial_screen.dart';
-import 'package:boilerplate/screens/main/full_image.dart';
-import 'package:boilerplate/screens/main/home/home_screen.dart';
-import 'package:boilerplate/screens/main/main_screen.dart';
-import 'package:boilerplate/screens/main/notification/notification_screen.dart';
-import 'package:boilerplate/screens/main/slip/cart_screen.dart';
-import 'package:boilerplate/screens/main/user/user_screen.dart';
-import 'package:boilerplate/screens/map/map_screen.dart';
-import 'package:boilerplate/screens/search/search_screen.dart';
-import 'package:boilerplate/screens/navigation/navigation_screen.dart';
-import 'package:boilerplate/screens/route_drawing/route_drawing_screen.dart';
-import 'package:boilerplate/screens/stats/stats_screen.dart';
-import 'package:boilerplate/screens/settings/settings_screen.dart';
-import 'package:boilerplate/services/remote_config_service.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_cubit.dart';
+import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/app_image.dart';
+import 'package:s_map/commons/widgets/maintenance_popup.dart';
+import 'package:s_map/commons/widgets/update_popup.dart';
+import 'package:s_map/constants/app_asset.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/screens/auth/login_screen.dart';
+import 'package:s_map/screens/initial/initial_screen.dart';
+import 'package:s_map/screens/main/full_image.dart';
+import 'package:s_map/screens/main/home/home_screen.dart';
+import 'package:s_map/screens/main/main_screen.dart';
+import 'package:s_map/screens/main/notification/notification_screen.dart';
+import 'package:s_map/screens/main/saved/saved_screen.dart';
+import 'package:s_map/screens/main/user/user_screen.dart';
+import 'package:s_map/screens/map/map_screen.dart';
+import 'package:s_map/screens/search/search_screen.dart';
+import 'package:s_map/screens/navigation/navigation_screen.dart';
+import 'package:s_map/screens/route_drawing/route_drawing_screen.dart';
+import 'package:s_map/screens/stats/stats_screen.dart';
+import 'package:s_map/screens/settings/settings_screen.dart';
+import 'package:s_map/services/remote_config_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
@@ -107,10 +107,10 @@ class Routes extends NavigatorObserver {
               ],
             ),
             StatefulShellBranch(
-              routes: <RouteBase>[
+              routes: [
                 GoRoute(
-                  path: CartScreen.path,
-                  builder: (context, state) => const CartScreen(),
+                  path: SavedScreen.path,
+                  builder: (context, state) => const SavedScreen(),
                 ),
               ],
             ),

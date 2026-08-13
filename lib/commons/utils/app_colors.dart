@@ -152,6 +152,30 @@ class AppColors {
   static const sonicBlue = Color(0xFF17569b);
   static const coarseWool = Color(0xFF181b26);
 
+  // Google Maps Theme Colors
+  static const googleBlue = Color(0xFF1A73E8);
+  static const googleGreen = Color(0xFF34A853);
+  static const googleRed = Color(0xFFEA4335);
+  static const googleYellow = Color(0xFFFBBC04);
+  static const googleDarkText = Color(0xFF3C4043);
+  static const googleGreyText = Color(0xFF70757A);
+  static const googleLightBg = Color(0xFFF8F9FA);
+
+  // S-Map Brand Colors
+  static const sMapTeal = Color(0xFF00B996);
+  static const sMapDarkTeal = Color(0xFF006653);
+  static const sMapLightTeal = Color(0xFFE0F7F3);
+  static const sMapTealSurface = Color(0xFFF0FBF8);
+  static const sMapTealGradientStart = Color(0xFF00D4AA);
+  static const sMapTealGradientEnd = Color(0xFF006653);
+
+  // Semantic Surface Colors (Material 3 inspired)
+  static const surfaceContainer = Color(0xFFF1F3F4);
+  static const surfaceContainerHigh = Color(0xFFE8EAED);
+  static const surfaceContainerHighest = Color(0xFFDFE1E5);
+  static const outlineVariant = Color(0xFFDADCE0);
+  static const surfaceDim = Color(0xFFF8F9FA);
+  static const onSurfaceVariant = Color(0xFF5F6368);
 
 }
 
