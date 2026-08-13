@@ -22,3 +22,9 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
 2. **`vietnam.ghz`**: Target **< 200MB** cho toàn quốc, vừa vặn lưu trong bộ nhớ máy.
 3. **Mã nén**: Zip compression level standard (DEFLATED).
 4. **Contraction Hierarchies (CH)**: Được bật sẵn để query route < 500ms trực tiếp trên thiết bị Android/iOS.
+
+## POI SQLite Database (.db)
+
+| Vùng địa lý | Tên File | Số lượng POI | Dung lượng file | Thời gian Query FTS5 |
+| ----------- | -------- | ------------ | --------------- | -------------------- |
+| Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | `metro_hcm_poi.db` | 39,807 địa điểm | 10.49 MB | < 20 ms |
