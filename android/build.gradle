@@ -13,6 +13,28 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+subprojects {
+    plugins.withId("com.android.library") {
+        android {
+            compileSdk 34
+            if (namespace == null) {
+                def manifestFile = project.file("src/main/AndroidManifest.xml")
+                if (manifestFile.exists()) {
+                    def manifestText = manifestFile.text
+                    def matcher = manifestText =~ /package="([^"]+)"/
+                    if (matcher.find()) {
+                        namespace = matcher.group(1)
+                    } else {
+                        namespace = "com.example.${project.name.replace('-', '_')}"
+                    }
+                } else {
+                    namespace = "com.example.${project.name.replace('-', '_')}"
+                }
+            }
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
