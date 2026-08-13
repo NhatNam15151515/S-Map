@@ -37,11 +37,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAvlC92QkF6Cee5lnBjyaEG-Zv5lZbTYXw',
-    appId: '1:779346109460:ios:43c1a3e120f0b4dd9b7301',
-    messagingSenderId: '779346109460',
+    apiKey: 'AIzaSyBd3_1M-0IErOc-NdHjC9mgAdS03Cx7DHQ',
+    appId: '1:495182969568:ios:c4083fca783d0d9cd46e85',
+    messagingSenderId: '495182969568',
     projectId: 'vn-s-map',
-    storageBucket: 'vn-s-map.appspot.com',
+    storageBucket: 'vn-s-map.firebasestorage.app',
     iosBundleId: 'com.vnsmap.app',
   );
 }

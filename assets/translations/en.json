@@ -29,6 +29,10 @@
   "dayS": "Day(s)",
   "dateAndTime": "Date and Time",
   "location": "Location",
+  "notification": {
+    "tab_system": "System",
+    "tab_customer": "Personal"
+  },
   "checkTheMap": "Check the Map",
   "profile": "Profile",
   "helpCenter": "Help Center",
