@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/commons/log/log.dart';
-import 'package:boilerplate/models/notification_model.dart';
-import 'package:boilerplate/routers/routers.dart';
-import 'package:boilerplate/services/local_notification_service.dart';
+import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_cubit.dart';
+import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/models/notification_model.dart';
+import 'package:s_map/routers/routers.dart';
+import 'package:s_map/services/local_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
@@ -19,7 +19,7 @@ class FirebaseMessagingService {
   static FirebaseMessagingService instance =
       FirebaseMessagingService._();
 
-  late final FirebaseMessaging _messaging;
+  FirebaseMessaging? _messaging;
 
   Completer fmsCompleter = Completer();
 
@@ -32,17 +32,15 @@ class FirebaseMessagingService {
   BehaviorSubject<NotificationModel?> comingNotificationListener = BehaviorSubject.seeded(null);
 
   Future<void> init() async {
-    // 1. Initialize the Firebase app
-    await Firebase.initializeApp();
+    try {
+      // Instantiate Firebase Messaging
+      _messaging = FirebaseMessaging.instance;
 
-    // 2. Instantiate Firebase Messaging
-    _messaging = FirebaseMessaging.instance;
-
-    // 3. On iOS, this helps to take the user permissions
-    NotificationSettings settings =
-        await _messaging.requestPermission(
-      alert: true,
-      badge: true,
+      // On iOS, this helps to take the user permissions
+      NotificationSettings settings =
+          await _messaging!.requestPermission(
+        alert: true,
+        badge: true,
       provisional: false,
       sound: true,
     );
@@ -84,17 +82,25 @@ class FirebaseMessagingService {
         onClickNotification(appNotification, openFromBanner: true);
         //8. Route handle
       });
-    } else {
-      DLog.info(
-        'Messaging Permission -> User declined or has not accepted permission',
-      );
+      } else {
+        DLog.info(
+          'Messaging Permission -> User declined or has not accepted permission',
+        );
+      }
+    } catch (e) {
+      DLog.error('FirebaseMessaging init error: $e');
     }
   }
 
   //9. get FCM Token
   Future<String?> getToken() async {
-    final fcmToken = await _messaging.getToken();
-    return fcmToken;
+    try {
+      final fcmToken = await _messaging?.getToken();
+      return fcmToken;
+    } catch (e) {
+      DLog.error('Error getting FCM token: $e');
+      return null;
+    }
   }
 
   Future<void> onClickNotification(
@@ -105,11 +111,15 @@ class FirebaseMessagingService {
   }
 
   Future<void> onAppStartedWithNotification() async {
-    final initFromFB = await _messaging.getInitialMessage();
-    if (initFromFB != null) {
-      final initMessage = NotificationModel.fromJson(initFromFB.data);
-      initMessage.jsonData = initFromFB.data;
-      await onClickNotification(initMessage);
+    try {
+      final initFromFB = await _messaging?.getInitialMessage();
+      if (initFromFB != null) {
+        final initMessage = NotificationModel.fromJson(initFromFB.data);
+        initMessage.jsonData = initFromFB.data;
+        onClickNotification(initMessage, openFromBanner: true);
+      }
+    } catch (e) {
+      DLog.error('Error checking initial notification: $e');
     }
   }
 }
@@ -131,58 +141,15 @@ extension NotificationHandle on NotificationModel {
   AuthCubit get authCubit => routeContext.read<AuthCubit>();
 
   Future<void> onOpen() async {
-    // NotificationModel? detail = await read();
-
-    // authCubit.notificationController.getStatistic(projectId);
-
-    switch (type) {
-      case 1:
-        return;
-      case 2:
-        return;
-      case 3:
-        return;
-      case 5:
-      case 6:
-      case 7:
-        return;
-      case 4:
-      case 8:
-        return;
-    }
-    // _goToNotificationDetailScreen(detail);
-    return;
+    // Handle opening notification
   }
 
-  // void _goToNotificationDetailScreen(NotificationModel? detail) {
-    // routeContext.push(NotificationDetailScreen.path, extra: detail);
-  // }
-
   Future<NotificationModel> read() async {
-    try {
-      // final res = await appCubit.appReposProvider.notiRepos
-      //     .getDetailNotification(
-      //         projectID: projectId.toString(),
-      //         notiItemId: notiItemId!);
-      return this;
-    } catch (_) {}
     return this;
   }
 
   Future<void> onListen() async {
-    switch (type) {
-      case 1:
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-      case 6:
-        return;
-      case 7:
-        return;
-      case 8:
-        return;
-    }
+    // Handle background notification receive
   }
 }
 

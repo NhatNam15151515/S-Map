@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:boilerplate/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/flavor/flavor.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/flavor/flavor.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdatePopup extends StatelessWidget with AppMixin {

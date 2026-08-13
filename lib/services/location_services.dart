@@ -14,6 +14,8 @@ class LocationService {
 
   Position get position => _position;
   (double, double) get latLng => (_position.latitude, _position.longitude);
+  Stream<Position> get positionStream => Geolocator.getPositionStream();
+  Future<Position> getCurrentPosition() => _determinePosition();
 
   static LocationService instance = LocationService();
 

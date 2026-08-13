@@ -1,7 +1,7 @@
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
-import 'package:boilerplate/commons/log/log.dart';
-import 'package:boilerplate/services/flutter_secure.dart';
-import 'package:boilerplate/models/user.dart';
+import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
+import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/services/flutter_secure.dart';
+import 'package:s_map/models/user.dart';
 import 'package:flutter/material.dart';
 
 class ProfileController {

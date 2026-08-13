@@ -1,6 +1,6 @@
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/widgets/main_bottom_bar.dart';
-import 'package:boilerplate/services/firebase_messaging_services.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/widgets/main_bottom_bar.dart';
+import 'package:s_map/services/firebase_messaging_services.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -29,6 +29,7 @@ class _MainScreenState extends State<MainScreen> with AppMixin {
     return Scaffold(
       body: widget.navigationShell,
       resizeToAvoidBottomInset: false,
+      extendBody: true,
       bottomNavigationBar: AppMainBottomBar(widget.navigationShell),
     );
   }
