@@ -19,6 +19,7 @@ import ssl
 import urllib.request
 import hashlib
 import re
+import argparse
 from pathlib import Path
 
 # Fix Unicode output trên Windows Terminal
@@ -161,14 +162,22 @@ def update_sizes_report(benchmark_results):
         f.write(new_content)
     print(f"\n[OK] Đã cập nhật báo cáo Vector Tiles vào {report_path}")
 
-def build_pmtiles():
+def build_pmtiles(target_region="all"):
     """Build PMTiles cho các vùng"""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     benchmark_results = {}
     
     pbf_exists = RAW_PBF.exists()
+
+    if target_region == "all":
+        regions_to_build = REGIONS
+    elif target_region in REGIONS:
+        regions_to_build = {target_region: REGIONS[target_region]}
+    else:
+        print(f"❌ Vùng không hợp lệ: {target_region}. Chọn 1 trong: {list(REGIONS.keys())} hoặc all")
+        return
     
-    for region_id, region_info in REGIONS.items():
+    for region_id, region_info in regions_to_build.items():
         print(f"\n---> Đang xử lý Vector Tiles cho vùng: {region_id} ({region_info['name']})")
         start_time = time.time()
         
@@ -216,11 +225,21 @@ def build_pmtiles():
     update_sizes_report(benchmark_results)
 
 def main():
+    parser = argparse.ArgumentParser(description="S-Map Vector Tiles Builder (.pmtiles)")
+    parser.add_argument(
+        "--region",
+        type=str,
+        default="all",
+        help="Vùng cần build: metro_hcm, metro_hn, mien_nam, mien_trung, mien_bac, vietnam, hoặc all",
+    )
+    args = parser.parse_args()
+
     print("=== S-Map Vector Tiles Builder (.pmtiles) ===")
     check_java()
     download_planetiler()
-    build_pmtiles()
+    build_pmtiles(args.region.lower())
 
 if __name__ == "__main__":
     main()
+
 

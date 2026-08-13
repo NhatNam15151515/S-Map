@@ -90,3 +90,10 @@ clean:
 
 l:
 	cd watcher && fvm dart locale_script.dart -S assets/translations -f keys -o locale_keys.g.dart
+
+build_data:
+	python data-pipeline/build_all_data.py --region all
+
+build_data_hcm:
+	python data-pipeline/build_all_data.py --region metro_hcm
+
