@@ -5,13 +5,39 @@ reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
   poem: false
   review_status: true
   collapse_walkthrough: false
+  tools:
+    github-checks:
+      enabled: true
   auto_review:
     enabled: true
     drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT REVIEW"
+    base_branches:
+      - main
+      - dev-w1
+      - dev-w2
+      - dev-w3
+      - dev-w4
+      - dev-w5
+      - dev-w6
+      - dev-w7
+      - dev-w8
   path_instructions:
+    - path: "**"
+      instructions: |
+        Khi review, hãy tập trung vào:
+        - Functional Correctness: logic có đúng không?
+        - Security: có lỗ hổng bảo mật không?
+        - Performance: có bottleneck không?
+        - Mỗi finding cần kèm gợi ý code fix cụ thể (diff format).
+        - Phân loại mức độ: Critical / High / Medium / Low.
+        - Nếu không có lỗi, ghi rõ "Không phát hiện lỗi nghiêm trọng."
     - path: "lib/commons/cubits/**"
       instructions: |
         Review Cubit/Bloc implementations:
