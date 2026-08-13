@@ -28,36 +28,9 @@ if sys.platform == "win32":
 
 import osmium
 
-REGIONS = {
-    "vietnam": {
-        "name": "Toàn quốc Việt Nam",
-        "bbox": (102.1, 8.5, 109.5, 23.4),
-    },
-    "metro_hcm": {
-        "name": "Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An)",
-        "bbox": (106.10, 10.35, 107.25, 11.35),
-    },
-    "metro_hn": {
-        "name": "Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc)",
-        "bbox": (105.30, 20.60, 106.30, 21.40),
-    },
-    "mien_nam": {
-        "name": "Miền Nam (Đông Nam Bộ + Tây Nam Bộ)",
-        "bbox": (104.40, 8.50, 107.80, 12.00),
-    },
-    "mien_trung": {
-        "name": "Miền Trung (Bắc Trung Bộ + Nam Trung Bộ + Tây Nguyên)",
-        "bbox": (105.00, 11.50, 109.50, 19.50),
-    },
-    "mien_bac": {
-        "name": "Miền Bắc (Đông Bắc + Tây Bắc + Đồng bằng Sông Hồng)",
-        "bbox": (102.10, 19.50, 108.00, 23.40),
-    },
-}
-
-DATA_DIR = Path("data-pipeline/data")
-RAW_PBF = DATA_DIR / "raw" / "vietnam-latest.osm.pbf"
-OUTPUT_DIR = DATA_DIR / "output_poi_db"
+# Thêm data-pipeline vào sys.path để import config
+sys.path.append(str(Path(__file__).parent))
+from config import REGIONS, RAW_PBF, POI_DB_DIR as OUTPUT_DIR
 
 POI_TAG_KEYS = {
     "amenity",
@@ -375,7 +348,7 @@ def process_region(region_key: str):
 
     # Trích xuất POIs bằng pyosmium
     print("⏳ Đang trích xuất Node & Way POIs từ OSM PBF...", flush=True)
-    handler = POIExtractorHandler(bbox=region_info["bbox"])
+    handler = POIExtractorHandler(bbox=region_info.get("bbox_tuple"))
     location_handler = osmium.NodeLocationsForWays(osmium.index.create_map("flex_mem"))
     location_handler.ignore_errors()
 
