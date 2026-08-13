@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/constants/app_asset.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/constants/app_asset.dart';
 import 'package:flutter/material.dart';
 
 class MaintenancePopup extends StatelessWidget with AppMixin {

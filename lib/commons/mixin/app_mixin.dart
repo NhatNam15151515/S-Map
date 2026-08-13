@@ -1,15 +1,15 @@
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/notification_controller.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/commons/utils/app_utils.dart';
-import 'package:boilerplate/commons/utils/popup_utils.dart';
-import 'package:boilerplate/commons/validators/validator.dart';
-import 'package:boilerplate/generated/locale_keys.g.dart';
-import 'package:boilerplate/models/user.dart';
-import 'package:boilerplate/routers/routers.dart';
-import 'package:boilerplate/services/firebase_analytics_service.dart';
-import 'package:boilerplate/services/firebase_firestore_service.dart';
+import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_cubit.dart';
+import 'package:s_map/commons/cubits/auth_cubit/notification_controller.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/popup_utils.dart';
+import 'package:s_map/commons/validators/validator.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/models/user.dart';
+import 'package:s_map/routers/routers.dart';
+import 'package:s_map/services/firebase_analytics_service.dart';
+import 'package:s_map/services/firebase_firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

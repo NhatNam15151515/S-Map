@@ -1,10 +1,3 @@
-# S-Map Workspace Agent Rules
-
-## 1. AgentMemory Automatic Integration Rule
-
-- Server AgentMemory đang chạy trên local (`http://localhost:3111`).
-- Khi bắt đầu một task lớn hoặc khi cần thông tin về lịch sử dự án/kinh nghiệm/context cũ, AI TỰ ĐỘNG kiểm tra context hoặc chạy script `.ai-tools/sync_memory.py` / CLI `agentmemory` để đọc context và lưu lại các bài học quan trọng.
-
 # S-Map Development Rules & AI Tools
 
 > Luôn trả lời bằng tiếng Việt. Tuân thủ TOÀN BỘ quy tắc dưới đây khi viết code.
@@ -13,17 +6,7 @@
 
 ## Available AI Tools
 
-Khi bắt đầu session, hãy kiểm tra và sử dụng các AI tools đã cài sẵn:
-
-### 1. AgentMemory (Persistent Memory)
-
-- **Server**: http://localhost:3111
-- **Viewer**: http://localhost:3113
-- **Health check**: Chạy `curl http://localhost:3111/agentmemory/health` để kiểm tra server
-- **Nếu server chưa chạy**: Chạy `agentmemory` trong terminal riêng trước khi làm việc
-- AgentMemory giúp nhớ context giữa các sessions. Không cần re-explain architecture hoặc decisions đã làm trước đó.
-
-### 2. UI/UX Pro Max (Design Intelligence cho Flutter)
+### 1. UI/UX Pro Max (Design Intelligence cho Flutter)
 
 Khi cần design decisions (chọn màu, font, UI style, UX patterns), hãy search từ database:
 
@@ -49,7 +32,10 @@ python $uiSearch "<mô tả>" --domain icons
 
 **Domains có sẵn**: `style`, `color`, `typography`, `ux`, `icons`, `chart`, `landing`, `product`, `google-fonts`, `gsap`
 
-### 3. OpenSpace (Skill Management)
+> [!IMPORTANT]
+> **Bắt buộc** chạy UI/UX Pro Max Skill TRƯỚC khi quyết định bất kỳ màu sắc, font, layout, hay map style nào. Không được tự ý đặt style khi chưa query tool này.
+
+### 2. OpenSpace (Skill Management)
 
 Khi cần tìm skill hoặc workflow patterns:
 
@@ -227,6 +213,13 @@ class XxxScreen extends StatefulWidget {
 
 ## 5. Theme & Styling Rules
 
+### Nguyên tắc bất biến — No Hard-code / No God-code
+
+- ❌ **KHÔNG hard-code** màu sắc, font size, spacing, string, magic number thẳng vào widget
+- ❌ **KHÔNG viết god-code** — mỗi file chỉ làm đúng MỘT nhiệm vụ (không lẫn UI + logic + state)
+- ✅ Mọi giá trị constant dùng từ `lib/constants/` hoặc `lib/commons/styles/`
+- ✅ Mọi quyết định UI phải qua UI/UX Pro Max Skill trước
+
 ### Truy cập theme
 
 ```dart
@@ -248,6 +241,13 @@ style.blackTextColor;
 - **Montserrat** là font duy nhất — KHÔNG import font khác
 - Dùng `AppFontWeight` enum cho font weight: `AppFontWeight.regular.weight`, `AppFontWeight.bold.weight`, etc.
 - Text style: dùng `AppTextTheme` system: `.textStyle`, `.boldStyle`, `.subTitleStyle`, `.textTitleStyle`
+
+### Map Style (MapLibre)
+
+- Style phải gần với Google Maps để thân thiện với người dùng Việt Nam
+- Bắt buộc chạy query `map style google maps like` qua UI/UX Pro Max trước khi viết `style.json`
+- Palette tham chiếu: nền `#F2EFE9`, đường `#FFFFFF`/`#E8E4DA`, nước `#A8D8EA`, công viên `#C8DEBA`, nhãn `#666666`
+- Glyph font phải hỗ trợ **Latin Extended Additional** (tiếng Việt có dấu đầy đủ)
 
 ### Widget API Migration
 
@@ -286,15 +286,23 @@ style.blackTextColor;
 
 ## 7. File Organization Rules
 
+### Single Responsibility — Mỗi file chỉ làm 1 nhiệm vụ
+
+- **`<feature>_screen.dart`**: Chỉ scaffold + `BlocProvider` + compose các widget con. **Không** chứa business logic, state, hay inline style.
+- **`cubits/<feature>_cubit.dart`**: Chỉ chứa state management logic, gọi repository.
+- **`cubits/<feature>_state.dart`**: Chỉ định nghĩa các state class.
+- **`widgets/<widget>.dart`**: Từng widget nhỏ, tái sử dụng được, nhận data qua constructor — không tự fetch data.
+
 ### Tạo feature mới
 
 ```
 screens/<feature_name>/
-├── <feature_name>_screen.dart    # Main screen widget
-├── cubits/                        # Feature-specific cubits (nếu cần)
-│   └── <cubit_name>/
-├── widgets/                       # Feature-specific widgets (nếu cần)
-└── models/                        # Feature-specific models (nếu cần, hiếm)
+├── <feature_name>_screen.dart    # Presentation: scaffold + compose only
+├── cubits/                        # State management (số nhiều, nhất quán với commons/cubits/)
+│   ├── <feature>_cubit.dart
+│   └── <feature>_state.dart
+└── widgets/                       # Các widget con (mỗi widget 1 file)
+    └── <widget_name>.dart
 ```
 
 ### Đặt file đúng chỗ
@@ -310,6 +318,7 @@ screens/<feature_name>/
 | Service (Firebase, API, device)   | `services/`           |
 | App-wide constant                 | `constants/`          |
 | Enum dùng chung                  | `commons/enums/`      |
+| Map style JSON                    | `assets/map/`         |
 
 ### Import Convention
 
@@ -318,22 +327,86 @@ screens/<feature_name>/
 
 ---
 
-## 8. Common Anti-patterns (Các lỗi CẤM)
+## 8. Git Workflow Rules
 
-| #  | Anti-pattern                          | Cách đúng                                    |
-| -- | ------------------------------------- | ----------------------------------------------- |
-| 1  | `setState()` cho logic phức tạp   | Dùng Cubit                                     |
-| 2  | `TextStyle()` inline                | Dùng`AppTextTheme` system                    |
-| 3  | `Color(0xFF...)` inline             | Dùng`AppColors.xxx`                          |
-| 4  | `withOpacity()`                     | Dùng`withAlpha()` hoặc `Color.fromRGBO()` |
-| 5  | `MaterialStateProperty`             | Dùng`WidgetStateProperty`                    |
-| 6  | `CardTheme()` trong ThemeData       | Dùng`CardThemeData()`                        |
-| 7  | `print()` debug                     | Dùng`DLog` (commons/log)                     |
-| 8  | Hardcode string hiển thị            | Dùng`easy_localization` keys                 |
-| 9  | `Navigator.push()`                  | Dùng`context.go()` / `context.push()`      |
-| 10 | Import relative path dài             | Dùng`package:boilerplate/...`                |
-| 11 | Tạo Dio instance riêng              | Dùng`BaseAPIClient.request()`                |
-| 12 | Catch`DioException` trong feature   | Catch`ErrorResponse`                          |
-| 13 | Không override`emit()` trong Cubit | Thêm`if(isClosed) return;` guard             |
-| 14 | Import screen từ screen khác        | Đi qua`commons/` hoặc router                |
-| 15 | Thêm platform web/desktop            | Chỉ Android & iOS                              |
+### Quy trình bắt buộc (theo đúng thứ tự):
+
+1. **Checkout đúng nhánh `dev-w*`** tương ứng với sprint hiện tại:
+   ```bash
+   git checkout dev-w<N>
+   git pull origin dev-w<N>
+   ```
+2. **Tạo nhánh feature mới** từ nhánh `dev-w*` đó:
+   ```bash
+   git checkout -b feature/uissue-<N>-<short-desc>
+   ```
+3. Code và commit theo convention: `feat/fix/refactor/chore(scope): mô tả ngắn gọn`
+4. Push nhánh feature lên remote rồi **tạo Pull Request** về `dev-w*`:
+   ```bash
+   git push -u origin feature/issue-<N>-<short-desc>
+   gh pr create --base dev-w<N> --title "..."
+   ```
+
+> [!CAUTION]
+> **KHÔNG push thẳng lên `dev-*` hay `main`** dưới bất kỳ hình thức nào.
+
+---
+
+## 9. Reuse-First Rules — Tận dụng tối đa source sẵn có
+
+Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử dụng và mở rộng** hơn là tạo mới.
+
+### Checklist trước khi tạo file mới:
+
+| Kiểm tra                                           | Nơi tìm                                                |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| Có base Cubit/State nào phù hợp chưa?          | `commons/cubits/base_cubit/`, `generic_cubit/`       |
+| Có mixin có sẵn nào giải quyết được chưa? | `commons/mixin/` (AppMixin, SizeMixin, OverlayMixin…) |
+| Có widget tái dùng nào sẵn chưa?              | `commons/widgets/` (EmptyWidget, AppBar, shimmer…)    |
+| Có service sẵn nào xử lý được chưa?        | `services/` (LocationService, BundleLoadService…)     |
+| Có extension/util sẵn nào không?                | `commons/extensions/`, `commons/utils/`              |
+
+### Quy tắc:
+
+- ✅ **Mở rộng (extend/mixin)** các class sẵn có thay vì tạo mới từ đầu
+- ✅ **Tùy chỉnh linh hoạt** các build sẵn (có thể override, wrap, thêm param) nhưng **không được thay đổi logic gốc** của nó
+- ✅ Nếu cần điều chỉnh hành vi: ưu tiên **subclass** hoặc **composition** thay vì sửa trực tiếp
+- ❌ **KHÔNG tạo duplicate** của thứ đã có sẵn (ví dụ: không tạo `LocationService2` nếu `LocationService` đã đủ)
+- ❌ **KHÔNG rewrite** logic đã hoạt động ổn định mà không có lý do rõ ràng
+
+### Ví dụ áp dụng cho Issue 8 (Map):
+
+| Cần                | Dùng sẵn có                                        |
+| ------------------- | ----------------------------------------------------- |
+| Loading/Error state | `GenericState<T>` từ `GenericCubit`              |
+| Lấy GPS position   | `LocationService.instance` (mở rộng thêm stream) |
+| Load file asset     | Kết hợp pattern từ`BundleLoadService`            |
+| Thông báo lỗi    | `AppMixin.showError()` / `showWarning()`          |
+| Empty/Error UI      | `EmptyWidget` tái dùng lại                       |
+
+---
+
+## 9. Common Anti-patterns (Các lỗi CẤM)
+
+| #  | Anti-pattern                                         | Cách đúng                                     |
+| -- | ---------------------------------------------------- | ------------------------------------------------ |
+| 1  | `setState()` cho logic phức tạp                  | Dùng Cubit                                      |
+| 2  | `TextStyle()` inline                               | Dùng`AppTextTheme` system                     |
+| 3  | `Color(0xFF...)` inline trong widget               | Dùng`AppColors.xxx`                           |
+| 4  | `withOpacity()`                                    | Dùng`withAlpha()` hoặc `Color.fromRGBO()`  |
+| 5  | `MaterialStateProperty`                            | Dùng`WidgetStateProperty`                     |
+| 6  | `CardTheme()` trong ThemeData                      | Dùng`CardThemeData()`                         |
+| 7  | `print()` debug                                    | Dùng`DLog` (commons/log)                      |
+| 8  | Hardcode string hiển thị                           | Dùng`easy_localization` keys                  |
+| 9  | `Navigator.push()`                                 | Dùng`context.go()` / `context.push()`       |
+| 10 | Import relative path dài                            | Dùng`package:boilerplate/...`                 |
+| 11 | Tạo Dio instance riêng                             | Dùng`BaseAPIClient.request()`                 |
+| 12 | Catch`DioException` trong feature                  | Catch`ErrorResponse`                           |
+| 13 | Không override`emit()` trong Cubit                | Thêm`if(isClosed) return;` guard              |
+| 14 | Import screen từ screen khác                       | Đi qua`commons/` hoặc router                 |
+| 15 | Thêm platform web/desktop                           | Chỉ Android & iOS                               |
+| 16 | Viết logic/state trong`_screen.dart`              | Tách ra`cubit/` và `widgets/`              |
+| 17 | Tự đặt màu/style map mà không dùng UI/UX tool | Chạy UI/UX Pro Max Skill trước                |
+| 18 | Push thẳng lên`dev-*` / `main`                 | Tạo nhánh`feature/...` + Pull Request        |
+| 19 | Magic number trong code                              | Đặt vào`constants/` với tên có nghĩa    |
+| 20 | Hard-code màu map trong`style.json`               | Dùng palette từ UI/UX skill + gần Google Maps |

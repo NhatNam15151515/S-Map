@@ -1,4 +1,4 @@
-import 'package:boilerplate/routers/routers.dart';
+import 'package:s_map/routers/routers.dart';
 import 'package:flutter/cupertino.dart';
 
 mixin AppBarMixin implements PreferredSizeWidget {

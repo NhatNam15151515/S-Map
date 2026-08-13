@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:boilerplate/commons/log/log.dart';
+import 'package:s_map/commons/log/log.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
