@@ -19,7 +19,7 @@ reviews:
     ### Test nên chạy
     {test_suggestions}
 
-    ### Ghi chú scope
+    ### Ghi chú scope & Rule Compliance
     {scope_notes}
   poem: false
   review_status: true
@@ -47,51 +47,69 @@ reviews:
   path_instructions:
     - path: "**"
       instructions: |
-        QUAN TRỌNG: Hãy review code và trả lời theo format sau:
+        QUAN TRỌNG: Hãy review code cho dự án S-Map (Offline Motorbike Map Flutter App) tuân thủ strictly theo các Quy tắc (AGENTS.md / Project Rules) và trả lời bằng TIẾNG VIỆT theo format:
 
         ## Kết luận
         Chọn 1 trong: PASS | PASS_WITH_NOTES | NEEDS_CHANGES | REJECT
-        Giải thích ngắn gọn lý do.
+        (Giải thích ngắn gọn lý do).
 
         ## Findings
         Liệt kê các phát hiện theo format:
         - [Mức độ: Critical/High/Medium/Low] `file_path:line` - Mô tả vấn đề.
           **Gợi ý fix:**
           ```dart
-          // code fix gợi ý ở đây (dùng diff format nếu cần)
+          // Code fix gợi ý cụ thể ở đây
           ```
+        (Nếu không có lỗi, ghi: "Không phát hiện lỗi nghiêm trọng.")
 
         ## Test nên chạy
-        Liệt kê các test case cụ thể cần kiểm tra cho thay đổi này.
+        Liệt kê các test case cụ thể cần kiểm tra (unit test, widget test, hoặc manual flow).
 
-        ## Ghi chú scope
-        Nhận xét về scope của PR: có phù hợp không, có cần tách nhỏ không.
+        ## Ghi chú scope & Rule Compliance
+        - Đánh giá scope của PR (có đúng milestone/issue không).
+        - Kiểm tra tính tuân thủ các quy tắc dự án.
 
-        Khi review, hãy tập trung vào:
-        - Functional Correctness: logic có đúng không?
-        - Security: có lỗ hổng bảo mật không?
-        - Performance: có bottleneck không?
-        - Nếu không có lỗi, ghi rõ "Không phát hiện lỗi nghiêm trọng."
-    - path: "lib/commons/cubits/**"
+        ---
+        CÁC QUY TẮC BẮT BUỘC KHI REVIEW CODE S-MAP:
+        1. Architecture (1 chiều): screens -> cubits -> repos -> services -> models/commons. CẤM circular dependency, CẤM import trực tiếp giữa các screens.
+        2. State Management:
+           - Cubit là mặc định. Chỉ dùng Bloc khi cần event transformers (concurrency/stream control).
+           - TẤT CẢ Cubit/Bloc PHẢI override `emit()` với guard: `if (isClosed) return; super.emit(state);`.
+           - CẤM gọi `getData()` trong Cubit constructor.
+        3. Theme & Styling:
+           - CẤM `Color(0xFF...)` hay `TextStyle()` inline -> PHẢI dùng `AppColors` và `AppTextTheme` (Font Montserrat duy nhất).
+           - CẤM `withOpacity()` (dùng `withAlpha()` hoặc `Color.fromRGBO()`).
+           - Dùng `WidgetStateProperty` (KHÔNG dùng `MaterialStateProperty`).
+           - Dùng `CardThemeData` (KHÔNG dùng `CardTheme` trong ThemeData).
+        4. Networking & Repos:
+           - Mọi API call PHẢI qua `BaseAPIClient.request<T>()`. CẤM tạo Dio instance riêng.
+           - CẤM catch `DioException` trực tiếp trong feature code, catch `ErrorResponse`.
+        5. Routing: Dùng `context.go()` / `context.push()`. CẤM dùng `Navigator.push()` hay `Navigator.of(context)`. Mỗi screen có `static const String path`.
+        6. Platform & Build: Chỉ Android & iOS (không web/desktop). Build flavors: dev/sta/pro.
+        7. Logging: CẤM `print()` debug -> Dùng `DLog` (`commons/log`).
+        8. Security & Data Pipeline:
+           - Tệp Python/Data Pipeline phải check SSL/Cert, error handling, không hardcode path tuyệt đối.
+           - File JSON model (như `custom_model_moped.json`) phải đúng cú pháp GraphHopper.
+
+    - path: "lib/**"
       instructions: |
-        Review Cubit/Bloc implementations:
-        - All Cubits/Blocs MUST override emit() with: @override void emit(state) { if (isClosed) return; super.emit(state); }
-        - Use Cubit by default. Only use Bloc when event transformers (restartable, droppable, sequential) are needed.
-        - Check for proper state immutability (Equatable or freezed).
-    - path: "lib/services/**"
+        Review Flutter/Dart code:
+        - Kiểm tra import convention: dùng `package:s_map/...` (hoặc package name chuẩn), KHÔNG dùng relative path dài `../../../`.
+        - Kiểm tra widget build() không chứa business logic.
+        - Kiểm tra localization: string hiển thị phải dùng `easy_localization` keys.
+
+    - path: "data-pipeline/**"
       instructions: |
-        Review service implementations:
-        - Services should be singleton or injected via repository pattern.
-        - Native bridge services must handle MethodChannel errors gracefully.
-    - path: "android/**"
-      instructions: |
-        Review Android native code:
-        - Check ProGuard/R8 rules for GraphHopper reflection.
-        - Verify MethodChannel handler registration.
+        Review Data Pipeline (Python / OpenStreetMap / GraphHopper / Planetiler):
+        - Kiểm tra error handling, logging, path handling (cross-platform OS paths).
+        - Kiểm tra bảo mật (không disable SSL verify `verify=False` mà không có lý do chính đáng).
+        - Kiểm tra syntax `custom_model_moped.json` và cấu hình memory cho GraphHopper/Planetiler.
+
     - path: "pubspec.yaml"
       instructions: |
         Review dependency changes:
-        - Warn if adding dependencies not listed in the project BRD.
-        - Check for version conflicts.
+        - Kiểm tra conflict version, SDK constraints (`>=3.4.0 <4.0.0`).
+        - Cảnh báo nếu thêm package lạ ngoài tech stack tiêu chuẩn.
 chat:
   auto_reply: true
+
