@@ -1,8 +1,8 @@
-import 'package:s_map/commons/mixin/app_mixin.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
 
 class AppMainBottomBar extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -44,12 +44,12 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.mapPin, false),
             activeIcon: _buildNavItem(HeroIcons.mapPin, true),
-            label: "Khám phá",
+            label: locale.home,
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.bookmark, false),
             activeIcon: _buildNavItem(HeroIcons.bookmark, true),
-            label: "Đã lưu",
+            label: locale.location,
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.bell, false),
@@ -59,7 +59,7 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.userCircle, false),
             activeIcon: _buildNavItem(HeroIcons.userCircle, true),
-            label: "Tôi",
+            label: locale.account,
           ),
         ],
         currentIndex: widget.navigationShell.currentIndex,

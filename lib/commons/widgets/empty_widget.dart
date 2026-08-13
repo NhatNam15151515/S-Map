@@ -1,7 +1,8 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:flutter/material.dart';
 
 class EmptyWidget extends StatelessWidget with AppMixin {
   final String? title;
@@ -17,6 +18,8 @@ class EmptyWidget extends StatelessWidget with AppMixin {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
+
     return Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -39,7 +42,7 @@ class EmptyWidget extends StatelessWidget with AppMixin {
           if (title != null)
             Text(
               title!,
-              style: styles.blackTextColor.textTheme.subTitleStyle.copyWith(
+              style: style.blackTextColor.textTheme.subTitleStyle.copyWith(
                 fontSize: 16,
               ),
               textAlign: TextAlign.center,
@@ -66,7 +69,7 @@ class EmptyWidget extends StatelessWidget with AppMixin {
                   size: 18,
                 ),
                 label: Text(
-                  "Thử lại",
+                  tr('cancel'),
                   style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
                     fontSize: 14,
                   ),
