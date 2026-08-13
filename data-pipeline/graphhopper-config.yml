@@ -1,0 +1,37 @@
+# GraphHopper config cho S-Map (Vietnam Moped Routing)
+# Base profile: scooter (built-in, hỗ trợ moped/xe máy)
+# Sử dụng Contraction Hierarchies (CH) cho route query nhanh
+
+graphhopper:
+  datareader.file: vietnam-latest.osm.pbf
+  
+  graph.location: ./graph-cache
+
+  # Encoded values cần thiết cho custom model
+  graph.encoded_values: road_class,road_environment,road_access,surface,toll,urban_density,max_speed,lanes,country
+
+  profiles:
+    - name: moped_vn
+      vehicle: scooter
+      weighting: custom
+      custom_model_files: [custom_model_moped.json]
+
+  # Contraction Hierarchies cho query nhanh (< 500ms toàn quốc)
+  profiles_ch:
+    - profile: moped_vn
+
+  # Import settings
+  import.osm.ignored_highways: ""
+  
+  # Elevation (tùy chọn - có thể bật sau nếu cần tính dốc)
+  # graph.elevation.provider: srtm
+  # graph.elevation.cache_dir: ./srtm-cache
+
+# Server settings (cho test trên PC) - PHẢI ở YAML root, không nằm trong graphhopper
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: localhost
+  request_log:
+    appenders: []

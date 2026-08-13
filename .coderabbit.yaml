@@ -24,6 +24,9 @@ reviews:
   poem: false
   review_status: true
   collapse_walkthrough: false
+  tools:
+    github-checks:
+      enabled: true
   auto_review:
     enabled: true
     drafts: false
@@ -41,9 +44,6 @@ reviews:
       - dev-w6
       - dev-w7
       - dev-w8
-  tools:
-    github-checks:
-      enabled: true
   path_instructions:
     - path: "**"
       instructions: |
@@ -66,6 +66,12 @@ reviews:
 
         ## Ghi chú scope
         Nhận xét về scope của PR: có phù hợp không, có cần tách nhỏ không.
+
+        Khi review, hãy tập trung vào:
+        - Functional Correctness: logic có đúng không?
+        - Security: có lỗ hổng bảo mật không?
+        - Performance: có bottleneck không?
+        - Nếu không có lỗi, ghi rõ "Không phát hiện lỗi nghiêm trọng."
     - path: "lib/commons/cubits/**"
       instructions: |
         Review Cubit/Bloc implementations:
