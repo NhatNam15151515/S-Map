@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import 'package:boilerplate/constants/app_asset.dart';
-import 'package:boilerplate/screens/main/full_image.dart';
+import 'package:s_map/screens/main/full_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -54,24 +53,27 @@ class AppImage {
   Widget errorPlaceHolder({
     Size? size,
     BoxFit fit = BoxFit.contain,
-  }){
+  }) {
     return SizedBox(
       height: size?.height,
       width: size?.width,
       child: LayoutBuilder(
         builder: (context, snapshot) {
+          final iconSize = (snapshot.maxHeight * 0.3).clamp(16.0, 48.0);
           return Container(
             constraints: BoxConstraints(
               maxHeight: snapshot.maxHeight,
               maxWidth: snapshot.maxWidth,
             ),
-            color: Colors.grey.withAlpha(77),
-            child: FittedBox(
-              child: Padding(
-                padding: EdgeInsets.all(snapshot.maxHeight*0.1),
-                child: AppAsset.logo.image.build(
-                  color: Colors.white,
-                ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F3F4),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.image_outlined,
+                size: iconSize,
+                color: const Color(0xFF9AA0A6),
               ),
             ),
           );
@@ -116,7 +118,7 @@ class AppImage {
         height: size?.height,
         fit: fit,
         colorFilter:
-        color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+            color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
       );
     }
     if (path != null) {
@@ -125,7 +127,8 @@ class AppImage {
         width: size?.width,
         height: size?.height,
         fit: fit,
-        colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+        colorFilter:
+            color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
       );
     }
     return SizedBox(
@@ -194,7 +197,8 @@ class AppImage {
 }
 
 extension AppImageToFullScreen on AppImage {
-  Widget buildWithFullScreen(BuildContext context, {
+  Widget buildWithFullScreen(
+    BuildContext context, {
     Widget? placeHolder,
     Widget? error,
     Size? size,

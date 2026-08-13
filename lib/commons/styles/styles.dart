@@ -1,4 +1,4 @@
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
+import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -42,6 +42,28 @@ class AppTextTheme {
       mainStyle.copyWith(fontWeight: AppFontWeight.semiBold.weight);
 
   TextStyle get textTitleStyle => mainStyle.copyWith(fontWeight: AppFontWeight.bold.weight);
+
+  // Extended text styles for Material 3 design
+  TextStyle get captionStyle => mainStyle.copyWith(
+    fontWeight: AppFontWeight.regular.weight,
+    fontSize: 12,
+  );
+
+  TextStyle get overlineStyle => mainStyle.copyWith(
+    fontWeight: AppFontWeight.medium.weight,
+    fontSize: 10,
+    letterSpacing: 1.5,
+  );
+
+  TextStyle get headlineStyle => mainStyle.copyWith(
+    fontWeight: AppFontWeight.bold.weight,
+    fontSize: 24,
+  );
+
+  TextStyle get displayStyle => mainStyle.copyWith(
+    fontWeight: AppFontWeight.bold.weight,
+    fontSize: 32,
+  );
 }
 
 extension ToAppTextTheme on Color {
