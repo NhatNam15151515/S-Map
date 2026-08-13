@@ -5,7 +5,22 @@ reviews:
   profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
-  high_level_summary_placeholder: "@coderabbitai summary"
+  high_level_summary_placeholder: |
+    ## 🤖 AI Review
+
+    **MR**: #{pr_number}
+
+    ### Kết luận
+    {summary_verdict}
+
+    ### Findings
+    {findings_list}
+
+    ### Test nên chạy
+    {test_suggestions}
+
+    ### Ghi chú scope
+    {scope_notes}
   poem: false
   review_status: true
   collapse_walkthrough: false
@@ -15,6 +30,7 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    # Chỉ review 1 lần khi tạo PR, KHÔNG review lại khi push thêm commit
     ignore_title_keywords:
       - "WIP"
       - "DO NOT REVIEW"
@@ -31,12 +47,30 @@ reviews:
   path_instructions:
     - path: "**"
       instructions: |
+        QUAN TRỌNG: Hãy review code và trả lời theo format sau:
+
+        ## Kết luận
+        Chọn 1 trong: PASS | PASS_WITH_NOTES | NEEDS_CHANGES | REJECT
+        Giải thích ngắn gọn lý do.
+
+        ## Findings
+        Liệt kê các phát hiện theo format:
+        - [Mức độ: Critical/High/Medium/Low] `file_path:line` - Mô tả vấn đề.
+          **Gợi ý fix:**
+          ```dart
+          // code fix gợi ý ở đây (dùng diff format nếu cần)
+          ```
+
+        ## Test nên chạy
+        Liệt kê các test case cụ thể cần kiểm tra cho thay đổi này.
+
+        ## Ghi chú scope
+        Nhận xét về scope của PR: có phù hợp không, có cần tách nhỏ không.
+
         Khi review, hãy tập trung vào:
         - Functional Correctness: logic có đúng không?
         - Security: có lỗ hổng bảo mật không?
         - Performance: có bottleneck không?
-        - Mỗi finding cần kèm gợi ý code fix cụ thể (diff format).
-        - Phân loại mức độ: Critical / High / Medium / Low.
         - Nếu không có lỗi, ghi rõ "Không phát hiện lỗi nghiêm trọng."
     - path: "lib/commons/cubits/**"
       instructions: |
