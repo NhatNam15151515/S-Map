@@ -3,8 +3,35 @@
 import subprocess
 import time
 import sys
+import json
 
 REPO = "NhatNam15151515/S-Map"
+
+def ensure_milestone(title):
+    cmd_list = ["gh", "api", f"repos/{REPO}/milestones", "--paginate", "-q", ".[].title"]
+    try:
+        res = subprocess.run(cmd_list, capture_output=True, text=True, encoding="utf-8", timeout=30)
+        if res.returncode == 0 and title in res.stdout.splitlines():
+            return
+    except Exception:
+        pass
+    
+    cmd_create = ["gh", "api", f"repos/{REPO}/milestones", "-f", f"title={title}"]
+    try:
+        subprocess.run(cmd_create, capture_output=True, text=True, encoding="utf-8", timeout=30)
+    except Exception:
+        pass
+
+def get_existing_issue_titles():
+    cmd = ["gh", "issue", "list", "--repo", REPO, "--state", "all", "--limit", "500", "--json", "title"]
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=30)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            return {item["title"] for item in data}
+    except Exception as e:
+        print(f"  Warning checking existing issues: {e}")
+    return set()
 
 def create_issue(title, body, labels, milestone):
     cmd = ["gh", "issue", "create", "--repo", REPO, "--title", title, "--body", body]
@@ -12,13 +39,21 @@ def create_issue(title, body, labels, milestone):
         cmd.extend(["--label", label])
     cmd.extend(["--milestone", milestone])
     
-    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
-    if result.returncode == 0:
-        url = result.stdout.strip()
-        print(f"  OK: {url}")
-    else:
-        print(f"  FAIL: {result.stderr.strip()}")
-    time.sleep(1)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=60)
+        if result.returncode == 0:
+            url = result.stdout.strip()
+            print(f"  OK: {url}")
+            return True
+        else:
+            print(f"  FAIL: {result.stderr.strip()}")
+            return False
+    except subprocess.TimeoutExpired:
+        print("  FAIL: gh issue create timed out")
+        return False
+    except Exception as e:
+        print(f"  FAIL: {e}")
+        return False
 
 # ================================================================
 M1 = "W1-W2: Setup & Data Pipeline"
@@ -938,11 +973,36 @@ Test thực tế trên xe máy, verify toàn bộ flow navigation.
 ]
 
 # ── RUN ────────────────────────────────────────────
-print(f"Creating {len(issues)} issues...")
+print("Ensuring milestones exist...")
+for m in [M1, M2, M3, M4]:
+    ensure_milestone(m)
+
+print("Checking existing issues for idempotency...")
+existing_titles = get_existing_issue_titles()
+
+print(f"\nProcessing {len(issues)} issues...")
+created = 0
+skipped = 0
+failed = 0
+
 for i, issue in enumerate(issues, 1):
     print(f"[{i}/{len(issues)}] {issue['title']}")
-    create_issue(issue["title"], issue["body"], issue["labels"], issue["milestone"])
+    if issue["title"] in existing_titles:
+        print("  SKIP: Issue already exists.")
+        skipped += 1
+        continue
+
+    success = create_issue(issue["title"], issue["body"], issue["labels"], issue["milestone"])
+    if success:
+        created += 1
+    else:
+        failed += 1
+    time.sleep(1)
 
 print(f"\n{'='*50}")
-print(f"DONE! Created {len(issues)} issues.")
+print(f"DONE! Created {created} issues, skipped {skipped}, failed {failed}.")
 print(f"{'='*50}")
+
+if failed > 0:
+    sys.exit(1)
+
