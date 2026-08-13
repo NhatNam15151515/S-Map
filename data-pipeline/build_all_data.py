@@ -10,7 +10,7 @@ Quy trình:
 4. Tự động chạy build POI Database (.db) qua build_poi_database.py.
 5. Tính mã băm SHA256 checksum và tạo file version.json cho mỗi vùng.
 6. Đóng gói trọn bộ dữ liệu thành file ZIP (data-pipeline/data/output_packages/<region>.zip).
-7. Cập nhật báo cáo tổng hợp vào data-pipeline/data_sizes.md.
+7. Cập nhật báo cáo tổng hợp vào data-pipeline/data_sizes.md bằng Regex safe matching.
 """
 
 import os
@@ -22,47 +22,17 @@ import json
 import zipfile
 import hashlib
 import datetime
+import re
 from pathlib import Path
+
+# Thêm data-pipeline vào sys.path để import config
+sys.path.append(str(Path(__file__).parent))
+from config import REGIONS, RAW_PBF, PMTILES_DIR, GHZ_DIR, POI_DB_DIR, PACKAGES_DIR
 
 # Fix Unicode output trên Windows Terminal
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
-
-REGIONS = {
-    "vietnam": {
-        "name": "Toàn quốc Việt Nam",
-        "bbox": "102.1,8.5,109.5,23.4",
-    },
-    "metro_hcm": {
-        "name": "Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An)",
-        "bbox": "106.10,10.35,107.25,11.35",
-    },
-    "metro_hn": {
-        "name": "Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc)",
-        "bbox": "105.30,20.60,106.30,21.40",
-    },
-    "mien_nam": {
-        "name": "Miền Nam (Đông Nam Bộ + Tây Nam Bộ)",
-        "bbox": "104.40,8.50,107.80,12.00",
-    },
-    "mien_trung": {
-        "name": "Miền Trung (Bắc Trung Bộ + Nam Trung Bộ + Tây Nguyên)",
-        "bbox": "105.00,11.50,109.50,19.50",
-    },
-    "mien_bac": {
-        "name": "Miền Bắc (Đông Bắc + Tây Bắc + Đồng bằng Sông Hồng)",
-        "bbox": "102.10,19.50,108.00,23.40",
-    },
-}
-
-DATA_DIR = Path("data-pipeline/data")
-RAW_PBF = DATA_DIR / "raw" / "vietnam-latest.osm.pbf"
-
-PMTILES_DIR = DATA_DIR / "output_pmtiles"
-GHZ_DIR = DATA_DIR / "output_ghz"
-POI_DB_DIR = DATA_DIR / "output_poi_db"
-PACKAGES_DIR = DATA_DIR / "output_packages"
 
 
 def compute_sha256(filepath: Path) -> str:
@@ -97,20 +67,22 @@ def create_region_package(region_key: str) -> dict:
     ghz_file = GHZ_DIR / f"{region_key}.ghz"
     poi_db_file = POI_DB_DIR / f"{region_key}_poi.db"
 
-    # Tạo placeholder file nếu tệp chưa được tạo do thiếu tool môi trường
-    PMTILES_DIR.mkdir(parents=True, exist_ok=True)
-    GHZ_DIR.mkdir(parents=True, exist_ok=True)
-    POI_DB_DIR.mkdir(parents=True, exist_ok=True)
+    # Fix Critical: Kiểm tra nghiêm ngặt sự tồn tại của file nhị phân, KHÔNG tạo file text giả (placeholder)
+    missing_files = []
+    for file_path, label in [
+        (pmtiles_file, "Vector Tiles (.pmtiles)"),
+        (ghz_file, "Routing Graph (.ghz)"),
+        (poi_db_file, "POI Database (.db)"),
+    ]:
+        if not file_path.exists() or file_path.stat().st_size == 0:
+            missing_files.append(f"  - {label}: {file_path}")
 
-    if not pmtiles_file.exists():
-        print(f"⚠️ Warning: File {pmtiles_file.name} chưa có, tạo placeholder...", flush=True)
-        pmtiles_file.write_text(f"S-MAP_PMTILES_PLACEHOLDER_{region_key}", encoding="utf-8")
-    if not ghz_file.exists():
-        print(f"⚠️ Warning: File {ghz_file.name} chưa có, tạo placeholder...", flush=True)
-        ghz_file.write_text(f"S-MAP_GHZ_PLACEHOLDER_{region_key}", encoding="utf-8")
-    if not poi_db_file.exists():
-        print(f"⚠️ Warning: File {poi_db_file.name} chưa có, tạo placeholder...", flush=True)
-        poi_db_file.write_text(f"S-MAP_POI_DB_PLACEHOLDER_{region_key}", encoding="utf-8")
+    if missing_files:
+        raise FileNotFoundError(
+            f"❌ LỖI ĐÓNG GÓI ({region_key}): Thiếu hoặc hỏng các file thành phần sau:\n"
+            + "\n".join(missing_files)
+            + "\nVui lòng kiểm tra lại quá trình build trước khi nén ZIP!"
+        )
 
     print("🔑 Đang tính toán SHA256 checksum cho các tệp...", flush=True)
     pmtiles_sha256 = compute_sha256(pmtiles_file)
@@ -169,17 +141,15 @@ def create_region_package(region_key: str) -> dict:
         "region_name": region_info["name"],
         "zip_name": zip_path.name,
         "zip_size_bytes": zip_size,
-        "pmtiles_size": pmtiles_file.stat().st_size,
-        "ghz_size": ghz_file.stat().st_size,
-        "poi_db_size": poi_db_file.stat().st_size,
     }
 
 
 def update_data_sizes_md(results: list):
-    """Cập nhật hoặc thêm bảng báo cáo dung lượng ZIP Packages vào data_sizes.md."""
+    """Fix Medium: Cập nhật an toàn báo cáo gói ZIP vào data_sizes.md bằng HTML Comment tags và Regex."""
     sizes_file = Path("data-pipeline/data_sizes.md")
 
     report_lines = [
+        "<!-- START_ZIP_TABLE_METRICS -->",
         "## 📦 Bảng thống kê Gói Zip Dữ Liệu Vùng (Offline Region Packages)",
         "",
         "| ID Vùng | Tên Vùng | File Zip Đóng Gói | Dung Lượng Zip | Nội Dung Bên Trong | Status |",
@@ -192,18 +162,18 @@ def update_data_sizes_md(results: list):
             f"| `{item['region_key']}` | {item['region_name']} | `{item['zip_name']}` | **{zip_mb:.2f} MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |"
         )
 
-    new_section = "\n".join(report_lines)
+    report_lines.append("<!-- END_ZIP_TABLE_METRICS -->")
+    new_table_str = "\n".join(report_lines)
 
     if sizes_file.exists():
         content = sizes_file.read_text(encoding="utf-8")
-        if "## 📦 Bảng thống kê Gói Zip Dữ Liệu Vùng" in content:
-            parts = content.split("## 📦 Bảng thống kê Gói Zip Dữ Liệu Vùng")
-            before = parts[0].rstrip()
-            content = f"{before}\n\n{new_section}\n"
+        placeholder_regex = r"<!-- START_ZIP_TABLE_METRICS -->.*?<!-- END_ZIP_TABLE_METRICS -->"
+        if re.search(placeholder_regex, content, re.DOTALL):
+            content = re.sub(placeholder_regex, new_table_str, content, flags=re.DOTALL)
         else:
-            content = f"{content.strip()}\n\n{new_section}\n"
+            content = f"{content.strip()}\n\n{new_table_str}\n"
     else:
-        content = f"# S-Map Data Pipeline Sizes\n\n{new_section}\n"
+        content = f"# S-Map Data Pipeline Sizes\n\n{new_table_str}\n"
 
     sizes_file.write_text(content, encoding="utf-8")
     print(f"📝 Đã cập nhật kết quả gói ZIP vào: {sizes_file}", flush=True)
@@ -252,8 +222,12 @@ def main():
 
     package_results = []
     for reg in regions_to_process:
-        pkg_info = create_region_package(reg)
-        package_results.append(pkg_info)
+        try:
+            pkg_info = create_region_package(reg)
+            package_results.append(pkg_info)
+        except FileNotFoundError as e:
+            print(f"\n{e}", flush=True)
+            sys.exit(1)
 
     update_data_sizes_md(package_results)
 

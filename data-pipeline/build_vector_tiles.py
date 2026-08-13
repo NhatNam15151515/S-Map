@@ -27,36 +27,10 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
-REGIONS = {
-    "vietnam": {
-        "name": "Toàn quốc Việt Nam",
-        "bbox": "102.1,8.5,109.5,23.4",
-    },
-    "metro_hcm": {
-        "name": "Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An)",
-        "bbox": "106.10,10.35,107.25,11.35",
-    },
-    "metro_hn": {
-        "name": "Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc)",
-        "bbox": "105.30,20.60,106.30,21.40",
-    },
-    "mien_nam": {
-        "name": "Miền Nam (Đông Nam Bộ + Tây Nam Bộ)",
-        "bbox": "104.40,8.50,107.80,12.00",
-    },
-    "mien_trung": {
-        "name": "Miền Trung (Bắc Trung Bộ + Nam Trung Bộ + Tây Nguyên)",
-        "bbox": "105.00,11.50,109.50,19.50",
-    },
-    "mien_bac": {
-        "name": "Miền Bắc (Đông Bắc + Tây Bắc + Đồng bằng Sông Hồng)",
-        "bbox": "102.10,19.50,108.00,23.40",
-    },
-}
+# Thêm data-pipeline vào sys.path để import config
+sys.path.append(str(Path(__file__).parent))
+from config import REGIONS, RAW_PBF, PMTILES_DIR as OUTPUT_DIR
 
-DATA_DIR = Path("data-pipeline/data")
-RAW_PBF = DATA_DIR / "raw" / "vietnam-latest.osm.pbf"
-OUTPUT_DIR = DATA_DIR / "output_pmtiles"
 PLANETILER_JAR = Path("data-pipeline/tools/planetiler.jar")
 PLANETILER_URL = "https://github.com/onthegomap/planetiler/releases/download/v0.8.0/planetiler.jar"
 PLANETILER_SHA256 = "a2fc2d1efc495e635b014e3203d0b749bfee9155624242c4c2f33077f91f59ed"
