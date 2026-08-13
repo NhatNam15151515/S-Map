@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/commons/enums/enums.dart';
 
 enum NotificationTab {
@@ -7,9 +8,9 @@ enum NotificationTab {
   String get title {
     switch (this) {
       case system:
-        return "Hệ thống";
+        return tr('notification.tab_system');
       case customer:
-        return "Cá nhân";
+        return tr('notification.tab_customer');
     }
   }
 }
@@ -55,9 +56,5 @@ class NotificationModel {
     data['type'] = notiType?.id;
     data['createdDate'] = createdDate?.toIso8601String();
     return data;
-  }
-
-  Future<void> onOpen() async {
-    // Handle notification click
   }
 }
