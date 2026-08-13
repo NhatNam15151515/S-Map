@@ -47,6 +47,11 @@ app.*.map.json
 *.ghz
 *.mbtiles
 *.pmtiles
+output_ghz/
+output_pmtiles/
+graph-cache/
+data-pipeline/data/
+data-pipeline/tools/
 data/*.db
 data/*.zip
 
