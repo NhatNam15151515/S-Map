@@ -49,7 +49,7 @@ Nếu chỉ muốn build cho vùng TP.HCM (`metro_hcm`):
 java -Xmx4g -jar data-pipeline/tools/planetiler.jar \
   --osm-path=data-pipeline/data/raw/vietnam-latest.osm.pbf \
   --output=data-pipeline/data/output_pmtiles/metro_hcm.pmtiles \
-  --bbox=106.10,10.35,107.25,11.35 \
+  --bounds=106.10,10.35,107.25,11.35 \
   --minzoom=0 \
   --maxzoom=14
 ```
