@@ -6,6 +6,8 @@ Tự động review Pull Request bằng Google Gemini AI và post comment lên G
 import os
 import sys
 import json
+import time
+import re
 import urllib.request
 from google import genai
 
@@ -81,28 +83,42 @@ DƯỚI ĐÂY LÀ DIFF CỦA PULL REQUEST:
 """
 
 
-def review_with_model(client, model_name, prompt):
-    """Gửi prompt lên Gemini model."""
-    try:
-        print(f"Trying Interactions API with model: {model_name}...")
-        interaction = client.interactions.create(
-            model=model_name,
-            input=prompt,
-            config={"store": False},
-        )
-        return interaction.output_text
-    except Exception as e:
-        print(f"Interactions API error for {model_name}: {e}")
+def review_with_model(client, model_name, prompt, max_retries=2):
+    """Gửi prompt lên Gemini model với cơ chế auto-retry khi gặp Rate Limit (HTTP 429)."""
+    for attempt in range(max_retries + 1):
+        try:
+            print(f"Calling generate_content with model: {model_name} (attempt {attempt + 1}/{max_retries + 1})...")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            err_str = str(e)
+            print(f"Error calling {model_name}: {err_str}")
 
-    try:
-        print(f"Trying generate_content with model: {model_name}...")
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-        )
-        return response.text
-    except Exception as e:
-        print(f"generate_content error for {model_name}: {e}")
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                # Trích xuất thời gian chờ từ thông báo lỗi (mặc định 16s nếu không tìm thấy)
+                delay = 16.0
+                match = re.search(r'retry in ([\d\.]+)s', err_str, re.IGNORECASE)
+                if match:
+                    try:
+                        delay = float(match.group(1)) + 2.0
+                    except ValueError:
+                        delay = 16.0
+                else:
+                    delay_match = re.search(r'retryDelay.*?(\d+)s', err_str, re.IGNORECASE)
+                    if delay_match:
+                        try:
+                            delay = float(delay_match.group(1)) + 2.0
+                        except ValueError:
+                            delay = 16.0
+
+                if attempt < max_retries:
+                    print(f"⏳ Rate limit hit. Waiting {delay:.1f}s before retrying {model_name}...")
+                    time.sleep(delay)
+                    continue
 
     return None
 
@@ -133,7 +149,6 @@ def main():
     if len(diff_text) > 250000:
         print(f"Diff is large ({len(diff_text)} chars), truncating to 250000 chars...")
         truncated_text = diff_text[:250000]
-        # Tìm dòng xuống dòng cuối cùng để không bị cắt dở dang dòng
         last_newline = truncated_text.rfind('\n')
         if last_newline != -1:
             diff_text = truncated_text[:last_newline] + "\n\n... (diff truncated due to size)"
@@ -141,7 +156,7 @@ def main():
             diff_text = truncated_text + "\n\n... (diff truncated due to size)"
 
     client = genai.Client(api_key=gemini_api_key)
-    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
+    models_to_try = ["gemini-3.7-flash","gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro"]
 
     project_rules_text = load_project_rules()
     print(f"Loaded project rules length: {len(project_rules_text)} characters")

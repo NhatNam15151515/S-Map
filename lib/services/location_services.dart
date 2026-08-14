@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart' as loc_pkg;
+import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/i_location_service.dart';
 
 class LocationPermissionDeniedForeverException implements Exception {
@@ -9,8 +11,15 @@ class LocationPermissionDeniedForeverException implements Exception {
   String toString() => message;
 }
 
+/// LocationService implements [ILocationService] combining:
+/// 1. [Geolocator] for high-performance position streaming, permission checks, and background coordinates.
+/// 2. [loc_pkg.Location] exclusively for triggering Google Play Services' native system dialog
+///    (`requestService()`), giving users a seamless 1-tap "Bật" prompt without leaving the app.
 class LocationService implements ILocationService {
-  LocationService() {
+  final loc_pkg.Location _nativeLocation;
+
+  LocationService({loc_pkg.Location? nativeLocation})
+      : _nativeLocation = nativeLocation ?? loc_pkg.Location() {
     _init();
   }
 
@@ -49,12 +58,20 @@ class LocationService implements ILocationService {
 
   /// Determine the current position of the device.
   ///
-  /// When the location services are not enabled or permissions
-  /// are denied the `Future` will return an error.
+  /// When location services are disabled, it automatically requests the OS
+  /// to show Google Play Services' native "Turn On Location" resolution prompt.
   Future<Position> _determinePosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw const LocationServiceDisabledException();
+      try {
+        serviceEnabled = await _nativeLocation.requestService();
+      } catch (e) {
+        DLog.error('Lỗi yêu cầu bật dịch vụ vị trí hệ thống: $e');
+      }
+
+      if (!serviceEnabled) {
+        throw const LocationServiceDisabledException();
+      }
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -74,3 +91,4 @@ class LocationService implements ILocationService {
     return await Geolocator.getCurrentPosition();
   }
 }
+

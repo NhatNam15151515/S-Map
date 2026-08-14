@@ -95,8 +95,12 @@ class FirebaseAuthService implements IFirebaseAuthService {
         }
       }
 
-      // 4. Lưu/Cập nhật thông tin người dùng lên Cloud Firestore
-      await FireStoreService.instance.saveUserProfile(appUser);
+      // 4. Lưu/Cập nhật thông tin người dùng lên Cloud Firestore (không chặn luồng đăng nhập nếu Firestore lỗi quyền/mạng)
+      try {
+        await FireStoreService.instance.saveUserProfile(appUser);
+      } catch (fsErr) {
+        DLog.error("Không thể lưu profile lên Cloud Firestore: $fsErr");
+      }
       return appUser;
     } catch (e) {
       DLog.error("Lỗi Google Sign-In: $e");
