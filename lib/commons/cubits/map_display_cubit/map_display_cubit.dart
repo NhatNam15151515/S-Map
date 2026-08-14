@@ -67,7 +67,6 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
     try {
       final pos = await _locationService.getCurrentPosition();
       final latLng = LatLng(pos.latitude, pos.longitude);
-      final isFirstLocate = cachedPos == null;
 
       emit(state.copyWith(
         status: MapDisplayStatus.ready,
@@ -78,7 +77,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
       ));
 
       if (controller != null &&
-          (isFirstLocate ||
+          (cachedPos == null ||
               (state.isFollowingUser &&
                   (cachedPos.latitude != latLng.latitude ||
                       cachedPos.longitude != latLng.longitude)))) {
