@@ -3,8 +3,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 
 enum MapDisplayStatus { initial, loading, ready, error }
 
-// ignore: deprecated_member_use
-class MapDisplayState with EquatableMixin {
+class MapDisplayState extends Equatable {
   final MapDisplayStatus status;
   final String? errorMessageKey;
   final LatLng? currentPosition;

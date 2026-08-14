@@ -102,8 +102,7 @@ screens → cubits → [interfaces: IRepos] → repos → [interfaces: IServices
 
 - **Cubit** là lựa chọn mặc định cho phần lớn use case
 - **Bloc** được phép khi cần event transformer (`restartable()`, `droppable()`, `sequential()`) để kiểm soát concurrency — ví dụ: GPS stream, viewport search, reroute logic
-- Cubit cho API call: kế thừa pattern từ `GenericCubit<T>` hoặc `GenericNonNullCubit<T>`
-- Cubit cho UI state đơn giản: dùng `BaseChangeCubit<T>`
+- **Equatable Standard**: Mọi State class của BLoC/Cubit **BẮT BUỘC** `extends Equatable` (cả root abstract state lẫn concrete states) và override `props`. **TUYỆT ĐỐI KHÔNG** dùng `with EquatableMixin` (đã bị deprecated trong package `equatable`) hoặc tự viết `operator ==` thủ công.
 - Cubit/Bloc global (auth, app): đặt trong `commons/cubits/`
 - Cubit/Bloc local (feature-specific): đặt trong `screens/<feature>/cubits/`
 
@@ -112,20 +111,30 @@ screens → cubits → [interfaces: IRepos] → repos → [interfaces: IServices
 - ✅ **Cubit** khi: state thay đổi theo action đơn giản, không có stream event liên tục
 - ✅ **Bloc** khi: có event stream cần transformer để kiểm soát concurrency (race condition, debounce, queue)
 - ❌ KHÔNG dùng Bloc chỉ vì "muốn tách event" — nếu không cần transformer thì dùng Cubit
+- ✅ **extends Equatable**: Tất cả state đều kế thừa `Equatable` và khai báo `props` đầy đủ
 
 ### Pattern bắt buộc
 
 ```dart
+// ✅ Mọi state kế thừa Equatable
+abstract class XxxState extends Equatable {
+  const XxxState();
+  @override
+  List<Object?> get props => [];
+}
+
 // ✅ Override emit() để tránh emit-after-close crash (áp dụng cả Cubit lẫn Bloc)
 @override
-void emit(GenericState<T> state) {
-  if(isClosed) return;
+void emit(XxxState state) {
+  if (isClosed) return;
   super.emit(state);
 }
 ```
 
 ### Anti-patterns
 
+- ❌ KHÔNG dùng `with EquatableMixin` (deprecated) → phải dùng `extends Equatable`
+- ❌ KHÔNG tự override `operator ==` / `hashCode` thủ công cho state → dùng `Equatable`
 - ❌ KHÔNG gọi `getData()` trong constructor cubit → gọi ở `initState()` của widget
 - ❌ KHÔNG dùng `setState()` trong StatefulWidget phức tạp → dùng Cubit
 - ❌ KHÔNG emit state sau khi cubit đã close
@@ -421,3 +430,4 @@ Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử d�
 | 18 | Push thẳng lên`dev-*` / `main`                 | Tạo nhánh`feature/...` + Pull Request        |
 | 19 | Magic number trong code                              | Đặt vào`constants/` với tên có nghĩa    |
 | 20 | Hard-code màu map trong`style.json`               | Dùng palette từ UI/UX skill + gần Google Maps |
+| 21 | `with EquatableMixin` (deprecated) / flawed `operator ==` | Dùng `extends Equatable` và khai báo `props` |

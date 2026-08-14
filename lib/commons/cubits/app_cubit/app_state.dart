@@ -1,21 +1,19 @@
+import 'package:equatable/equatable.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import '../../../../localizations/app_localization.dart';
+import 'package:s_map/localizations/app_localization.dart';
 
-enum AppStateType {initial, loaded}
+enum AppStateType { initial, loaded }
 
-class AppState {
+class AppState extends Equatable {
   final AppStyle appStyle;
   final SupportedLocale supportedLocale;
   final AppStateType type;
 
-  AppState({required this.appStyle, required this.supportedLocale, required this.type});
-
-  @override
-  bool operator ==(Object other) => other is AppState
-      && other.hashCode == hashCode;
-
-  @override
-  int get hashCode => Object.hash(appStyle, supportedLocale);
+  const AppState({
+    required this.appStyle,
+    required this.supportedLocale,
+    required this.type,
+  });
 
   SupportedLocale get dLocale => SupportedLocale.vi;
 
@@ -30,4 +28,8 @@ class AppState {
       supportedLocale: supportedLocale ?? this.supportedLocale,
     );
   }
+
+  @override
+  List<Object?> get props => [appStyle, supportedLocale, type];
 }
+
