@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class BaseChangeState<T> with EquatableMixin {
+class BaseChangeState<T> with Equatable {
   final T? value;
   final String? uniqueId;
 

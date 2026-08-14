@@ -10,7 +10,7 @@ abstract class AuthState {
   bool get isAuthenticated => type == AuthStateType.authenticated;
 }
 
-class Authenticated extends AuthState with EquatableMixin {
+class Authenticated extends AuthState with Equatable {
   final User loggedInProfile;
   Authenticated(this.loggedInProfile) : super(AuthStateType.authenticated);
 

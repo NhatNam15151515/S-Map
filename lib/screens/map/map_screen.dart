@@ -1,9 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
+import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
-import 'package:s_map/screens/map/cubits/map_display_cubit/map_display_cubit.dart';
-import 'package:s_map/screens/map/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
 import 'package:s_map/screens/map/widgets/map_fab_buttons.dart';
 import 'package:s_map/screens/map/widgets/map_view.dart';
@@ -25,13 +25,25 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
     final cubit = context.read<MapDisplayCubit>();
 
     return Scaffold(
-      body: BlocBuilder<MapDisplayCubit, MapDisplayState>(
+      body: BlocConsumer<MapDisplayCubit, MapDisplayState>(
+        listener: (context, state) {
+          if (state.errorMessage != null && state.status != MapDisplayStatus.error) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage!),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           return Stack(
             children: [
               MapView(
                 onMapCreated: cubit.onMapCreated,
                 onStyleLoadedCallback: cubit.onStyleLoaded,
+                onCameraTrackingDismissed: cubit.onCameraTrackingDismissed,
+                onCameraMove: cubit.onCameraMove,
               ),
               if (state.status == MapDisplayStatus.ready ||
                   state.status == MapDisplayStatus.loading)

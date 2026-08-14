@@ -71,13 +71,25 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
       body: Stack(
         children: [
           // 1. BASE MAP VIEW
-          BlocBuilder<MapDisplayCubit, MapDisplayState>(
+          BlocConsumer<MapDisplayCubit, MapDisplayState>(
+            listener: (context, state) {
+              if (state.errorMessage != null && state.status != MapDisplayStatus.error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.errorMessage!),
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
+            },
             builder: (context, state) {
               return Stack(
                 children: [
                   MapView(
                     onMapCreated: cubit.onMapCreated,
                     onStyleLoadedCallback: cubit.onStyleLoaded,
+                    onCameraTrackingDismissed: cubit.onCameraTrackingDismissed,
+                    onCameraMove: cubit.onCameraMove,
                   ),
                   if (state.status == MapDisplayStatus.loading)
                     const Positioned.fill(

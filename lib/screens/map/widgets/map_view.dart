@@ -6,11 +6,17 @@ import 'package:s_map/services/map_style_service.dart';
 class MapView extends StatelessWidget {
   final MapCreatedCallback onMapCreated;
   final VoidCallback onStyleLoadedCallback;
+  final VoidCallback? onCameraTrackingDismissed;
+  final void Function(CameraPosition position)? onCameraMove;
+  final void Function(MyLocationTrackingMode mode)? onCameraTrackingChanged;
 
   const MapView({
     super.key,
     required this.onMapCreated,
     required this.onStyleLoadedCallback,
+    this.onCameraTrackingDismissed,
+    this.onCameraMove,
+    this.onCameraTrackingChanged,
   });
 
   @override
@@ -31,6 +37,9 @@ class MapView extends StatelessWidget {
       compassViewPosition: CompassViewPosition.topLeft,
       compassViewMargins: const Point(16, 120),
       trackCameraPosition: true,
+      onCameraMove: onCameraMove,
+      onCameraTrackingDismissed: onCameraTrackingDismissed,
+      onCameraTrackingChanged: onCameraTrackingChanged,
     );
   }
 }
