@@ -1,6 +1,6 @@
 // DO NOT EDIT. This is code generated via package:easy_localization/generate.dart
 
-// ignore_for_file: prefer_single_quotes, avoid_renaming_method_parameters
+// ignore_for_file: prefer_single_quotes, avoid_renaming_method_parameters, constant_identifier_names
 
 import 'dart:ui';
 
@@ -14,7 +14,7 @@ class CodegenLoader extends AssetLoader{
     return Future.value(mapLocales[locale.toString()]);
   }
 
-  static const Map<String,dynamic> en = {
+  static const Map<String,dynamic> _en = {
   "loginToYourAccount": "Login to Your Account",
   "createAnAccount": "Create an Account",
   "login": "Login",
@@ -45,6 +45,7 @@ class CodegenLoader extends AssetLoader{
   "dayS": "Day(s)",
   "dateAndTime": "Date and Time",
   "location": "Location",
+  "notification": "Notification",
   "checkTheMap": "Check the Map",
   "profile": "Profile",
   "helpCenter": "Help Center",
@@ -62,10 +63,16 @@ class CodegenLoader extends AssetLoader{
   "female": "Female",
   "updateProfile": "Update Profile",
   "termAndCondition": "Term & Condition",
-  "notification": "Notification",
-  "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications"
+  "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications",
+  "map": {
+    "error_load": "Unable to load map data",
+    "locate_error": "Unable to get current location",
+    "location_service_disabled": "Location services (GPS) are disabled. Please enable location to continue.",
+    "location_permission_denied": "Location permission is required to determine your position.",
+    "location_permission_denied_forever": "Location permission is permanently denied. Please grant permission in Settings."
+  }
 };
-static const Map<String,dynamic> vi = {
+static const Map<String,dynamic> _vi = {
   "loginToYourAccount": "Đăng nhập vào tài khoản",
   "createAnAccount": "Tạo tài khoản",
   "login": "Đăng nhập",
@@ -114,7 +121,14 @@ static const Map<String,dynamic> vi = {
   "updateProfile": "Cập nhật Hồ sơ",
   "termAndCondition": "Điều khoản sử dụng",
   "notification": "Thông báo",
-  "playSoundWhenThereAreNewNotifications": "Phát âm thanh khi có thông báo"
+  "playSoundWhenThereAreNewNotifications": "Phát âm thanh khi có thông báo",
+  "map": {
+    "error_load": "Không thể tải dữ liệu bản đồ",
+    "locate_error": "Không thể xác định vị trí hiện tại",
+    "location_service_disabled": "Dịch vụ định vị (GPS) đang tắt. Vui lòng bật định vị để tiếp tục.",
+    "location_permission_denied": "Ứng dụng cần quyền truy cập vị trí để định vị.",
+    "location_permission_denied_forever": "Quyền vị trí bị từ chối vĩnh viễn. Vui lòng cấp quyền trong Cài đặt."
+  }
 };
-static const Map<String, Map<String,dynamic>> mapLocales = {"en": en, "vi": vi};
+static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};
 }
