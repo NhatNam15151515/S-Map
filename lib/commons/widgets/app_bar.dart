@@ -125,33 +125,3 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   static double designHeight = 56;
 }
 
-class AppSliverBar extends SliverPersistentHeaderDelegate with AppMixin {
-
-  final String title;
-
-  AppSliverBar(this.title);
-
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final percent = shrinkOffset / maxExtent;
-    return TitleBackAppBar(
-      title: title,
-      percent: percent,
-    );
-  }
-
-  double get min => MediaQuery.paddingOf(appContext).top;
-
-  @override
-  double get maxExtent => min + TitleBackAppBar.designHeight;
-
-  @override
-  double get minExtent => min;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
-  }
-
-}
