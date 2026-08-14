@@ -1,7 +1,6 @@
 """
 S-Map Gemini AI PR Reviewer
 Tự động review Pull Request bằng Google Gemini AI và post comment lên GitHub.
-Tối ưu hóa: 1-shot Review cho toàn bộ PR diff tận dụng large context window của Gemini.
 """
 
 import os
@@ -82,26 +81,28 @@ DƯỚI ĐÂY LÀ DIFF CỦA PULL REQUEST:
 """
 
 
-def get_ai_review(client, prompt):
-    """Gọi Gemini API với các model tối ưu và cơ chế fallback nhanh."""
-    models_to_try = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-    ]
+def review_with_model(client, model_name, prompt):
+    """Gửi prompt lên Gemini model."""
+    try:
+        print(f"Trying Interactions API with model: {model_name}...")
+        interaction = client.interactions.create(
+            model=model_name,
+            input=prompt,
+            config={"store": False},
+        )
+        return interaction.output_text
+    except Exception as e:
+        print(f"Interactions API error for {model_name}: {e}")
 
-    for model_name in models_to_try:
-        try:
-            print(f"Requesting review from model: {model_name}...")
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-            )
-            if response and response.text:
-                print(f"Successfully generated review with {model_name}")
-                return response.text
-        except Exception as e:
-            print(f"Error with model {model_name}: {e}")
+    try:
+        print(f"Trying generate_content with model: {model_name}...")
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+        )
+        return response.text
+    except Exception as e:
+        print(f"generate_content error for {model_name}: {e}")
 
     return None
 
@@ -128,20 +129,27 @@ def main():
         print("Empty diff. Skipping Gemini review.")
         sys.exit(0)
 
-    # Giới hạn diff tối đa 250k ký tự (~60k tokens) để đảm bảo tốc độ phản hồi cực nhanh
+    # Giới hạn diff tối đa 250k ký tự (~60k tokens)
     if len(diff_text) > 250000:
         print(f"Diff is large ({len(diff_text)} chars), truncating to 250000 chars...")
         diff_text = diff_text[:250000] + "\n\n... (diff truncated due to size)"
 
     client = genai.Client(api_key=gemini_api_key)
+    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
+
     project_rules_text = load_project_rules()
     print(f"Loaded project rules length: {len(project_rules_text)} characters")
 
     prompt = build_review_prompt(diff_text, project_rules_text)
-    review_comment = get_ai_review(client, prompt)
+    review_comment = None
+
+    for model_name in models_to_try:
+        review_comment = review_with_model(client, model_name, prompt)
+        if review_comment:
+            break
 
     if not review_comment:
-        print("Failed to get review from all available models.")
+        print("Failed to get review from all models.")
         sys.exit(1)
 
     # Post comment to GitHub PR
