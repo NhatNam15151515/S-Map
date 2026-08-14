@@ -3,7 +3,8 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 
 enum MapDisplayStatus { initial, loading, ready, error }
 
-class MapDisplayState extends Equatable {
+// ignore: deprecated_member_use
+class MapDisplayState with EquatableMixin {
   final MapDisplayStatus status;
   final String? errorMessage;
   final LatLng? currentPosition;
@@ -25,6 +26,7 @@ class MapDisplayState extends Equatable {
   MapDisplayState copyWith({
     MapDisplayStatus? status,
     String? errorMessage,
+    bool clearError = false,
     LatLng? currentPosition,
     LatLng? center,
     double? zoom,
@@ -33,7 +35,7 @@ class MapDisplayState extends Equatable {
   }) {
     return MapDisplayState(
       status: status ?? this.status,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       currentPosition: currentPosition ?? this.currentPosition,
       center: center ?? this.center,
       zoom: zoom ?? this.zoom,

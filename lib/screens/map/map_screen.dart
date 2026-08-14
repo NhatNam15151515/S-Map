@@ -34,6 +34,7 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
                 duration: const Duration(seconds: 4),
               ),
             );
+            cubit.clearError();
           }
         },
         builder: (context, state) {

@@ -80,6 +80,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                     duration: const Duration(seconds: 4),
                   ),
                 );
+                cubit.clearError();
               }
             },
             builder: (context, state) {

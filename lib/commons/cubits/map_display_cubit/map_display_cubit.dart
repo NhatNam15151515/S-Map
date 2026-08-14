@@ -16,6 +16,13 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
       : _locationService = locationService ?? LocationService.instance,
         super(const MapDisplayState(status: MapDisplayStatus.initial));
 
+  /// Safe emit guard rule mandatory for all Cubits/Blocs
+  @override
+  void emit(MapDisplayState state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
+
   void onMapCreated(MapLibreMapController mapController) {
     controller = mapController;
     emit(state.copyWith(status: MapDisplayStatus.loading));
@@ -35,6 +42,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
         currentPosition: latLng,
         center: latLng,
         isFollowingUser: true,
+        clearError: true,
       ));
 
       if (controller != null) {
@@ -78,11 +86,18 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
       center: position.target,
       zoom: position.zoom,
       rotation: position.bearing,
+      clearError: true, // Xóa thông báo lỗi khi người dùng di chuyển bản đồ
     ));
   }
 
   void onCameraTrackingDismissed() {
     emit(state.copyWith(isFollowingUser: false));
+  }
+
+  void clearError() {
+    if (state.errorMessage != null) {
+      emit(state.copyWith(clearError: true));
+    }
   }
 
   void setError(String message) {
@@ -99,11 +114,5 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
 
   void zoomOut() {
     controller?.animateCamera(CameraUpdate.zoomOut());
-  }
-
-  @override
-  void emit(MapDisplayState state) {
-    if (isClosed) return;
-    super.emit(state);
   }
 }
