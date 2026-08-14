@@ -2,30 +2,38 @@ import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/models/user.dart';
 import 'package:equatable/equatable.dart';
 
-abstract class AuthState {
+abstract class AuthState extends Equatable {
   final AuthStateType type;
 
-  AuthState(this.type);
+  const AuthState(this.type);
 
   bool get isAuthenticated => type == AuthStateType.authenticated;
-}
-
-class Authenticated extends AuthState with EquatableMixin {
-  final User loggedInProfile;
-  Authenticated(this.loggedInProfile) : super(AuthStateType.authenticated);
 
   @override
-  List<Object?> get props => [loggedInProfile.username];
+  List<Object?> get props => [type];
+}
+
+class Authenticated extends AuthState {
+  final User loggedInProfile;
+  const Authenticated(this.loggedInProfile) : super(AuthStateType.authenticated);
+
+  @override
+  List<Object?> get props => [type, loggedInProfile.username, loggedInProfile.id];
 }
 
 class UnAuthenticated extends AuthState {
-  UnAuthenticated() : super(AuthStateType.unAuthenticated);
+  const UnAuthenticated() : super(AuthStateType.unAuthenticated);
 }
 
 class InitialAuth extends AuthState {
-  InitialAuth() : super(AuthStateType.initial);
+  const InitialAuth() : super(AuthStateType.initial);
 }
+
 class LoadingAuth extends AuthState {
   final bool isDone;
-  LoadingAuth({this.isDone=false}) : super(AuthStateType.loading);
+  const LoadingAuth({this.isDone = false}) : super(AuthStateType.loading);
+
+  @override
+  List<Object?> get props => [type, isDone];
 }
+

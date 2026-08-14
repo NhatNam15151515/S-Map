@@ -19,7 +19,7 @@ class AuthCubit extends Cubit<AuthState> {
   late final ProfileController profileController;
   late final NotificationController notificationController;
 
-  AuthCubit(this.appCubit) : super(InitialAuth()) {
+  AuthCubit(this.appCubit) : super(const InitialAuth()) {
     onAppStarted();
     profileController = ProfileController(appCubit);
     notificationController = NotificationController(appCubit);
@@ -46,7 +46,7 @@ class AuthCubit extends Cubit<AuthState> {
       faceIdAcceptStream.value = reqAuth;
       await onAuthenticated(profile);
     } else {
-      emit(UnAuthenticated());
+      emit(const UnAuthenticated());
     }
     FlutterNativeSplash.remove();
   }
@@ -89,7 +89,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void onLogout({bool requestLogout = true}) async {
-    emit(UnAuthenticated());
+    emit(const UnAuthenticated());
     profileController.onLogout();
     await AppSecureStorage.onLogOutClear();
     if(requestLogout) await _requestLogout();

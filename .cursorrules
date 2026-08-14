@@ -25,3 +25,5 @@ Font: Montserrat. Platforms: Android & iOS ONLY.
 - **Interface-First Architecture**: All Services and Repositories MUST have an abstract interface in `lib/interfaces/`
 - **Dependency Inversion**: Higher layers (Cubits, Screens, Repos) must depend on Interfaces (e.g. `ILocationService`, `IAuthRepos`), not concrete implementations
 - **Unit Test Mocks**: Mock services by `implements IService` to avoid constructor side-effects
+- **Equatable Standard**: All BLoC/Cubit states must use `extends Equatable` (NEVER use deprecated `with EquatableMixin` or manual `operator ==`)
+

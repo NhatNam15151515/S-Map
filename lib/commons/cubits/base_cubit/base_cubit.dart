@@ -1,12 +1,12 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class BaseChangeState<T> with EquatableMixin {
+class BaseChangeState<T> extends Equatable {
   final T? value;
   final String? uniqueId;
 
-  BaseChangeState.init({this.value, this.uniqueId});
-  BaseChangeState({this.value, this.uniqueId});
+  const BaseChangeState.init({this.value, this.uniqueId});
+  const BaseChangeState({this.value, this.uniqueId});
 
   @override
   List<Object?> get props => [uniqueId, value];
