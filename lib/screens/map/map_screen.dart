@@ -28,12 +28,7 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
       body: BlocConsumer<MapDisplayCubit, MapDisplayState>(
         listener: (context, state) {
           if (state.errorMessage != null && state.status != MapDisplayStatus.error) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                duration: const Duration(seconds: 4),
-              ),
-            );
+            showWarning(state.errorMessage);
             cubit.clearError();
           }
         },

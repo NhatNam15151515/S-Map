@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/models/place_model.dart';
 import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
 import 'package:s_map/screens/map/widgets/map_view.dart';
@@ -51,7 +52,7 @@ class _HomeScreenContent extends StatefulWidget {
   State<_HomeScreenContent> createState() => _HomeScreenContentState();
 }
 
-class _HomeScreenContentState extends State<_HomeScreenContent> {
+class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
   final DraggableScrollableController _sheetController = DraggableScrollableController();
   final FireStoreService _fireStore = FireStoreService();
   String _selectedCategory = "Tất cả";
@@ -74,12 +75,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
           BlocConsumer<MapDisplayCubit, MapDisplayState>(
             listener: (context, state) {
               if (state.errorMessage != null && state.status != MapDisplayStatus.error) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.errorMessage!),
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
+                showWarning(state.errorMessage);
                 cubit.clearError();
               }
             },
