@@ -1,7 +1,7 @@
 class Validator {
   static final Validator instance = Validator();
 
-  // Basic Validators
+  // Basic Auth & Form Validators
   bool isEmpty(String? data) => (data ?? "").trim().isEmpty;
 
   bool isValidEmail(String? email) {
@@ -35,10 +35,10 @@ class Validator {
   bool isMapUrl(String? query) {
     if (query == null || query.trim().isEmpty) return false;
     final mapUrlRegExp = RegExp(
-      r'^(https?:\/\/)?(www\.)?(maps\.google\.com|maps\.app\.goo\.gl|goo\.gl\/maps)\/.*$',
+      r'^(https?:\/\/)?(www\.)?(maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)($|[\/?#].*)',
       caseSensitive: false,
     );
     return mapUrlRegExp.hasMatch(query.trim());
   }
-}
 
+}
