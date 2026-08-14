@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class BaseChangeState<T> with Equatable {
+// ignore: deprecated_member_use
+class BaseChangeState<T> with EquatableMixin {
   final T? value;
   final String? uniqueId;
 

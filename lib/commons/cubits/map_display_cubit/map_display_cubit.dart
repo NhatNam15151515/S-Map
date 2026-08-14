@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -43,22 +44,22 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
     } on LocationServiceDisabledException catch (e) {
       DLog.error('Dịch vụ định vị đang tắt: $e');
       _fallbackToDefaultLocation(
-        errorMessage: 'Dịch vụ định vị (GPS) đang tắt. Vui lòng bật định vị để tiếp tục.',
+        errorMessage: tr('map.location_service_disabled'),
       );
     } on PermissionDeniedException catch (e) {
       DLog.error('Quyền vị trí bị từ chối: $e');
       _fallbackToDefaultLocation(
-        errorMessage: 'Ứng dụng cần quyền truy cập vị trí để định vị.',
+        errorMessage: tr('map.location_permission_denied'),
       );
     } on LocationPermissionDeniedForeverException catch (e) {
       DLog.error('Quyền vị trí bị từ chối vĩnh viễn: $e');
       _fallbackToDefaultLocation(
-        errorMessage: 'Quyền vị trí bị từ chối vĩnh viễn. Vui lòng cấp quyền trong Cài đặt.',
+        errorMessage: tr('map.location_permission_denied_forever'),
       );
     } catch (e) {
       DLog.error('Lỗi lấy vị trí hiện tại: $e');
       _fallbackToDefaultLocation(
-        errorMessage: 'Không thể xác định vị trí hiện tại.',
+        errorMessage: tr('map.locate_error'),
       );
     }
   }

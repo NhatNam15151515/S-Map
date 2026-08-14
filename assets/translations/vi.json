@@ -47,5 +47,12 @@
   "updateProfile": "Cập nhật Hồ sơ",
   "termAndCondition": "Điều khoản sử dụng",
   "notification": "Thông báo",
-  "playSoundWhenThereAreNewNotifications": "Phát âm thanh khi có thông báo"
+  "playSoundWhenThereAreNewNotifications": "Phát âm thanh khi có thông báo",
+  "map": {
+    "error_load": "Không thể tải dữ liệu bản đồ",
+    "locate_error": "Không thể xác định vị trí hiện tại",
+    "location_service_disabled": "Dịch vụ định vị (GPS) đang tắt. Vui lòng bật định vị để tiếp tục.",
+    "location_permission_denied": "Ứng dụng cần quyền truy cập vị trí để định vị.",
+    "location_permission_denied_forever": "Quyền vị trí bị từ chối vĩnh viễn. Vui lòng cấp quyền trong Cài đặt."
+  }
 }

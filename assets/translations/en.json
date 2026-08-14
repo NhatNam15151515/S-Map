@@ -54,6 +54,9 @@
   "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications",
   "map": {
     "error_load": "Unable to load map data",
-    "locate_error": "Unable to get current location"
+    "locate_error": "Unable to get current location",
+    "location_service_disabled": "Location services (GPS) are disabled. Please enable location to continue.",
+    "location_permission_denied": "Location permission is required to determine your position.",
+    "location_permission_denied_forever": "Location permission is permanently denied. Please grant permission in Settings."
   }
 }
