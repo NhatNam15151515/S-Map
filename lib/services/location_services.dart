@@ -35,6 +35,8 @@ class LocationService implements ILocationService {
   Stream<Position> get positionStream => Geolocator.getPositionStream();
   @override
   Future<Position> getCurrentPosition() => _determinePosition();
+  @override
+  Future<Position?> getLastKnownPosition() => Geolocator.getLastKnownPosition();
 
   static LocationService instance = LocationService();
 

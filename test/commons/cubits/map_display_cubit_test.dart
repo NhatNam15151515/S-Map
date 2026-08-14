@@ -9,8 +9,9 @@ import 'package:s_map/services/location_services.dart';
 
 class MockSuccessLocationService implements ILocationService {
   final Position mockPosition;
+  final Position? mockLastKnown;
 
-  MockSuccessLocationService(this.mockPosition);
+  MockSuccessLocationService(this.mockPosition, {this.mockLastKnown});
 
   @override
   Position get position => mockPosition;
@@ -23,6 +24,9 @@ class MockSuccessLocationService implements ILocationService {
 
   @override
   Future<Position> getCurrentPosition() async => mockPosition;
+
+  @override
+  Future<Position?> getLastKnownPosition() async => mockLastKnown ?? mockPosition;
 
   @override
   Future<bool> isLocationServiceEnabled() async => true;
@@ -56,6 +60,9 @@ class MockDisabledLocationService implements ILocationService {
   }
 
   @override
+  Future<Position?> getLastKnownPosition() async => null;
+
+  @override
   Future<bool> isLocationServiceEnabled() async => false;
 
   @override
@@ -87,6 +94,9 @@ class MockDeniedLocationService implements ILocationService {
   }
 
   @override
+  Future<Position?> getLastKnownPosition() async => null;
+
+  @override
   Future<bool> isLocationServiceEnabled() async => true;
 
   @override
@@ -116,6 +126,9 @@ class MockDeniedForeverLocationService implements ILocationService {
   Future<Position> getCurrentPosition() async {
     throw LocationPermissionDeniedForeverException('Location permission denied forever.');
   }
+
+  @override
+  Future<Position?> getLastKnownPosition() async => null;
 
   @override
   Future<bool> isLocationServiceEnabled() async => true;
@@ -173,6 +186,28 @@ void main() {
       expect(cubit.state.center, const LatLng(10.762622, 106.660172));
       expect(cubit.state.isFollowingUser, true);
       expect(cubit.state.errorMessageKey, null);
+      cubit.close();
+    });
+
+    test('locateMe utilizes cached position for instant flyback when available', () async {
+      final mockLocation = MockSuccessLocationService(samplePosition);
+      final cubit = MapDisplayCubit(locationService: mockLocation);
+
+      // Pre-set existing location in state (e.g. user panned away)
+      const existingPos = LatLng(10.762622, 106.660172);
+      cubit.emit(cubit.state.copyWith(
+        currentPosition: existingPos,
+        center: const LatLng(21.0285, 105.8542), // Hanoi
+        isFollowingUser: false,
+      ));
+
+      expect(cubit.state.center, const LatLng(21.0285, 105.8542));
+      expect(cubit.state.isFollowingUser, false);
+
+      await cubit.locateMe();
+
+      expect(cubit.state.center, existingPos);
+      expect(cubit.state.isFollowingUser, true);
       cubit.close();
     });
 

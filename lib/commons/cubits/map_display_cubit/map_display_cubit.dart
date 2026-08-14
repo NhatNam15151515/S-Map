@@ -34,9 +34,41 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
   }
 
   Future<void> locateMe() async {
+    // Phase 1: Instant Flyback (<50ms) - Bay ngay về vị trí đã lưu nếu có
+    final cachedPos = state.currentPosition;
+    if (cachedPos != null) {
+      emit(state.copyWith(
+        center: cachedPos,
+        isFollowingUser: true,
+        clearError: true,
+      ));
+      controller?.animateCamera(
+        CameraUpdate.newLatLngZoom(cachedPos, MapConstants.locateMeZoom),
+      );
+    } else {
+      try {
+        final lastKnown = await _locationService.getLastKnownPosition();
+        if (lastKnown != null && state.currentPosition == null) {
+          final latLng = LatLng(lastKnown.latitude, lastKnown.longitude);
+          emit(state.copyWith(
+            currentPosition: latLng,
+            center: latLng,
+            isFollowingUser: true,
+            clearError: true,
+          ));
+          controller?.animateCamera(
+            CameraUpdate.newLatLngZoom(latLng, MapConstants.locateMeZoom),
+          );
+        }
+      } catch (_) {}
+    }
+
+    // Phase 2: Fresh GPS Fix - Lấy tọa độ mới nhất và tinh chỉnh nhẹ camera
     try {
       final pos = await _locationService.getCurrentPosition();
       final latLng = LatLng(pos.latitude, pos.longitude);
+      final isFirstLocate = cachedPos == null;
+
       emit(state.copyWith(
         status: MapDisplayStatus.ready,
         currentPosition: latLng,
@@ -45,7 +77,11 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
         clearError: true,
       ));
 
-      if (controller != null) {
+      if (controller != null &&
+          (isFirstLocate ||
+              (state.isFollowingUser &&
+                  (cachedPos.latitude != latLng.latitude ||
+                      cachedPos.longitude != latLng.longitude)))) {
         await controller!.animateCamera(
           CameraUpdate.newLatLngZoom(latLng, MapConstants.locateMeZoom),
         );
