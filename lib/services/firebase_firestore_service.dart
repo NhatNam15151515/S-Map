@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
+import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/i_firebase_firestore_service.dart';
 import 'package:s_map/models/notification_model.dart';
 import 'package:s_map/models/place_model.dart';
@@ -22,7 +22,7 @@ class FireStoreService implements IFireStoreService {
         return FirebaseFirestore.instance;
       }
     } catch (e) {
-      debugPrint("Firestore access error: $e");
+      DLog.error("Firestore access error: $e");
     }
     return null;
   }
@@ -45,15 +45,23 @@ class FireStoreService implements IFireStoreService {
   @override
   Future<void> saveUserProfile(User user) async {
     if (user.id == null || usersCollection == null) return;
-    await usersCollection!.doc(user.id.toString()).set(user.toJson(), SetOptions(merge: true));
+    try {
+      await usersCollection!.doc(user.id.toString()).set(user.toJson(), SetOptions(merge: true));
+    } catch (e) {
+      DLog.error("Firestore saveUserProfile error: $e");
+    }
   }
 
   @override
   Future<User?> getUserProfile(String userId) async {
     if (usersCollection == null) return null;
-    final doc = await usersCollection!.doc(userId).get();
-    if (doc.exists && doc.data() != null) {
-      return User.fromJson(doc.data() as Map<String, dynamic>);
+    try {
+      final doc = await usersCollection!.doc(userId).get();
+      if (doc.exists && doc.data() != null) {
+        return User.fromJson(doc.data() as Map<String, dynamic>);
+      }
+    } catch (e) {
+      DLog.error("Firestore getUserProfile error: $e");
     }
     return null;
   }
@@ -124,11 +132,15 @@ class FireStoreService implements IFireStoreService {
   @override
   Future<void> savePlace(String userId, Map<String, dynamic> placeData) async {
     if (savedPlacesCollection == null) return;
-    await savedPlacesCollection!.add({
-      'userId': userId,
-      ...placeData,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await savedPlacesCollection!.add({
+        'userId': userId,
+        ...placeData,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      DLog.error("Firestore savePlace error: $e");
+    }
   }
 
   @override

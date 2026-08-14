@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profile: Cho phép đọc/ghi thông tin người dùng
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    // Saved places: Địa điểm đã lưu của người dùng
+    match /saved_places/{savedId} {
+      allow read, write: if true;
+    }
+    
+    // Places & Categories: Địa điểm khám phá (công khai đọc)
+    match /places/{placeId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Notifications: Thông báo hệ thống (công khai đọc)
+    match /notifications/{notifId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Routes: Lộ trình đã lưu
+    match /routes/{routeId} {
+      allow read, write: if true;
+    }
+    
+    // Default fallback
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
