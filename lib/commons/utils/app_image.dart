@@ -148,19 +148,18 @@ class AppImage {
     double? memCacheHeight,
     String? cacheKey,
   }) {
-    Widget? child;
     if (isNull) {
       return errorPlaceHolder(size: size);
     }
     if (isSvg) {
-      child ??= svgImg(
+      return svgImg(
         size: size,
         fit: fit,
         color: color,
       );
     }
     if (isNetwork) {
-      child ??= network(
+      return network(
         memCacheHeight: memCacheHeight,
         memCacheWidth: memCacheWidth,
         cacheKey: cacheKey,
@@ -171,19 +170,27 @@ class AppImage {
         color: color,
       );
     }
-    final file = File(path ?? "");
-    final isLocalFile = file.existsSync();
-    if (isLocalFile) {
-      child = Image.file(
-        file,
+    final trimmedPath = path?.trim() ?? "";
+    final isLocalFilePath = trimmedPath.startsWith('/') ||
+        trimmedPath.startsWith('file://') ||
+        RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(trimmedPath);
+
+    if (isLocalFilePath) {
+      final cleanPath = trimmedPath.startsWith('file://')
+          ? trimmedPath.substring(7)
+          : trimmedPath;
+      return Image.file(
+        File(cleanPath),
         fit: fit,
         height: size?.height,
         width: size?.width,
         cacheHeight: _getCacheValue(memCacheHeight),
         cacheWidth: _getCacheValue(memCacheWidth),
+        errorBuilder: (context, err, stack) => errorPlaceHolder(size: size),
       );
     }
-    child ??= asset(
+
+    return asset(
       size: size,
       fit: fit,
       color: color,
@@ -192,7 +199,6 @@ class AppImage {
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
     );
-    return child;
   }
 }
 

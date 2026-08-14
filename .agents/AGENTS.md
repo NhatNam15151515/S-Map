@@ -430,3 +430,6 @@ Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử d�
 | 19 | Magic number trong code                              | Đặt vào`constants/` với tên có nghĩa    |
 | 20 | Hard-code màu map trong`style.json`               | Dùng palette từ UI/UX skill + gần Google Maps |
 | 21 | `with EquatableMixin` (deprecated) / flawed `operator ==` | Dùng `extends Equatable` và khai báo `props` |
+| 22 | Sync I/O `File.existsSync()` trong Widget build tree | Dùng path prefix check hoặc async ImageProvider |
+| 23 | Stream / RxDart Controller không dispose | Dùng `ListenableBuilder` hoặc `dispose()` triệt để |
+
