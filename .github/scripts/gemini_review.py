@@ -156,7 +156,7 @@ def main():
             diff_text = truncated_text + "\n\n... (diff truncated due to size)"
 
     client = genai.Client(api_key=gemini_api_key)
-    models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-pro"]
+    models_to_try = ["gemini-3.7-flash","gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro"]
 
     project_rules_text = load_project_rules()
     print(f"Loaded project rules length: {len(project_rules_text)} characters")
