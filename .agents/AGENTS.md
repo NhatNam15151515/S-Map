@@ -382,7 +382,7 @@ Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử d�
 | --------------------------------------------------- | -------------------------------------------------------- |
 | Có Cubit/State chung nào phù hợp chưa?              | `commons/cubits/` (MapDisplayCubit, AppCubit, AuthCubit) |
 | Có mixin có sẵn nào giải quyết được chưa? | `commons/mixin/` (AppMixin, SizeMixin, OverlayMixin…) |
-| Có widget tái dùng nào sẵn chưa?              | `commons/widgets/` (EmptyWidget, AppBar, shimmer…)    |
+| Có widget tái dùng nào sẵn chưa?              | `commons/widgets/` (EmptyWidget, TitleAppBar, ProfileAvatar…) |
 | Có service sẵn nào xử lý được chưa?        | `services/` (LocationService, MapStyleService…)       |
 | Có extension/util sẵn nào không?                | `commons/extensions/`, `commons/utils/`              |
 
