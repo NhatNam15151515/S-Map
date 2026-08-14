@@ -1,4 +1,3 @@
-import 'package:s_map/services/bundle_load_service.dart';
 import 'package:s_map/services/map_style_service.dart';
 import 'package:s_map/services/local_notification_service.dart';
 import 'package:s_map/services/firebase_messaging_services.dart';
@@ -50,7 +49,6 @@ void main() async {
   });
 
   await LocalNotificationService.instance.init();
-  BundleLoadService.instance.init();
   await MapStyleService.instance.init();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
