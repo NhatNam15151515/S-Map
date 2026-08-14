@@ -1,5 +1,3 @@
-
-
 class DateFormatConstants {
   static const String yyyyMMdd = 'yyyy-MM-dd';
   static const String ddMMYYYY = 'dd/MM/yyyy';
