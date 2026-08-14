@@ -2,13 +2,14 @@ import 'dart:io';
 
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/flavor/flavor.dart';
+import 'package:s_map/interfaces/i_firebase_analytics_service.dart';
 import 'package:s_map/models/user.dart';
 import 'package:s_map/services/package_info_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 
-class FirebaseAnalyticsService {
+class FirebaseAnalyticsService implements IFirebaseAnalyticsService {
   FirebaseAnalyticsService._() {
     init();
   }
@@ -25,6 +26,7 @@ class FirebaseAnalyticsService {
     return null;
   }
 
+  @override
   Future init() async {
     try {
       await PackageInfoService.instance.initCompleter.future;
@@ -38,6 +40,7 @@ class FirebaseAnalyticsService {
     }
   }
 
+  @override
   Future resetUserDetail({User? profile}) async {
     try {
       if (_analytics == null) return;
@@ -53,6 +56,7 @@ class FirebaseAnalyticsService {
     }
   }
 
+  @override
   Future logEvent(String name, Map<String, dynamic> params) async {
     try {
       if (_analytics == null) return;

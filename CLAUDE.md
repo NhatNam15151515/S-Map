@@ -30,3 +30,6 @@ Domains: `style`, `color`, `typography`, `ux`, `icons`, `chart`, `landing`, `pro
 - Dùng `WidgetStateProperty` (không dùng `MaterialStateProperty`)
 - Dùng `CardThemeData` (không dùng `CardTheme` trong ThemeData)
 - Feature-based architecture with commons layer
+- **Interface-First**: Mọi Service và Repository BẮT BUỘC phải có Interface trong `lib/interfaces/`
+- **Dependency Inversion**: Tầng trên (Cubit/Screen/Repo) phụ thuộc vào Interface (`ILocationService`, `IAuthRepos`), không phụ thuộc trực tiếp vào Concrete class
+- **Unit Test Mocks**: Mock bằng cách `implements Interface` thay vì kế thừa concrete class

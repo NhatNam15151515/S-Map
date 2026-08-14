@@ -3,23 +3,28 @@ import 'dart:async';
 import 'package:s_map/commons/log/log.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:s_map/interfaces/i_local_auth_service.dart';
 
-class FlutterLocalAuth {
+class FlutterLocalAuth implements ILocalAuthService {
   final LocalAuthentication _auth = LocalAuthentication();
 
   static FlutterLocalAuth instance = FlutterLocalAuth();
   Completer<bool> initCheckCompleter = Completer();
+  @override
   bool get initDone => initCheckCompleter.isCompleted;
 
   final List<BiometricType> _availableBiometrics = [];
+  @override
   bool get faceIdAvailable => _availableBiometrics.contains(BiometricType.face);
 
+  @override
   Future<void> init() async {
     if(!initDone) return;
     await getAvailableBio();
     initCheckCompleter.complete(true);
   }
 
+  @override
   Future<void> getAvailableBio() async {
     try {
       DLog.info("LOADING BIOMETRICS");
@@ -30,6 +35,7 @@ class FlutterLocalAuth {
     }
   }
 
+  @override
   Future<bool> authenticate() async {
     await init();
     try {

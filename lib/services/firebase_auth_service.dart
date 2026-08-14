@@ -3,10 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/firebase_options.dart';
+import 'package:s_map/interfaces/i_firebase_auth_service.dart';
 import 'package:s_map/models/user.dart';
 import 'package:s_map/services/firebase_firestore_service.dart';
 
-class FirebaseAuthService {
+class FirebaseAuthService implements IFirebaseAuthService {
   FirebaseAuthService._();
   static final FirebaseAuthService instance = FirebaseAuthService._();
 
@@ -39,9 +40,11 @@ class FirebaseAuthService {
     return null;
   }
 
+  @override
   fb.User? get currentUser => _auth?.currentUser;
 
   /// Đăng nhập bằng tài khoản Google
+  @override
   Future<User?> signInWithGoogle() async {
     try {
       await _ensureFirebaseInitialized();
@@ -102,6 +105,7 @@ class FirebaseAuthService {
   }
 
   /// Đăng xuất
+  @override
   Future<void> signOut() async {
     await Future.wait([
       if (_auth != null) _auth!.signOut(),

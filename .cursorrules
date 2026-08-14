@@ -22,3 +22,6 @@ Font: Montserrat. Platforms: Android & iOS ONLY.
 - Use CardThemeData (not CardTheme in ThemeData)
 - Feature-based architecture with commons layer
 - Keep existing comments and docstrings
+- **Interface-First Architecture**: All Services and Repositories MUST have an abstract interface in `lib/interfaces/`
+- **Dependency Inversion**: Higher layers (Cubits, Screens, Repos) must depend on Interfaces (e.g. `ILocationService`, `IAuthRepos`), not concrete implementations
+- **Unit Test Mocks**: Mock services by `implements IService` to avoid constructor side-effects

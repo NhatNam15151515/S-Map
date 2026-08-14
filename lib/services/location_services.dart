@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
+import 'package:s_map/interfaces/i_location_service.dart';
 
 class LocationPermissionDeniedForeverException implements Exception {
   final String message;
@@ -8,7 +9,7 @@ class LocationPermissionDeniedForeverException implements Exception {
   String toString() => message;
 }
 
-class LocationService {
+class LocationService implements ILocationService {
   LocationService() {
     _init();
   }
@@ -17,17 +18,26 @@ class LocationService {
 
   final Completer<bool> initCompleter = Completer();
 
+  @override
   Position get position => _position;
+  @override
   (double, double) get latLng => (_position.latitude, _position.longitude);
+  @override
   Stream<Position> get positionStream => Geolocator.getPositionStream();
+  @override
   Future<Position> getCurrentPosition() => _determinePosition();
 
   static LocationService instance = LocationService();
 
+  @override
   Future<bool> isLocationServiceEnabled() => Geolocator.isLocationServiceEnabled();
+  @override
   Future<LocationPermission> checkPermission() => Geolocator.checkPermission();
+  @override
   Future<LocationPermission> requestPermission() => Geolocator.requestPermission();
+  @override
   Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
+  @override
   Future<bool> openAppSettings() => Geolocator.openAppSettings();
 
   void _init() async {

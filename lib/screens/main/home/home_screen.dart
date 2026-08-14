@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
@@ -74,8 +75,8 @@ class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
           // 1. BASE MAP VIEW
           BlocConsumer<MapDisplayCubit, MapDisplayState>(
             listener: (context, state) {
-              if (state.errorMessage != null && state.status != MapDisplayStatus.error) {
-                showWarning(state.errorMessage);
+              if (state.errorMessageKey != null && state.status != MapDisplayStatus.error) {
+                showWarning(tr(state.errorMessageKey!));
                 cubit.clearError();
               }
             },
@@ -96,7 +97,9 @@ class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
                     ),
                   if (state.status == MapDisplayStatus.error)
                     MapErrorOverlay(
-                      errorMessage: state.errorMessage ?? 'Không thể tải dữ liệu bản đồ',
+                      errorMessage: state.errorMessageKey != null
+                          ? tr(state.errorMessageKey!)
+                          : tr('map.error_load'),
                       onRetry: cubit.locateMe,
                     ),
                 ],

@@ -27,8 +27,8 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
     return Scaffold(
       body: BlocConsumer<MapDisplayCubit, MapDisplayState>(
         listener: (context, state) {
-          if (state.errorMessage != null && state.status != MapDisplayStatus.error) {
-            showWarning(state.errorMessage);
+          if (state.errorMessageKey != null && state.status != MapDisplayStatus.error) {
+            showWarning(tr(state.errorMessageKey!));
             cubit.clearError();
           }
         },
@@ -58,8 +58,9 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
                 ),
               if (state.status == MapDisplayStatus.error)
                 MapErrorOverlay(
-                  errorMessage:
-                      state.errorMessage ?? tr('map.error_load'),
+                  errorMessage: state.errorMessageKey != null
+                      ? tr(state.errorMessageKey!)
+                      : tr('map.error_load'),
                   onRetry: cubit.locateMe,
                 ),
             ],

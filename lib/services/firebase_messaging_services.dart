@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
 import 'package:s_map/commons/cubits/auth_cubit/auth_cubit.dart';
 import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/interfaces/i_firebase_messaging_service.dart';
 import 'package:s_map/models/notification_model.dart';
 import 'package:s_map/routers/routers.dart';
 import 'package:s_map/services/local_notification_service.dart';
@@ -13,7 +14,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
-class FirebaseMessagingService {
+class FirebaseMessagingService implements IFirebaseMessagingService {
   FirebaseMessagingService._();
 
   static FirebaseMessagingService instance =
@@ -29,8 +30,10 @@ class FirebaseMessagingService {
 
   AuthCubit get authCubit => routeContext.read<AuthCubit>();
 
+  @override
   BehaviorSubject<NotificationModel?> comingNotificationListener = BehaviorSubject.seeded(null);
 
+  @override
   Future<void> init() async {
     try {
       // Instantiate Firebase Messaging
@@ -41,47 +44,47 @@ class FirebaseMessagingService {
           await _messaging!.requestPermission(
         alert: true,
         badge: true,
-      provisional: false,
-      sound: true,
-    );
+        provisional: false,
+        sound: true,
+      );
 
-    // 4. on Message Listen
-    if (settings.authorizationStatus ==
-        AuthorizationStatus.authorized) {
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        DLog.info('**onMessage** Called ${message.data}');
-        if (message.notification?.title != null) {
-          LocalNotificationService.instance.showNotification(
-            title: message.notification?.title,
-            body: message.notification?.body,
-            payload: jsonEncode(message.data),
-          );
-        }
-        final model = NotificationModel.fromJson(message.data)
-          ..jsonData = message.data
-          ..onListen();
+      // 4. on Message Listen
+      if (settings.authorizationStatus ==
+          AuthorizationStatus.authorized) {
+        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+          DLog.info('**onMessage** Called ${message.data}');
+          if (message.notification?.title != null) {
+            LocalNotificationService.instance.showNotification(
+              title: message.notification?.title,
+              body: message.notification?.body,
+              payload: jsonEncode(message.data),
+            );
+          }
+          final model = NotificationModel.fromJson(message.data)
+            ..jsonData = message.data
+            ..onListen();
 
-        comingNotificationListener.value = model;
-      });
+          comingNotificationListener.value = model;
+        });
 
-      //5. background message using backgroundHandler
-      FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler);
+        //5. background message using backgroundHandler
+        FirebaseMessaging.onBackgroundMessage(
+            _firebaseMessagingBackgroundHandler);
 
-      //6. On message open app
-      FirebaseMessaging.onMessageOpenedApp
-          .listen((RemoteMessage message) async {
-        DLog.info(
-            '**onMessageOpenedApp** Called ${message.data.runtimeType}');
+        //6. On message open app
+        FirebaseMessaging.onMessageOpenedApp
+            .listen((RemoteMessage message) async {
+          DLog.info(
+              '**onMessageOpenedApp** Called ${message.data.runtimeType}');
 
-        //7. pass data into model
-        NotificationModel? appNotification =
-            NotificationModel.fromJson(message.data);
-        appNotification.jsonData = message.data;
+          //7. pass data into model
+          NotificationModel? appNotification =
+              NotificationModel.fromJson(message.data);
+          appNotification.jsonData = message.data;
 
-        onClickNotification(appNotification, openFromBanner: true);
-        //8. Route handle
-      });
+          onClickNotification(appNotification, openFromBanner: true);
+          //8. Route handle
+        });
       } else {
         DLog.info(
           'Messaging Permission -> User declined or has not accepted permission',
@@ -93,6 +96,7 @@ class FirebaseMessagingService {
   }
 
   //9. get FCM Token
+  @override
   Future<String?> getToken() async {
     try {
       final fcmToken = await _messaging?.getToken();
@@ -103,6 +107,7 @@ class FirebaseMessagingService {
     }
   }
 
+  @override
   Future<void> onClickNotification(
       NotificationModel notificationModel,
       {bool openFromBanner = false}) async {
@@ -110,6 +115,7 @@ class FirebaseMessagingService {
     return Routes.instance.showLoadingDepend(notificationModel.onOpen());
   }
 
+  @override
   Future<void> onAppStartedWithNotification() async {
     try {
       final initFromFB = await _messaging?.getInitialMessage();

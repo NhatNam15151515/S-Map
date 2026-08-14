@@ -4,36 +4,133 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/constants/map_constants.dart';
+import 'package:s_map/interfaces/i_location_service.dart';
 import 'package:s_map/services/location_services.dart';
 
-class MockSuccessLocationService extends LocationService {
+class MockSuccessLocationService implements ILocationService {
   final Position mockPosition;
 
   MockSuccessLocationService(this.mockPosition);
 
   @override
+  Position get position => mockPosition;
+
+  @override
+  (double, double) get latLng => (mockPosition.latitude, mockPosition.longitude);
+
+  @override
+  Stream<Position> get positionStream => Stream.value(mockPosition);
+
+  @override
   Future<Position> getCurrentPosition() async => mockPosition;
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => true;
+
+  @override
+  Future<LocationPermission> checkPermission() async => LocationPermission.always;
+
+  @override
+  Future<LocationPermission> requestPermission() async => LocationPermission.always;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+
+  @override
+  Future<bool> openAppSettings() async => true;
 }
 
-class MockDisabledLocationService extends LocationService {
+class MockDisabledLocationService implements ILocationService {
+  @override
+  Position get position => throw UnimplementedError();
+
+  @override
+  (double, double) get latLng => throw UnimplementedError();
+
+  @override
+  Stream<Position> get positionStream => const Stream.empty();
+
   @override
   Future<Position> getCurrentPosition() async {
     throw const LocationServiceDisabledException();
   }
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => false;
+
+  @override
+  Future<LocationPermission> checkPermission() async => LocationPermission.denied;
+
+  @override
+  Future<LocationPermission> requestPermission() async => LocationPermission.denied;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+
+  @override
+  Future<bool> openAppSettings() async => true;
 }
 
-class MockDeniedLocationService extends LocationService {
+class MockDeniedLocationService implements ILocationService {
+  @override
+  Position get position => throw UnimplementedError();
+
+  @override
+  (double, double) get latLng => throw UnimplementedError();
+
+  @override
+  Stream<Position> get positionStream => const Stream.empty();
+
   @override
   Future<Position> getCurrentPosition() async {
     throw const PermissionDeniedException('Location permission denied.');
   }
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => true;
+
+  @override
+  Future<LocationPermission> checkPermission() async => LocationPermission.denied;
+
+  @override
+  Future<LocationPermission> requestPermission() async => LocationPermission.denied;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+
+  @override
+  Future<bool> openAppSettings() async => true;
 }
 
-class MockDeniedForeverLocationService extends LocationService {
+class MockDeniedForeverLocationService implements ILocationService {
+  @override
+  Position get position => throw UnimplementedError();
+
+  @override
+  (double, double) get latLng => throw UnimplementedError();
+
+  @override
+  Stream<Position> get positionStream => const Stream.empty();
+
   @override
   Future<Position> getCurrentPosition() async {
     throw LocationPermissionDeniedForeverException('Location permission denied forever.');
   }
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => true;
+
+  @override
+  Future<LocationPermission> checkPermission() async => LocationPermission.deniedForever;
+
+  @override
+  Future<LocationPermission> requestPermission() async => LocationPermission.deniedForever;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+
+  @override
+  Future<bool> openAppSettings() async => true;
 }
 
 void main() {
@@ -61,7 +158,7 @@ void main() {
       expect(cubit.state.rotation, 0.0);
       expect(cubit.state.currentPosition, null);
       expect(cubit.state.center, null);
-      expect(cubit.state.errorMessage, null);
+      expect(cubit.state.errorMessageKey, null);
       cubit.close();
     });
 
@@ -75,6 +172,7 @@ void main() {
       expect(cubit.state.currentPosition, const LatLng(10.762622, 106.660172));
       expect(cubit.state.center, const LatLng(10.762622, 106.660172));
       expect(cubit.state.isFollowingUser, true);
+      expect(cubit.state.errorMessageKey, null);
       cubit.close();
     });
 
@@ -86,7 +184,7 @@ void main() {
 
       expect(cubit.state.isFollowingUser, false);
       expect(cubit.state.currentPosition, MapConstants.defaultLocation);
-      expect(cubit.state.errorMessage, isNotNull);
+      expect(cubit.state.errorMessageKey, 'map.location_service_disabled');
       cubit.close();
     });
 
@@ -98,7 +196,7 @@ void main() {
 
       expect(cubit.state.isFollowingUser, false);
       expect(cubit.state.currentPosition, MapConstants.defaultLocation);
-      expect(cubit.state.errorMessage, isNotNull);
+      expect(cubit.state.errorMessageKey, 'map.location_permission_denied');
       cubit.close();
     });
 
@@ -110,12 +208,15 @@ void main() {
 
       expect(cubit.state.isFollowingUser, false);
       expect(cubit.state.currentPosition, MapConstants.defaultLocation);
-      expect(cubit.state.errorMessage, isNotNull);
+      expect(cubit.state.errorMessageKey, 'map.location_permission_denied_forever');
       cubit.close();
     });
 
-    test('onCameraMove updates center, zoom, and rotation in state', () {
+    test('onCameraMove updates center, zoom, and rotation in state and clears error', () {
       final cubit = MapDisplayCubit();
+      cubit.setError('map.error_load');
+      expect(cubit.state.errorMessageKey, 'map.error_load');
+
       const newTarget = LatLng(21.0285, 105.8542);
       const position = CameraPosition(
         target: newTarget,
@@ -128,6 +229,7 @@ void main() {
       expect(cubit.state.center, newTarget);
       expect(cubit.state.zoom, 16.5);
       expect(cubit.state.rotation, 45.0);
+      expect(cubit.state.errorMessageKey, null);
       cubit.close();
     });
 
@@ -142,13 +244,13 @@ void main() {
       cubit.close();
     });
 
-    test('setError updates status to error and sets errorMessage', () {
+    test('setError updates status to error and sets errorMessageKey', () {
       final cubit = MapDisplayCubit();
 
-      cubit.setError('Map style load failed');
+      cubit.setError('map.error_load');
 
       expect(cubit.state.status, MapDisplayStatus.error);
-      expect(cubit.state.errorMessage, 'Map style load failed');
+      expect(cubit.state.errorMessageKey, 'map.error_load');
       cubit.close();
     });
 

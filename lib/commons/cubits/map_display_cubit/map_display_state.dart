@@ -6,7 +6,7 @@ enum MapDisplayStatus { initial, loading, ready, error }
 // ignore: deprecated_member_use
 class MapDisplayState with EquatableMixin {
   final MapDisplayStatus status;
-  final String? errorMessage;
+  final String? errorMessageKey;
   final LatLng? currentPosition;
   final LatLng? center;
   final double zoom;
@@ -15,7 +15,7 @@ class MapDisplayState with EquatableMixin {
 
   const MapDisplayState({
     required this.status,
-    this.errorMessage,
+    this.errorMessageKey,
     this.currentPosition,
     this.center,
     this.zoom = 14.0,
@@ -25,7 +25,7 @@ class MapDisplayState with EquatableMixin {
 
   MapDisplayState copyWith({
     MapDisplayStatus? status,
-    String? errorMessage,
+    String? errorMessageKey,
     bool clearError = false,
     LatLng? currentPosition,
     LatLng? center,
@@ -35,7 +35,8 @@ class MapDisplayState with EquatableMixin {
   }) {
     return MapDisplayState(
       status: status ?? this.status,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      errorMessageKey:
+          clearError ? null : (errorMessageKey ?? this.errorMessageKey),
       currentPosition: currentPosition ?? this.currentPosition,
       center: center ?? this.center,
       zoom: zoom ?? this.zoom,
@@ -47,7 +48,7 @@ class MapDisplayState with EquatableMixin {
   @override
   List<Object?> get props => [
         status,
-        errorMessage,
+        errorMessageKey,
         currentPosition,
         center,
         zoom,
