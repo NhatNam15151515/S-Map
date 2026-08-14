@@ -1,15 +1,18 @@
 import 'dart:async';
 
 import 'package:s_map/commons/log/log.dart';
-import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:s_map/interfaces/i_local_auth_service.dart';
 
 class FlutterLocalAuth implements ILocalAuthService {
-  final LocalAuthentication _auth = LocalAuthentication();
+  final LocalAuthentication _auth;
+
+  FlutterLocalAuth({LocalAuthentication? auth})
+      : _auth = auth ?? LocalAuthentication();
 
   static FlutterLocalAuth instance = FlutterLocalAuth();
   Completer<bool> initCheckCompleter = Completer();
+
   @override
   bool get initDone => initCheckCompleter.isCompleted;
 
@@ -19,9 +22,11 @@ class FlutterLocalAuth implements ILocalAuthService {
 
   @override
   Future<void> init() async {
-    if(!initDone) return;
+    if (initDone) return;
     await getAvailableBio();
-    initCheckCompleter.complete(true);
+    if (!initCheckCompleter.isCompleted) {
+      initCheckCompleter.complete(true);
+    }
   }
 
   @override
@@ -30,8 +35,8 @@ class FlutterLocalAuth implements ILocalAuthService {
       DLog.info("LOADING BIOMETRICS");
       _availableBiometrics.addAll(await _auth.getAvailableBiometrics());
       DLog.info("LOADED BIOMETRICS");
-    } on PlatformException catch (e) {
-      DLog.error(e.toString());
+    } catch (e) {
+      DLog.error("Biometric availability error: $e");
     }
   }
 
@@ -41,10 +46,11 @@ class FlutterLocalAuth implements ILocalAuthService {
     try {
       return await _auth.authenticate(
         localizedReason: 'Please authenticate to login',
-        options: const AuthenticationOptions(useErrorDialogs: false, biometricOnly: true),
+        options: const AuthenticationOptions(
+            useErrorDialogs: false, biometricOnly: true),
       );
-    } on PlatformException catch (_) {
-
+    } catch (e) {
+      DLog.error("Biometric authentication error: $e");
     }
     return false;
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 
@@ -73,25 +72,10 @@ class _AppTextFieldState extends State<AppTextField> with AppMixin {
   bool get isPasswordField => widget.obscure;
   bool get hasTitle => widget.title != null;
 
-  BehaviorSubject<bool> focusNodeStream = BehaviorSubject();
-
   @override
   void initState() {
-    if(isPasswordField) obscure = true;
-    controller.focusNode.addListener(() {
-      focusNodeStream.add(controller.focusNode.hasFocus);
-    });
+    if (isPasswordField) obscure = true;
     super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -101,21 +85,23 @@ class _AppTextFieldState extends State<AppTextField> with AppMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if(hasTitle) Padding(
-            padding: const EdgeInsets.only(bottom: 7.0),
-            child: StreamBuilder<bool>(
-              stream: focusNodeStream,
-              builder: (context, snapshot) {
-                return Text(
-                  widget.title!,
-                  style: widget.textTitleBuilder?.call(snapshot.data == true)
-                      ?? styles.blackTextColor.textTheme.textTitleStyle.copyWith(
-                    fontSize: 12,
-                  ),
-                );
-              }
+          if (hasTitle)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7.0),
+              child: ListenableBuilder(
+                listenable: controller.focusNode,
+                builder: (context, _) {
+                  final hasFocus = controller.focusNode.hasFocus;
+                  return Text(
+                    widget.title!,
+                    style: widget.textTitleBuilder?.call(hasFocus) ??
+                        styles.blackTextColor.textTheme.textTitleStyle.copyWith(
+                          fontSize: 12,
+                        ),
+                  );
+                },
+              ),
             ),
-          ),
           TextFormField(
             keyboardType: widget.textInputType,
             controller: controller,
