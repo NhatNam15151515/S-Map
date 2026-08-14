@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
+import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/models/place_model.dart';
 import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
 import 'package:s_map/screens/map/widgets/map_view.dart';
@@ -51,7 +52,7 @@ class _HomeScreenContent extends StatefulWidget {
   State<_HomeScreenContent> createState() => _HomeScreenContentState();
 }
 
-class _HomeScreenContentState extends State<_HomeScreenContent> {
+class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
   final DraggableScrollableController _sheetController = DraggableScrollableController();
   final FireStoreService _fireStore = FireStoreService();
   String _selectedCategory = "Tất cả";
@@ -71,13 +72,21 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
       body: Stack(
         children: [
           // 1. BASE MAP VIEW
-          BlocBuilder<MapDisplayCubit, MapDisplayState>(
+          BlocConsumer<MapDisplayCubit, MapDisplayState>(
+            listener: (context, state) {
+              if (state.errorMessage != null && state.status != MapDisplayStatus.error) {
+                showWarning(state.errorMessage);
+                cubit.clearError();
+              }
+            },
             builder: (context, state) {
               return Stack(
                 children: [
                   MapView(
                     onMapCreated: cubit.onMapCreated,
                     onStyleLoadedCallback: cubit.onStyleLoaded,
+                    onCameraTrackingDismissed: cubit.onCameraTrackingDismissed,
+                    onCameraMove: cubit.onCameraMove,
                   ),
                   if (state.status == MapDisplayStatus.loading)
                     const Positioned.fill(
