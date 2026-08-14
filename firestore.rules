@@ -3,34 +3,37 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // User profile: Cho phép đọc/ghi thông tin người dùng
+    // User profile: Chỉ cho phép người dùng đã đăng nhập đọc, và chỉ chính họ mới được ghi/sửa profile của mình
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Saved places: Địa điểm đã lưu của người dùng
+    // Saved places: Địa điểm đã lưu (Chỉ chủ sở hữu dữ liệu mới được phép đọc/ghi/xóa)
     match /saved_places/{savedId} {
-      allow read, write: if true;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
     
-    // Places & Categories: Địa điểm khám phá (công khai đọc)
+    // Places & Categories: Địa điểm khám phá công khai (đọc tự do, chỉ Authenticated mới ghi)
     match /places/{placeId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // Notifications: Thông báo hệ thống (công khai đọc)
+    // Notifications: Thông báo hệ thống (đọc tự do, chỉ Authenticated/Admin mới ghi)
     match /notifications/{notifId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // Routes: Lộ trình đã lưu
+    // Routes: Lộ trình đã lưu (Chỉ chủ sở hữu lộ trình mới có quyền đọc/ghi/xóa)
     match /routes/{routeId} {
-      allow read, write: if true;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
     
-    // Default fallback
+    // Default fallback: Tất cả các collection khác yêu cầu phải đăng nhập
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

@@ -11,6 +11,10 @@ class LocationPermissionDeniedForeverException implements Exception {
   String toString() => message;
 }
 
+/// LocationService implements [ILocationService] combining:
+/// 1. [Geolocator] for high-performance position streaming, permission checks, and background coordinates.
+/// 2. [loc_pkg.Location] exclusively for triggering Google Play Services' native system dialog
+///    (`requestService()`), giving users a seamless 1-tap "Bật" prompt without leaving the app.
 class LocationService implements ILocationService {
   final loc_pkg.Location _nativeLocation;
 
