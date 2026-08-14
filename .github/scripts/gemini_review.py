@@ -132,7 +132,13 @@ def main():
     # Giới hạn diff tối đa 250k ký tự (~60k tokens)
     if len(diff_text) > 250000:
         print(f"Diff is large ({len(diff_text)} chars), truncating to 250000 chars...")
-        diff_text = diff_text[:250000] + "\n\n... (diff truncated due to size)"
+        truncated_text = diff_text[:250000]
+        # Tìm dòng xuống dòng cuối cùng để không bị cắt dở dang dòng
+        last_newline = truncated_text.rfind('\n')
+        if last_newline != -1:
+            diff_text = truncated_text[:last_newline] + "\n\n... (diff truncated due to size)"
+        else:
+            diff_text = truncated_text + "\n\n... (diff truncated due to size)"
 
     client = genai.Client(api_key=gemini_api_key)
     models_to_try = ["gemini-3.6-flash", "gemini-3.5-flash"]
