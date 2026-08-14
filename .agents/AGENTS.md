@@ -380,7 +380,7 @@ Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử d�
 
 | Kiểm tra                                           | Nơi tìm                                                |
 | --------------------------------------------------- | -------------------------------------------------------- |
-| Có base Cubit/State nào phù hợp chưa?          | `commons/cubits/base_cubit/`, `generic_cubit/`       |
+| Có Cubit/State chung nào phù hợp chưa?              | `commons/cubits/` (MapDisplayCubit, AppCubit, AuthCubit) |
 | Có mixin có sẵn nào giải quyết được chưa? | `commons/mixin/` (AppMixin, SizeMixin, OverlayMixin…) |
 | Có widget tái dùng nào sẵn chưa?              | `commons/widgets/` (EmptyWidget, AppBar, shimmer…)    |
 | Có service sẵn nào xử lý được chưa?        | `services/` (LocationService, BundleLoadService…)     |
@@ -394,13 +394,12 @@ Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử d�
 - ❌ **KHÔNG tạo duplicate** của thứ đã có sẵn (ví dụ: không tạo `LocationService2` nếu `LocationService` đã đủ)
 - ❌ **KHÔNG rewrite** logic đã hoạt động ổn định mà không có lý do rõ ràng
 
-### Ví dụ áp dụng cho Issue 8 (Map):
+### Ví dụ áp dụng cho Map:
 
 | Cần                | Dùng sẵn có                                        |
 | ------------------- | ----------------------------------------------------- |
-| Loading/Error state | `GenericState<T>` từ `GenericCubit`              |
-| Lấy GPS position   | `LocationService.instance` (mở rộng thêm stream) |
-| Load file asset     | Kết hợp pattern từ`BundleLoadService`            |
+| Loading/Error state | `MapDisplayState` từ `MapDisplayCubit`           |
+| Lấy GPS position   | `ILocationService` (LocationService.instance)         |
 | Thông báo lỗi    | `AppMixin.showError()` / `showWarning()`          |
 | Empty/Error UI      | `EmptyWidget` tái dùng lại                       |
 
