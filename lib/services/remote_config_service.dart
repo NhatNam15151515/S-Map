@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:s_map/interfaces/i_remote_config_service.dart';
 
 import 'package_info_service.dart';
 
-class RemoteConfigService {
+class RemoteConfigService implements IRemoteConfigService {
   RemoteConfigService._();
 
   static RemoteConfigService? _instance;
@@ -63,6 +64,7 @@ class RemoteConfigService {
     }
   }
 
+  @override
   Future<void> fetchAndActivate() async {
     try {
       bool? updated = await _remoteConfig?.fetchAndActivate();
@@ -74,6 +76,7 @@ class RemoteConfigService {
     }
   }
 
+  @override
   Future<void> initialize() async {
     try {
       await PackageInfoService.instance.initCompleter.future;
@@ -85,8 +88,10 @@ class RemoteConfigService {
     }
   }
 
+  @override
   bool get forceLogin => _getBool(RemoteConfigKeys.forceLogin);
 
+  @override
   List<HelpCenterQuestion> get helpCenter {
     try {
       final value = _remoteConfig?.getValue(RemoteConfigKeys.helpCenter);
@@ -110,10 +115,14 @@ class RemoteConfigService {
     return [];
   }
 
+  @override
   bool get maintenance => _getBool(RemoteConfigKeys.maintenance);
+  @override
   String get appVersion => _getString(RemoteConfigKeys.appVersion);
+  @override
   String get termCondition => _getString(RemoteConfigKeys.termCondition);
 
+  @override
   Future<bool> mustUpdate() async {
     try {
       await PackageInfoService.instance.initCompleter.future;

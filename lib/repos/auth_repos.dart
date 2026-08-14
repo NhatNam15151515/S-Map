@@ -1,15 +1,12 @@
+import 'package:s_map/interfaces/i_auth_repos.dart';
 import 'package:s_map/models/user.dart';
 import 'package:s_map/services/firebase_auth_service.dart';
 import 'package:s_map/services/firebase_firestore_service.dart';
 
-abstract class AuthRepos {
-  Future<User?> login(String username, String password);
-  Future<User?> getProfile();
-  Future<User?> updateProfile(User user);
-  Future<bool> logout();
-}
+// Backward compatibility alias
+typedef AuthRepos = IAuthRepos;
 
-class AuthReposImpl implements AuthRepos {
+class AuthReposImpl implements IAuthRepos {
   final FireStoreService _fireStore = FireStoreService();
 
   @override

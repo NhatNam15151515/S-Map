@@ -65,20 +65,31 @@ Khi cần tìm skill hoặc workflow patterns:
 ### Dependency Flow (Một chiều, KHÔNG ngược)
 
 ```
-screens → cubits → repos → services
-   ↓         ↓        ↓        ↓
-   └── commons (shared layer) ──┘
+screens → cubits → [interfaces: IRepos] → repos → [interfaces: IServices] → services
+   ↓         ↓              ↓               ↓               ↓                ↓
+   └─────────────────────────── commons (shared layer) ──────────────────────┘
 ```
 
-- **`screens/`** có thể import: `cubits/`, `repos/`, `services/`, `commons/`, `models/`, `constants/`, `routers/`
-- **`cubits/`** có thể import: `repos/`, `services/`, `models/`, `commons/`
-- **`repos/`** có thể import: `services/`, `models/`
-- **`services/`** có thể import: `models/`, `constants/`, `flavor/` — KHÔNG import ngược lên `repos/`, `cubits/`, `screens/`
+- **`interfaces/`** chứa toàn bộ abstract class interface cho Services và Repos (`i_location_service.dart`, `i_auth_repos.dart`, v.v.)
+- **`screens/`** có thể import: `cubits/`, `interfaces/`, `repos/`, `services/`, `commons/`, `models/`, `constants/`, `routers/`
+- **`cubits/`** có thể import: `interfaces/`, `repos/`, `services/`, `models/`, `commons/`
+- **`repos/`** có thể import: `interfaces/`, `services/`, `models/`
+- **`services/`** có thể import: `interfaces/`, `models/`, `constants/`, `flavor/` — KHÔNG import ngược lên `repos/`, `cubits/`, `screens/`
 - **`models/`** là pure data class — KHÔNG chứa business logic, KHÔNG import bất kỳ layer nào khác
 - **`commons/`** là shared layer — chỉ chứa code dùng chung >= 2 features
 
+### Interface-First & Dependency Inversion Rules (BẮT BUỘC)
+
+1. **Mọi Service & Repo phải có Interface**: Mọi Service và Repository mới đều **BẮT BUỘC** khai báo abstract interface tại `lib/interfaces/` (ví dụ: `i_location_service.dart`, `i_auth_repos.dart`).
+2. **Export qua Barrel file**: Mọi interface mới phải được export trong `lib/interfaces/interfaces.dart`.
+3. **Phụ thuộc vào Interface**: Tầng gọi (Cubit, Screen, Repo) phải phụ thuộc vào Interface (`ILocationService`, `IAuthRepos`), KHÔNG phụ thuộc trực tiếp vào Concrete class.
+4. **Hỗ trợ Dependency Injection**: Constructor của Cubit/Bloc/Repo phải cho phép nhận Interface parameter (default về `Service.instance`) để thuận tiện cho việc Mock trong Unit Test.
+5. **Mock sạch sẽ trong Unit Test**: Unit test mock bằng cách `implements IService` thay vì `extends ConcreteService` để tránh side-effect từ constructor thật.
+
 ### Vi phạm kiến trúc nghiêm trọng
 
+- ❌ KHÔNG tạo Service hoặc Repo mà thiếu Interface trong `lib/interfaces/`
+- ❌ KHÔNG phụ thuộc trực tiếp vào Concrete Service trong Cubit/Repo nếu đã có Interface
 - ❌ KHÔNG import trực tiếp `screens/featureA` từ `screens/featureB` → phải thông qua `commons/` hoặc router
 - ❌ KHÔNG tạo circular dependency giữa các layer
 - ❌ KHÔNG đặt business logic trong widget `build()` method

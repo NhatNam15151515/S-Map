@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:s_map/interfaces/i_local_notification_service.dart';
 
-
-class LocalNotificationService {
+class LocalNotificationService implements ILocalNotificationService {
   LocalNotificationService._();
 
   static final LocalNotificationService instance = LocalNotificationService._();
@@ -11,6 +11,7 @@ class LocalNotificationService {
   late FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
 
   //1. local notification Initialization for Android and IOS
+  @override
   Future<void> init() async {
     _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -47,8 +48,8 @@ class LocalNotificationService {
     }
   }
 
-
   //3. show notification
+  @override
   Future<void> showNotification(
       {String? title, String? body, String? payload}) async {
     var android = const AndroidNotificationDetails(

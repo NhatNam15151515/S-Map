@@ -2,11 +2,12 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:s_map/interfaces/i_firebase_firestore_service.dart';
 import 'package:s_map/models/notification_model.dart';
 import 'package:s_map/models/place_model.dart';
 import 'package:s_map/models/user.dart';
 
-class FireStoreService {
+class FireStoreService implements IFireStoreService {
   FireStoreService._() {
     initCompleter.complete(this);
   }
@@ -29,18 +30,25 @@ class FireStoreService {
   Completer<FireStoreService> initCompleter = Completer();
 
   // Collections
+  @override
   CollectionReference? get usersCollection => _fs?.collection('users');
+  @override
   CollectionReference? get notificationsCollection => _fs?.collection('notifications');
+  @override
   CollectionReference? get savedPlacesCollection => _fs?.collection('saved_places');
+  @override
   CollectionReference? get placesCollection => _fs?.collection('places');
+  @override
   CollectionReference? get routesCollection => _fs?.collection('routes');
 
   // --- USER METHODS ---
+  @override
   Future<void> saveUserProfile(User user) async {
     if (user.id == null || usersCollection == null) return;
     await usersCollection!.doc(user.id.toString()).set(user.toJson(), SetOptions(merge: true));
   }
 
+  @override
   Future<User?> getUserProfile(String userId) async {
     if (usersCollection == null) return null;
     final doc = await usersCollection!.doc(userId).get();
@@ -51,6 +59,7 @@ class FireStoreService {
   }
 
   // --- NOTIFICATION METHODS ---
+  @override
   Future<List<NotificationModel>> getNotifications({int limit = 20}) async {
     if (notificationsCollection == null) return [];
     try {
@@ -70,6 +79,7 @@ class FireStoreService {
   }
 
   // --- PLACES METHODS ---
+  @override
   Future<List<PlaceModel>> getExplorePlaces({String? category, int limit = 10}) async {
     if (placesCollection == null) return [];
     try {
@@ -88,6 +98,7 @@ class FireStoreService {
     }
   }
 
+  @override
   Stream<List<PlaceModel>> streamExplorePlaces({String? category, int limit = 10}) {
     if (placesCollection == null) {
       return Stream.value([]);
@@ -110,6 +121,7 @@ class FireStoreService {
   }
 
   // --- SAVED PLACES METHODS ---
+  @override
   Future<void> savePlace(String userId, Map<String, dynamic> placeData) async {
     if (savedPlacesCollection == null) return;
     await savedPlacesCollection!.add({
@@ -119,6 +131,7 @@ class FireStoreService {
     });
   }
 
+  @override
   Stream<QuerySnapshot?> streamSavedPlaces(String userId) {
     if (savedPlacesCollection == null) {
       return Stream.value(null);

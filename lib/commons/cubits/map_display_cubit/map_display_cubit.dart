@@ -1,18 +1,18 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/constants/map_constants.dart';
+import 'package:s_map/interfaces/i_location_service.dart';
 import 'package:s_map/services/location_services.dart';
 import 'map_display_state.dart';
 
 class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
   MapLibreMapController? controller;
-  final LocationService _locationService;
+  final ILocationService _locationService;
 
-  MapDisplayCubit({LocationService? locationService})
+  MapDisplayCubit({ILocationService? locationService})
       : _locationService = locationService ?? LocationService.instance,
         super(const MapDisplayState(status: MapDisplayStatus.initial));
 
@@ -53,31 +53,31 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
     } on LocationServiceDisabledException catch (e) {
       DLog.error('Dịch vụ định vị đang tắt: $e');
       _fallbackToDefaultLocation(
-        errorMessage: tr('map.location_service_disabled'),
+        errorMessageKey: 'map.location_service_disabled',
       );
     } on PermissionDeniedException catch (e) {
       DLog.error('Quyền vị trí bị từ chối: $e');
       _fallbackToDefaultLocation(
-        errorMessage: tr('map.location_permission_denied'),
+        errorMessageKey: 'map.location_permission_denied',
       );
     } on LocationPermissionDeniedForeverException catch (e) {
       DLog.error('Quyền vị trí bị từ chối vĩnh viễn: $e');
       _fallbackToDefaultLocation(
-        errorMessage: tr('map.location_permission_denied_forever'),
+        errorMessageKey: 'map.location_permission_denied_forever',
       );
     } catch (e) {
       DLog.error('Lỗi lấy vị trí hiện tại: $e');
       _fallbackToDefaultLocation(
-        errorMessage: tr('map.locate_error'),
+        errorMessageKey: 'map.locate_error',
       );
     }
   }
 
-  void _fallbackToDefaultLocation({String? errorMessage}) {
+  void _fallbackToDefaultLocation({String? errorMessageKey}) {
     emit(state.copyWith(
       currentPosition: state.currentPosition ?? MapConstants.defaultLocation,
       isFollowingUser: false,
-      errorMessage: errorMessage,
+      errorMessageKey: errorMessageKey,
     ));
   }
 
@@ -95,16 +95,16 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
   }
 
   void clearError() {
-    if (state.errorMessage != null) {
+    if (state.errorMessageKey != null) {
       emit(state.copyWith(clearError: true));
     }
   }
 
-  void setError(String message) {
-    DLog.error('Lỗi bản đồ: $message');
+  void setError(String messageKey) {
+    DLog.error('Lỗi bản đồ: $messageKey');
     emit(state.copyWith(
       status: MapDisplayStatus.error,
-      errorMessage: message,
+      errorMessageKey: messageKey,
     ));
   }
 
