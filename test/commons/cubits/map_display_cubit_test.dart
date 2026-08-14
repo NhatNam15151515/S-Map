@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
+import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/services/location_services.dart';
 
 class MockSuccessLocationService extends LocationService {
@@ -84,7 +85,7 @@ void main() {
       await cubit.locateMe();
 
       expect(cubit.state.isFollowingUser, false);
-      expect(cubit.state.currentPosition, const LatLng(10.7769, 106.7009));
+      expect(cubit.state.currentPosition, MapConstants.defaultLocation);
       expect(cubit.state.errorMessage, isNotNull);
       cubit.close();
     });
@@ -96,7 +97,7 @@ void main() {
       await cubit.locateMe();
 
       expect(cubit.state.isFollowingUser, false);
-      expect(cubit.state.currentPosition, const LatLng(10.7769, 106.7009));
+      expect(cubit.state.currentPosition, MapConstants.defaultLocation);
       expect(cubit.state.errorMessage, isNotNull);
       cubit.close();
     });
@@ -108,7 +109,7 @@ void main() {
       await cubit.locateMe();
 
       expect(cubit.state.isFollowingUser, false);
-      expect(cubit.state.currentPosition, const LatLng(10.7769, 106.7009));
+      expect(cubit.state.currentPosition, MapConstants.defaultLocation);
       expect(cubit.state.errorMessage, isNotNull);
       cubit.close();
     });

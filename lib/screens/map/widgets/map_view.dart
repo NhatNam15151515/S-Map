@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/services/map_style_service.dart';
 
 class MapView extends StatelessWidget {
@@ -24,10 +25,13 @@ class MapView extends StatelessWidget {
     return MapLibreMap(
       styleString: MapStyleService.instance.styleJson,
       initialCameraPosition: const CameraPosition(
-        target: LatLng(10.7769, 106.7009), // Trung tâm TP.HCM
-        zoom: 14.0,
+        target: MapConstants.defaultLocation,
+        zoom: MapConstants.defaultZoom,
       ),
-      minMaxZoomPreference: const MinMaxZoomPreference(3.0, 19.0),
+      minMaxZoomPreference: const MinMaxZoomPreference(
+        MapConstants.minZoom,
+        MapConstants.maxZoom,
+      ),
       onMapCreated: onMapCreated,
       onStyleLoadedCallback: onStyleLoadedCallback,
       myLocationEnabled: true,

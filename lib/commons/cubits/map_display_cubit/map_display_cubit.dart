@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/services/location_services.dart';
 import 'map_display_state.dart';
 
@@ -38,7 +39,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
 
       if (controller != null) {
         await controller!.animateCamera(
-          CameraUpdate.newLatLngZoom(latLng, 16.0),
+          CameraUpdate.newLatLngZoom(latLng, MapConstants.locateMeZoom),
         );
       }
     } on LocationServiceDisabledException catch (e) {
@@ -66,7 +67,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
 
   void _fallbackToDefaultLocation({String? errorMessage}) {
     emit(state.copyWith(
-      currentPosition: state.currentPosition ?? const LatLng(10.7769, 106.7009),
+      currentPosition: state.currentPosition ?? MapConstants.defaultLocation,
       isFollowingUser: false,
       errorMessage: errorMessage,
     ));
