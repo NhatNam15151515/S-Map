@@ -5,10 +5,14 @@ import 'package:local_auth/local_auth.dart';
 import 'package:s_map/interfaces/i_local_auth_service.dart';
 
 class FlutterLocalAuth implements ILocalAuthService {
-  final LocalAuthentication _auth = LocalAuthentication();
+  final LocalAuthentication _auth;
+
+  FlutterLocalAuth({LocalAuthentication? auth})
+      : _auth = auth ?? LocalAuthentication();
 
   static FlutterLocalAuth instance = FlutterLocalAuth();
   Completer<bool> initCheckCompleter = Completer();
+
   @override
   bool get initDone => initCheckCompleter.isCompleted;
 
