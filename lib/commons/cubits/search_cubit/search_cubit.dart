@@ -22,9 +22,7 @@ class SearchCubit extends Cubit<SearchState> {
   })  : _poiRepository = poiRepository ?? PoiRepositoryImpl(),
         _recentSearchService =
             recentSearchService ?? RecentSearchServiceImpl.instance,
-        super(const SearchState()) {
-    loadRecentSearches();
-  }
+        super(const SearchState());
 
   @override
   void emit(SearchState state) {
@@ -80,6 +78,9 @@ class SearchCubit extends Cubit<SearchState> {
       final results = await resultsFuture;
       final dbSuggestions = await dbSuggestionsFuture;
 
+      // Đảm bảo kết quả phản hồi khớp với query hiện tại, tránh race condition
+      if (state.query != query || isClosed) return;
+
       // Lọc các từ khóa trong Recent Searches khớp với query
       final asciiQuery = AppUtils.instance.toAscii(query);
       final matchedRecents = state.recentSearches.where((recent) {
@@ -112,6 +113,7 @@ class SearchCubit extends Cubit<SearchState> {
         clearError: true,
       ));
     } catch (e) {
+      if (state.query != query || isClosed) return;
       DLog.error('Lỗi tìm kiếm POI: $e');
       emit(state.copyWith(
         status: SearchStatus.error,
@@ -143,9 +145,13 @@ class SearchCubit extends Cubit<SearchState> {
     try {
       final results = await _poiRepository.search(cleanQuery);
 
+      if (state.query != cleanQuery || isClosed) return;
+
       // Tự động lưu vào Recent Searches
       await _recentSearchService.addRecentSearch(cleanQuery);
       final updatedRecents = await _recentSearchService.getRecentSearches();
+
+      if (state.query != cleanQuery || isClosed) return;
 
       emit(state.copyWith(
         status: SearchStatus.success,
@@ -154,6 +160,7 @@ class SearchCubit extends Cubit<SearchState> {
         clearError: true,
       ));
     } catch (e) {
+      if (state.query != cleanQuery || isClosed) return;
       DLog.error('Lỗi thực hiện tìm kiếm: $e');
       emit(state.copyWith(
         status: SearchStatus.error,
