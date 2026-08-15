@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 
 import 'package_info_service.dart';
 
@@ -135,17 +136,6 @@ class RemoteConfigService implements IRemoteConfigService {
   }
 }
 
-class RemoteConfigKeys {
-  static const String forceLogin = 'forceLogin';
-  static const String appVersion = 'app_version';
-  static const String termCondition = 'term_condition';
-  static const String helpCenter = 'help_center';
-  static const String maintenance = "maintenance";
-}
-
-class HelpCenterQuestion {
-  final String q;
-  final String a;
-
-  HelpCenterQuestion({required this.q, required this.a});
-}
+// RemoteConfigKeys and HelpCenterQuestion have been moved to
+// lib/models/help_center_question.dart to satisfy the layering rule:
+// services/ must not be imported by interfaces/

@@ -74,3 +74,36 @@ class _FullImageScreenState extends State<FullImageScreen> with AppMixin {
     );
   }
 }
+
+extension AppImageToFullScreen on AppImage {
+  Widget buildWithFullScreen(
+    BuildContext context, {
+    Widget? placeHolder,
+    Widget? error,
+    Size? size,
+    BoxFit fit = BoxFit.contain,
+    Color? color,
+    Alignment? alignment,
+    double? memCacheWidth,
+    double? memCacheHeight,
+    String? cacheKey,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        context.push(FullImageScreen.path, extra: this);
+      },
+      child: build(
+        placeHolder: placeHolder,
+        error: error,
+        size: size,
+        fit: fit,
+        color: color,
+        alignment: alignment,
+        memCacheHeight: memCacheHeight,
+        memCacheWidth: memCacheWidth,
+        cacheKey: cacheKey,
+      ),
+    );
+  }
+}
+

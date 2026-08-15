@@ -6,6 +6,7 @@ import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/services/services.dart';
 import 'widgets/widgets.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -23,7 +24,9 @@ class _SearchScreenState extends State<SearchScreen> with AppMixin {
   @override
   void initState() {
     super.initState();
-    _searchCubit = SearchCubit()..loadRecentSearches();
+    _searchCubit = SearchCubit(
+      recentSearchService: RecentSearchServiceImpl.instance,
+    )..loadRecentSearches();
   }
 
   @override

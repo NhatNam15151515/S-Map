@@ -47,6 +47,7 @@ class Routes extends NavigatorObserver {
   }
 
   Routes() {
+    FirebaseMessagingService.loadingOverlayHandler = showLoadingDepend;
     router = GoRouter(
       navigatorKey: rootNavigatorKey,
       initialLocation: InitialScreen.path,

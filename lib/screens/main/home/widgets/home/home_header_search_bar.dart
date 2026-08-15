@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/screens/search/search_screen.dart';
 
 class HomeHeaderSearchBar extends StatelessWidget {
   final double topPadding;
@@ -27,6 +29,12 @@ class HomeHeaderSearchBar extends StatelessWidget {
         children: [
           MapSearchBar(
             onPoiSelected: onPoiSelected,
+            onTap: () async {
+              final poi = await context.push<PoiModel>(SearchScreen.path);
+              if (poi != null && context.mounted) {
+                onPoiSelected(poi);
+              }
+            },
           ),
           const SizedBox(height: 10),
           BlocBuilder<MapExploreCubit, MapExploreState>(

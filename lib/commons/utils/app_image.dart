@@ -1,10 +1,8 @@
 import 'dart:io';
 
-import 'package:s_map/screens/main/full_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 
 class AppImage {
   final String? path;
@@ -198,38 +196,6 @@ class AppImage {
       cacheKey: cacheKey,
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
-    );
-  }
-}
-
-extension AppImageToFullScreen on AppImage {
-  Widget buildWithFullScreen(
-    BuildContext context, {
-    Widget? placeHolder,
-    Widget? error,
-    Size? size,
-    BoxFit fit = BoxFit.contain,
-    Color? color,
-    Alignment? alignment,
-    double? memCacheWidth,
-    double? memCacheHeight,
-    String? cacheKey,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        context.push(FullImageScreen.path, extra: this);
-      },
-      child: build(
-        placeHolder: placeHolder,
-        error: error,
-        size: size,
-        fit: fit,
-        color: color,
-        alignment: alignment,
-        memCacheHeight: memCacheHeight,
-        memCacheWidth: memCacheWidth,
-        cacheKey: cacheKey,
-      ),
     );
   }
 }

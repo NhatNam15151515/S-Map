@@ -7,6 +7,7 @@ import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
+import 'package:s_map/services/services.dart';
 
 class HomeScreen extends StatefulWidget {
   static const String path = '/HomeScreen';
@@ -24,8 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _mapCubit = MapDisplayCubit();
-    _exploreCubit = MapExploreCubit()..watchExplorePlaces();
+    _mapCubit = MapDisplayCubit(
+      locationService: LocationService.instance,
+      compassService: CompassService.instance,
+      mapStyleService: MapStyleService.instance,
+    );
+    _exploreCubit = MapExploreCubit(
+      fireStoreService: FireStoreService.instance,
+    )..watchExplorePlaces();
     _viewportBloc = ViewportSearchBloc();
   }
 

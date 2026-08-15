@@ -1,16 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/routers/routers.dart';
 import 'package:s_map/services/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
 class FirebaseMessagingService implements IFirebaseMessagingService {
@@ -21,14 +17,11 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
 
   FirebaseMessaging? _messaging;
 
+  /// Optional delegate to display loading overlay when handling notification tap
+  static Future<void> Function(Future<void> action)? loadingOverlayHandler;
+
   @override
   Completer<bool> fmsCompleter = Completer<bool>();
-
-  BuildContext get routeContext => Routes.instance.context;
-
-  AppCubit get appCubit => routeContext.read<AppCubit>();
-
-  AuthCubit get authCubit => routeContext.read<AuthCubit>();
 
   @override
   BehaviorSubject<NotificationModel?> comingNotificationListener = BehaviorSubject.seeded(null);
@@ -112,7 +105,11 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
       NotificationModel notificationModel,
       {bool openFromBanner = false}) async {
     await fmsCompleter.future;
-    return Routes.instance.showLoadingDepend(notificationModel.onOpen());
+    final action = notificationModel.onOpen();
+    if (loadingOverlayHandler != null) {
+      return loadingOverlayHandler!(action);
+    }
+    return action;
   }
 
   @override
@@ -140,12 +137,6 @@ Future _firebaseMessagingBackgroundHandler(
 }
 
 extension NotificationHandle on NotificationModel {
-  BuildContext get routeContext => Routes.instance.context;
-
-  AppCubit get appCubit => routeContext.read<AppCubit>();
-
-  AuthCubit get authCubit => routeContext.read<AuthCubit>();
-
   Future<void> onOpen() async {
     // Handle opening notification
   }
@@ -165,3 +156,4 @@ extension CompleteAfter<T> on Completer<T> {
     complete(value);
   }
 }
+
