@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/mixin/auth_mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
@@ -16,7 +17,6 @@ class UserScreen extends StatefulWidget {
 }
 
 class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
-
   @override
   void initState() {
     super.initState();
@@ -36,7 +36,7 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
-        title: locale.profile,
+        title: tr(LocaleKeys.profile),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(bottom: marginBottomDefault),
@@ -64,13 +64,14 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
                   const SizedBox(height: 16),
                   Text(
                     "${currentProfile.username}",
-                    style: styles.blackTextColor.textTheme.subTitleStyle.copyWith(
+                    style:
+                        styles.blackTextColor.textTheme.subTitleStyle.copyWith(
                       fontSize: 20,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Xem hồ sơ",
+                    tr(LocaleKeys.viewProfile),
                     style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
                       fontSize: 14,
                     ),
@@ -81,23 +82,24 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
 
             // Menu items
             _menuSection([
-              _menuItem(Icons.bookmark_rounded, "Địa điểm đã lưu", () {}),
-              _menuItem(Icons.history_rounded, "Lịch sử hoạt động", () {}),
-              _menuItem(Icons.share_rounded, "Chia sẻ vị trí", () {}),
+              _menuItem(Icons.bookmark_rounded, tr(LocaleKeys.savedPlaces), () {}),
+              _menuItem(Icons.history_rounded, tr(LocaleKeys.activityHistory), () {}),
+              _menuItem(Icons.share_rounded, tr(LocaleKeys.shareLocation), () {}),
             ]),
 
             const SizedBox(height: 8),
 
             _menuSection([
-              _menuItem(Icons.settings_rounded, "Cài đặt", () {}),
-              _menuItem(Icons.help_outline_rounded, "Trợ giúp & phản hồi", () {}),
-              _menuItem(Icons.info_outline_rounded, "Giới thiệu", () {}),
+              _menuItem(Icons.settings_rounded, tr(LocaleKeys.settings), () {}),
+              _menuItem(
+                  Icons.help_outline_rounded, tr(LocaleKeys.helpAndFeedback), () {}),
+              _menuItem(Icons.info_outline_rounded, tr(LocaleKeys.about), () {}),
             ]),
 
             const SizedBox(height: 8),
 
             _menuSection([
-              _menuItem(Icons.logout_rounded, "Đăng xuất", () {
+              _menuItem(Icons.logout_rounded, tr(LocaleKeys.logOut), () {
                 authCubit.onLogout();
               }, isDestructive: true),
             ]),
@@ -120,8 +122,10 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
     );
   }
 
-  Widget _menuItem(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
-    final color = isDestructive ? AppColors.googleRed : AppColors.googleDarkText;
+  Widget _menuItem(IconData icon, String title, VoidCallback onTap,
+      {bool isDestructive = false}) {
+    final color =
+        isDestructive ? AppColors.googleRed : AppColors.googleDarkText;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -134,10 +138,16 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: (isDestructive ? AppColors.googleRed : AppColors.sMapTeal).withAlpha(15),
+                  color:
+                      (isDestructive ? AppColors.googleRed : AppColors.sMapTeal)
+                          .withAlpha(15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 20, color: isDestructive ? AppColors.googleRed : AppColors.sMapTeal),
+                child: Icon(icon,
+                    size: 20,
+                    color: isDestructive
+                        ? AppColors.googleRed
+                        : AppColors.sMapTeal),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -146,11 +156,12 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
                   style: color.textTheme.boldStyle.copyWith(fontSize: 15),
                 ),
               ),
-              if (!isDestructive) const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.onSurfaceVariant,
-                size: 20,
-              ),
+              if (!isDestructive)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.onSurfaceVariant,
+                  size: 20,
+                ),
             ],
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/shimmers.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/place_model.dart';
 
 class ExploreBottomSheet extends StatelessWidget {
@@ -75,7 +76,7 @@ class ExploreBottomSheet extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  tr('explore.title'),
+                                  tr(LocaleKeys.explore_title),
                                   style: AppColors.googleDarkText.textTheme.subTitleStyle.copyWith(
                                     fontSize: 17,
                                     fontWeight: AppFontWeight.bold.weight,
@@ -83,7 +84,7 @@ class ExploreBottomSheet extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  tr('explore.subtitle'),
+                                  tr(LocaleKeys.explore_subtitle),
                                   style: AppColors.onSurfaceVariant.textTheme.captionStyle,
                                 ),
                               ],
@@ -132,7 +133,7 @@ class ExploreBottomSheet extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            tr('explore.empty'),
+                            tr(LocaleKeys.explore_empty),
                             style: AppColors.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 14),
                           ),
                         ],

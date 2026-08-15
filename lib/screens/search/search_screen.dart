@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
@@ -17,7 +18,7 @@ class _SearchScreenState extends State<SearchScreen> with AppMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TitleBackAppBar(title: "Tìm kiếm"),
+      appBar: TitleBackAppBar(title: tr(LocaleKeys.search)),
       body: Column(
         children: [
           // Search input
@@ -34,7 +35,7 @@ class _SearchScreenState extends State<SearchScreen> with AppMixin {
                   child: TextField(
                     autofocus: true,
                     decoration: InputDecoration(
-                      hintText: "Tìm địa điểm, đường phố...",
+                      hintText: tr(LocaleKeys.search_input_hint),
                       hintStyle: AppColors.onSurfaceVariant.textTheme.textStyle
                           .copyWith(fontSize: 15),
                       border: InputBorder.none,
@@ -56,11 +57,11 @@ class _SearchScreenState extends State<SearchScreen> with AppMixin {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                _categoryChip("Nhà hàng", Icons.restaurant_rounded),
-                _categoryChip("Café", Icons.coffee_rounded),
-                _categoryChip("Khách sạn", Icons.hotel_rounded),
-                _categoryChip("ATM", Icons.atm_rounded),
-                _categoryChip("Bệnh viện", Icons.local_hospital_rounded),
+                _categoryChip(tr(LocaleKeys.category_food), Icons.restaurant_rounded),
+                _categoryChip(tr(LocaleKeys.category_coffee), Icons.coffee_rounded),
+                _categoryChip(tr(LocaleKeys.category_hotel), Icons.hotel_rounded),
+                _categoryChip(tr(LocaleKeys.category_atm), Icons.atm_rounded),
+                _categoryChip(tr(LocaleKeys.category_hospital), Icons.local_hospital_rounded),
               ],
             ),
           ),
@@ -73,7 +74,7 @@ class _SearchScreenState extends State<SearchScreen> with AppMixin {
             child: Row(
               children: [
                 Text(
-                  "Tìm kiếm gần đây",
+                  tr(LocaleKeys.recentSearches),
                   style: styles.blackTextColor.textTheme.subTitleStyle
                       .copyWith(fontSize: 15),
                 ),
@@ -81,7 +82,7 @@ class _SearchScreenState extends State<SearchScreen> with AppMixin {
                 TextButton(
                   onPressed: () {},
                   child: Text(
-                    "Xoá tất cả",
+                    tr(LocaleKeys.clearAll),
                     style: AppColors.sMapTeal.textTheme.boldStyle
                         .copyWith(fontSize: 13),
                   ),
@@ -100,7 +101,7 @@ class _SearchScreenState extends State<SearchScreen> with AppMixin {
                       size: 48, color: AppColors.outlineVariant),
                   const SizedBox(height: 12),
                   Text(
-                    "Chưa có tìm kiếm nào",
+                    tr(LocaleKeys.noRecentSearches),
                     style: AppColors.onSurfaceVariant.textTheme.textStyle
                         .copyWith(fontSize: 14),
                   ),

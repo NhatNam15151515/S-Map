@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
@@ -44,22 +45,22 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.mapPin, false),
             activeIcon: _buildNavItem(HeroIcons.mapPin, true),
-            label: locale.home,
+            label: tr(LocaleKeys.home),
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.bookmark, false),
             activeIcon: _buildNavItem(HeroIcons.bookmark, true),
-            label: locale.location,
+            label: tr(LocaleKeys.location),
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.bell, false),
             activeIcon: _buildNavItem(HeroIcons.bell, true),
-            label: locale.notification,
+            label: tr(LocaleKeys.notification),
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.userCircle, false),
             activeIcon: _buildNavItem(HeroIcons.userCircle, true),
-            label: locale.account,
+            label: tr(LocaleKeys.account),
           ),
         ],
         currentIndex: widget.navigationShell.currentIndex,

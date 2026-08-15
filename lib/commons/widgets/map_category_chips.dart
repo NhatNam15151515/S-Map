@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/constants/category_constants.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 
 class MapCategoryChips extends StatelessWidget {
   final String selectedCategory;
@@ -19,37 +20,37 @@ class MapCategoryChips extends StatelessWidget {
       _categories = [
     (
       id: CategoryConstants.food,
-      titleKey: 'category.food',
+      titleKey: LocaleKeys.category_food,
       icon: Icons.restaurant_rounded,
       color: AppColors.googleRed
     ),
     (
       id: CategoryConstants.coffee,
-      titleKey: 'category.coffee',
+      titleKey: LocaleKeys.category_coffee,
       icon: Icons.local_cafe_rounded,
       color: AppColors.constructionZone
     ),
     (
       id: CategoryConstants.hotel,
-      titleKey: 'category.hotel',
+      titleKey: LocaleKeys.category_hotel,
       icon: Icons.hotel_rounded,
       color: AppColors.googleBlue
     ),
     (
       id: CategoryConstants.gas,
-      titleKey: 'category.gas',
+      titleKey: LocaleKeys.category_gas,
       icon: Icons.local_gas_station_rounded,
       color: AppColors.googleYellow
     ),
     (
       id: CategoryConstants.atm,
-      titleKey: 'category.atm',
+      titleKey: LocaleKeys.category_atm,
       icon: Icons.atm_rounded,
       color: AppColors.googleGreen
     ),
     (
       id: CategoryConstants.hospital,
-      titleKey: 'category.hospital',
+      titleKey: LocaleKeys.category_hospital,
       icon: Icons.local_hospital_rounded,
       color: AppColors.sMapTeal
     ),

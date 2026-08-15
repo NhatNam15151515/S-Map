@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/screens/map/widgets/map_compass_button.dart';
 
 class MapControls extends StatelessWidget {
@@ -46,7 +47,7 @@ class MapControls extends StatelessWidget {
           ],
           _buildControlButton(
             icon: Icons.layers_rounded,
-            tooltip: tr('map.switch_layers'),
+            tooltip: tr(LocaleKeys.map_switch_layers),
             onPressed: () {
               HapticFeedback.lightImpact();
               (onSwitchLayers ?? () {})();
@@ -55,7 +56,7 @@ class MapControls extends StatelessWidget {
           const SizedBox(height: 10),
           _buildControlButton(
             icon: Icons.add_rounded,
-            tooltip: tr('map.zoom_in'),
+            tooltip: tr(LocaleKeys.map_zoom_in),
             onPressed: () {
               HapticFeedback.lightImpact();
               onZoomIn();
@@ -64,7 +65,7 @@ class MapControls extends StatelessWidget {
           const SizedBox(height: 8),
           _buildControlButton(
             icon: Icons.remove_rounded,
-            tooltip: tr('map.zoom_out'),
+            tooltip: tr(LocaleKeys.map_zoom_out),
             onPressed: () {
               HapticFeedback.lightImpact();
               onZoomOut();
@@ -73,7 +74,7 @@ class MapControls extends StatelessWidget {
           const SizedBox(height: 12),
           FloatingActionButton(
             heroTag: locateHeroTag ?? 'map_locate_me_fab',
-            tooltip: tr('map.current_location'),
+            tooltip: tr(LocaleKeys.map_current_location),
             onPressed: () {
               HapticFeedback.mediumImpact();
               onLocateMe();

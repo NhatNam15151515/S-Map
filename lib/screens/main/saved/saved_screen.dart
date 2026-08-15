@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/mixin/auth_mixin.dart';
 import 'package:s_map/commons/widgets/app_bar.dart';
@@ -24,11 +25,11 @@ class _SavedScreenState extends State<SavedScreen> with AppMixin, AuthStateChang
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
-        title: "Đã lưu",
+        title: tr(LocaleKeys.savedPlaces),
       ),
-      body: const EmptyWidget(
-        title: "Chưa có địa điểm nào",
-        subtitle: "Lưu các địa điểm yêu thích để truy cập nhanh",
+      body: EmptyWidget(
+        title: tr(LocaleKeys.noSavedPlaces),
+        subtitle: tr(LocaleKeys.savePlacesSubtitle),
         icon: Icons.bookmark_border_rounded,
       ),
     );

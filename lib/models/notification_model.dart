@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 
 enum NotificationTab {
   system,
@@ -8,9 +9,9 @@ enum NotificationTab {
   String get title {
     switch (this) {
       case system:
-        return tr('notification.tab_system');
+        return tr(LocaleKeys.notification_tabs_tab_system);
       case customer:
-        return tr('notification.tab_customer');
+        return tr(LocaleKeys.notification_tabs_tab_customer);
     }
   }
 }
