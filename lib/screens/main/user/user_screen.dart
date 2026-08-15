@@ -36,7 +36,7 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
-        title: LocaleKeys.profile,
+        title: tr(LocaleKeys.profile),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(bottom: marginBottomDefault),
@@ -71,7 +71,7 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Xem hồ sơ",
+                    tr(LocaleKeys.viewProfile),
                     style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
                       fontSize: 14,
                     ),

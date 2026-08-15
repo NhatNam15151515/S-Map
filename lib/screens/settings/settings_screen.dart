@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
@@ -17,18 +18,18 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TitleBackAppBar(title: "Cài đặt"),
+      appBar: TitleBackAppBar(title: tr(LocaleKeys.settings)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // General section
-            _sectionTitle("Chung"),
+            _sectionTitle(tr(LocaleKeys.general)),
             _settingsCard([
               _settingsItem(
                 icon: Icons.dark_mode_rounded,
-                title: "Chế độ tối",
+                title: tr(LocaleKeys.darkMode),
                 trailing: Switch(
                   value: false,
                   onChanged: (value) {},
@@ -38,36 +39,36 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
               _divider(),
               _settingsItem(
                 icon: Icons.language_rounded,
-                title: "Ngôn ngữ",
-                subtitle: "Tiếng Việt",
+                title: tr(LocaleKeys.language),
+                subtitle: tr(LocaleKeys.vietnamese),
               ),
               _divider(),
               _settingsItem(
                 icon: Icons.map_rounded,
-                title: "Kiểu bản đồ",
-                subtitle: "Mặc định",
+                title: tr(LocaleKeys.mapType),
+                subtitle: tr(LocaleKeys.defaultMap),
               ),
             ]),
 
             const SizedBox(height: 20),
 
             // About section
-            _sectionTitle("Thông tin"),
+            _sectionTitle(tr(LocaleKeys.aboutSection)),
             _settingsCard([
               _settingsItem(
                 icon: Icons.info_outline_rounded,
-                title: "Về S-Map",
-                subtitle: "Phiên bản 1.0.0",
+                title: tr(LocaleKeys.aboutSMap),
+                subtitle: tr(LocaleKeys.appVersion),
               ),
               _divider(),
               _settingsItem(
                 icon: Icons.privacy_tip_outlined,
-                title: "Chính sách quyền riêng tư",
+                title: tr(LocaleKeys.privacyPolicy),
               ),
               _divider(),
               _settingsItem(
                 icon: Icons.description_outlined,
-                title: "Điều khoản sử dụng",
+                title: tr(LocaleKeys.termAndCondition),
               ),
             ]),
           ],

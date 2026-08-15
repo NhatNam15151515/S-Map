@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/generic_list_cubit/generic_list_cubit.dart';
 import 'package:s_map/commons/cubits/generic_list_cubit/generic_list_cubit_state.dart';
@@ -91,7 +92,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
-        title: LocaleKeys.notification,
+        title: tr(LocaleKeys.notification),
       ),
       body: Column(
         children: [
@@ -135,9 +136,9 @@ class _NotificationScreenState extends State<NotificationScreen>
           final list = state.value;
 
           if (list.isEmpty) {
-            return const EmptyWidget(
-              title: "Không có thông báo",
-              subtitle: "Bạn sẽ nhận thông báo mới tại đây",
+            return EmptyWidget(
+              title: tr(LocaleKeys.noNotification),
+              subtitle: tr(LocaleKeys.noNotificationSubtitle),
               icon: Icons.notifications_none_rounded,
             );
           }

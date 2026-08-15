@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
@@ -149,22 +150,22 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                   children: [
                     // Username / Email input
                     AppTextField(
-                      title: "Tài khoản",
+                      title: tr(LocaleKeys.account),
                       controller: usernameController,
-                      hint: "Email hoặc tên đăng nhập",
+                      hint: tr(LocaleKeys.usernameOrEmailHint),
                       validator: (value) => Validator.instance.isEmpty(value)
-                          ? "Vui lòng nhập tên đăng nhập"
+                          ? tr(LocaleKeys.usernameValidation)
                           : null,
                     ),
                     const SizedBox(height: 14),
 
                     // Password input
                     AppTextField(
-                      title: "Mật khẩu",
+                      title: tr(LocaleKeys.password),
                       controller: passwordController,
-                      hint: "Nhập mật khẩu",
+                      hint: tr(LocaleKeys.passwordHint),
                       validator: (value) => Validator.instance.isEmpty(value)
-                          ? "Vui lòng nhập mật khẩu"
+                          ? tr(LocaleKeys.passwordValidation)
                           : null,
                       obscure: true,
                     ),
@@ -200,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                                 ),
                               )
                             : Text(
-                                "Đăng nhập",
+                                tr(LocaleKeys.login),
                                 style: AppColors.white.textTheme.subTitleStyle.copyWith(
                                   fontSize: 16,
                                 ),
@@ -222,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            "hoặc",
+                            tr(LocaleKeys.or),
                             style: AppColors.onSurfaceVariant.textTheme.captionStyle.copyWith(
                               fontSize: 13,
                             ),
@@ -263,7 +264,7 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                             const _GoogleLogoWidget(size: 20),
                             const SizedBox(width: 12),
                             Text(
-                              "Đăng nhập bằng Google",
+                              tr(LocaleKeys.loginWithGoogle),
                               style: styles.blackTextColor.textTheme.boldStyle.copyWith(
                                 fontSize: 15,
                               ),
@@ -279,10 +280,10 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                     Center(
                       child: TextButton(
                         onPressed: () {
-                          _handleLogin(username: "Khách");
+                          _handleLogin(username: tr(LocaleKeys.guest));
                         },
                         child: Text(
-                          "Trải nghiệm không cần đăng nhập",
+                          tr(LocaleKeys.continueAsGuest),
                           style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
                             fontSize: 14,
                           ),

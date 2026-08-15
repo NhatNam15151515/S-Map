@@ -39,3 +39,8 @@ Domains: `style`, `color`, `typography`, `ux`, `icons`, `chart`, `landing`, `pro
   - Widget UI quản lý controller cục bộ và lắng nghe state/action qua `BlocListener` / `BlocConsumer`.
   - TUYỆT ĐỐI KHÔNG mixin UI helper (`with AppMixin`) hoặc `BuildContext` vào Cubits, Services, Repositories.
   - TUYỆT ĐỐI KHÔNG trộn lẫn `ValueNotifier` / `ChangeNotifier` song song với Cubit State (Single Source of Truth).
+- **Localization & i18n Codegen**:
+  - TUYỆT ĐỐI KHÔNG hardcode chuỗi text trên UI. Toàn bộ chuỗi hiển thị phải gọi qua `tr(LocaleKeys.xxx)`.
+  - Khi cập nhật `assets/translations/vi.json` hoặc `en.json`, BẮT BUỘC chạy sinh mã:
+    `dart run easy_localization:generate -S assets/translations -O lib/generated; dart run easy_localization:generate -S assets/translations -f keys -O lib/generated -o locale_keys.g.dart`
+  - Không đặt key trùng tên giữa String nguyên thủy và Map lồng nhau để tránh xung đột kiểu.

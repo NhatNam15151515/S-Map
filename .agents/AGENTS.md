@@ -407,7 +407,31 @@ Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử d�
 
 ---
 
-## 9. Common Anti-patterns (Các lỗi CẤM)
+## 10. Localization & i18n Rules (Quy chuẩn Đa ngôn ngữ & Translation Codegen)
+
+Dự án cấu hình `EasyLocalization` với bộ tải mã nguồn sinh trước `assetLoader: const CodegenLoader()` ([app.dart](lib/app.dart)). Mọi thành viên và AI Agent **BẮT BUỘC** tuân thủ quy trình sau:
+
+### 1. Không Hardcode String
+- Mọi chuỗi ký tự hiển thị trên UI (Title, Subtitle, AppBar, BottomNavigationBarItem label, Button, TextField hint/label, Tooltip, Dialog, EmptyWidget, Error toast, v.v.) **TUYỆT ĐỐI KHÔNG HARDCODE**.
+- Phải bọc qua `tr(LocaleKeys.xxx)` (Type-safe).
+
+### 2. Quy trình thêm / cập nhật Translation (3 bước bắt buộc):
+1. **Khai báo song ngữ**: Luôn cập nhật đồng thời ở cả hai file `assets/translations/vi.json` và `assets/translations/en.json`.
+2. **Không xung đột namespace**: Tránh đặt key vừa là String vừa là Map (ví dụ nếu `"notification": "Thông báo"` là String thì tab con phải đặt là `"notification_tabs": { "tab_system": "Hệ thống" }`).
+3. **Chạy lệnh Regenerate**:
+   ```bash
+   dart run easy_localization:generate -S assets/translations -O lib/generated
+   dart run easy_localization:generate -S assets/translations -f keys -O lib/generated -o locale_keys.g.dart
+   ```
+   > [!IMPORTANT]
+   > Nếu quên chạy lệnh generate, `CodegenLoader` tại runtime sẽ không tìm thấy key mới và in chuỗi raw string (ví dụ `search_bar.placeholder`) lên thiết bị thật!
+
+### 3. Không dùng `LocaleKeys.xxx` trần trụi
+- Các thuộc tính nhận `String` (như `BottomNavigationBarItem.label`, `TitleAppBar.title`, `EmptyWidget.title`) không tự động dịch `LocaleKeys.xxx`. **BẮT BUỘC** phải gọi `tr(LocaleKeys.xxx)`.
+
+---
+
+## 11. Common Anti-patterns (Các lỗi CẤM)
 
 | #  | Anti-pattern                                         | Cách đúng                                     |
 | -- | ---------------------------------------------------- | ------------------------------------------------ |
@@ -418,20 +442,23 @@ Project đã có nền tảng build sẵn rất tốt. **Ưu tiên tái sử d�
 | 5  | `MaterialStateProperty`                            | Dùng`WidgetStateProperty`                     |
 | 6  | `CardTheme()` trong ThemeData                      | Dùng`CardThemeData()`                         |
 | 7  | `print()` debug                                    | Dùng`DLog` (commons/log)                      |
-| 8  | Hardcode string hiển thị                           | Dùng`easy_localization` keys                  |
-| 9  | `Navigator.push()`                                 | Dùng`context.go()` / `context.push()`       |
-| 10 | Import relative path dài                            | Dùng`package:boilerplate/...`                 |
-| 11 | Tạo Dio instance riêng                             | Dùng`BaseAPIClient.request()`                 |
-| 12 | Catch`DioException` trong feature                  | Catch`ErrorResponse`                           |
-| 13 | Không override`emit()` trong Cubit                | Thêm`if(isClosed) return;` guard              |
-| 14 | Import screen từ screen khác                       | Đi qua`commons/` hoặc router                 |
-| 15 | Thêm platform web/desktop                           | Chỉ Android & iOS                               |
-| 16 | Viết logic/state trong`_screen.dart`              | Tách ra`cubit/` và `widgets/`              |
-| 17 | Tự đặt màu/style map mà không dùng UI/UX tool | Chạy UI/UX Pro Max Skill trước                |
-| 18 | Push thẳng lên`dev-*` / `main`                 | Tạo nhánh`feature/...` + Pull Request        |
-| 19 | Magic number trong code                              | Đặt vào`constants/` với tên có nghĩa    |
-| 20 | Hard-code màu map trong`style.json`               | Dùng palette từ UI/UX skill + gần Google Maps |
-| 21 | `with EquatableMixin` (deprecated) / flawed `operator ==` | Dùng `extends Equatable` và khai báo `props` |
-| 22 | Sync I/O `File.existsSync()` trong Widget build tree | Dùng path prefix check hoặc async ImageProvider |
-| 23 | Stream / RxDart Controller không dispose | Dùng `ListenableBuilder` hoặc `dispose()` triệt để |
+| 8  | Hardcode string hiển thị                           | Dùng`tr(LocaleKeys.xxx)`                      |
+| 9  | Quên chạy `easy_localization:generate`             | Chạy generate sau khi sửa `vi.json` / `en.json` |
+| 10 | Dùng `LocaleKeys.home` không bọc `tr()`             | Dùng `tr(LocaleKeys.home)`                      |
+| 11 | `Navigator.push()`                                 | Dùng`context.go()` / `context.push()`       |
+| 12 | Import relative path dài                            | Dùng`package:s_map/...`                       |
+| 13 | Tạo Dio instance riêng                             | Dùng`BaseAPIClient.request()`                 |
+| 14 | Catch`DioException` trong feature                  | Catch`ErrorResponse`                           |
+| 15 | Không override`emit()` trong Cubit                | Thêm`if(isClosed) return;` guard              |
+| 16 | Import screen từ screen khác                       | Đi qua`commons/` hoặc router                 |
+| 17 | Thêm platform web/desktop                           | Chỉ Android & iOS                               |
+| 18 | Viết logic/state trong`_screen.dart`              | Tách ra`cubit/` và `widgets/`              |
+| 19 | Tự đặt màu/style map mà không dùng UI/UX tool | Chạy UI/UX Pro Max Skill trước                |
+| 20 | Push thẳng lên`dev-*` / `main`                 | Tạo nhánh`feature/...` + Pull Request        |
+| 21 | Magic number trong code                              | Đặt vào`constants/` với tên có nghĩa    |
+| 22 | Hard-code màu map trong`style.json`               | Dùng palette từ UI/UX skill + gần Google Maps |
+| 23 | `with EquatableMixin` (deprecated) / flawed `operator ==` | Dùng `extends Equatable` và khai báo `props` |
+| 24 | Sync I/O `File.existsSync()` trong Widget build tree | Dùng path prefix check hoặc async ImageProvider |
+| 25 | Stream / RxDart Controller không dispose | Dùng `ListenableBuilder` hoặc `dispose()` triệt để |
+
 

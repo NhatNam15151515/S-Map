@@ -32,3 +32,8 @@ Font: Montserrat. Platforms: Android & iOS ONLY.
   - NEVER mix UI mixins (`with AppMixin`) or UI Context into Cubits, Services, or Repositories.
   - NEVER use `ValueNotifier` / `ChangeNotifier` controllers alongside Cubits for the same state (No Dual State Management).
   - Use Error Mapping Pattern instead of repetitive duplicate catch blocks in Cubit.
+- **Localization & i18n Rules**:
+  - NEVER hardcode UI strings. All UI text must use `tr(LocaleKeys.xxx)` (wrap in `tr()`).
+  - When modifying `assets/translations/vi.json` or `en.json`, ALWAYS run:
+    `dart run easy_localization:generate -S assets/translations -O lib/generated; dart run easy_localization:generate -S assets/translations -f keys -O lib/generated -o locale_keys.g.dart`
+  - Avoid duplicate keys between primitive Strings and nested Maps (e.g. use separate `notification_tabs` namespace if `notification` is a string).
