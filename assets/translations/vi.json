@@ -76,6 +76,8 @@
   "passwordHint": "Nhập mật khẩu",
   "passwordValidation": "Vui lòng nhập mật khẩu",
   "loginWithGoogle": "Đăng nhập bằng Google",
+  "login_google_failed": "Đăng nhập Google thất bại hoặc đã bị huỷ",
+  "login_google_error": "Đăng nhập Google thất bại: {}",
   "continueAsGuest": "Trải nghiệm không cần đăng nhập",
   "guest": "Khách",
   "general": "Chung",

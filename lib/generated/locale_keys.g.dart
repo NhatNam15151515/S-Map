@@ -76,6 +76,8 @@ abstract class  LocaleKeys {
   static const passwordHint = 'passwordHint';
   static const passwordValidation = 'passwordValidation';
   static const loginWithGoogle = 'loginWithGoogle';
+  static const login_google_failed = 'login_google_failed';
+  static const login_google_error = 'login_google_error';
   static const continueAsGuest = 'continueAsGuest';
   static const guest = 'guest';
   static const general = 'general';

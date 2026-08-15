@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/commons/widgets/app_bar.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 
 class SearchScreen extends StatefulWidget {

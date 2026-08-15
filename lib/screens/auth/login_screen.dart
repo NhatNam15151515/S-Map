@@ -43,10 +43,12 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
     try {
       final success = await authCubit.signInWithGoogle();
       if (!success && mounted) {
-        showError("Đăng nhập Google không thành công");
+        showError(tr(LocaleKeys.login_google_failed));
       }
     } catch (e) {
-      showError("Đăng nhập Google thất bại: $e");
+      if (mounted) {
+        showError(tr(LocaleKeys.login_google_error, args: [e.toString()]));
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -63,7 +65,10 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
 
     try {
       final user = User(
-        username: username ?? (usernameController.text.isNotEmpty ? usernameController.text : "Người dùng S-Map"),
+        username: username ??
+            (usernameController.text.isNotEmpty
+                ? usernameController.text
+                : "Người dùng S-Map"),
       );
 
       // Lưu trạng thái đăng nhập và vào màn hình chính
@@ -124,7 +129,8 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                     const SizedBox(height: 16),
                     Text(
                       "S-Map",
-                      style: AppColors.sMapDarkTeal.textTheme.headlineStyle.copyWith(
+                      style: AppColors.sMapDarkTeal.textTheme.headlineStyle
+                          .copyWith(
                         letterSpacing: 1,
                         fontSize: 28,
                       ),
@@ -132,7 +138,8 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                     const SizedBox(height: 6),
                     Text(
                       "Khám phá và lưu trữ địa điểm của bạn",
-                      style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                      style: AppColors.onSurfaceVariant.textTheme.textStyle
+                          .copyWith(
                         fontSize: 14,
                       ),
                     ),
@@ -177,8 +184,9 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                         onPressed: isLoading
                             ? null
                             : () {
-                                final res = usernameController.validate() == true &&
-                                    passwordController.validate() == true;
+                                final res =
+                                    usernameController.validate() == true &&
+                                        passwordController.validate() == true;
                                 if (res) _handleLogin();
                               },
                         style: ElevatedButton.styleFrom(
@@ -195,12 +203,14 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               )
                             : Text(
                                 tr(LocaleKeys.login),
-                                style: AppColors.white.textTheme.subTitleStyle.copyWith(
+                                style: AppColors.white.textTheme.subTitleStyle
+                                    .copyWith(
                                   fontSize: 16,
                                 ),
                               ),
@@ -222,7 +232,9 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             tr(LocaleKeys.or),
-                            style: AppColors.onSurfaceVariant.textTheme.captionStyle.copyWith(
+                            style: AppColors
+                                .onSurfaceVariant.textTheme.captionStyle
+                                .copyWith(
                               fontSize: 13,
                             ),
                           ),
@@ -263,7 +275,8 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                             const SizedBox(width: 12),
                             Text(
                               tr(LocaleKeys.loginWithGoogle),
-                              style: styles.blackTextColor.textTheme.boldStyle.copyWith(
+                              style: styles.blackTextColor.textTheme.boldStyle
+                                  .copyWith(
                                 fontSize: 15,
                               ),
                             ),
@@ -282,7 +295,8 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
                         },
                         child: Text(
                           tr(LocaleKeys.continueAsGuest),
-                          style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
+                          style:
+                              AppColors.sMapTeal.textTheme.boldStyle.copyWith(
                             fontSize: 14,
                           ),
                         ),
@@ -331,7 +345,8 @@ class _GoogleLogoPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.butt;
 
-    final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
+    final rect =
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
 
     // Blue arc (bottom right to top right)
     paint.color = const Color(0xFF4285F4);

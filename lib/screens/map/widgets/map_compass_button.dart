@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 
 class MapCompassButton extends StatelessWidget {

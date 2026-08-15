@@ -1,6 +1,6 @@
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/commons/widgets/empty_widget.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 
 class MapErrorOverlay extends StatelessWidget with AppMixin {
