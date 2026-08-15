@@ -3,11 +3,9 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:s_map/commons/cubits/auth_cubit/auth_state.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/models/user.dart';
-import 'package:s_map/repos/auth_repos.dart';
-import 'package:s_map/services/firebase_analytics_service.dart';
-import 'package:s_map/services/flutter_secure.dart';
-import 'package:s_map/services/local_auth_service.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
+import 'package:s_map/services/services.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthCubit extends Cubit<AuthState> {

@@ -1,7 +1,5 @@
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/repos/auth_repos.dart';
-import 'package:s_map/repos/notification_repos.dart';
-import 'package:s_map/repos/poi_repository.dart';
+import 'package:s_map/repos/repos.dart';
 
 class AppReposProvider {
   final IAuthRepos authRepos;

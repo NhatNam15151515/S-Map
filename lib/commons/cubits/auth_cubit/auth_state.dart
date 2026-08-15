@@ -1,5 +1,5 @@
 import 'package:s_map/commons/enums/enums.dart';
-import 'package:s_map/models/user.dart';
+import 'package:s_map/models/models.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class AuthState extends Equatable {

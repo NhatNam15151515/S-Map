@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:s_map/constants/category_constants.dart';
-import 'package:s_map/models/place_model.dart';
+import 'package:s_map/constants/constants.dart';
+import 'package:s_map/models/models.dart';
 
 enum MapExploreStatus { initial, loading, loaded, error }
 

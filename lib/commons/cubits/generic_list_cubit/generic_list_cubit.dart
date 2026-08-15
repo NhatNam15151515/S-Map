@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:s_map/models/app_error.dart';
+import 'package:s_map/models/models.dart';
 import 'generic_list_cubit_state.dart';
 
 typedef GenericListCubitInputFuture<T> = Future<List<T>> Function(

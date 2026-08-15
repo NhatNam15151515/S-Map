@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
-import 'package:s_map/models/poi_model.dart';
-import 'package:s_map/repos/poi_repository.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {

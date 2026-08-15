@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:s_map/services/local_auth_service.dart';
+import 'package:s_map/services/services.dart';
 
 class MockLocalAuthentication extends LocalAuthentication {
   final List<BiometricType> mockBiometrics;

@@ -1,9 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s_map/commons/cubits/search_cubit/search_cubit.dart';
-import 'package:s_map/commons/cubits/search_cubit/search_state.dart';
-import 'package:s_map/interfaces/i_poi_repository.dart';
-import 'package:s_map/interfaces/i_recent_search_service.dart';
-import 'package:s_map/models/poi_model.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 
 class FakePoiRepository implements IPoiRepository {
   int searchCallCount = 0;
