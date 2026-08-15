@@ -33,6 +33,11 @@ abstract class  LocaleKeys {
   static const clear_search = 'clear_search';
   static const search_suggestions = 'search_suggestions';
   static const search_results = 'search_results';
+  static const search_this_area = 'search_this_area';
+  static const searching_this_area = 'searching_this_area';
+  static const no_pois_in_viewport = 'no_pois_in_viewport';
+  static const poi_found_count = 'poi_found_count';
+  static const directions = 'directions';
   static const cancel = 'cancel';
   static const confirm = 'confirm';
   static const reviews = 'reviews';
