@@ -167,6 +167,17 @@ class MockCompassService implements ICompassService {
   }
 }
 
+class MockMapStyleService implements IMapStyleService {
+  final String mockStyle;
+  MockMapStyleService(this.mockStyle);
+
+  @override
+  String get styleJson => mockStyle;
+
+  @override
+  Future<void> init() async {}
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -184,9 +195,11 @@ void main() {
   );
 
   group('MapDisplayCubit Tests', () {
-    test('Initial state is correct', () {
-      final cubit = MapDisplayCubit();
+    test('Initial state is correct with default and injected map style', () {
+      final mockStyleService = MockMapStyleService('{"version": 8, "sources": {}}');
+      final cubit = MapDisplayCubit(mapStyleService: mockStyleService);
       expect(cubit.state.status, MapDisplayStatus.initial);
+      expect(cubit.state.styleString, '{"version": 8, "sources": {}}');
       expect(cubit.state.isFollowingUser, false);
       expect(cubit.state.zoom, 14.0);
       expect(cubit.state.rotation, 0.0);

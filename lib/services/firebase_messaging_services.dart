@@ -21,7 +21,8 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
 
   FirebaseMessaging? _messaging;
 
-  Completer fmsCompleter = Completer();
+  @override
+  Completer<bool> fmsCompleter = Completer<bool>();
 
   BuildContext get routeContext => Routes.instance.context;
 

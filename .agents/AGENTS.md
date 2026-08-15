@@ -86,10 +86,19 @@ screens → cubits → [interfaces: IRepos] → repos → [interfaces: IServices
 4. **Hỗ trợ Dependency Injection**: Constructor của Cubit/Bloc/Repo phải cho phép nhận Interface parameter (default về `Service.instance`) để thuận tiện cho việc Mock trong Unit Test.
 5. **Mock sạch sẽ trong Unit Test**: Unit test mock bằng cách `implements IService` thay vì `extends ConcreteService` để tránh side-effect từ constructor thật.
 
+### Clean Architecture & UI Separation Rules (BẮT BUỘC)
+
+1. **UI Không gọi trực tiếp Service/Repository**: UI Screens và Widgets **TUYỆT ĐỐI KHÔNG** import `services/` hay gọi các singleton `Service.instance` (ngoại trừ pure UI utilities như `Validator`). Mọi tương tác Service I/O (Auth, Map Style, GPS, Messaging, Storage) phải được bọc trong Cubit / Bloc / Repos.
+2. **Pure UI Widgets**: Các Widget con (như `MapView`, `MapControls`, `ExploreBottomSheet`) chỉ nhận data và callback từ parameters (props) do Screen / Cubit truyền xuống, không tự truy xuất Singleton Service.
+3. **Barrel Export Convention**: Luôn import từ các barrel export file chuẩn (`models/models.dart`, `services/services.dart`, `repos/repos.dart`, `interfaces/interfaces.dart`, `constants/constants.dart`, `commons/widgets/widgets.dart`, `commons/cubits/cubits.dart`). **CẤM import lẻ tẻ** từng file thành phần khi đã có barrel file.
+4. **Type-Safety cho Completer / Async**: Bắt buộc chỉ định rõ generic type cho `Completer<T>` (ví dụ: `Completer<bool>`), không dùng raw type `Completer`.
+
 ### Vi phạm kiến trúc nghiêm trọng
 
+- ❌ KHÔNG để UI Screens hoặc Widgets gọi trực tiếp `Service.instance` / `Repo.instance`
 - ❌ KHÔNG tạo Service hoặc Repo mà thiếu Interface trong `lib/interfaces/`
 - ❌ KHÔNG phụ thuộc trực tiếp vào Concrete Service trong Cubit/Repo nếu đã có Interface
+- ❌ KHÔNG import lẻ tẻ từng file khi đã có barrel export file tương ứng
 - ❌ KHÔNG import trực tiếp `screens/featureA` từ `screens/featureB` → phải thông qua `commons/` hoặc router
 - ❌ KHÔNG tạo circular dependency giữa các layer
 - ❌ KHÔNG đặt business logic trong widget `build()` method
@@ -460,5 +469,9 @@ Dự án cấu hình `EasyLocalization` với bộ tải mã nguồn sinh trư�
 | 23 | `with EquatableMixin` (deprecated) / flawed `operator ==` | Dùng `extends Equatable` và khai báo `props` |
 | 24 | Sync I/O `File.existsSync()` trong Widget build tree | Dùng path prefix check hoặc async ImageProvider |
 | 25 | Stream / RxDart Controller không dispose | Dùng `ListenableBuilder` hoặc `dispose()` triệt để |
+| 26 | UI Screen / Widget gọi trực tiếp Singleton Service / Repo | Đóng gói I/O vào Cubit / State và inject props vào Widget |
+| 27 | Import lẻ tẻ từng file thành phần | Dùng Barrel export file (`models/models.dart`, `widgets/widgets.dart`...) |
+| 28 | Raw type `Completer` không khai báo kiểu generic | Khai báo rõ kiểu: `Completer<bool>` / `Completer<T>` |
+
 
 

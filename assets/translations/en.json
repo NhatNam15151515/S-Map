@@ -76,6 +76,8 @@
   "passwordHint": "Enter password",
   "passwordValidation": "Please enter password",
   "loginWithGoogle": "Sign in with Google",
+  "login_google_failed": "Google Sign-In failed or was cancelled",
+  "login_google_error": "Google Sign-In failed: {}",
   "continueAsGuest": "Continue without login",
   "guest": "Guest",
   "general": "General",
