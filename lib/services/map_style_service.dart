@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:s_map/interfaces/i_map_style_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 
 class MapStyleService implements IMapStyleService {
   late String _styleJson;

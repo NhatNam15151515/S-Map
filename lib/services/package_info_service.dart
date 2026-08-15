@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:s_map/flavor/flavor.dart';
-import 'package:s_map/interfaces/i_package_info_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 
 class PackageInfoService implements IPackageInfoService {
   PackageInfoService._() {

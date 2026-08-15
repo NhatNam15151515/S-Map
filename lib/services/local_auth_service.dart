@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:s_map/commons/log/log.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:s_map/interfaces/i_local_auth_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 
 class FlutterLocalAuth implements ILocalAuthService {
   final LocalAuthentication _auth;

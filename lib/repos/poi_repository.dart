@@ -1,7 +1,6 @@
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
-import 'package:s_map/interfaces/i_poi_database_service.dart';
-import 'package:s_map/interfaces/i_poi_repository.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/poi_model.dart';
 import 'package:s_map/services/poi_database_service.dart';
 import 'package:sqflite/sqflite.dart';
@@ -178,6 +177,50 @@ class PoiRepositoryImpl implements IPoiRepository {
         limit: limit,
       );
       return fallbackResults.map(PoiModel.fromMap).toList();
+    }
+  }
+
+  @override
+  Future<List<String>> getSuggestions(String query, {int limit = 10}) async {
+    if (query.trim().isEmpty) return [];
+
+    final cleanQuery = _sanitizeFtsQuery(AppUtils.instance.toAscii(query));
+    if (cleanQuery.isEmpty) return [];
+
+    final db = await _getDb();
+    final ftsPattern = 'name_ascii: "$cleanQuery"*';
+
+    try {
+      final List<Map<String, dynamic>> results = await db.rawQuery(
+        '''
+        SELECT DISTINCT p.name
+        FROM poi_fts f
+        JOIN poi p ON f.rowid = p.id
+        WHERE poi_fts MATCH ?
+        LIMIT ?
+        ''',
+        [ftsPattern, limit],
+      );
+
+      return results
+          .map((row) => row['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList();
+    } catch (_) {
+      final fallbackResults = await db.rawQuery(
+        '''
+        SELECT DISTINCT name
+        FROM poi
+        WHERE name_ascii LIKE ?
+        LIMIT ?
+        ''',
+        ['%$cleanQuery%', limit],
+      );
+
+      return fallbackResults
+          .map((row) => row['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList();
     }
   }
 

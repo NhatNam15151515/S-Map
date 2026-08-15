@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/category_constants.dart';
-import 'package:s_map/interfaces/i_firebase_firestore_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/place_model.dart';
 import 'package:s_map/services/firebase_firestore_service.dart';
 import 'map_explore_state.dart';

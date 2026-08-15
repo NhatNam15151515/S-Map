@@ -19,6 +19,9 @@ abstract class IPoiRepository {
     int limit = 50,
   });
 
+  /// Lấy danh sách từ khóa gợi ý tìm kiếm (Autocomplete Suggestions)
+  Future<List<String>> getSuggestions(String query, {int limit = 10});
+
   /// Lấy thông tin POI theo ID
   Future<PoiModel?> getPoiById(int id);
 }

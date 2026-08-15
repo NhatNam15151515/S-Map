@@ -1,4 +1,4 @@
-import 'package:s_map/interfaces/i_notification_repos.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/notification_model.dart';
 import 'package:s_map/services/firebase_firestore_service.dart';
 

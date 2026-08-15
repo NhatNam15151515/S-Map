@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_compass/flutter_compass.dart';
-import 'package:s_map/interfaces/i_compass_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 
 class CompassService implements ICompassService {
   CompassService._();

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:s_map/interfaces/i_local_notification_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 
 class LocalNotificationService implements ILocalNotificationService {
   LocalNotificationService._();

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/flavor/flavor.dart';
-import 'package:s_map/interfaces/i_firebase_analytics_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/user.dart';
 import 'package:s_map/services/package_info_service.dart';
 import 'package:firebase_core/firebase_core.dart';

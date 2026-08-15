@@ -1,4 +1,4 @@
-import 'package:s_map/interfaces/i_auth_repos.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/user.dart';
 import 'package:s_map/services/firebase_auth_service.dart';
 import 'package:s_map/services/firebase_firestore_service.dart';
