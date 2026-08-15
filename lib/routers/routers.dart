@@ -159,7 +159,6 @@ class Routes extends NavigatorObserver {
         child: Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            // color: _styles.blackColor.withOpacity(0.7),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Shimmer.fromColors(

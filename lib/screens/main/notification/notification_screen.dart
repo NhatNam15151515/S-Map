@@ -8,7 +8,6 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/notification/widgets/widgets.dart';
-import 'package:s_map/services/services.dart';
 
 class NotificationScreen extends StatefulWidget {
   static const String path = '/NotificationScreen';
@@ -28,9 +27,8 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   @override
   void initState() {
-    ListenComingNotification.messagingServiceResolver ??=
-        FirebaseMessagingService.instance;
     super.initState();
+
 
     _systemScrollController.addListener(() {
       if (_systemScrollController.position.pixels >=

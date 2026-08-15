@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/constants.dart';
@@ -6,13 +7,18 @@ import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'map_explore_state.dart';
 
+
 class MapExploreCubit extends Cubit<MapExploreState> {
   final IFireStoreService _fireStoreService;
   StreamSubscription<List<PlaceModel>>? _placesSubscription;
 
-  MapExploreCubit({required IFireStoreService fireStoreService})
-      : _fireStoreService = fireStoreService,
+  /// Global service resolver set during app bootstrap
+  static IFireStoreService? defaultFireStoreService;
+
+  MapExploreCubit({IFireStoreService? fireStoreService})
+      : _fireStoreService = fireStoreService ?? defaultFireStoreService ?? _NoOpFireStoreService(),
         super(const MapExploreState());
+
 
   @override
   void emit(MapExploreState state) {
@@ -62,3 +68,32 @@ class MapExploreCubit extends Cubit<MapExploreState> {
     return super.close();
   }
 }
+
+class _NoOpFireStoreService implements IFireStoreService {
+  @override
+  CollectionReference? get usersCollection => null;
+  @override
+  CollectionReference? get notificationsCollection => null;
+  @override
+  CollectionReference? get savedPlacesCollection => null;
+  @override
+  CollectionReference? get placesCollection => null;
+  @override
+  CollectionReference? get routesCollection => null;
+  @override
+  Future<void> saveUserProfile(User user) async {}
+  @override
+  Future<User?> getUserProfile(String userId) async => null;
+  @override
+  Future<List<NotificationModel>> getNotifications({int limit = 20}) async => [];
+  @override
+  Future<List<PlaceModel>> getExplorePlaces({String? category, int limit = 10}) async => [];
+  @override
+  Stream<List<PlaceModel>> streamExplorePlaces({String? category, int limit = 10}) => const Stream.empty();
+  @override
+  Future<void> savePlace(String userId, Map<String, dynamic> placeData) async {}
+  @override
+  Stream<QuerySnapshot?> streamSavedPlaces(String userId) => const Stream.empty();
+}
+
+

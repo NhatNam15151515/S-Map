@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/screens/search/search_screen.dart';
 
 class HomeHeaderSearchBar extends StatelessWidget {
   final double topPadding;
@@ -30,7 +29,7 @@ class HomeHeaderSearchBar extends StatelessWidget {
           MapSearchBar(
             onPoiSelected: onPoiSelected,
             onTap: () async {
-              final poi = await context.push<PoiModel>(SearchScreen.path);
+              final poi = await context.push<PoiModel>('/search');
               if (poi != null && context.mounted) {
                 onPoiSelected(poi);
               }
