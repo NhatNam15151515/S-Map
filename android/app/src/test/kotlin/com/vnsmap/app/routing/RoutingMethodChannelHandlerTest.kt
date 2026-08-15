@@ -4,12 +4,15 @@ import com.vnsmap.app.routing.models.RouteInstruction
 import com.vnsmap.app.routing.models.RouteResult
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class RoutingMethodChannelHandlerTest {
 
@@ -69,6 +72,7 @@ class RoutingMethodChannelHandlerTest {
     }
 
     class TestResult : MethodChannel.Result {
+        val latch = CountDownLatch(1)
         var successResult: Any? = null
         var errorCode: String? = null
         var errorMessage: String? = null
@@ -77,28 +81,40 @@ class RoutingMethodChannelHandlerTest {
 
         override fun success(result: Any?) {
             successResult = result
+            latch.countDown()
         }
 
         override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
             this.errorCode = errorCode
             this.errorMessage = errorMessage
             this.errorDetails = errorDetails
+            latch.countDown()
         }
 
         override fun notImplemented() {
             notImplementedCalled = true
+            latch.countDown()
+        }
+
+        fun await(timeoutSeconds: Long = 5): Boolean {
+            return latch.await(timeoutSeconds, TimeUnit.SECONDS)
         }
     }
 
     @Before
     fun setUp() {
         mockService = MockGraphHopperService()
-        // Use synchronous single thread executor for unit tests
+        // Use single-thread executor for unit test execution
         handler = RoutingMethodChannelHandler(
             routingService = mockService,
             backgroundExecutor = Executors.newSingleThreadExecutor(),
             resultPoster = { it.run() }
         )
+    }
+
+    @After
+    fun tearDown() {
+        handler.close()
     }
 
     @Test
@@ -110,7 +126,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
-        Thread.sleep(50) // wait for executor
+        assertTrue(result.await())
 
         assertTrue(mockService.initCalled)
         assertEquals("/data/vietnam.ghz", mockService.initPath)
@@ -126,6 +142,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        assertTrue(result.await())
 
         assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
     }
@@ -140,7 +157,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
-        Thread.sleep(50)
+        assertTrue(result.await())
 
         assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
     }
@@ -160,7 +177,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
-        Thread.sleep(50)
+        assertTrue(result.await())
 
         assertTrue(mockService.routeCalled)
         assertEquals(RoutingConstants.PROFILE_MOTORCYCLE, mockService.lastProfile)
@@ -217,6 +234,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        assertTrue(result.await())
 
         assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
     }
@@ -235,6 +253,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        assertTrue(result.await())
 
         assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
     }
@@ -253,6 +272,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        assertTrue(result.await())
 
         assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
     }
@@ -272,7 +292,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
-        Thread.sleep(50)
+        assertTrue(result.await())
 
         assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
     }
@@ -281,11 +301,12 @@ class RoutingMethodChannelHandlerTest {
     fun testIsInitializedAndDispose() {
         val initCheckResult = TestResult()
         handler.onMethodCall(MethodCall(RoutingConstants.METHOD_IS_INITIALIZED, null), initCheckResult)
+        assertTrue(initCheckResult.await())
         assertEquals(false, initCheckResult.successResult)
 
         val disposeResult = TestResult()
         handler.onMethodCall(MethodCall(RoutingConstants.METHOD_DISPOSE_GRAPH_HOPPER, null), disposeResult)
-        Thread.sleep(50)
+        assertTrue(disposeResult.await())
         assertTrue(mockService.disposeCalled)
         assertEquals(true, disposeResult.successResult)
     }
@@ -298,6 +319,7 @@ class RoutingMethodChannelHandlerTest {
             MethodCall(RoutingConstants.METHOD_INIT_GRAPH_HOPPER, mapOf(RoutingConstants.ARG_GRAPH_PATH to "/test.ghz")),
             result
         )
+        assertTrue(result.await())
         assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
     }
 
@@ -305,6 +327,7 @@ class RoutingMethodChannelHandlerTest {
     fun testUnknownMethodCallsNotImplemented() {
         val result = TestResult()
         handler.onMethodCall(MethodCall("unknownMethodName", null), result)
+        assertTrue(result.await())
         assertTrue(result.notImplementedCalled)
     }
 }

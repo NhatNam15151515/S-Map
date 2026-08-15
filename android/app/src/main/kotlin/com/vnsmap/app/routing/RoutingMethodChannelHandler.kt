@@ -177,5 +177,10 @@ class RoutingMethodChannelHandler(
         if (!backgroundExecutor.isShutdown) {
             backgroundExecutor.shutdown()
         }
+        try {
+            routingService.dispose()
+        } catch (_: Exception) {
+        }
     }
 }
+

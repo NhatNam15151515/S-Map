@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s_map/constants/routing_constants.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
+
 
 class MockRoutingService implements IRoutingService {
   bool initCalled = false;
@@ -190,7 +191,17 @@ void main() {
       final provider = AppReposProvider(routingRepos: repository);
       expect(provider.routingRepos, equals(repository));
     });
+
+    test('AppReposProvider integrates routingService instance and constructs RoutingRepositoryImpl', () {
+      final provider = AppReposProvider(routingService: mockService);
+      expect(provider.routingRepos, isNotNull);
+    });
+
+    test('AppReposProvider throws ArgumentError when both routingRepos and routingService are omitted', () {
+      expect(() => AppReposProvider(), throwsA(isA<ArgumentError>()));
+    });
   });
+
 
   group('Routing Models Unit & Serialization Tests', () {
     test('RoutePoint equality and conversions', () {

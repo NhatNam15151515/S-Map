@@ -16,14 +16,16 @@ class AppReposProvider {
   })  : authRepos = authRepos ?? AuthReposImpl(),
         notiRepos = notiRepos ?? NotificationReposImpl(),
         poiRepos = poiRepos ?? PoiRepositoryImpl(),
-        assert(
-          routingRepos != null || routingService != null,
-          'Either routingRepos or routingService must be provided to AppReposProvider',
-        ),
-        routingRepos = routingRepos ??
-            RoutingRepositoryImpl(
-              routingService: routingService!,
-            );
+        routingRepos = routingRepos ?? _resolveRoutingRepos(routingService);
+
+  static IRoutingRepository _resolveRoutingRepos(IRoutingService? routingService) {
+    if (routingService == null) {
+      throw ArgumentError(
+        'Either routingRepos or routingService must be provided to AppReposProvider',
+      );
+    }
+    return RoutingRepositoryImpl(routingService: routingService);
+  }
 
   static AppReposProvider? _instance;
   static AppReposProvider get instance =>
