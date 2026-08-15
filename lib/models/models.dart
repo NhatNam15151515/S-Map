@@ -3,4 +3,7 @@ export 'help_center_question.dart';
 export 'notification_model.dart';
 export 'place_model.dart';
 export 'poi_model.dart';
+export 'routing/route_instruction.dart';
+export 'routing/route_point.dart';
+export 'routing/route_result.dart';
 export 'user.dart';
