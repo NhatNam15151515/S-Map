@@ -6,12 +6,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:s_map/app.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/flavor/flavor.dart';
 import 'package:s_map/services/services.dart';
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Setup default service resolvers (Dependency Inversion)
+  MapDisplayCubit.defaultLocationService = LocationService.instance;
+  MapDisplayCubit.defaultCompassService = CompassService.instance;
+  MapDisplayCubit.defaultMapStyleService = MapStyleService.instance;
+  MapExploreCubit.defaultFireStoreService = FireStoreService.instance;
+  AppCubit.defaultMessagingService = FirebaseMessagingService.instance;
+  ListenComingNotification.messagingServiceResolver = FirebaseMessagingService.instance;
+
 
   await EasyLocalization.ensureInitialized();
 

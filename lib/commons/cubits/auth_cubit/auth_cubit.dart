@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:s_map/commons/cubits/auth_cubit/auth_state.dart';
+import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -39,16 +40,12 @@ class AuthCubit extends Cubit<AuthState> {
         _analyticsService = analyticsService ??
             defaultAnalyticsService ??
             _NoOpAnalyticsService(),
-        super(const InitialAuth()) {
+        super(const AuthState()) {
     onAppStarted();
   }
 
   User get currentProfile {
-    final curState = state;
-    if (curState is Authenticated) {
-      return curState.loggedInProfile;
-    }
-    return User.getInit(init: true);
+    return state.loggedInProfile ?? User.getInit(init: true);
   }
 
   @override
@@ -72,8 +69,8 @@ class AuthCubit extends Cubit<AuthState> {
       faceIdAcceptStream.value = reqAuth;
       await onAuthenticated(profile);
     } else {
-      if (state is InitialAuth) {
-        emit(const UnAuthenticated());
+      if (state.isInitial) {
+        emit(state.copyWith(type: AuthStateType.unAuthenticated));
       }
     }
     FlutterNativeSplash.remove();
@@ -81,7 +78,10 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> onAuthenticated(User user) async {
     await _secureStorage.saveProfile(user);
-    emit(Authenticated(user));
+    emit(state.copyWith(
+      type: AuthStateType.authenticated,
+      loggedInProfile: user,
+    ));
     await getAfterAuthStateEmitted();
   }
 
@@ -104,26 +104,32 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<bool> signInWithGoogle() async {
-    emit(const LoadingAuth());
+    emit(state.copyWith(type: AuthStateType.loading));
     try {
       final user = await _authRepos.signInWithGoogle();
       if (user != null) {
         await onLoggedIn(user);
         return true;
       } else {
-        emit(const UnAuthenticated());
+        emit(state.copyWith(type: AuthStateType.unAuthenticated));
         return false;
       }
     } catch (e) {
       DLog.error('Lỗi đăng nhập Google: $e');
-      emit(const UnAuthenticated());
+      emit(state.copyWith(
+        type: AuthStateType.unAuthenticated,
+        errorMessage: e.toString(),
+      ));
       return false;
     }
   }
 
   Future<void> updateProfile(User user) async {
     await _secureStorage.saveProfile(user);
-    emit(Authenticated(user));
+    emit(state.copyWith(
+      type: AuthStateType.authenticated,
+      loggedInProfile: user,
+    ));
   }
 
   Future<void> getProfile() async {
@@ -138,8 +144,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void toggleAuthWithFaceId(bool accepted) async {
-    final curState = state;
-    if (curState is Authenticated) {
+    if (state.isAuthenticated) {
       final res = await _localAuthService.authenticate();
       if (res) {
         await _secureStorage.saveReqAuth(accepted);
@@ -153,7 +158,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void onLogout({bool requestLogout = true}) async {
-    emit(const UnAuthenticated());
+    emit(const AuthState(type: AuthStateType.unAuthenticated));
     await _secureStorage.onLogOutClear();
     if (requestLogout) await _requestLogout();
   }

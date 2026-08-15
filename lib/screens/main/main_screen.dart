@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
-import 'package:s_map/services/services.dart';
 
 class MainScreen extends StatefulWidget with AppMixin {
   final StatefulNavigationShell navigationShell;
@@ -16,11 +15,10 @@ class MainScreen extends StatefulWidget with AppMixin {
 class _MainScreenState extends State<MainScreen> with AppMixin {
   @override
   void initState() {
-    appCubit.onMainScreenMounted(
-      messagingService: FirebaseMessagingService.instance,
-    );
+    appCubit.onMainScreenMounted();
     super.initState();
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -8,6 +8,8 @@ ALWAYS use `smap-codebase-intel` MCP tools when working with the codebase:
 - Survey: `get_repo_map`, `query_symbol`, `get_file_dependencies`
 - Architecture Check: `check_architecture_rules`, `get_architecture_report` (ensure 0 violations, 0 circular)
 - Static Analysis: `get_violations_summary`, `run_dart_analyze`
+- Script Execution: ALWAYS run script files directly (`python test_server.py`, `python tools/...`). NEVER run inline `python -c "..."` commands.
+
  
 ### 2. UI/UX Pro Max (Design Intelligence)
 When making design decisions (colors, fonts, UI styles, UX patterns), run this search:

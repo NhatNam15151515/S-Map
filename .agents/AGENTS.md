@@ -27,6 +27,12 @@ Mỗi khi tương tác với codebase S-Map, agent **BẮT BUỘC** phải tuân
    - **BẮT BUỘC** gọi `get_violations_summary` / `run_dart_analyze` để xác nhận: **0 Dart Static Errors/Warnings**.
    - **BẮT BUỘC** chạy `flutter test` đảm bảo **100% tests pass** trước khi tạo PR/commit.
 
+4. **Quy tắc thực thi Terminal & Script Execution (BẮT BUỘC):**
+   - **TUYỆT ĐỐI KHÔNG** chạy các lệnh inline nhồi nhét code dài dòng (`python -c "..."`) trên terminal.
+   - **BẮT BUỘC** gọi trực tiếp các file script có sẵn (`python test_server.py`, `python server.py`, `python tools/...`, `flutter test`, `dart analyze`).
+   - Nếu cần logic kiểm tra tùy biến: viết/cập nhật vào file script trong `tools/` rồi mới thực thi gọi file.
+
+
 ---
 
 ## Available AI Tools
@@ -520,6 +526,8 @@ Dự án cấu hình `EasyLocalization` với bộ tải mã nguồn sinh trư�
 | 26 | UI Screen / Widget gọi trực tiếp Singleton Service / Repo | Đóng gói I/O vào Cubit / State và inject props vào Widget |
 | 27 | Import lẻ tẻ từng file thành phần | Dùng Barrel export file (`models/models.dart`, `widgets/widgets.dart`...) |
 | 28 | Raw type `Completer` không khai báo kiểu generic | Khai báo rõ kiểu: `Completer<bool>` / `Completer<T>` |
+| 29 | Chạy lệnh terminal inline `python -c "..."` dài dòng | Gọi trực tiếp file script (`python test_server.py`, `python tools/...`) |
+
 
 
 

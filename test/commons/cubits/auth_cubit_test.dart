@@ -72,8 +72,8 @@ void main() {
       final result = await cubit.signInWithGoogle();
 
       expect(result, isTrue);
-      expect(cubit.state, isA<Authenticated>());
-      expect((cubit.state as Authenticated).loggedInProfile.email, 'test@example.com');
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.loggedInProfile?.email, 'test@example.com');
       await cubit.close();
     });
 
@@ -84,7 +84,7 @@ void main() {
       final result = await cubit.signInWithGoogle();
 
       expect(result, isFalse);
-      expect(cubit.state, isA<UnAuthenticated>());
+      expect(cubit.state.isUnAuthenticated, isTrue);
       await cubit.close();
     });
 
@@ -95,8 +95,9 @@ void main() {
       final result = await cubit.signInWithGoogle();
 
       expect(result, isFalse);
-      expect(cubit.state, isA<UnAuthenticated>());
+      expect(cubit.state.isUnAuthenticated, isTrue);
       await cubit.close();
     });
   });
 }
+
