@@ -1,9 +1,8 @@
-import 'package:s_map/commons/mixin/app_bar_mixin.dart';
-import 'package:s_map/commons/mixin/app_mixin.dart';
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/utils.dart';
 
 class AppBarContainer extends StatelessWidget with AppMixin {
   final double height;

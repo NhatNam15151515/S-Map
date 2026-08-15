@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/utils.dart';
 
 class StatsScreen extends StatefulWidget {
   static const String path = '/stats';

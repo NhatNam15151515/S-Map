@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/models/models.dart';
 
 enum MapDisplayStatus { initial, loading, ready, error }
 
@@ -43,6 +44,7 @@ class MapDisplayState extends Equatable {
   final MapOrientationMode orientationMode;
   final double? compassHeading;
   final MapCameraAction? cameraAction;
+  final PoiModel? selectedPoi;
 
   const MapDisplayState({
     required this.status,
@@ -56,6 +58,7 @@ class MapDisplayState extends Equatable {
     this.orientationMode = MapOrientationMode.northUp,
     this.compassHeading,
     this.cameraAction,
+    this.selectedPoi,
   });
 
   MapDisplayState copyWith({
@@ -72,6 +75,8 @@ class MapDisplayState extends Equatable {
     double? compassHeading,
     MapCameraAction? cameraAction,
     bool clearCameraAction = false,
+    PoiModel? selectedPoi,
+    bool clearSelectedPoi = false,
   }) {
     return MapDisplayState(
       status: status ?? this.status,
@@ -87,6 +92,8 @@ class MapDisplayState extends Equatable {
       compassHeading: compassHeading ?? this.compassHeading,
       cameraAction:
           clearCameraAction ? null : (cameraAction ?? this.cameraAction),
+      selectedPoi:
+          clearSelectedPoi ? null : (selectedPoi ?? this.selectedPoi),
     );
   }
 
@@ -103,5 +110,7 @@ class MapDisplayState extends Equatable {
         orientationMode,
         compassHeading,
         cameraAction,
+        selectedPoi,
       ];
 }
+

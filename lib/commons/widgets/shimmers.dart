@@ -1,5 +1,5 @@
-import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:shimmer/shimmer.dart';
 
 class DefaultListingShimmer extends StatelessWidget with AppMixin {

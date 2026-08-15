@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 
 typedef AppTextFieldTitleBuilder = TextStyle Function(bool);
@@ -35,8 +35,8 @@ class CustomTextEditingController<T> extends TextEditingController {
 
   bool? validate() => formKey.currentState?.validate();
 }
-class AppTextField extends StatefulWidget {
 
+class AppTextField extends StatefulWidget {
   final CustomTextEditingController controller;
   final String? title;
   final int? maxLength;
@@ -52,13 +52,21 @@ class AppTextField extends StatefulWidget {
   final TextInputType? textInputType;
 
   const AppTextField({
-    super.key, required this.controller,
-    this.title, this.maxLength,
-    this.inputFormatters, this.validator,
+    super.key,
+    required this.controller,
+    this.title,
+    this.maxLength,
+    this.inputFormatters,
+    this.validator,
     this.obscure = false,
     this.textAlign = TextAlign.start,
-    this.textTitleBuilder, this.hint,
-    this.hintStyle, this.focusedBorder, this.unfocusedBorder, this.suffix, this.textInputType,
+    this.textTitleBuilder,
+    this.hint,
+    this.hintStyle,
+    this.focusedBorder,
+    this.unfocusedBorder,
+    this.suffix,
+    this.textInputType,
   });
 
   @override
@@ -66,7 +74,6 @@ class AppTextField extends StatefulWidget {
 }
 
 class _AppTextFieldState extends State<AppTextField> with AppMixin {
-
   CustomTextEditingController get controller => widget.controller;
   bool obscure = false;
   bool get isPasswordField => widget.obscure;
@@ -130,14 +137,15 @@ class _AppTextFieldState extends State<AppTextField> with AppMixin {
   }
 
   Widget? _buildSuffixIcon() {
-    if(isPasswordField) {
+    if (isPasswordField) {
       return GestureDetector(
-        onTap: (){
+        onTap: () {
           setState(() {
             obscure = !obscure;
           });
         },
-        child: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+        child: Icon(
+          obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
           size: 18,
           color: styles.colorScheme.primary,
         ),

@@ -1,8 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:s_map/commons/mixin/app_mixin.dart';
-import 'package:s_map/commons/mixin/auth_mixin.dart';
-import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 
 class SavedScreen extends StatefulWidget {
   static const String path = '/SavedScreen';
@@ -13,8 +12,8 @@ class SavedScreen extends StatefulWidget {
   _SavedScreenState createState() => _SavedScreenState();
 }
 
-class _SavedScreenState extends State<SavedScreen> with AppMixin, AuthStateChanged {
-
+class _SavedScreenState extends State<SavedScreen>
+    with AppMixin, AuthStateChanged {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -35,6 +34,5 @@ class _SavedScreenState extends State<SavedScreen> with AppMixin, AuthStateChang
   }
 
   @override
-  void onAuthStateChanged() {
-  }
+  void onAuthStateChanged() {}
 }

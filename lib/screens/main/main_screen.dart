@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 
 class MainScreen extends StatefulWidget with AppMixin {

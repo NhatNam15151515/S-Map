@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/utils.dart';
 
 class MapCompassButton extends StatelessWidget {
   final double rotation;

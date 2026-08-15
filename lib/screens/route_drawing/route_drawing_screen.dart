@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/styles/styles.dart';
 
 class RouteDrawingScreen extends StatefulWidget {
