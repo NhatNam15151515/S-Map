@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/constants/category_constants.dart';
 import 'package:s_map/interfaces/i_firebase_firestore_service.dart';
 import 'package:s_map/models/place_model.dart';
 import 'package:s_map/services/firebase_firestore_service.dart';
@@ -12,9 +13,7 @@ class MapExploreCubit extends Cubit<MapExploreState> {
 
   MapExploreCubit({IFireStoreService? fireStoreService})
       : _fireStoreService = fireStoreService ?? FireStoreService.instance,
-        super(const MapExploreState()) {
-    watchExplorePlaces(category: state.selectedCategory);
-  }
+        super(const MapExploreState());
 
   @override
   void emit(MapExploreState state) {
@@ -35,8 +34,11 @@ class MapExploreCubit extends Cubit<MapExploreState> {
     _placesSubscription?.cancel();
     emit(state.copyWith(status: MapExploreStatus.loading));
 
+    final targetCategory = category ?? state.selectedCategory;
+    final filter = targetCategory == CategoryConstants.all ? null : targetCategory;
+
     _placesSubscription = _fireStoreService
-        .streamExplorePlaces(category: category == "Tất cả" ? null : category)
+        .streamExplorePlaces(category: filter)
         .listen(
       (places) {
         emit(state.copyWith(

@@ -204,7 +204,7 @@ class _MapScreenState extends State<MapScreen> with AppMixin {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => MapDisplayCubit()),
-        BlocProvider(create: (_) => MapExploreCubit()),
+        BlocProvider(create: (_) => MapExploreCubit()..watchExplorePlaces()),
       ],
       child: const _MyMapScreenContent(),
     );

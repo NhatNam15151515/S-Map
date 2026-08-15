@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:s_map/constants/category_constants.dart';
 import 'package:s_map/models/place_model.dart';
 
 enum MapExploreStatus { initial, loading, loaded, error }
@@ -12,7 +13,7 @@ class MapExploreState extends Equatable {
   const MapExploreState({
     this.status = MapExploreStatus.initial,
     this.places = const [],
-    this.selectedCategory = "Tất cả",
+    this.selectedCategory = CategoryConstants.all,
     this.errorMessage,
   });
 

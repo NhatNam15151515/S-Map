@@ -75,9 +75,7 @@ class ExploreBottomSheet extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  tr('explore.title') == 'explore.title'
-                                      ? 'Khám phá khu vực lân cận'
-                                      : tr('explore.title'),
+                                  tr('explore.title'),
                                   style: AppColors.googleDarkText.textTheme.subTitleStyle.copyWith(
                                     fontSize: 17,
                                     fontWeight: AppFontWeight.bold.weight,
@@ -85,9 +83,7 @@ class ExploreBottomSheet extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  tr('explore.subtitle') == 'explore.subtitle'
-                                      ? 'Các địa điểm thịnh hành xung quanh bạn'
-                                      : tr('explore.subtitle'),
+                                  tr('explore.subtitle'),
                                   style: AppColors.onSurfaceVariant.textTheme.captionStyle,
                                 ),
                               ],
@@ -136,9 +132,7 @@ class ExploreBottomSheet extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            tr('explore.empty') == 'explore.empty'
-                                ? 'Không tìm thấy địa điểm nào'
-                                : tr('explore.empty'),
+                            tr('explore.empty'),
                             style: AppColors.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 14),
                           ),
                         ],

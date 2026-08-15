@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/cubits/map_explore_cubit/map_explore_cubit.dart';
 import 'package:s_map/commons/cubits/map_explore_cubit/map_explore_state.dart';
+import 'package:s_map/constants/category_constants.dart';
 import 'package:s_map/interfaces/i_firebase_firestore_service.dart';
 import 'package:s_map/models/notification_model.dart';
 import 'package:s_map/models/place_model.dart';
@@ -70,16 +71,18 @@ void main() {
       mockService.dispose();
     });
 
-    test('Initial state starts with loading and default category', () {
+    test('Initial state is initial with default category all and does not fetch until triggered', () {
       final cubit = MapExploreCubit(fireStoreService: mockService);
-      expect(cubit.state.status, MapExploreStatus.loading);
-      expect(cubit.state.selectedCategory, 'Tất cả');
+      expect(cubit.state.status, MapExploreStatus.initial);
+      expect(cubit.state.selectedCategory, CategoryConstants.all);
       expect(cubit.state.places, isEmpty);
       cubit.close();
     });
 
-    test('Emits loaded state when stream receives place models', () async {
+    test('watchExplorePlaces changes status to loading and emits loaded state on stream data', () async {
       final cubit = MapExploreCubit(fireStoreService: mockService);
+      cubit.watchExplorePlaces();
+      expect(cubit.state.status, MapExploreStatus.loading);
 
       const dummyPlace = PlaceModel(
         id: 'place_1',
@@ -101,8 +104,8 @@ void main() {
     test('selectCategory updates category and requests fresh stream', () async {
       final cubit = MapExploreCubit(fireStoreService: mockService);
 
-      cubit.selectCategory('Ăn uống');
-      expect(cubit.state.selectedCategory, 'Ăn uống');
+      cubit.selectCategory(CategoryConstants.food);
+      expect(cubit.state.selectedCategory, CategoryConstants.food);
       expect(cubit.state.status, MapExploreStatus.loading);
 
       cubit.close();
@@ -110,6 +113,7 @@ void main() {
 
     test('Handles stream error gracefully', () async {
       final cubit = MapExploreCubit(fireStoreService: mockService);
+      cubit.watchExplorePlaces();
 
       mockService.emitError(Exception('Firestore network error'));
       await Future.delayed(const Duration(milliseconds: 10));

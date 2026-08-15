@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _mapCubit = MapDisplayCubit();
-    _exploreCubit = MapExploreCubit();
+    _exploreCubit = MapExploreCubit()..watchExplorePlaces();
   }
 
   @override

@@ -3,85 +3,62 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/constants/category_constants.dart';
 
-class MapCategoryChips extends StatefulWidget {
+class MapCategoryChips extends StatelessWidget {
   final String selectedCategory;
   final ValueChanged<String>? onCategorySelected;
 
   const MapCategoryChips({
     super.key,
-    this.selectedCategory = "Tất cả",
+    this.selectedCategory = CategoryConstants.all,
     this.onCategorySelected,
   });
 
-  @override
-  State<MapCategoryChips> createState() => _MapCategoryChipsState();
-}
-
-class _MapCategoryChipsState extends State<MapCategoryChips> {
-  late String _selectedCategory;
-
-  final List<({String titleKey, String title, IconData icon, Color color})>
-      _categories = const [
+  static const List<({String id, String titleKey, IconData icon, Color color})>
+      _categories = [
     (
+      id: CategoryConstants.food,
       titleKey: 'category.food',
-      title: "Ăn uống",
       icon: Icons.restaurant_rounded,
       color: AppColors.googleRed
     ),
     (
+      id: CategoryConstants.coffee,
       titleKey: 'category.coffee',
-      title: "Cà phê",
       icon: Icons.local_cafe_rounded,
       color: AppColors.constructionZone
     ),
     (
+      id: CategoryConstants.hotel,
       titleKey: 'category.hotel',
-      title: "Khách sạn",
       icon: Icons.hotel_rounded,
       color: AppColors.googleBlue
     ),
     (
+      id: CategoryConstants.gas,
       titleKey: 'category.gas',
-      title: "Cây xăng",
       icon: Icons.local_gas_station_rounded,
       color: AppColors.googleYellow
     ),
     (
+      id: CategoryConstants.atm,
       titleKey: 'category.atm',
-      title: "ATM",
       icon: Icons.atm_rounded,
       color: AppColors.googleGreen
     ),
     (
+      id: CategoryConstants.hospital,
       titleKey: 'category.hospital',
-      title: "Bệnh viện",
       icon: Icons.local_hospital_rounded,
       color: AppColors.sMapTeal
     ),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedCategory = widget.selectedCategory;
-  }
-
-  @override
-  void didUpdateWidget(covariant MapCategoryChips oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedCategory != widget.selectedCategory) {
-      _selectedCategory = widget.selectedCategory;
-    }
-  }
-
-  void _onChipTap(String title, bool isSelected) {
+  void _onChipTap(String categoryId, bool isSelected) {
     HapticFeedback.lightImpact();
-    final nextCategory = isSelected ? "Tất cả" : title;
-    setState(() {
-      _selectedCategory = nextCategory;
-    });
-    widget.onCategorySelected?.call(nextCategory);
+    final nextCategory = isSelected ? CategoryConstants.all : categoryId;
+    onCategorySelected?.call(nextCategory);
   }
 
   @override
@@ -95,14 +72,13 @@ class _MapCategoryChipsState extends State<MapCategoryChips> {
           separatorBuilder: (_, __) => const SizedBox(width: 8),
           itemBuilder: (context, index) {
             final item = _categories[index];
-            final isSelected = _selectedCategory == item.title;
-            final translated = tr(item.titleKey);
-            final labelText = translated == item.titleKey ? item.title : translated;
+            final isSelected = selectedCategory == item.id;
+            final labelText = tr(item.titleKey);
 
             return Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _onChipTap(item.title, isSelected),
+                onTap: () => _onChipTap(item.id, isSelected),
                 borderRadius: BorderRadius.circular(20),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),

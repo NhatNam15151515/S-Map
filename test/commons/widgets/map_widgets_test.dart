@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/widgets/map_category_chips.dart';
 import 'package:s_map/commons/widgets/map_controls.dart';
 import 'package:s_map/commons/widgets/map_search_bar.dart';
+import 'package:s_map/constants/category_constants.dart';
 
 void main() {
   group('Commons Map Widgets Tests', () {
@@ -26,24 +27,24 @@ void main() {
       expect(backPressed, true);
     });
 
-    testWidgets('MapCategoryChips triggers onCategorySelected when chip tapped', (tester) async {
+    testWidgets('MapCategoryChips triggers onCategorySelected with category ID when chip tapped', (tester) async {
       String? selected;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: MapCategoryChips(
+              selectedCategory: CategoryConstants.all,
               onCategorySelected: (cat) => selected = cat,
             ),
           ),
         ),
       );
 
-      expect(find.text('Ăn uống'), findsOneWidget);
-      expect(find.text('Cà phê'), findsOneWidget);
+      expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.local_cafe_rounded), findsOneWidget);
 
-      await tester.tap(find.text('Ăn uống'));
-      await tester.pump();
-      expect(selected, 'Ăn uống');
+      await tester.tap(find.byIcon(Icons.restaurant_rounded));
+      expect(selected, CategoryConstants.food);
     });
 
     testWidgets('MapControls renders all action buttons and triggers callbacks', (tester) async {
