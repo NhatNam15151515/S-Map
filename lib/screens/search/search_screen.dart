@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/services/services.dart';
 import 'widgets/widgets.dart';
 
@@ -14,7 +13,7 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> with AppMixin {
+class _SearchScreenState extends State<SearchScreen> {
   late final SearchCubit _searchCubit;
 
   @override

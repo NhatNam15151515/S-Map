@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:another_flushbar/flushbar.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 
 enum FlushBarStatusType { succeed, error, info, warning }
 
@@ -25,22 +27,22 @@ class AppFlushbar {
     switch (flushBarStatusType) {
       case FlushBarStatusType.succeed:
         icon = Icons.check_circle_rounded;
-        title ??= "Hoàn tất";
+        title ??= tr(LocaleKeys.common_success);
         statusColor = AppColors.sMapTeal;
         break;
       case FlushBarStatusType.error:
         icon = Icons.error_rounded;
-        title ??= "Lỗi";
+        title ??= tr(LocaleKeys.common_error);
         statusColor = AppColors.googleRed;
         break;
       case FlushBarStatusType.info:
         icon = Icons.info_rounded;
-        title ??= "Thông tin";
+        title ??= tr(LocaleKeys.common_info);
         statusColor = AppColors.googleBlue;
         break;
       case FlushBarStatusType.warning:
         icon = Icons.warning_rounded;
-        title ??= "Thông báo";
+        title ??= tr(LocaleKeys.common_notification);
         statusColor = AppColors.googleYellow;
         break;
     }

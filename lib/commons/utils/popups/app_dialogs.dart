@@ -1,8 +1,10 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 
 class AppDialogs {
   final BuildContext context;
@@ -61,7 +63,7 @@ class AppDialogs {
                         },
                         style: styles.outlineButtonStyle,
                         child: Text(
-                          "Huỷ bỏ",
+                          tr(LocaleKeys.common_cancel),
                           style: AppColors
                               .onSurfaceVariant.textTheme.subTitleStyle
                               .copyWith(
@@ -78,7 +80,7 @@ class AppDialogs {
                           onPressYes?.call();
                         },
                         child: Text(
-                          "Xác nhận",
+                          tr(LocaleKeys.common_confirm),
                           style: styles.whiteTextColor.textTheme.subTitleStyle
                               .copyWith(
                             fontSize: 14,
@@ -145,7 +147,7 @@ class AppDialogs {
                       onPress?.call();
                     },
                     child: Text(
-                      "Xác nhận",
+                      tr(LocaleKeys.common_confirm),
                       style: styles.whiteTextColor.textTheme.subTitleStyle
                           .copyWith(
                         fontSize: 14,
@@ -210,7 +212,7 @@ class AppDialogs {
                         },
                         style: styles.outlineButtonStyle,
                         child: Text(
-                          "Huỷ bỏ",
+                          tr(LocaleKeys.common_cancel),
                           style: AppColors
                               .onSurfaceVariant.textTheme.subTitleStyle
                               .copyWith(
@@ -227,7 +229,7 @@ class AppDialogs {
                           onPressYes?.call(controller.text);
                         },
                         child: Text(
-                          "Xác nhận",
+                          tr(LocaleKeys.common_confirm),
                           style: styles.whiteTextColor.textTheme.subTitleStyle
                               .copyWith(
                             fontSize: 14,
@@ -248,3 +250,4 @@ class AppDialogs {
     });
   }
 }
+
