@@ -7,6 +7,7 @@ import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:flutter/foundation.dart';
+import 'auth_fallbacks.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final IAuthRepos _authRepos;
@@ -30,16 +31,16 @@ class AuthCubit extends Cubit<AuthState> {
     IFirebaseAnalyticsService? analyticsService,
   })  : _authRepos = authRepos ?? AuthReposImpl(),
         _secureStorage =
-            secureStorage ?? defaultSecureStorage ?? _NoOpSecureStorage(),
+            secureStorage ?? defaultSecureStorage ?? NoOpSecureStorage(),
         _sharedPreferences = sharedPreferences ??
             defaultSharedPreferences ??
-            _NoOpSharedPreferences(),
+            NoOpSharedPreferences(),
         _localAuthService = localAuthService ??
             defaultLocalAuthService ??
-            _NoOpLocalAuthService(),
+            NoOpLocalAuthService(),
         _analyticsService = analyticsService ??
             defaultAnalyticsService ??
-            _NoOpAnalyticsService(),
+            NoOpAnalyticsService(),
         super(const AuthState()) {
     onAppStarted();
   }
@@ -170,75 +171,4 @@ class AuthCubit extends Cubit<AuthState> {
       DLog.error('Lỗi đăng xuất: $e');
     }
   }
-}
-
-// Private fallback implementations for test and decoupled environments
-
-class _NoOpSecureStorage implements ISecureStorage {
-  String? _token;
-  User? _profile;
-  bool _reqAuth = false;
-
-  @override
-  Future<String?> getStoredAuthToken() async => _token;
-
-  @override
-  Future<User?> getStoredProfile() async => _profile;
-
-  @override
-  Future<bool> getReqAuth() async => _reqAuth;
-
-  @override
-  Future<void> onLogOutClear() async {
-    _token = null;
-    _profile = null;
-    _reqAuth = false;
-  }
-
-  @override
-  Future<void> saveAuthToken(String token) async => _token = token;
-
-  @override
-  Future<void> saveProfile(User user) async => _profile = user;
-
-  @override
-  Future<void> saveReqAuth(bool value) async => _reqAuth = value;
-}
-
-class _NoOpSharedPreferences implements ISharedPreferences {
-  bool _firstInstall = false;
-
-  @override
-  Future<bool> get1stInstall() async => _firstInstall;
-
-  @override
-  Future<void> save1stInstall() async => _firstInstall = false;
-}
-
-class _NoOpLocalAuthService implements ILocalAuthService {
-  @override
-  bool get faceIdAvailable => false;
-
-  @override
-  bool get initDone => true;
-
-  @override
-  Future<bool> authenticate() async => true;
-
-  @override
-  Future<void> getAvailableBio() async {}
-
-  @override
-  Future<void> init() async {}
-}
-
-class _NoOpAnalyticsService implements IFirebaseAnalyticsService {
-  @override
-  Future init() async {}
-
-  @override
-  Future logEvent(String name, Map<String, dynamic> params) async {}
-
-  @override
-  Future resetUserDetail({User? profile}) async {}
 }

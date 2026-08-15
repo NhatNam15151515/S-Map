@@ -127,7 +127,13 @@ class CodegenLoader extends AssetLoader{
   "aboutSMap": "About {}",
   "appVersion": "Version 1.0.0",
   "common": {
-    "back": "Back"
+    "back": "Back",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "error": "Error",
+    "notification": "Notification",
+    "info": "Information",
+    "success": "Success"
   },
   "category": {
     "all": "All",
@@ -268,7 +274,13 @@ static const Map<String,dynamic> _vi = {
   "aboutSMap": "Về {}",
   "appVersion": "Phiên bản 1.0.0",
   "common": {
-    "back": "Quay lại"
+    "back": "Quay lại",
+    "cancel": "Huỷ bỏ",
+    "confirm": "Xác nhận",
+    "error": "Lỗi",
+    "notification": "Thông báo",
+    "info": "Thông tin",
+    "success": "Hoàn tất"
   },
   "category": {
     "all": "Tất cả",

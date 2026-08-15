@@ -6,6 +6,7 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'map_display_fallbacks.dart';
 import 'map_display_state.dart';
 
 class MapDisplayCubit extends Cubit<MapDisplayState> {
@@ -28,16 +29,17 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     ICompassService? compassService,
     IMapStyleService? mapStyleService,
   })  : _locationService =
-            locationService ?? defaultLocationService ?? _NoOpLocationService(),
+            locationService ?? defaultLocationService ?? NoOpLocationService(),
         _compassService =
-            compassService ?? defaultCompassService ?? _NoOpCompassService(),
+            compassService ?? defaultCompassService ?? NoOpCompassService(),
         super(MapDisplayState(
           status: MapDisplayStatus.initial,
           styleString: (mapStyleService ??
                   defaultMapStyleService ??
-                  _NoOpMapStyleService())
+                  NoOpMapStyleService())
               .styleJson,
         ));
+
 
   /// Safe emit guard rule mandatory for all Cubits/Blocs
   @override
@@ -316,66 +318,3 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     return super.close();
   }
 }
-
-class _NoOpLocationService implements ILocationService {
-  @override
-  Position get position => Position(
-        longitude: 106.660172,
-        latitude: 10.762622,
-        timestamp: DateTime.now(),
-        accuracy: 0,
-        altitude: 0,
-        altitudeAccuracy: 0,
-        heading: 0,
-        headingAccuracy: 0,
-        speed: 0,
-        speedAccuracy: 0,
-      );
-
-  @override
-  (double, double) get latLng => (10.762622, 106.660172);
-
-  @override
-  Stream<Position> get positionStream => const Stream.empty();
-
-  @override
-  Future<Position> getCurrentPosition() async => position;
-
-  @override
-  Future<Position?> getLastKnownPosition() async => null;
-
-  @override
-  Future<bool> isLocationServiceEnabled() async => true;
-
-  @override
-  Future<LocationPermission> checkPermission() async =>
-      LocationPermission.always;
-
-  @override
-  Future<LocationPermission> requestPermission() async =>
-      LocationPermission.always;
-
-  @override
-  Future<bool> openLocationSettings() async => true;
-
-  @override
-  Future<bool> openAppSettings() async => true;
-}
-
-class _NoOpCompassService implements ICompassService {
-  @override
-  Stream<double?> get compassHeadingStream => const Stream.empty();
-
-  @override
-  Future<bool> get isCompassAvailable async => false;
-}
-
-class _NoOpMapStyleService implements IMapStyleService {
-  @override
-  String get styleJson => '{"version": 8, "sources": {}, "layers": []}';
-
-  @override
-  Future<void> init() async {}
-}
-
-

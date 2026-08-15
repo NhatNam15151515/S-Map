@@ -111,7 +111,13 @@
   "aboutSMap": "Về {}",
   "appVersion": "Phiên bản 1.0.0",
   "common": {
-    "back": "Quay lại"
+    "back": "Quay lại",
+    "cancel": "Huỷ bỏ",
+    "confirm": "Xác nhận",
+    "error": "Lỗi",
+    "notification": "Thông báo",
+    "info": "Thông tin",
+    "success": "Hoàn tất"
   },
   "category": {
     "all": "Tất cả",

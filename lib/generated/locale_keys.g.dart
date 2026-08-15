@@ -111,6 +111,12 @@ abstract class  LocaleKeys {
   static const aboutSMap = 'aboutSMap';
   static const appVersion = 'appVersion';
   static const common_back = 'common.back';
+  static const common_cancel = 'common.cancel';
+  static const common_confirm = 'common.confirm';
+  static const common_error = 'common.error';
+  static const common_notification = 'common.notification';
+  static const common_info = 'common.info';
+  static const common_success = 'common.success';
   static const common = 'common';
   static const category_all = 'category.all';
   static const category_food = 'category.food';
