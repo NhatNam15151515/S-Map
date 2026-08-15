@@ -1,6 +1,5 @@
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/repos.dart';
-import 'package:s_map/services/services.dart';
 
 class AppReposProvider {
   final IAuthRepos authRepos;
@@ -17,10 +16,41 @@ class AppReposProvider {
   })  : authRepos = authRepos ?? AuthReposImpl(),
         notiRepos = notiRepos ?? NotificationReposImpl(),
         poiRepos = poiRepos ?? PoiRepositoryImpl(),
+        assert(
+          routingRepos != null || routingService != null,
+          'Either routingRepos or routingService must be provided to AppReposProvider',
+        ),
         routingRepos = routingRepos ??
             RoutingRepositoryImpl(
-              routingService: routingService ?? RoutingServiceImpl.instance,
+              routingService: routingService!,
             );
 
-  static final AppReposProvider instance = AppReposProvider();
+  static AppReposProvider? _instance;
+  static AppReposProvider get instance =>
+      _instance ??
+      (() {
+        throw StateError(
+          'AppReposProvider has not been initialized. Call AppReposProvider.init(routingService: ...) in main() or initialize an instance.',
+        );
+      })();
+
+  static set instance(AppReposProvider provider) {
+    _instance = provider;
+  }
+
+  static void init({
+    required IRoutingService routingService,
+    IAuthRepos? authRepos,
+    INotificationRepos? notiRepos,
+    IPoiRepository? poiRepos,
+    IRoutingRepository? routingRepos,
+  }) {
+    _instance = AppReposProvider(
+      routingService: routingService,
+      authRepos: authRepos,
+      notiRepos: notiRepos,
+      poiRepos: poiRepos,
+      routingRepos: routingRepos,
+    );
+  }
 }

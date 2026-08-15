@@ -9,7 +9,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 class RoutingMethodChannelHandlerTest {
 
@@ -93,10 +93,10 @@ class RoutingMethodChannelHandlerTest {
     @Before
     fun setUp() {
         mockService = MockGraphHopperService()
-        // Use synchronous executor and direct result runner for unit tests
+        // Use synchronous single thread executor for unit tests
         handler = RoutingMethodChannelHandler(
             routingService = mockService,
-            backgroundExecutor = Executor { it.run() },
+            backgroundExecutor = Executors.newSingleThreadExecutor(),
             resultPoster = { it.run() }
         )
     }
@@ -110,6 +110,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        Thread.sleep(50) // wait for executor
 
         assertTrue(mockService.initCalled)
         assertEquals("/data/vietnam.ghz", mockService.initPath)
@@ -139,6 +140,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        Thread.sleep(50)
 
         assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
     }
@@ -158,6 +160,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        Thread.sleep(50)
 
         assertTrue(mockService.routeCalled)
         assertEquals(RoutingConstants.PROFILE_MOTORCYCLE, mockService.lastProfile)
@@ -219,6 +222,42 @@ class RoutingMethodChannelHandlerTest {
     }
 
     @Test
+    fun testGetRouteOutOfRangeCoordinatesReturnsError() {
+        val call = MethodCall(
+            RoutingConstants.METHOD_GET_ROUTE,
+            mapOf(
+                RoutingConstants.ARG_FROM_LAT to 95.0, // Out of range [-90, 90]
+                RoutingConstants.ARG_FROM_LON to 105.8542,
+                RoutingConstants.ARG_TO_LAT to 21.0380,
+                RoutingConstants.ARG_TO_LON to 105.7830
+            )
+        )
+        val result = TestResult()
+
+        handler.onMethodCall(call, result)
+
+        assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
+    }
+
+    @Test
+    fun testGetRouteNaNCoordinatesReturnsError() {
+        val call = MethodCall(
+            RoutingConstants.METHOD_GET_ROUTE,
+            mapOf(
+                RoutingConstants.ARG_FROM_LAT to Double.NaN,
+                RoutingConstants.ARG_FROM_LON to 105.8542,
+                RoutingConstants.ARG_TO_LAT to 21.0380,
+                RoutingConstants.ARG_TO_LON to 105.7830
+            )
+        )
+        val result = TestResult()
+
+        handler.onMethodCall(call, result)
+
+        assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
+    }
+
+    @Test
     fun testGetRouteExceptionReturnsRoutingFailed() {
         mockService.shouldThrow = true
         val call = MethodCall(
@@ -233,6 +272,7 @@ class RoutingMethodChannelHandlerTest {
         val result = TestResult()
 
         handler.onMethodCall(call, result)
+        Thread.sleep(50)
 
         assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
     }
@@ -245,8 +285,20 @@ class RoutingMethodChannelHandlerTest {
 
         val disposeResult = TestResult()
         handler.onMethodCall(MethodCall(RoutingConstants.METHOD_DISPOSE_GRAPH_HOPPER, null), disposeResult)
+        Thread.sleep(50)
         assertTrue(mockService.disposeCalled)
         assertEquals(true, disposeResult.successResult)
+    }
+
+    @Test
+    fun testCloseShutsDownExecutor() {
+        handler.close()
+        val result = TestResult()
+        handler.onMethodCall(
+            MethodCall(RoutingConstants.METHOD_INIT_GRAPH_HOPPER, mapOf(RoutingConstants.ARG_GRAPH_PATH to "/test.ghz")),
+            result
+        )
+        assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
     }
 
     @Test

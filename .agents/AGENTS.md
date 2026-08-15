@@ -547,10 +547,11 @@ Mọi thành viên và AI Agent **BẮT BUỘC** phải tuân thủ triệt đ�
   - **Error & Exception Paths**: PlatformException từ Native, lỗi mạng, Service chưa khởi tạo, không tìm thấy đường.
 
 ### 3. Đo lường Hiệu năng & An toàn Bộ nhớ Thực tế (Real Benchmark & Zero-OOM)
-- **Đo đạc thời gian thực**: Sử dụng `Stopwatch` hoặc `System.currentTimeMillis()` đo thời gian thực thi qua nhiều lần lặp (`iterations >= 20` cho route repository/service và `iterations >= 500` cho stress test engine native), tính toán `avgLatency` và assert chỉ tiêu cụ thể (ví dụ: `< 300ms`, `< 200ms`).
+- **Đo đạc thời gian thực**: Sử dụng `System.nanoTime()` cho JVM / Android Kotlin Native measurements và `Stopwatch` cho Dart benchmarks để đo thời gian thực thi qua nhiều lần lặp (`iterations >= 20` cho route repository/service và `iterations >= 500` cho stress test engine native), tính toán `avgLatency` và assert chỉ tiêu cụ thể (ví dụ: `< 300ms`, `< 200ms`).
 - **Memory Footprint & Zero-OOM**:
   - Đối với JVM / Android Kotlin Native tests: Đo Heap RAM qua `Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()` trước và sau stress test (tiêu chí: heap delta < 30 MB sau 500 runs).
   - Đối với Dart tests: Đảm bảo không tạo dangling stream subscriptions, Completer không giải phóng, hoặc rò rỉ bộ nhớ qua collections.
+
 
 ### 4. Xác minh Thực tế trên Tầng Release & ProGuard/R8
 - Không chỉ chạy test trên môi trường giả lập (Debug JVM), mà **BẮT BUỘC** phải xác minh khả năng build Release thật (`assembleRelease` với `minifyEnabled true`) để kiểm chứng ProGuard keep rules không bị strip mất các class dùng Reflection.

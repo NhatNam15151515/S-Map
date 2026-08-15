@@ -4,12 +4,13 @@ import android.os.Handler
 import android.os.Looper
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import java.util.concurrent.Executor
+import java.io.Closeable
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class RoutingMethodChannelHandler(
     private val routingService: IGraphHopperService = GraphHopperService.instance,
-    private val backgroundExecutor: Executor = Executors.newSingleThreadExecutor(),
+    private val backgroundExecutor: ExecutorService = Executors.newSingleThreadExecutor(),
     private val resultPoster: (Runnable) -> Unit = { runnable ->
         try {
             if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -21,7 +22,7 @@ class RoutingMethodChannelHandler(
             runnable.run()
         }
     }
-) : MethodChannel.MethodCallHandler {
+) : MethodChannel.MethodCallHandler, Closeable {
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
@@ -53,6 +54,16 @@ class RoutingMethodChannelHandler(
             return
         }
 
+        if (backgroundExecutor.isShutdown) {
+            postError(
+                result,
+                RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                "Routing executor has been shut down",
+                null
+            )
+            return
+        }
+
         backgroundExecutor.execute {
             try {
                 val success = routingService.init(graphPath)
@@ -76,11 +87,21 @@ class RoutingMethodChannelHandler(
         val vehicleProfile = call.argument<String>(RoutingConstants.ARG_VEHICLE_PROFILE)
             ?: RoutingConstants.DEFAULT_PROFILE
 
-        if (fromLat == null || fromLon == null || toLat == null || toLon == null) {
+        if (!isValidCoordinate(fromLat, fromLon) || !isValidCoordinate(toLat, toLon)) {
             postError(
                 result,
                 RoutingConstants.ERR_CODE_INVALID_ARGUMENTS,
-                "Coordinates (fromLat, fromLon, toLat, toLon) must all be provided and valid numbers",
+                "Coordinates (fromLat, fromLon, toLat, toLon) must be finite numbers within valid GPS ranges (lat: [-90, 90], lon: [-180, 180])",
+                null
+            )
+            return
+        }
+
+        if (backgroundExecutor.isShutdown) {
+            postError(
+                result,
+                RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                "Routing executor has been shut down",
                 null
             )
             return
@@ -88,7 +109,7 @@ class RoutingMethodChannelHandler(
 
         backgroundExecutor.execute {
             try {
-                val routeResult = routingService.route(fromLat, fromLon, toLat, toLon, vehicleProfile)
+                val routeResult = routingService.route(fromLat!!, fromLon!!, toLat!!, toLon!!, vehicleProfile)
                 postSuccess(result, routeResult.toMap())
             } catch (e: Exception) {
                 postError(
@@ -99,6 +120,12 @@ class RoutingMethodChannelHandler(
                 )
             }
         }
+    }
+
+    private fun isValidCoordinate(lat: Double?, lon: Double?): Boolean {
+        if (lat == null || lon == null) return false
+        if (lat.isNaN() || lat.isInfinite() || lon.isNaN() || lon.isInfinite()) return false
+        return lat in -90.0..90.0 && lon in -180.0..180.0
     }
 
     private fun handleIsInitialized(result: MethodChannel.Result) {
@@ -116,6 +143,21 @@ class RoutingMethodChannelHandler(
     }
 
     private fun handleDisposeGraphHopper(result: MethodChannel.Result) {
+        if (backgroundExecutor.isShutdown) {
+            try {
+                routingService.dispose()
+                postSuccess(result, true)
+            } catch (e: Exception) {
+                postError(
+                    result,
+                    RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                    "Failed to dispose GraphHopper: ${e.message}",
+                    null
+                )
+            }
+            return
+        }
+
         backgroundExecutor.execute {
             try {
                 routingService.dispose()
@@ -128,6 +170,12 @@ class RoutingMethodChannelHandler(
                     null
                 )
             }
+        }
+    }
+
+    override fun close() {
+        if (!backgroundExecutor.isShutdown) {
+            backgroundExecutor.shutdown()
         }
     }
 }
