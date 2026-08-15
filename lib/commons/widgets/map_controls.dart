@@ -1,10 +1,11 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/screens/map/widgets/map_compass_button.dart';
 
-class HomeMapControls extends StatelessWidget {
+class MapControls extends StatelessWidget {
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
   final VoidCallback onLocateMe;
@@ -12,8 +13,9 @@ class HomeMapControls extends StatelessWidget {
   final VoidCallback? onToggleOrientation;
   final double rotation;
   final MapOrientationMode orientationMode;
+  final Object? locateHeroTag;
 
-  const HomeMapControls({
+  const MapControls({
     super.key,
     required this.onZoomIn,
     required this.onZoomOut,
@@ -22,6 +24,7 @@ class HomeMapControls extends StatelessWidget {
     this.onToggleOrientation,
     this.rotation = 0.0,
     this.orientationMode = MapOrientationMode.northUp,
+    this.locateHeroTag,
   });
 
   @override
@@ -43,7 +46,7 @@ class HomeMapControls extends StatelessWidget {
           ],
           _buildControlButton(
             icon: Icons.layers_rounded,
-            tooltip: 'Chuyển đổi lớp bản đồ',
+            tooltip: tr('map.switch_layers'),
             onPressed: () {
               HapticFeedback.lightImpact();
               (onSwitchLayers ?? () {})();
@@ -52,7 +55,7 @@ class HomeMapControls extends StatelessWidget {
           const SizedBox(height: 10),
           _buildControlButton(
             icon: Icons.add_rounded,
-            tooltip: 'Phóng to',
+            tooltip: tr('map.zoom_in'),
             onPressed: () {
               HapticFeedback.lightImpact();
               onZoomIn();
@@ -61,7 +64,7 @@ class HomeMapControls extends StatelessWidget {
           const SizedBox(height: 8),
           _buildControlButton(
             icon: Icons.remove_rounded,
-            tooltip: 'Thu nhỏ',
+            tooltip: tr('map.zoom_out'),
             onPressed: () {
               HapticFeedback.lightImpact();
               onZoomOut();
@@ -69,8 +72,8 @@ class HomeMapControls extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           FloatingActionButton(
-            heroTag: 'home_locate_me_${DateTime.now().microsecondsSinceEpoch}',
-            tooltip: 'Vị trí hiện tại',
+            heroTag: locateHeroTag ?? 'map_locate_me_fab',
+            tooltip: tr('map.current_location'),
             onPressed: () {
               HapticFeedback.mediumImpact();
               onLocateMe();

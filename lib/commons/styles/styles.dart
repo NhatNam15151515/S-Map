@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../utils/app_colors.dart';
 import 'font_weight.dart';
+export 'font_weight.dart';
 
 abstract class AppStyle {
 

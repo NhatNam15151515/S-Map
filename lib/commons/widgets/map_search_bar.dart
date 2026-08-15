@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
@@ -5,11 +6,11 @@ import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/user_avatar.dart';
 import 'package:s_map/screens/search/search_screen.dart';
 
-class HomeSearchBar extends StatelessWidget {
+class MapSearchBar extends StatelessWidget {
   final bool showBackButton;
   final VoidCallback? onBackPressed;
 
-  const HomeSearchBar({
+  const MapSearchBar({
     super.key,
     this.showBackButton = false,
     this.onBackPressed,
@@ -18,7 +19,7 @@ class HomeSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Thanh tìm kiếm địa điểm',
+      label: tr('search.title'),
       button: true,
       child: Container(
         height: 52,
@@ -60,7 +61,7 @@ class HomeSearchBar extends StatelessWidget {
                         size: 22,
                       ),
                       onPressed: onBackPressed ?? () => context.pop(),
-                      tooltip: 'Quay lại',
+                      tooltip: tr('common.back'),
                     )
                   else
                     const Padding(
@@ -74,10 +75,10 @@ class HomeSearchBar extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      "Tìm kiếm ở đây",
+                      tr('search.placeholder'),
                       style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
                         fontSize: 15,
-                        fontWeight: FontWeight.w400,
+                        fontWeight: AppFontWeight.regular.weight,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -90,7 +91,7 @@ class HomeSearchBar extends StatelessWidget {
                       size: 22,
                     ),
                     onPressed: () {},
-                    tooltip: 'Tìm kiếm bằng giọng nói',
+                    tooltip: tr('search.voice'),
                     padding: const EdgeInsets.all(8),
                     constraints: const BoxConstraints(),
                   ),

@@ -4,16 +4,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
+import 'package:s_map/commons/cubits/map_explore_cubit/map_explore_cubit.dart';
+import 'package:s_map/commons/cubits/map_explore_cubit/map_explore_state.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/widgets/explore_bottom_sheet.dart';
+import 'package:s_map/commons/widgets/map_category_chips.dart';
+import 'package:s_map/commons/widgets/map_controls.dart';
+import 'package:s_map/commons/widgets/map_search_bar.dart';
 import 'package:s_map/constants/map_constants.dart';
-import 'package:s_map/models/place_model.dart';
-import 'package:s_map/screens/main/home/widgets/home_category_chips.dart';
-import 'package:s_map/screens/main/home/widgets/home_explore_bottom_sheet.dart';
-import 'package:s_map/screens/main/home/widgets/home_map_controls.dart';
-import 'package:s_map/screens/main/home/widgets/home_search_bar.dart';
 import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
 import 'package:s_map/screens/map/widgets/map_view.dart';
-import 'package:s_map/services/firebase_firestore_service.dart';
 
 class MapScreen extends StatefulWidget {
   static const String path = '/map';
@@ -35,8 +35,6 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
   MapLibreMapController? _mapController;
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
-  final FireStoreService _fireStore = FireStoreService();
-  String _selectedCategory = "Tất cả";
 
   @override
   void dispose() {
@@ -73,7 +71,8 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.read<MapDisplayCubit>();
+    final displayCubit = context.read<MapDisplayCubit>();
+    final exploreCubit = context.read<MapExploreCubit>();
     final topPadding = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
@@ -92,7 +91,7 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
               if (state.errorMessageKey != null &&
                   state.status != MapDisplayStatus.error) {
                 showWarning(tr(state.errorMessageKey!));
-                cubit.clearError();
+                displayCubit.clearError();
               }
             },
             builder: (context, state) {
@@ -101,11 +100,11 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
                   MapView(
                     onMapCreated: (controller) {
                       _mapController = controller;
-                      cubit.onMapCreated();
+                      displayCubit.onMapCreated();
                     },
-                    onStyleLoadedCallback: cubit.onStyleLoaded,
-                    onCameraTrackingDismissed: cubit.onCameraTrackingDismissed,
-                    onCameraMove: cubit.onCameraMove,
+                    onStyleLoadedCallback: displayCubit.onStyleLoaded,
+                    onCameraTrackingDismissed: displayCubit.onCameraTrackingDismissed,
+                    onCameraMove: displayCubit.onCameraMove,
                   ),
                   if (state.status == MapDisplayStatus.loading)
                     Positioned.fill(
@@ -120,7 +119,7 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
                       errorMessage: state.errorMessageKey != null
                           ? tr(state.errorMessageKey!)
                           : tr('map.error_load'),
-                      onRetry: cubit.locateMe,
+                      onRetry: displayCubit.locateMe,
                     ),
                 ],
               );
@@ -136,13 +135,14 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
                   previous.rotation != current.rotation ||
                   previous.orientationMode != current.orientationMode,
               builder: (context, state) {
-                return HomeMapControls(
-                  onZoomIn: cubit.zoomIn,
-                  onZoomOut: cubit.zoomOut,
-                  onLocateMe: cubit.locateMe,
-                  onToggleOrientation: cubit.toggleOrientationMode,
+                return MapControls(
+                  onZoomIn: displayCubit.zoomIn,
+                  onZoomOut: displayCubit.zoomOut,
+                  onLocateMe: displayCubit.locateMe,
+                  onToggleOrientation: displayCubit.toggleOrientationMode,
                   rotation: state.rotation,
                   orientationMode: state.orientationMode,
+                  locateHeroTag: 'map_screen_locate_fab',
                 );
               },
             ),
@@ -156,13 +156,16 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const HomeSearchBar(showBackButton: true),
+                const MapSearchBar(showBackButton: true),
                 const SizedBox(height: 10),
-                HomeCategoryChips(
-                  onCategorySelected: (category) {
-                    setState(() {
-                      _selectedCategory = category;
-                    });
+                BlocBuilder<MapExploreCubit, MapExploreState>(
+                  buildWhen: (prev, curr) =>
+                      prev.selectedCategory != curr.selectedCategory,
+                  builder: (context, exploreState) {
+                    return MapCategoryChips(
+                      selectedCategory: exploreState.selectedCategory,
+                      onCategorySelected: exploreCubit.selectCategory,
+                    );
                   },
                 ),
               ],
@@ -170,13 +173,12 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
           ),
 
           // 4. DRAGGABLE EXPLORE BOTTOM SHEET
-          StreamBuilder<List<PlaceModel>>(
-            stream: _fireStore.streamExplorePlaces(category: _selectedCategory),
-            builder: (context, snapshot) {
-              return HomeExploreBottomSheet(
+          BlocBuilder<MapExploreCubit, MapExploreState>(
+            builder: (context, exploreState) {
+              return ExploreBottomSheet(
                 controller: _sheetController,
-                places: snapshot.data,
-                isLoading: snapshot.connectionState == ConnectionState.waiting,
+                places: exploreState.places,
+                isLoading: exploreState.isLoading,
                 onPlaceTap: (place) {
                   if (place.latitude != null && place.longitude != null) {
                     _handleCameraAction(MapCameraAction(
@@ -199,8 +201,11 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
 class _MapScreenState extends State<MapScreen> with AppMixin {
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => MapDisplayCubit(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => MapDisplayCubit()),
+        BlocProvider(create: (_) => MapExploreCubit()),
+      ],
       child: const _MyMapScreenContent(),
     );
   }
