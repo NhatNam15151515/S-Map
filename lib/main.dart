@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:s_map/app.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
@@ -15,14 +16,16 @@ void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+  await Hive.initFlutter();
+
   // Setup default service resolvers (Dependency Inversion)
   MapDisplayCubit.defaultLocationService = LocationService.instance;
   MapDisplayCubit.defaultCompassService = CompassService.instance;
   MapDisplayCubit.defaultMapStyleService = MapStyleService.instance;
   MapExploreCubit.defaultFireStoreService = FireStoreService.instance;
+  FavoritesCubit.defaultFavoritesService = FavoritesServiceImpl.instance;
   AppCubit.defaultMessagingService = FirebaseMessagingService.instance;
   ListenComingNotification.messagingServiceResolver = FirebaseMessagingService.instance;
-
 
   await EasyLocalization.ensureInitialized();
 

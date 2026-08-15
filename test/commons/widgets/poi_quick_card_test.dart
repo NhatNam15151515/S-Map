@@ -8,15 +8,18 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/models/models.dart';
 
-Widget createTestableWidget(Widget child) {
+Widget createTestableWidget(Widget child, {FavoritesCubit? favoritesCubit}) {
   return EasyLocalization(
     supportedLocales: const [Locale('vi'), Locale('en')],
     path: 'assets/translations',
     fallbackLocale: const Locale('vi'),
     startLocale: const Locale('vi'),
     assetLoader: const CodegenLoader(),
-    child: BlocProvider(
-      create: (_) => AppCubit(),
+    child: MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => AppCubit()),
+        BlocProvider(create: (_) => favoritesCubit ?? FavoritesCubit()),
+      ],
       child: MaterialApp(
         home: Scaffold(body: Center(child: child)),
       ),
@@ -43,9 +46,12 @@ void main() {
   );
 
   group('PoiQuickCard Widget Tests', () {
-    testWidgets('renders POI details and handles close action', (tester) async {
+    testWidgets('renders POI details, handles bookmark toggle and close action',
+        (tester) async {
       bool closed = false;
       bool directionsTapped = false;
+      final favService = NoOpFavoritesService();
+      final favCubit = FavoritesCubit(favoritesService: favService);
 
       await tester.pumpWidget(createTestableWidget(
         PoiQuickCard(
@@ -53,6 +59,7 @@ void main() {
           onClose: () => closed = true,
           onDirections: () => directionsTapped = true,
         ),
+        favoritesCubit: favCubit,
       ));
       await tester.pumpAndSettle();
 
@@ -60,6 +67,13 @@ void main() {
       expect(find.text('49 Bát Đàn, Hoàn Kiếm'), findsOneWidget);
       expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
       expect(find.byIcon(Icons.directions_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.bookmark_outline_rounded), findsOneWidget);
+
+      // Tap Bookmark
+      await tester.tap(find.byIcon(Icons.bookmark_outline_rounded));
+      await tester.pumpAndSettle();
+      expect(favCubit.state.isFavorite('1'), isTrue);
+      expect(find.byIcon(Icons.bookmark_rounded), findsOneWidget);
 
       // Tap directions
       await tester.tap(find.byType(ElevatedButton));

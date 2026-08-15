@@ -1,5 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -86,6 +88,35 @@ class PoiQuickCard extends StatelessWidget {
                     ],
                   ],
                 ),
+              ),
+              Builder(
+                builder: (context) {
+                  FavoritesCubit? cubit;
+                  try {
+                    cubit = context.watch<FavoritesCubit>();
+                  } catch (_) {}
+
+                  if (cubit == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final key = cubit.getPoiKey(poi);
+                  final isFav = cubit.state.isFavorite(key);
+
+                  return IconButton(
+                    icon: Icon(
+                      isFav
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_outline_rounded,
+                      size: 22,
+                      color: isFav
+                          ? AppColors.sMapTeal
+                          : AppColors.onSurfaceVariant,
+                    ),
+                    onPressed: () => cubit?.toggleFavorite(poi),
+                    tooltip: tr(LocaleKeys.savedPlaces),
+                  );
+                },
               ),
               IconButton(
                 icon: const Icon(
