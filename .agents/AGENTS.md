@@ -4,6 +4,31 @@
 
 ---
 
+## ⚡ Mandatory Codebase Intelligence Workflow (`tools/codebase_mcp`)
+
+Mỗi khi tương tác với codebase S-Map, agent **BẮT BUỘC** phải tuân thủ quy trình 3 bước sử dụng bộ công cụ `smap-codebase-intel` tại `c:\Nhat Nam\intern flutter\S-map\tools\codebase_mcp`:
+
+1. **Khảo sát trước khi viết code (Survey Phase):**
+   - Gọi `get_repo_map` để định hình cấu trúc và tầm ảnh hưởng file mà không tốn token đọc toàn bộ source.
+   - Gọi `query_symbol` để tra cứu vị trí định nghĩa và tất cả caller của symbol.
+   - Gọi `get_file_dependencies` để xem cây import hai chiều trước khi chỉnh sửa file.
+
+2. **Quy tắc phân tầng kiến trúc (Architecture Boundaries):**
+   - `models`        → Độc lập hoàn toàn, không import gì từ project.
+   - `constants`     → Độc lập hoàn toàn.
+   - `interfaces`    → Chỉ import `models/` và `constants/`. TUYỆT ĐỐI KHÔNG import `services/`.
+   - `services`      → Implements `interfaces/`. TUYỆT ĐỐI KHÔNG import `screens/`, `cubits/`, `routers/`.
+   - `repos`         → Phụ thuộc qua `interfaces/`. TUYỆT ĐỐI KHÔNG import `screens/` hay `cubits/`.
+   - `commons_logic` → Không import concrete `services/` trực tiếp (phụ thuộc vào `interfaces/`).
+   - `screens`       → Inject dependencies từ trên xuống.
+
+3. **Kiểm tra sau khi viết code (Verification Phase):**
+   - **BẮT BUỘC** gọi `check_architecture_rules` hoặc `get_architecture_report` để xác nhận: **0 Layer Violations**, **0 Circular Dependencies**.
+   - **BẮT BUỘC** gọi `get_violations_summary` / `run_dart_analyze` để xác nhận: **0 Dart Static Errors/Warnings**.
+   - **BẮT BUỘC** chạy `flutter test` đảm bảo **100% tests pass** trước khi tạo PR/commit.
+
+---
+
 ## Available AI Tools
 
 ### 1. UI/UX Pro Max (Design Intelligence cho Flutter)
@@ -16,18 +41,6 @@ $uiSearch = "c:\Nhat Nam\intern flutter\S-map\.ai-tools\ui-ux-pro-max-skill\src\
 
 # Tìm UI style cho Flutter
 python $uiSearch "<mô tả>" --stack flutter --domain style
-
-# Tìm color palette
-python $uiSearch "<mô tả>" --domain color
-
-# Tìm font pairing
-python $uiSearch "<mô tả>" --domain typography
-
-# Tìm UX guidelines
-python $uiSearch "<mô tả>" --domain ux
-
-# Tìm icon recommendations
-python $uiSearch "<mô tả>" --domain icons
 ```
 
 **Domains có sẵn**: `style`, `color`, `typography`, `ux`, `icons`, `chart`, `landing`, `product`, `google-fonts`, `gsap`

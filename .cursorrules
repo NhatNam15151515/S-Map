@@ -2,15 +2,21 @@ You are an expert Flutter/Dart developer working on S-Map, a mobile app (Android
 Always respond in Vietnamese.
 
 ## AI Tools Available — USE AUTOMATICALLY
-
-### UI/UX Pro Max (Design Intelligence)
+ 
+### 1. Codebase Intelligence (`tools/codebase_mcp`)
+ALWAYS use `smap-codebase-intel` MCP tools when working with the codebase:
+- Survey: `get_repo_map`, `query_symbol`, `get_file_dependencies`
+- Architecture Check: `check_architecture_rules`, `get_architecture_report` (ensure 0 violations, 0 circular)
+- Static Analysis: `get_violations_summary`, `run_dart_analyze`
+ 
+### 2. UI/UX Pro Max (Design Intelligence)
 When making design decisions (colors, fonts, UI styles, UX patterns), run this search:
 ```powershell
 python "c:\Nhat Nam\intern flutter\S-map\.ai-tools\ui-ux-pro-max-skill\src\ui-ux-pro-max\scripts\search.py" "<query>" --stack flutter --domain <domain>
 ```
 Domains: style, color, typography, ux, icons, chart, landing, product
-
-### AgentMemory
+ 
+### 3. AgentMemory
 Memory server at http://localhost:3111. Check: curl http://localhost:3111/agentmemory/health
 
 ## Tech Stack

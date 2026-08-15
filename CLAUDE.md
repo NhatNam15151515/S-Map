@@ -4,18 +4,24 @@
 S-Map là ứng dụng Flutter mobile (Android & iOS only) sử dụng Firebase backend.
 Luôn trả lời bằng tiếng Việt.
 
-## AI Tools đã cài sẵn — TỰ ĐỘNG SỬ DỤNG
-
-### UI/UX Pro Max (Design Intelligence)
+## AI Tools đã cài sẵn — TỰ ĐỘNG SỬ DỤNG BẮT BUỘC
+ 
+### 1. Codebase Intelligence (`tools/codebase_mcp`)
+Mỗi khi khảo sát, refactor hoặc verify codebase, BẮT BUỘC dùng `smap-codebase-intel`:
+- **Khảo sát**: `get_repo_map`, `query_symbol`, `get_file_dependencies`
+- **Kiểm tra kiến trúc**: `check_architecture_rules`, `get_architecture_report` (yêu cầu 0 violations, 0 circular)
+- **Kiểm tra static analysis**: `get_violations_summary`, `run_dart_analyze`
+ 
+### 2. UI/UX Pro Max (Design Intelligence)
 Khi cần chọn màu, font, UI style, hoặc UX patterns cho Flutter, TỰ ĐỘNG chạy search:
-
+ 
 ```bash
 python "c:\Nhat Nam\intern flutter\S-map\.ai-tools\ui-ux-pro-max-skill\src\ui-ux-pro-max\scripts\search.py" "<query>" --stack flutter --domain <domain>
 ```
-
+ 
 Domains: `style`, `color`, `typography`, `ux`, `icons`, `chart`, `landing`, `product`
-
-### OpenSpace (Skill Management)
+ 
+### 3. OpenSpace (Skill Management)
 ```bash
 & "$env:APPDATA\Python\Python313\Scripts\openspace.exe" --query "<task description>"
 ```
