@@ -100,10 +100,11 @@ class GhzExtractorTest {
     @Test
     fun testSecondExtractSkipsWhenMarkerExists() {
         assertTrue(GhzExtractor.extract(sampleGhz, targetDir))
-        val firstModified = File(targetDir, "nodes").lastModified()
+        val nodes = File(targetDir, "nodes")
+        nodes.writeText("sentinel_unmodified_content")
 
         // Second extract with overwrite = false
         assertTrue(GhzExtractor.extract(sampleGhz, targetDir, overwrite = false))
-        assertEquals(firstModified, File(targetDir, "nodes").lastModified())
+        assertEquals("sentinel_unmodified_content", nodes.readText())
     }
 }

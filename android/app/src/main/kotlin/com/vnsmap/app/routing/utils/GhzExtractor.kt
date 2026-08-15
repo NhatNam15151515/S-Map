@@ -46,6 +46,13 @@ object GhzExtractor : IGhzExtractor {
                 val buffer = ByteArray(RoutingConstants.BUFFER_SIZE)
 
                 while (entry != null) {
+                    // Từ chối entry marker giả lập nằm trong zip
+                    if (entry.name.endsWith(RoutingConstants.SUCCESS_MARKER)) {
+                        zis.closeEntry()
+                        entry = zis.nextEntry
+                        continue
+                    }
+
                     val newFile = File(stagingFolder, entry.name)
                     val canonicalNewPath = newFile.canonicalPath
 
@@ -72,9 +79,6 @@ object GhzExtractor : IGhzExtractor {
                 }
             }
 
-            // Ghi file marker báo hiệu giải nén toàn vẹn
-            File(stagingFolder, RoutingConstants.SUCCESS_MARKER).createNewFile()
-
             // Giữ dữ liệu cũ trong backup cho tới khi thay thế thành công
             val backupFolder = File(
                 parentDir,
@@ -91,6 +95,22 @@ object GhzExtractor : IGhzExtractor {
                     .also { copied -> if (copied) stagingFolder.deleteRecursively() })
 
             if (!replaced) {
+                targetFolder.deleteRecursively()
+                if (hasBackup) {
+                    backupFolder.renameTo(targetFolder)
+                }
+                stagingFolder.deleteRecursively()
+                return false
+            }
+
+            // Chỉ tạo marker sau khi commit targetFolder thành công
+            val markerCreated = try {
+                File(targetFolder, RoutingConstants.SUCCESS_MARKER).createNewFile()
+            } catch (_: Exception) {
+                false
+            }
+
+            if (!markerCreated) {
                 targetFolder.deleteRecursively()
                 if (hasBackup) {
                     backupFolder.renameTo(targetFolder)

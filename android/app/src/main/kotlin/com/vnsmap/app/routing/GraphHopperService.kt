@@ -7,6 +7,9 @@ import com.vnsmap.app.routing.models.RouteResult
 import com.vnsmap.app.routing.utils.GhzExtractor
 import com.vnsmap.app.routing.utils.IGhzExtractor
 import java.io.File
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
 
 class GraphHopperService(
     private val engineFactory: IGraphHopperEngineFactory = DefaultGraphHopperEngineFactory(),
@@ -17,7 +20,7 @@ class GraphHopperService(
     @Volatile
     private var initialized = false
 
-    private val lifecycleLock = Any()
+    private val rwLock = ReentrantReadWriteLock()
 
     companion object {
         val instance: GraphHopperService by lazy { GraphHopperService() }
@@ -27,8 +30,8 @@ class GraphHopperService(
         return init(File(graphPath))
     }
 
-    fun init(graphLocation: File): Boolean = synchronized(lifecycleLock) {
-        dispose()
+    fun init(graphLocation: File): Boolean = rwLock.write(action = {
+        disposeInternal()
 
         return try {
             val targetDir: File = if (graphLocation.isFile && graphLocation.name.endsWith(RoutingConstants.GHZ_EXTENSION, ignoreCase = true)) {
@@ -57,10 +60,10 @@ class GraphHopperService(
             initialized = true
             true
         } catch (_: Exception) {
-            dispose()
+            disposeInternal()
             false
         }
-    }
+    })
 
     override fun route(
         fromLat: Double,
@@ -68,7 +71,7 @@ class GraphHopperService(
         toLat: Double,
         toLon: Double,
         vehicleProfile: String
-    ): RouteResult = synchronized(lifecycleLock) {
+    ): RouteResult = rwLock.read(action = {
         val engine = engineInstance
         if (!initialized || engine == null) {
             return RouteResult.failure(RoutingConstants.ERR_SERVICE_NOT_INITIALIZED)
@@ -79,21 +82,25 @@ class GraphHopperService(
         } catch (e: Exception) {
             RouteResult.failure("${RoutingConstants.ERR_ROUTING_EXCEPTION}${e.message}")
         }
-    }
+    })
 
-    override fun isInitialized(): Boolean = synchronized(lifecycleLock) {
+    override fun isInitialized(): Boolean = rwLock.read(action = {
         initialized && engineInstance != null
-    }
+    })
 
     override fun dispose() {
-        synchronized(lifecycleLock) {
-            try {
-                engineInstance?.close()
-            } catch (_: Exception) {
-            } finally {
-                engineInstance = null
-                initialized = false
-            }
+        rwLock.write(action = {
+            disposeInternal()
+        })
+    }
+
+    private fun disposeInternal() {
+        try {
+            engineInstance?.close()
+        } catch (_: Exception) {
+        } finally {
+            engineInstance = null
+            initialized = false
         }
     }
 }

@@ -11,10 +11,11 @@ object RoutingConstants {
     const val STORAGE_DAT_MMAP = "DAT_MMAP"
 
     // Supported Vehicle Profiles
-    const val PROFILE_CAR = "car"
+    const val PROFILE_MOPED_VN = "moped_vn"
     const val PROFILE_MOTORCYCLE = "motorcycle"
     const val PROFILE_MOPED = "moped"
-    const val DEFAULT_PROFILE = PROFILE_CAR
+    const val PROFILE_CAR = "car"
+    const val DEFAULT_PROFILE = PROFILE_MOPED_VN
 
     // File Extensions & Suffixes
     const val GHZ_EXTENSION = ".ghz"

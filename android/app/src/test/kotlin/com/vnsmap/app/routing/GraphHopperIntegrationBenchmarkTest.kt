@@ -131,7 +131,7 @@ class GraphHopperIntegrationBenchmarkTest {
         val times = mutableListOf<Long>()
         for (i in 1..50) {
             val start = System.currentTimeMillis()
-            val result = service.route(21.0285, 105.8542, 21.0380, 105.7830, RoutingConstants.PROFILE_MOTORCYCLE)
+            val result = service.route(21.0285, 105.8542, 21.0380, 105.7830, RoutingConstants.PROFILE_MOPED_VN)
             val duration = System.currentTimeMillis() - start
             times.add(duration)
 
@@ -145,7 +145,6 @@ class GraphHopperIntegrationBenchmarkTest {
         val avgTime = times.average()
         val maxTime = times.maxOrNull() ?: 0L
 
-        println("Urban Benchmark -> Avg: ${avgTime}ms, Max: ${maxTime}ms")
         assertTrue("Chỉ tiêu: Định tuyến nội thành trung bình phải < 200ms (Thực tế: ${avgTime}ms)", avgTime < 200.0)
         assertTrue("Chỉ tiêu: Định tuyến nội thành tối đa phải < 200ms (Thực tế: ${maxTime}ms)", maxTime < 200L)
 
@@ -218,7 +217,6 @@ class GraphHopperIntegrationBenchmarkTest {
         val avgTime = times.average()
         val maxTime = times.maxOrNull() ?: 0L
 
-        println("Nationwide Benchmark -> Avg: ${avgTime}ms, Max: ${maxTime}ms")
         assertTrue("Chỉ tiêu: Định tuyến toàn quốc trung bình phải < 500ms (Thực tế: ${avgTime}ms)", avgTime < 500.0)
         assertTrue("Chỉ tiêu: Định tuyến toàn quốc tối đa phải < 500ms (Thực tế: ${maxTime}ms)", maxTime < 500L)
 
@@ -271,7 +269,6 @@ class GraphHopperIntegrationBenchmarkTest {
         val postLoadHeapUsed = runtime.totalMemory() - runtime.freeMemory()
         val heapDeltaMB = (postLoadHeapUsed - initialHeapUsed) / (1024.0 * 1024.0)
 
-        println("Heap Memory Delta after 500 routes: ${heapDeltaMB} MB")
         // Đảm bảo dung lượng RAM heap tăng thêm không vượt quá 30MB (chứng minh không bị OOM / memory leak)
         assertTrue("Heap delta phải < 30MB (Thực tế: ${heapDeltaMB}MB)", heapDeltaMB < 30.0)
 
