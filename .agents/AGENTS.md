@@ -131,23 +131,25 @@ void emit(XxxState state) {
 }
 ```
 
-### Anti-patterns
+### Anti-patterns (CẤM TUYỆT ĐỐI)
 
 - ❌ KHÔNG dùng `with EquatableMixin` (deprecated) → phải dùng `extends Equatable`
 - ❌ KHÔNG tự override `operator ==` / `hashCode` thủ công cho state → dùng `Equatable`
+- ❌ KHÔNG giữ UI Controllers (`MapLibreMapController`, `ScrollController`, `TextEditingController`, `AnimationController`) trong Cubit/BLoC → Widget UI giữ controller và lắng nghe state/actions qua `BlocListener` / `BlocConsumer`
+- ❌ KHÔNG mixin UI helper (`with AppMixin`) hoặc `BuildContext` vào Cubits, Services, Repositories
+- ❌ KHÔNG dùng `ValueNotifier` / `ChangeNotifier` song song với Cubit State cho cùng dữ liệu (No Dual State Management)
 - ❌ KHÔNG gọi `getData()` trong constructor cubit → gọi ở `initState()` của widget
 - ❌ KHÔNG dùng `setState()` trong StatefulWidget phức tạp → dùng Cubit
-- ❌ KHÔNG emit state sau khi cubit đã close
+- ❌ KHÔNG emit state sau khi cubit đã close (bắt buộc override emit guard)
 - ❌ KHÔNG listen stream mà không cancel subscription khi dispose
 
 ### Cấu trúc file Cubit/Bloc
 
 ```
 commons/cubits/<name>/
-├── <name>.dart           # Cubit/Bloc class
-├── <name>_state.dart     # State class
-├── <name>_event.dart     # Event class (chỉ khi dùng Bloc)
-└── <name>_helper.dart    # Extension helpers (nếu cần)
+├── <name>.dart           # Cubit/Bloc class (Pure State/Logic)
+├── <name>_state.dart     # State class (extends Equatable)
+└── <name>_event.dart     # Event class (chỉ khi dùng Bloc)
 ```
 
 ---

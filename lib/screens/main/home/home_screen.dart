@@ -1,9 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/models/place_model.dart';
 import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
 import 'package:s_map/screens/map/widgets/map_view.dart';
@@ -54,14 +56,43 @@ class _HomeScreenContent extends StatefulWidget {
 }
 
 class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
-  final DraggableScrollableController _sheetController = DraggableScrollableController();
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
   final FireStoreService _fireStore = FireStoreService();
   String _selectedCategory = "Tất cả";
+  MapLibreMapController? _mapController;
 
   @override
   void dispose() {
     _sheetController.dispose();
     super.dispose();
+  }
+
+  void _handleCameraAction(MapCameraAction action) {
+    if (_mapController == null) return;
+    switch (action.type) {
+      case MapCameraActionType.animateToPosition:
+        if (action.target != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              action.target!,
+              action.zoom ?? MapConstants.locateMeZoom,
+            ),
+          );
+        }
+        break;
+      case MapCameraActionType.zoomIn:
+        _mapController!.animateCamera(CameraUpdate.zoomIn());
+        break;
+      case MapCameraActionType.zoomOut:
+        _mapController!.animateCamera(CameraUpdate.zoomOut());
+        break;
+      case MapCameraActionType.bearingTo:
+        if (action.bearing != null) {
+          _mapController!.moveCamera(CameraUpdate.bearingTo(action.bearing!));
+        }
+        break;
+    }
   }
 
   @override
@@ -74,8 +105,16 @@ class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
         children: [
           // 1. BASE MAP VIEW
           BlocConsumer<MapDisplayCubit, MapDisplayState>(
+            listenWhen: (prev, curr) =>
+                prev.cameraAction != curr.cameraAction ||
+                (curr.errorMessageKey != null &&
+                    prev.errorMessageKey != curr.errorMessageKey),
             listener: (context, state) {
-              if (state.errorMessageKey != null && state.status != MapDisplayStatus.error) {
+              if (state.cameraAction != null) {
+                _handleCameraAction(state.cameraAction!);
+              }
+              if (state.errorMessageKey != null &&
+                  state.status != MapDisplayStatus.error) {
                 showWarning(tr(state.errorMessageKey!));
                 cubit.clearError();
               }
@@ -84,7 +123,10 @@ class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
               return Stack(
                 children: [
                   MapView(
-                    onMapCreated: cubit.onMapCreated,
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      cubit.onMapCreated();
+                    },
                     onStyleLoadedCallback: cubit.onStyleLoaded,
                     onCameraTrackingDismissed: cubit.onCameraTrackingDismissed,
                     onCameraMove: cubit.onCameraMove,
@@ -111,10 +153,20 @@ class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
           Positioned(
             right: 16,
             bottom: 220,
-            child: HomeMapControls(
-              onZoomIn: cubit.zoomIn,
-              onZoomOut: cubit.zoomOut,
-              onLocateMe: cubit.locateMe,
+            child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
+              buildWhen: (previous, current) =>
+                  previous.rotation != current.rotation ||
+                  previous.orientationMode != current.orientationMode,
+              builder: (context, state) {
+                return HomeMapControls(
+                  onZoomIn: cubit.zoomIn,
+                  onZoomOut: cubit.zoomOut,
+                  onLocateMe: cubit.locateMe,
+                  onToggleOrientation: cubit.toggleOrientationMode,
+                  rotation: state.rotation,
+                  orientationMode: state.orientationMode,
+                );
+              },
             ),
           ),
 

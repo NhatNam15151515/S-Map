@@ -1,19 +1,30 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
-import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/constants/map_constants.dart';
+import 'package:s_map/interfaces/i_compass_service.dart';
 import 'package:s_map/interfaces/i_location_service.dart';
+import 'package:s_map/services/compass_service.dart';
 import 'package:s_map/services/location_services.dart';
 import 'map_display_state.dart';
 
-class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
-  MapLibreMapController? controller;
+class MapDisplayCubit extends Cubit<MapDisplayState> {
   final ILocationService _locationService;
+  final ICompassService _compassService;
 
-  MapDisplayCubit({ILocationService? locationService})
-      : _locationService = locationService ?? LocationService.instance,
+  StreamSubscription<double?>? _compassSubscription;
+  double? _lastRotatedHeading;
+
+  /// Minimum angular delta (in degrees) required to rotate camera (Anti-jitter filter)
+  static const double _headingDeadband = 1.5;
+
+  MapDisplayCubit({
+    ILocationService? locationService,
+    ICompassService? compassService,
+  })  : _locationService = locationService ?? LocationService.instance,
+        _compassService = compassService ?? CompassService.instance,
         super(const MapDisplayState(status: MapDisplayStatus.initial));
 
   /// Safe emit guard rule mandatory for all Cubits/Blocs
@@ -23,8 +34,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
     super.emit(state);
   }
 
-  void onMapCreated(MapLibreMapController mapController) {
-    controller = mapController;
+  void onMapCreated() {
     emit(state.copyWith(status: MapDisplayStatus.loading));
   }
 
@@ -37,27 +47,13 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
     // Phase 1: Instant Flyback (<50ms) - Bay ngay về vị trí đã lưu nếu có
     final cachedPos = state.currentPosition;
     if (cachedPos != null) {
-      emit(state.copyWith(
-        center: cachedPos,
-        isFollowingUser: true,
-        clearError: true,
-      ));
-      controller?.animateCamera(
-        CameraUpdate.newLatLngZoom(cachedPos, MapConstants.locateMeZoom),
-      );
+      _animateToTargetPosition(cachedPos);
     } else {
       try {
         final lastKnown = await _locationService.getLastKnownPosition();
         if (lastKnown != null && state.currentPosition == null) {
-          final latLng = LatLng(lastKnown.latitude, lastKnown.longitude);
-          emit(state.copyWith(
-            currentPosition: latLng,
-            center: latLng,
-            isFollowingUser: true,
-            clearError: true,
-          ));
-          controller?.animateCamera(
-            CameraUpdate.newLatLngZoom(latLng, MapConstants.locateMeZoom),
+          _animateToTargetPosition(
+            LatLng(lastKnown.latitude, lastKnown.longitude),
           );
         }
       } catch (_) {}
@@ -68,44 +64,57 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
       final pos = await _locationService.getCurrentPosition();
       final latLng = LatLng(pos.latitude, pos.longitude);
 
-      emit(state.copyWith(
-        status: MapDisplayStatus.ready,
-        currentPosition: latLng,
-        center: latLng,
-        isFollowingUser: true,
-        clearError: true,
-      ));
+      final shouldAnimate = cachedPos == null ||
+          (state.isFollowingUser &&
+              (cachedPos.latitude != latLng.latitude ||
+                  cachedPos.longitude != latLng.longitude));
 
-      if (controller != null &&
-          (cachedPos == null ||
-              (state.isFollowingUser &&
-                  (cachedPos.latitude != latLng.latitude ||
-                      cachedPos.longitude != latLng.longitude)))) {
-        await controller!.animateCamera(
-          CameraUpdate.newLatLngZoom(latLng, MapConstants.locateMeZoom),
-        );
+      if (shouldAnimate) {
+        _animateToTargetPosition(latLng);
+      } else {
+        emit(state.copyWith(
+          status: MapDisplayStatus.ready,
+          currentPosition: latLng,
+          center: latLng,
+          isFollowingUser: true,
+          clearError: true,
+        ));
       }
-    } on LocationServiceDisabledException catch (e) {
-      DLog.error('Dịch vụ định vị đang tắt: $e');
-      _fallbackToDefaultLocation(
-        errorMessageKey: 'map.location_service_disabled',
-      );
-    } on PermissionDeniedException catch (e) {
-      DLog.error('Quyền vị trí bị từ chối: $e');
-      _fallbackToDefaultLocation(
-        errorMessageKey: 'map.location_permission_denied',
-      );
-    } on LocationPermissionDeniedForeverException catch (e) {
-      DLog.error('Quyền vị trí bị từ chối vĩnh viễn: $e');
-      _fallbackToDefaultLocation(
-        errorMessageKey: 'map.location_permission_denied_forever',
-      );
     } catch (e) {
       DLog.error('Lỗi lấy vị trí hiện tại: $e');
-      _fallbackToDefaultLocation(
-        errorMessageKey: 'map.locate_error',
-      );
+      _fallbackToDefaultLocation(errorMessageKey: _resolveLocationErrorKey(e));
     }
+  }
+
+  /// Helper tập trung logic cập nhật state vị trí và gửi cameraAction
+  void _animateToTargetPosition(LatLng target) {
+    emit(state.copyWith(
+      status: MapDisplayStatus.ready,
+      currentPosition: target,
+      center: target,
+      isFollowingUser: true,
+      clearError: true,
+      cameraAction: MapCameraAction(
+        type: MapCameraActionType.animateToPosition,
+        target: target,
+        zoom: MapConstants.locateMeZoom,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      ),
+    ));
+  }
+
+  /// Ánh xạ exception từ dịch vụ định vị sang translation key tương ứng
+  String _resolveLocationErrorKey(Object error) {
+    if (error is LocationServiceDisabledException) {
+      return 'map.location_service_disabled';
+    }
+    if (error is PermissionDeniedException) {
+      return 'map.location_permission_denied';
+    }
+    if (error is LocationPermissionDeniedForeverException) {
+      return 'map.location_permission_denied_forever';
+    }
+    return 'map.locate_error';
   }
 
   void _fallbackToDefaultLocation({String? errorMessageKey}) {
@@ -116,7 +125,97 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
     ));
   }
 
+  /// Toggle between North-up and Heading-up orientation modes
+  Future<void> toggleOrientationMode() async {
+    if (state.orientationMode == MapOrientationMode.headingUp) {
+      await setNorthUp();
+    } else {
+      await setHeadingUp();
+    }
+  }
+
+  /// Switch to North-up mode (bearing = 0° / North at the top)
+  Future<void> setNorthUp() async {
+    await _stopCompassListening();
+    emit(state.copyWith(
+      orientationMode: MapOrientationMode.northUp,
+      rotation: 0.0,
+      clearError: true,
+      cameraAction: MapCameraAction(
+        type: MapCameraActionType.bearingTo,
+        bearing: 0.0,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      ),
+    ));
+  }
+
+  /// Switch to Heading-up mode (camera follows device compass heading)
+  Future<void> setHeadingUp() async {
+    emit(state.copyWith(
+      orientationMode: MapOrientationMode.headingUp,
+      isFollowingUser: true,
+      clearError: true,
+    ));
+    _startCompassListening();
+  }
+
+  void _startCompassListening() {
+    _compassSubscription?.cancel();
+    _compassSubscription = _compassService.compassHeadingStream.listen(
+      (heading) {
+        if (heading != null) {
+          _handleHeadingUpdate(heading);
+        }
+      },
+      onError: (err) {
+        DLog.error('Lỗi nhận dữ liệu la bàn: $err');
+      },
+    );
+  }
+
+  Future<void> _stopCompassListening() async {
+    await _compassSubscription?.cancel();
+    _compassSubscription = null;
+    _lastRotatedHeading = null;
+  }
+
+  /// Anti-jitter heading handler with shortest angular distance calculation
+  void _handleHeadingUpdate(double heading) {
+    if (state.orientationMode != MapOrientationMode.headingUp) return;
+
+    final normalizedHeading = (heading % 360 + 360) % 360;
+
+    if (_lastRotatedHeading != null) {
+      double diff = (normalizedHeading - _lastRotatedHeading!).abs();
+      if (diff > 180) {
+        diff = 360 - diff;
+      }
+      if (diff < _headingDeadband) {
+        return; // Skip jitter below threshold
+      }
+    }
+
+    _lastRotatedHeading = normalizedHeading;
+    emit(state.copyWith(
+      compassHeading: normalizedHeading,
+      rotation: normalizedHeading,
+      cameraAction: MapCameraAction(
+        type: MapCameraActionType.bearingTo,
+        bearing: normalizedHeading,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      ),
+    ));
+  }
+
   void onCameraMove(CameraPosition position) {
+    // Tránh emit trùng lặp nếu thông số camera không đổi
+    if (state.center == position.target &&
+        state.zoom == position.zoom &&
+        state.rotation == position.bearing &&
+        state.errorMessageKey == null) {
+      return;
+    }
+
     emit(state.copyWith(
       center: position.target,
       zoom: position.zoom,
@@ -126,7 +225,12 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
   }
 
   void onCameraTrackingDismissed() {
-    emit(state.copyWith(isFollowingUser: false));
+    // When user manually pans map, stop tracking & reset to North-up
+    _stopCompassListening();
+    emit(state.copyWith(
+      isFollowingUser: false,
+      orientationMode: MapOrientationMode.northUp,
+    ));
   }
 
   void clearError() {
@@ -144,10 +248,32 @@ class MapDisplayCubit extends Cubit<MapDisplayState> with AppMixin {
   }
 
   void zoomIn() {
-    controller?.animateCamera(CameraUpdate.zoomIn());
+    final nextZoom = (state.zoom + 1).clamp(MapConstants.minZoom, MapConstants.maxZoom);
+    emit(state.copyWith(
+      zoom: nextZoom,
+      cameraAction: MapCameraAction(
+        type: MapCameraActionType.zoomIn,
+        zoom: nextZoom,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      ),
+    ));
   }
 
   void zoomOut() {
-    controller?.animateCamera(CameraUpdate.zoomOut());
+    final nextZoom = (state.zoom - 1).clamp(MapConstants.minZoom, MapConstants.maxZoom);
+    emit(state.copyWith(
+      zoom: nextZoom,
+      cameraAction: MapCameraAction(
+        type: MapCameraActionType.zoomOut,
+        zoom: nextZoom,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      ),
+    ));
+  }
+
+  @override
+  Future<void> close() async {
+    await _stopCompassListening();
+    return super.close();
   }
 }

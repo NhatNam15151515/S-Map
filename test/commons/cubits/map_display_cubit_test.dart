@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/constants/map_constants.dart';
+import 'package:s_map/interfaces/i_compass_service.dart';
 import 'package:s_map/interfaces/i_location_service.dart';
 import 'package:s_map/services/location_services.dart';
 
@@ -146,6 +148,27 @@ class MockDeniedForeverLocationService implements ILocationService {
   Future<bool> openAppSettings() async => true;
 }
 
+class MockCompassService implements ICompassService {
+  final StreamController<double?> _controller = StreamController<double?>.broadcast();
+  bool available = true;
+
+  void emitHeading(double? heading) {
+    if (!_controller.isClosed) {
+      _controller.add(heading);
+    }
+  }
+
+  @override
+  Stream<double?> get compassHeadingStream => _controller.stream;
+
+  @override
+  Future<bool> get isCompassAvailable async => available;
+
+  void dispose() {
+    _controller.close();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -169,6 +192,8 @@ void main() {
       expect(cubit.state.isFollowingUser, false);
       expect(cubit.state.zoom, 14.0);
       expect(cubit.state.rotation, 0.0);
+      expect(cubit.state.orientationMode, MapOrientationMode.northUp);
+      expect(cubit.state.compassHeading, null);
       expect(cubit.state.currentPosition, null);
       expect(cubit.state.center, null);
       expect(cubit.state.errorMessageKey, null);
@@ -268,14 +293,19 @@ void main() {
       cubit.close();
     });
 
-    test('onCameraTrackingDismissed sets isFollowingUser to false', () {
+    test('onCameraTrackingDismissed sets isFollowingUser to false and resets to northUp', () {
       final cubit = MapDisplayCubit();
-      cubit.emit(cubit.state.copyWith(isFollowingUser: true));
+      cubit.emit(cubit.state.copyWith(
+        isFollowingUser: true,
+        orientationMode: MapOrientationMode.headingUp,
+      ));
       expect(cubit.state.isFollowingUser, true);
+      expect(cubit.state.orientationMode, MapOrientationMode.headingUp);
 
       cubit.onCameraTrackingDismissed();
 
       expect(cubit.state.isFollowingUser, false);
+      expect(cubit.state.orientationMode, MapOrientationMode.northUp);
       cubit.close();
     });
 
@@ -289,13 +319,95 @@ void main() {
       cubit.close();
     });
 
-    test('emit guard prevents state emission after cubit is closed', () {
+    test('emit guard prevents state emission after cubit is closed', () async {
       final cubit = MapDisplayCubit();
-      cubit.close();
+      await cubit.close();
 
       // Should not throw Bad state: Cannot emit new states after calling close
       cubit.onCameraTrackingDismissed();
       expect(cubit.isClosed, true);
+    });
+
+    // ── HEADING-UP & COMPASS TESTS ─────────────────────────────────────
+    test('toggleOrientationMode switches from northUp to headingUp and back to northUp', () async {
+      final mockCompass = MockCompassService();
+      final cubit = MapDisplayCubit(compassService: mockCompass);
+
+      expect(cubit.state.orientationMode, MapOrientationMode.northUp);
+
+      await cubit.toggleOrientationMode();
+      expect(cubit.state.orientationMode, MapOrientationMode.headingUp);
+      expect(cubit.state.isFollowingUser, true);
+
+      await cubit.toggleOrientationMode();
+      expect(cubit.state.orientationMode, MapOrientationMode.northUp);
+      expect(cubit.state.rotation, 0.0);
+
+      cubit.close();
+      mockCompass.dispose();
+    });
+
+    test('setHeadingUp starts listening to compass stream and updates rotation with anti-jitter filter', () async {
+      final mockCompass = MockCompassService();
+      final cubit = MapDisplayCubit(compassService: mockCompass);
+
+      await cubit.setHeadingUp();
+      expect(cubit.state.orientationMode, MapOrientationMode.headingUp);
+
+      // Emit initial heading (45°)
+      mockCompass.emitHeading(45.0);
+      await pumpEventQueue();
+
+      expect(cubit.state.compassHeading, 45.0);
+      expect(cubit.state.rotation, 45.0);
+
+      // Emit small jitter delta (< 1.5°) -> should be ignored
+      mockCompass.emitHeading(45.8);
+      await pumpEventQueue();
+
+      expect(cubit.state.compassHeading, 45.0);
+      expect(cubit.state.rotation, 45.0);
+
+      // Emit significant heading change (>= 1.5°) -> should update
+      mockCompass.emitHeading(90.0);
+      await pumpEventQueue();
+
+      expect(cubit.state.compassHeading, 90.0);
+      expect(cubit.state.rotation, 90.0);
+
+      // Emit null heading -> should be ignored safely
+      mockCompass.emitHeading(null);
+      await pumpEventQueue();
+
+      expect(cubit.state.compassHeading, 90.0);
+      expect(cubit.state.rotation, 90.0);
+
+      cubit.close();
+      mockCompass.dispose();
+    });
+
+    test('setNorthUp stops compass listening and resets rotation to 0', () async {
+      final mockCompass = MockCompassService();
+      final cubit = MapDisplayCubit(compassService: mockCompass);
+
+      await cubit.setHeadingUp();
+      mockCompass.emitHeading(120.0);
+      await pumpEventQueue();
+
+      expect(cubit.state.rotation, 120.0);
+
+      await cubit.setNorthUp();
+      expect(cubit.state.orientationMode, MapOrientationMode.northUp);
+      expect(cubit.state.rotation, 0.0);
+
+      // Compass emission after setNorthUp should not update rotation
+      mockCompass.emitHeading(180.0);
+      await pumpEventQueue();
+
+      expect(cubit.state.rotation, 0.0);
+
+      cubit.close();
+      mockCompass.dispose();
     });
   });
 }

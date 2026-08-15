@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:s_map/models/app_error.dart';
 
 enum GenericListStateType {
@@ -9,12 +10,16 @@ enum GenericListStateType {
   error,
 }
 
-class GenericListState<T> {
+class GenericListState<T> extends Equatable {
   final GenericListStateType type;
   final List<T> value;
   final AppError? errorMessage;
 
-  GenericListState({required this.type, required this.value, this.errorMessage});
+  const GenericListState({
+    required this.type,
+    required this.value,
+    this.errorMessage,
+  });
 
   GenericListState<T> copyWith({
     GenericListStateType? type,
@@ -27,4 +32,7 @@ class GenericListState<T> {
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [type, value, errorMessage];
 }

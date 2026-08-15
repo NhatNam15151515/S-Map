@@ -26,10 +26,16 @@ Domains: `style`, `color`, `typography`, `ux`, `icons`, `chart`, `landing`, `pro
 - Font: Montserrat
 - Platforms: Android & iOS ONLY
 
-## Conventions
+## Conventions & Clean Architecture Rules
 - Dùng `WidgetStateProperty` (không dùng `MaterialStateProperty`)
 - Dùng `CardThemeData` (không dùng `CardTheme` trong ThemeData)
 - Feature-based architecture with commons layer
 - **Interface-First**: Mọi Service và Repository BẮT BUỘC phải có Interface trong `lib/interfaces/`
 - **Dependency Inversion**: Tầng trên (Cubit/Screen/Repo) phụ thuộc vào Interface (`ILocationService`, `IAuthRepos`), không phụ thuộc trực tiếp vào Concrete class
 - **Unit Test Mocks**: Mock bằng cách `implements Interface` thay vì kế thừa concrete class
+- **Equatable Standard**: Mọi BLoC/Cubit state BẮT BUỘC `extends Equatable` (không dùng deprecated `with EquatableMixin`)
+- **BLoC/Cubit Purity (Separation of Concerns)**:
+  - TUYỆT ĐỐI KHÔNG giữ UI Controllers (`MapLibreMapController`, `ScrollController`, `TextEditingController`, `AnimationController`) trong Cubit/BLoC.
+  - Widget UI quản lý controller cục bộ và lắng nghe state/action qua `BlocListener` / `BlocConsumer`.
+  - TUYỆT ĐỐI KHÔNG mixin UI helper (`with AppMixin`) hoặc `BuildContext` vào Cubits, Services, Repositories.
+  - TUYỆT ĐỐI KHÔNG trộn lẫn `ValueNotifier` / `ChangeNotifier` song song với Cubit State (Single Source of Truth).

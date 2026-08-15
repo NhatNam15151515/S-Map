@@ -1,11 +1,12 @@
 import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
 import 'package:s_map/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:s_map/commons/cubits/auth_cubit/notification_controller.dart';
+import 'package:s_map/commons/cubits/notification_cubit/notification_cubit.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/utils/popup_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/repos/app_repos_provider.dart';
 import 'package:s_map/routers/routers.dart';
 import 'package:s_map/services/firebase_analytics_service.dart';
 import 'package:s_map/services/firebase_firestore_service.dart';
@@ -21,12 +22,13 @@ mixin AppMixin {
 
   AuthCubit get authCubit => appUtils.getCubit<AuthCubit>(appContext);
 
+  NotificationCubit get notiCubit => appUtils.getCubit<NotificationCubit>(appContext);
+
   AppStyle get styles => appCubit.state.appStyle;
 
   Validator get validatorUtils => Validator.instance;
 
-  AppReposProvider get appRepos => appCubit.appReposProvider;
-  NotificationController get notiController => authCubit.notificationController;
+  AppReposProvider get appRepos => AppReposProvider.instance;
 
   void unFocus() =>
       WidgetsBinding.instance.focusManager.primaryFocus?.unfocus();

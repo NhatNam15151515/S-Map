@@ -17,7 +17,7 @@ Memory server at http://localhost:3111. Check: curl http://localhost:3111/agentm
 Flutter/Dart, flutter_bloc, go_router, dio, easy_localization, Firebase (Firestore, Messaging, Analytics, Crashlytics, Remote Config)
 Font: Montserrat. Platforms: Android & iOS ONLY.
 
-## Conventions
+## Conventions & Architectural Rules
 - Use WidgetStateProperty (not MaterialStateProperty)
 - Use CardThemeData (not CardTheme in ThemeData)
 - Feature-based architecture with commons layer
@@ -26,4 +26,9 @@ Font: Montserrat. Platforms: Android & iOS ONLY.
 - **Dependency Inversion**: Higher layers (Cubits, Screens, Repos) must depend on Interfaces (e.g. `ILocationService`, `IAuthRepos`), not concrete implementations
 - **Unit Test Mocks**: Mock services by `implements IService` to avoid constructor side-effects
 - **Equatable Standard**: All BLoC/Cubit states must use `extends Equatable` (NEVER use deprecated `with EquatableMixin` or manual `operator ==`)
-
+- **BLoC/Cubit Purity (Separation of Concerns)**:
+  - NEVER hold or manipulate UI Controllers (`MapLibreMapController`, `ScrollController`, `TextEditingController`, `AnimationController`) inside Cubit/BLoC. Cubit is pure state & business logic.
+  - UI Widgets hold controllers locally and react to Cubit state changes via `BlocListener` / `BlocConsumer`.
+  - NEVER mix UI mixins (`with AppMixin`) or UI Context into Cubits, Services, or Repositories.
+  - NEVER use `ValueNotifier` / `ChangeNotifier` controllers alongside Cubits for the same state (No Dual State Management).
+  - Use Error Mapping Pattern instead of repetitive duplicate catch blocks in Cubit.

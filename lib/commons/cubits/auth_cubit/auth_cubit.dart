@@ -1,37 +1,42 @@
-import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:s_map/commons/cubits/auth_cubit/auth_state.dart';
 import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/interfaces/i_auth_repos.dart';
 import 'package:s_map/models/user.dart';
+import 'package:s_map/repos/auth_repos.dart';
 import 'package:s_map/services/firebase_analytics_service.dart';
 import 'package:s_map/services/flutter_secure.dart';
 import 'package:s_map/services/local_auth_service.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'notification_controller.dart';
-import 'user_controller.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-
-  final AppCubit appCubit;
-
+  final IAuthRepos _authRepos;
   final ValueNotifier<bool> faceIdAcceptStream = ValueNotifier(false);
-  late final ProfileController profileController;
-  late final NotificationController notificationController;
 
-  AuthCubit(this.appCubit) : super(const InitialAuth()) {
+  AuthCubit({IAuthRepos? authRepos})
+      : _authRepos = authRepos ?? AuthReposImpl(),
+        super(const InitialAuth()) {
     onAppStarted();
-    profileController = ProfileController(appCubit);
-    notificationController = NotificationController(appCubit);
   }
 
-  User get _currentProfile => profileController.profileUpdateStream.value;
+  User get currentProfile {
+    final curState = state;
+    if (curState is Authenticated) {
+      return curState.loggedInProfile;
+    }
+    return User.getInit(init: true);
+  }
 
+  @override
+  void emit(AuthState state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
 
-  void onAppStarted() async {
-
-    /// checkpoint to get clear secure storage
-    if(await AppSharedPreferences().get1stInstall()) {
+  Future<void> onAppStarted() async {
+    // checkpoint to clear secure storage on 1st install
+    if (await AppSharedPreferences().get1stInstall()) {
       await AppSecureStorage.onLogOutClear();
       await AppSharedPreferences().save1stInstall();
     }
@@ -39,9 +44,7 @@ class AuthCubit extends Cubit<AuthState> {
     final authToken = await AppSecureStorage.getStoredAuthToken();
     final profile = await AppSecureStorage.getStoredProfile();
 
-    appCubit.initInterceptor(authToken, this);
-
-    if(authToken != null && profile != null) {
+    if (authToken != null && profile != null) {
       final reqAuth = await AppSecureStorage.getReqAuth();
       faceIdAcceptStream.value = reqAuth;
       await onAuthenticated(profile);
@@ -51,56 +54,59 @@ class AuthCubit extends Cubit<AuthState> {
     FlutterNativeSplash.remove();
   }
 
-  Future onAuthenticated(User user) async {
-    await getLoggedInMetadata(user);
+  Future<void> onAuthenticated(User user) async {
+    await AppSecureStorage.saveProfile(user);
     emit(Authenticated(user));
-    getAfterAuthStateEmitted();
+    await getAfterAuthStateEmitted();
   }
 
-  void onLoggedIn(User user) async {
+  Future<void> onLoggedIn(User user) async {
     faceIdAcceptStream.value = false;
     await onAuthenticated(user);
   }
 
+  Future<void> updateProfile(User user) async {
+    await AppSecureStorage.saveProfile(user);
+    emit(Authenticated(user));
+  }
+
+  Future<void> getProfile() async {
+    try {
+      final profile = await _authRepos.getProfile();
+      if (profile != null) {
+        await updateProfile(profile);
+      }
+    } on Exception catch (e) {
+      DLog.error('Lỗi tải thông tin cá nhân: $e');
+    }
+  }
+
   void toggleAuthWithFaceId(bool accepted) async {
     final curState = state;
-    if(curState is Authenticated) {
+    if (curState is Authenticated) {
       final res = await FlutterLocalAuth.instance.authenticate();
-      if(res) {
+      if (res) {
         await AppSecureStorage.saveReqAuth(accepted);
         faceIdAcceptStream.value = accepted;
       }
     }
   }
 
-  Future getAfterAuthStateEmitted(){
-    return Future.wait([
-      FirebaseAnalyticsService().resetUserDetail(profile: _currentProfile),
-      profileController.onUserUpdateStat(),
-    ]);
-  }
-
-  Future<bool> getLoggedInMetadata(User user) async {
-    await profileController.setProfile(user);
-    await Future.wait([
-      profileController.getProfile(),
-    ]);
-    return true;
+  Future<void> getAfterAuthStateEmitted() async {
+    await FirebaseAnalyticsService().resetUserDetail(profile: currentProfile);
   }
 
   void onLogout({bool requestLogout = true}) async {
     emit(const UnAuthenticated());
-    profileController.onLogout();
     await AppSecureStorage.onLogOutClear();
-    if(requestLogout) await _requestLogout();
+    if (requestLogout) await _requestLogout();
   }
 
-  Future _requestLogout() async {
-    if(state is! Authenticated) return;
+  Future<void> _requestLogout() async {
     try {
-      await appCubit.appReposProvider.authRepos.logout();
-    } on Exception catch(e) {
-      DLog.error(e.toString());
+      await _authRepos.logout();
+    } on Exception catch (e) {
+      DLog.error('Lỗi đăng xuất: $e');
     }
   }
 }

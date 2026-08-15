@@ -1,9 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
 import 'package:s_map/screens/map/widgets/map_fab_buttons.dart';
 import 'package:s_map/screens/map/widgets/map_view.dart';
@@ -17,8 +19,42 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MyMapScreenContent extends StatelessWidget with AppMixin {
+class _MyMapScreenContent extends StatefulWidget {
   const _MyMapScreenContent();
+
+  @override
+  State<_MyMapScreenContent> createState() => _MyMapScreenContentState();
+}
+
+class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin {
+  MapLibreMapController? _mapController;
+
+  void _handleCameraAction(MapCameraAction action) {
+    if (_mapController == null) return;
+    switch (action.type) {
+      case MapCameraActionType.animateToPosition:
+        if (action.target != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              action.target!,
+              action.zoom ?? MapConstants.locateMeZoom,
+            ),
+          );
+        }
+        break;
+      case MapCameraActionType.zoomIn:
+        _mapController!.animateCamera(CameraUpdate.zoomIn());
+        break;
+      case MapCameraActionType.zoomOut:
+        _mapController!.animateCamera(CameraUpdate.zoomOut());
+        break;
+      case MapCameraActionType.bearingTo:
+        if (action.bearing != null) {
+          _mapController!.moveCamera(CameraUpdate.bearingTo(action.bearing!));
+        }
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +62,16 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
 
     return Scaffold(
       body: BlocConsumer<MapDisplayCubit, MapDisplayState>(
+        listenWhen: (prev, curr) =>
+            prev.cameraAction != curr.cameraAction ||
+            (curr.errorMessageKey != null &&
+                prev.errorMessageKey != curr.errorMessageKey),
         listener: (context, state) {
-          if (state.errorMessageKey != null && state.status != MapDisplayStatus.error) {
+          if (state.cameraAction != null) {
+            _handleCameraAction(state.cameraAction!);
+          }
+          if (state.errorMessageKey != null &&
+              state.status != MapDisplayStatus.error) {
             showWarning(tr(state.errorMessageKey!));
             cubit.clearError();
           }
@@ -36,7 +80,10 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
           return Stack(
             children: [
               MapView(
-                onMapCreated: cubit.onMapCreated,
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                  cubit.onMapCreated();
+                },
                 onStyleLoadedCallback: cubit.onStyleLoaded,
                 onCameraTrackingDismissed: cubit.onCameraTrackingDismissed,
                 onCameraMove: cubit.onCameraMove,
@@ -47,6 +94,9 @@ class _MyMapScreenContent extends StatelessWidget with AppMixin {
                   onZoomIn: cubit.zoomIn,
                   onZoomOut: cubit.zoomOut,
                   onLocateMe: cubit.locateMe,
+                  onToggleOrientation: cubit.toggleOrientationMode,
+                  rotation: state.rotation,
+                  orientationMode: state.orientationMode,
                 ),
               if (state.status == MapDisplayStatus.loading)
                 Positioned.fill(

@@ -1,5 +1,6 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/generic_list_cubit/generic_list_cubit.dart';
-import 'package:s_map/commons/cubits/generic_list_cubit/generic_list_cubit_helper.dart';
+import 'package:s_map/commons/cubits/generic_list_cubit/generic_list_cubit_state.dart';
 import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/mixin/auth_mixin.dart';
@@ -26,8 +27,13 @@ class _NotificationScreenState extends State<NotificationScreen>
   late GenericListCubit<NotificationModel> systemNotiCubit;
   late GenericListCubit<NotificationModel> customerNotiCubit;
 
+  final ScrollController _systemScrollController = ScrollController();
+  final ScrollController _customerScrollController = ScrollController();
+
   @override
   void initState() {
+    super.initState();
+
     systemNotiCubit = GenericListCubit(
       future: (page, limit) => appRepos.notiRepos
           .getSystemNotification(
@@ -35,12 +41,12 @@ class _NotificationScreenState extends State<NotificationScreen>
         limit: limit,
       )
           .then((value) {
-        authCubit.notificationController
-            .applyStats(NotificationTab.system, value.$2);
+        notiCubit.applyStats(NotificationTab.system, value.$2);
         return value.$1;
       }),
       limit: 10,
     );
+
     customerNotiCubit = GenericListCubit(
       future: (page, limit) => appRepos.notiRepos
           .getCustomerNotification(
@@ -48,35 +54,34 @@ class _NotificationScreenState extends State<NotificationScreen>
         limit: limit,
       )
           .then((value) {
-        authCubit.notificationController
-            .applyStats(NotificationTab.customer, value.$2);
+        notiCubit.applyStats(NotificationTab.customer, value.$2);
         return value.$1;
       }),
       limit: 10,
     );
+
+    _systemScrollController.addListener(() {
+      if (_systemScrollController.position.pixels >=
+          _systemScrollController.position.maxScrollExtent - 200) {
+        systemNotiCubit.loadMore();
+      }
+    });
+
+    _customerScrollController.addListener(() {
+      if (_customerScrollController.position.pixels >=
+          _customerScrollController.position.maxScrollExtent - 200) {
+        customerNotiCubit.loadMore();
+      }
+    });
+
     systemNotiCubit.request();
     customerNotiCubit.request();
-
-    systemNotiCubit.listenToState(
-      onStateSuccess: (value) {},
-      onStateError: (err) => showError(err?.message),
-    );
-
-    customerNotiCubit.listenToState(
-      onStateSuccess: (value) {},
-      onStateError: (err) => showError(err?.message),
-    );
-
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
   }
 
   @override
   void dispose() {
+    _systemScrollController.dispose();
+    _customerScrollController.dispose();
     systemNotiCubit.close();
     customerNotiCubit.close();
     super.dispose();
@@ -95,8 +100,8 @@ class _NotificationScreenState extends State<NotificationScreen>
             child: IndexedStack(
               index: filterPicked == NotificationTab.system ? 0 : 1,
               children: [
-                _listBody(systemNotiCubit),
-                _listBody(customerNotiCubit),
+                _listBody(systemNotiCubit, _systemScrollController),
+                _listBody(customerNotiCubit, _customerScrollController),
               ],
             ),
           ),
@@ -105,15 +110,26 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _listBody(GenericListCubit<NotificationModel> cubit) {
+  Widget _listBody(
+    GenericListCubit<NotificationModel> cubit,
+    ScrollController scrollController,
+  ) {
     return RefreshIndicator(
       color: AppColors.sMapTeal,
       onRefresh: () async {
-        cubit.refresh();
+        await cubit.refresh();
       },
-      child: cubit.blocBuilder(
+      child: BlocConsumer<GenericListCubit<NotificationModel>,
+          GenericListState<NotificationModel>>(
+        bloc: cubit,
+        listener: (context, state) {
+          if (state.type == GenericListStateType.error &&
+              state.errorMessage != null) {
+            showError(state.errorMessage?.message);
+          }
+        },
         builder: (context, state) {
-          if (cubit.isLoadingInitial) {
+          if (state.type == GenericListStateType.loading) {
             return const DefaultListingShimmer();
           }
           final list = state.value;
@@ -142,7 +158,7 @@ class _NotificationScreenState extends State<NotificationScreen>
               },
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: list.length,
-              controller: cubit.scrollController,
+              controller: scrollController,
             ),
           );
         },
