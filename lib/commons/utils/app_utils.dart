@@ -39,29 +39,29 @@ class AppUtils with AppMixin {
     return launchUrlString('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
   }
 
+  static final List<MapEntry<String, RegExp>> _vietnameseRegExps = [
+    MapEntry('a', RegExp(r'[àáạảãâầấậẩẫăằắặẳẵ]')),
+    MapEntry('A', RegExp(r'[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]')),
+    MapEntry('e', RegExp(r'[èéẹẻẽêềếệểễ]')),
+    MapEntry('E', RegExp(r'[ÈÉẸẺẼÊỀẾỆỂỄ]')),
+    MapEntry('i', RegExp(r'[ìíịỉĩ]')),
+    MapEntry('I', RegExp(r'[ÌÍỊỈĨ]')),
+    MapEntry('o', RegExp(r'[òóọỏõôồốộổỗơờớợởỡ]')),
+    MapEntry('O', RegExp(r'[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]')),
+    MapEntry('u', RegExp(r'[ùúụủũưừứựửữ]')),
+    MapEntry('U', RegExp(r'[ÙÚỤỦŨƯỪỨỰỬỮ]')),
+    MapEntry('y', RegExp(r'[ỳýỵỷỹ]')),
+    MapEntry('Y', RegExp(r'[ỲÝỴỶỸ]')),
+    MapEntry('d', RegExp(r'[đ]')),
+    MapEntry('D', RegExp(r'[Đ]')),
+  ];
+
   /// Chuẩn hóa bỏ dấu tiếng Việt chuyển thành chuỗi ASCII (ví dụ: "Phở Bát Đàn" -> "pho bat dan")
   String removeVietnameseAccents(String? text) {
     if (text == null || text.isEmpty) return "";
     var result = text;
-    const vietnameseMap = {
-      'a': r'[àáạảãâầấậẩẫăằắặẳẵ]',
-      'A': r'[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]',
-      'e': r'[èéẹẻẽêềếệểễ]',
-      'E': r'[ÈÉẸẺẼÊỀẾỆỂỄ]',
-      'i': r'[ìíịỉĩ]',
-      'I': r'[ÌÍỊỈĨ]',
-      'o': r'[òóọỏõôồốộổỗơờớợởỡ]',
-      'O': r'[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]',
-      'u': r'[ùúụủũưừứựửữ]',
-      'U': r'[ÙÚỤỦŨƯỪỨỰỬỮ]',
-      'y': r'[ỳýỵỷỹ]',
-      'Y': r'[ỲÝỴỶỸ]',
-      'd': r'[đ]',
-      'D': r'[Đ]',
-    };
-
-    for (final entry in vietnameseMap.entries) {
-      result = result.replaceAll(RegExp(entry.value), entry.key);
+    for (final entry in _vietnameseRegExps) {
+      result = result.replaceAll(entry.value, entry.key);
     }
     return result.toLowerCase().trim();
   }

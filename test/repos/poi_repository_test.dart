@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/models/poi_model.dart';
 import 'package:s_map/repos/poi_repository.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -203,6 +204,29 @@ void main() {
         () async {
       expect(await poiRepo.search(''), isEmpty);
       expect(await poiRepo.search('a'), isEmpty);
+    });
+
+    test('search should sanitize special FTS5 wildcard characters safely without crashing',
+        () async {
+      // Các ký tự đặc biệt FTS5 như *, ", ', (, ), -, :, ^, ~
+      final specialQueries = [
+        'phở*',
+        '"Phở"',
+        "phở'",
+        '(phở)',
+        'phở-bò',
+        'category:food',
+        'pho^2',
+        'pho~',
+        '***',
+        '""',
+      ];
+
+      for (final query in specialQueries) {
+        // Đảm bảo không ném Exception / crash SQLite
+        final results = await poiRepo.search(query);
+        expect(results, isA<List<PoiModel>>());
+      }
     });
   });
 
