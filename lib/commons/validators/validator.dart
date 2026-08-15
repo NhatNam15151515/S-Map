@@ -1,14 +1,29 @@
 class Validator {
   static final Validator instance = Validator();
 
+  static final RegExp _emailRegExp =
+      RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+
+  static final RegExp _coordRegExp = RegExp(
+    r'^\s*[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)\s*[, ]\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)\s*$',
+  );
+
+  static final RegExp _mapUrlRegExp = RegExp(
+    r'^(https?:\/\/)?(www\.)?(maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)($|[\/?#].*)',
+    caseSensitive: false,
+  );
+
+  static final RegExp _vietnameseDiacriticsRegExp = RegExp(
+    r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ'
+    r'ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
+  );
+
   // Basic Auth & Form Validators
   bool isEmpty(String? data) => (data ?? "").trim().isEmpty;
 
   bool isValidEmail(String? email) {
     if (email == null) return false;
-    final emailRegExp =
-        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-    return emailRegExp.hasMatch(email.trim());
+    return _emailRegExp.hasMatch(email.trim());
   }
 
   bool isValidPassword(String? password) =>
@@ -25,20 +40,18 @@ class Validator {
   /// Kiểm tra chuỗi có phải định dạng tọa độ "lat, lng" (ví dụ: "10.762622, 106.660172")
   bool isCoordinates(String? query) {
     if (query == null || query.trim().isEmpty) return false;
-    final coordRegExp = RegExp(
-      r'^\s*[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)\s*[, ]\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)\s*$',
-    );
-    return coordRegExp.hasMatch(query.trim());
+    return _coordRegExp.hasMatch(query.trim());
   }
 
   /// Kiểm tra có phải URL Google Maps / Map share link
   bool isMapUrl(String? query) {
     if (query == null || query.trim().isEmpty) return false;
-    final mapUrlRegExp = RegExp(
-      r'^(https?:\/\/)?(www\.)?(maps\.google\.[a-z.]+|google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)($|[\/?#].*)',
-      caseSensitive: false,
-    );
-    return mapUrlRegExp.hasMatch(query.trim());
+    return _mapUrlRegExp.hasMatch(query.trim());
   }
 
+  /// Kiểm tra chuỗi có chứa ký tự tiếng Việt có dấu hay không
+  bool hasDiacritics(String? query) {
+    if (query == null || query.isEmpty) return false;
+    return _vietnameseDiacriticsRegExp.hasMatch(query);
+  }
 }
