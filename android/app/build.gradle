@@ -114,6 +114,11 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    implementation 'com.graphhopper:graphhopper-core:8.0'
+    implementation 'org.slf4j:slf4j-android:1.7.36'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
 }
 
 configurations.all {
