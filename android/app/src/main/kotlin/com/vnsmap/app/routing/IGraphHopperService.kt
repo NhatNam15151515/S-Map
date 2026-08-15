@@ -1,13 +1,12 @@
 package com.vnsmap.app.routing
 
 import com.vnsmap.app.routing.models.RouteResult
-import java.io.File
 
 interface IGraphHopperService {
     /**
-     * Khởi tạo GraphHopper từ thư mục graph hoặc file .ghz
+     * Khởi tạo GraphHopper từ đường dẫn thư mục graph hoặc file .ghz
      */
-    fun init(graphLocation: File): Boolean
+    fun init(graphPath: String): Boolean
 
     /**
      * Tính toán đường đi từ điểm A đến điểm B
@@ -17,7 +16,7 @@ interface IGraphHopperService {
         fromLon: Double,
         toLat: Double,
         toLon: Double,
-        vehicleProfile: String = "car"
+        vehicleProfile: String = RoutingConstants.DEFAULT_PROFILE
     ): RouteResult
 
     /**

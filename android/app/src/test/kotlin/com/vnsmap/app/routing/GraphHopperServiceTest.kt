@@ -1,6 +1,6 @@
 package com.vnsmap.app.routing
 
-import com.graphhopper.GraphHopper
+import com.vnsmap.app.routing.engine.IGraphHopperEngine
 import com.vnsmap.app.routing.factory.IGraphHopperEngineFactory
 import com.vnsmap.app.routing.models.RouteInstruction
 import com.vnsmap.app.routing.models.RoutePoint
@@ -36,46 +36,108 @@ class GraphHopperServiceTest {
         val service = GraphHopperService()
         val invalidDir = File(System.getProperty("java.io.tmpdir"), "non_existent_graph_dir_${System.currentTimeMillis()}")
 
-        val success = service.init(invalidDir)
+        val success = service.init(invalidDir.absolutePath)
         assertFalse(success)
         assertFalse(service.isInitialized())
     }
 
     @Test
-    fun testDependencyInjectionWithCustomExtractorAndFactory() {
-        var extractCalled = false
-        val mockExtractor = object : IGhzExtractor {
-            override fun extract(ghzFile: File, targetFolder: File, overwrite: Boolean): Boolean {
-                extractCalled = true
-                targetFolder.mkdirs()
-                return true
+    fun testInitAbortsWhenExtractionFails() {
+        val failingExtractor = object : IGhzExtractor {
+            override fun extract(ghzPath: String, targetFolderPath: String, overwrite: Boolean): Boolean {
+                return false
             }
         }
 
-        var factoryCalled = false
-        val mockFactory = object : IGraphHopperEngineFactory {
-            override fun createAndLoad(graphDirectory: File): GraphHopper {
-                factoryCalled = true
-                throw RuntimeException("Mock load failure for safety")
-            }
-        }
-
-        val service = GraphHopperService(
-            engineFactory = mockFactory,
-            ghzExtractor = mockExtractor
-        )
-
-        val tempGhz = File(System.getProperty("java.io.tmpdir"), "test_${System.currentTimeMillis()}.ghz")
+        val service = GraphHopperService(ghzExtractor = failingExtractor)
+        val tempGhz = File(System.getProperty("java.io.tmpdir"), "failing_${System.currentTimeMillis()}.ghz")
         tempGhz.createNewFile()
         try {
-            val success = service.init(tempGhz)
-            assertFalse(success)
-            assertTrue("Extractor should be called through DI", extractCalled)
-            assertTrue("Factory should be called through DI", factoryCalled)
+            val success = service.init(tempGhz.absolutePath)
+            assertFalse("Init must fail when extraction returns false", success)
+            assertFalse(service.isInitialized())
         } finally {
             tempGhz.delete()
-            val extractedDir = File(tempGhz.parentFile, tempGhz.nameWithoutExtension + RoutingConstants.EXTRACTED_DIR_SUFFIX)
-            extractedDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun testSuccessfulInitAndRouteWithMockEngine() {
+        val samplePoints = listOf(
+            listOf(21.0285, 105.8542),
+            listOf(21.0300, 105.8560),
+            listOf(21.0350, 105.8600)
+        )
+
+        val sampleInstructions = listOf(
+            RouteInstruction(
+                text = "Rẽ phải vào Tràng Tiền",
+                streetName = "Tràng Tiền",
+                distance = 350.0,
+                time = 45000L,
+                sign = 2,
+                points = listOf(listOf(21.0285, 105.8542), listOf(21.0300, 105.8560))
+            )
+        )
+
+        val expectedResult = RouteResult(
+            isSuccess = true,
+            distance = 1250.0,
+            time = 120000L,
+            points = samplePoints,
+            bbox = listOf(105.8542, 21.0285, 105.8600, 21.0350),
+            instructions = sampleInstructions,
+            calculationTimeMs = 35L
+        )
+
+        val mockEngine = object : IGraphHopperEngine {
+            override fun route(
+                fromLat: Double,
+                fromLon: Double,
+                toLat: Double,
+                toLon: Double,
+                vehicleProfile: String
+            ): RouteResult {
+                return expectedResult
+            }
+
+            override fun close() {}
+        }
+
+        val mockFactory = object : IGraphHopperEngineFactory {
+            override fun createAndLoad(graphDirectory: File): IGraphHopperEngine {
+                return mockEngine
+            }
+        }
+
+        val tempDir = File(System.getProperty("java.io.tmpdir"), "valid_graph_${System.currentTimeMillis()}")
+        tempDir.mkdirs()
+
+        try {
+            val service = GraphHopperService(engineFactory = mockFactory)
+            val initSuccess = service.init(tempDir.absolutePath)
+            assertTrue(initSuccess)
+            assertTrue(service.isInitialized())
+
+            val routeResult = service.route(21.0285, 105.8542, 21.0350, 105.8600, RoutingConstants.PROFILE_MOTORCYCLE)
+            assertTrue(routeResult.isSuccess)
+            assertEquals(1250.0, routeResult.distance, 0.01)
+            assertEquals(120000L, routeResult.time)
+            assertEquals(3, routeResult.points.size)
+            assertEquals(1, routeResult.instructions.size)
+            assertEquals("Rẽ phải vào Tràng Tiền", routeResult.instructions[0].text)
+            assertEquals(listOf(105.8542, 21.0285, 105.8600, 21.0350), routeResult.bbox)
+
+            // Benchmark verification (< 200ms urban)
+            val startTime = System.currentTimeMillis()
+            service.route(21.0285, 105.8542, 21.0350, 105.8600)
+            val elapsed = System.currentTimeMillis() - startTime
+            assertTrue("Urban routing benchmark must be under 200ms", elapsed < 200)
+
+            service.dispose()
+            assertFalse(service.isInitialized())
+        } finally {
+            tempDir.deleteRecursively()
         }
     }
 

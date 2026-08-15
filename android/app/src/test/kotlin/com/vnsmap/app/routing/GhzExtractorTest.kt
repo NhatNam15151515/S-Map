@@ -57,4 +57,22 @@ class GhzExtractorTest {
         val success = GhzExtractor.extract(nonExistent, targetDir)
         assertFalse(success)
     }
+
+    @Test(expected = SecurityException::class)
+    fun testZipSlipPathTraversalThrowsSecurityException() {
+        val maliciousGhz = File(tempDir, "malicious.ghz")
+        ZipOutputStream(FileOutputStream(maliciousGhz)).use { zos ->
+            zos.putNextEntry(ZipEntry("../outside_file.txt"))
+            zos.write("dangerous payload".toByteArray())
+            zos.closeEntry()
+        }
+
+        val maliciousTarget = File(tempDir, "safe_target")
+        try {
+            GhzExtractor.extract(maliciousGhz, maliciousTarget)
+        } finally {
+            val outsideFile = File(tempDir, "outside_file.txt")
+            assertFalse("Outside file must never be created", outsideFile.exists())
+        }
+    }
 }
