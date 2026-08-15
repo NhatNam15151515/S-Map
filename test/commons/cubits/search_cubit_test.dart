@@ -226,6 +226,35 @@ void main() {
       expect(searchCubit.state.suggestions.first, 'Phở bò đặc biệt');
       expect(searchCubit.state.suggestions.contains('Phở Thìn Lò Đúc'), isTrue);
     });
+
+    test('suggestions should match recent searches case-insensitively with unaccented query', () async {
+      // Lịch sử có dấu và viết hoa: "Phở Bát Đàn"
+      await fakeRecentService.addRecentSearch('Phở Bát Đàn');
+      await searchCubit.loadRecentSearches();
+
+      // Gõ không dấu viết thường: "pho"
+      searchCubit.onQueryChanged('pho', debounceDuration: const Duration(milliseconds: 50));
+      await Future.delayed(const Duration(milliseconds: 80));
+
+      expect(searchCubit.state.suggestions, isNotEmpty);
+      expect(searchCubit.state.suggestions.first, 'Phở Bát Đàn');
+    });
+
+    test('consecutive keystrokes should update state.query immediately and avoid stale state lag', () async {
+      searchCubit.onQueryChanged('bệ', debounceDuration: const Duration(milliseconds: 100));
+      expect(searchCubit.state.query, 'bệ');
+
+      searchCubit.onQueryChanged('bệnh', debounceDuration: const Duration(milliseconds: 100));
+      expect(searchCubit.state.query, 'bệnh');
+
+      searchCubit.onQueryChanged('bệnh viện', debounceDuration: const Duration(milliseconds: 100));
+      expect(searchCubit.state.query, 'bệnh viện');
+
+      await Future.delayed(const Duration(milliseconds: 150));
+      expect(searchCubit.state.status, SearchStatus.success);
+      expect(searchCubit.state.query, 'bệnh viện');
+      expect(searchCubit.state.results.any((e) => e.name == 'Bệnh viện Chợ Rẫy'), isTrue);
+    });
   });
 
   group('SearchCubit - Submit Search & Error Handling Tests', () {

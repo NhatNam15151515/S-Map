@@ -46,6 +46,9 @@ class SearchCubit extends Cubit<SearchState> {
       return;
     }
 
+    // Cập nhật query ngay lập tức để chặn các request cũ ghi đè state
+    emit(state.copyWith(query: cleanQuery));
+
     _debounceTimer = Timer(
       debounceDuration ?? defaultDebounceDuration,
       () => _fetchSuggestionsAndResults(cleanQuery),
@@ -81,10 +84,10 @@ class SearchCubit extends Cubit<SearchState> {
       // Đảm bảo kết quả phản hồi khớp với query hiện tại, tránh race condition
       if (state.query != query || isClosed) return;
 
-      // Lọc các từ khóa trong Recent Searches khớp với query
-      final asciiQuery = AppUtils.instance.toAscii(query);
+      // Lọc các từ khóa trong Recent Searches khớp với query (chuyển về toLowerCase)
+      final asciiQuery = AppUtils.instance.toAscii(query).toLowerCase();
       final matchedRecents = state.recentSearches.where((recent) {
-        final asciiRecent = AppUtils.instance.toAscii(recent);
+        final asciiRecent = AppUtils.instance.toAscii(recent).toLowerCase();
         return asciiRecent.contains(asciiQuery);
       }).toList();
 
