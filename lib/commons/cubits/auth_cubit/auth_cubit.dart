@@ -63,6 +63,19 @@ class AuthCubit extends Cubit<AuthState> {
     await onAuthenticated(user);
   }
 
+  Future<void> loginGuest({String? username}) async {
+    final user = User(username: username);
+    await onLoggedIn(user);
+  }
+
+  Future<void> loginWithCredentials({
+    required String username,
+    required String password,
+  }) async {
+    final user = User(username: username);
+    await onLoggedIn(user);
+  }
+
   Future<bool> signInWithGoogle() async {
     emit(const LoadingAuth());
     try {

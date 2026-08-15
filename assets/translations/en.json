@@ -35,6 +35,14 @@
   "no_pois_in_viewport": "No places found in this area",
   "poi_found_count": "Found {} places",
   "directions": "Directions",
+  "app_tagline": "Explore the world around you",
+  "login_subtitle": "Discover and save your favorite places",
+  "login_failed": "Login failed: {}",
+  "default_user_name": "{} User",
+  "stats": "Statistics",
+  "navigation": "Navigation",
+  "route_drawing": "Route Drawing",
+  "feature_under_development": "Feature under development",
   "cancel": "Cancel",
   "confirm": "Confirm",
   "reviews": "Reviews",
@@ -100,7 +108,7 @@
   "mapType": "Map Type",
   "defaultMap": "Default",
   "aboutSection": "About",
-  "aboutSMap": "About S-Map",
+  "aboutSMap": "About {}",
   "appVersion": "Version 1.0.0",
   "common": {
     "back": "Back"

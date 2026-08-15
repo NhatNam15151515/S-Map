@@ -24,7 +24,14 @@ class PackageInfoService implements IPackageInfoService {
   }
 
   @override
-  String get appName => packageInfo?.appName ?? "-";
+  String get appName =>
+      (packageInfo?.appName != null &&
+              packageInfo!.appName.isNotEmpty &&
+              packageInfo!.appName != "-")
+          ? packageInfo!.appName
+          : (Flavor.instance.displayName.isNotEmpty
+              ? Flavor.instance.displayName
+              : "S-Map");
   @override
   String get packageName => packageInfo?.packageName ?? "-";
   @override

@@ -1,9 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/screens/main/user/widgets/widgets.dart';
 
 class UserScreen extends StatefulWidget {
   static const String path = '/UserScreen';
@@ -16,21 +15,6 @@ class UserScreen extends StatefulWidget {
 
 class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
@@ -40,132 +24,70 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
         padding: EdgeInsets.only(bottom: marginBottomDefault),
         child: Column(
           children: [
-            // Profile header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(10),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const ProfileAvatar(size: 72, borderWidth: 2.5),
-                  const SizedBox(height: 16),
-                  Text(
-                    "${currentProfile.username}",
-                    style:
-                        styles.blackTextColor.textTheme.subTitleStyle.copyWith(
-                      fontSize: 20,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    tr(LocaleKeys.viewProfile),
-                    style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+            // Profile header card
+            UserProfileCard(
+              username: currentProfile.username,
+              onViewProfile: () {},
             ),
 
-            // Menu items
-            _menuSection([
-              _menuItem(
-                  Icons.bookmark_rounded, tr(LocaleKeys.savedPlaces), () {}),
-              _menuItem(
-                  Icons.history_rounded, tr(LocaleKeys.activityHistory), () {}),
-              _menuItem(
-                  Icons.share_rounded, tr(LocaleKeys.shareLocation), () {}),
-            ]),
+            // Navigation menu items
+            UserMenuCard(
+              children: [
+                UserMenuTile(
+                  icon: Icons.bookmark_rounded,
+                  title: tr(LocaleKeys.savedPlaces),
+                  onTap: () {},
+                ),
+                UserMenuTile(
+                  icon: Icons.history_rounded,
+                  title: tr(LocaleKeys.activityHistory),
+                  onTap: () {},
+                ),
+                UserMenuTile(
+                  icon: Icons.share_rounded,
+                  title: tr(LocaleKeys.shareLocation),
+                  onTap: () {},
+                ),
+              ],
+            ),
 
             const SizedBox(height: 8),
 
-            _menuSection([
-              _menuItem(Icons.settings_rounded, tr(LocaleKeys.settings), () {}),
-              _menuItem(Icons.help_outline_rounded,
-                  tr(LocaleKeys.helpAndFeedback), () {}),
-              _menuItem(
-                  Icons.info_outline_rounded, tr(LocaleKeys.about), () {}),
-            ]),
+            // Settings and About
+            UserMenuCard(
+              children: [
+                UserMenuTile(
+                  icon: Icons.settings_rounded,
+                  title: tr(LocaleKeys.settings),
+                  onTap: () {},
+                ),
+                UserMenuTile(
+                  icon: Icons.help_outline_rounded,
+                  title: tr(LocaleKeys.helpAndFeedback),
+                  onTap: () {},
+                ),
+                UserMenuTile(
+                  icon: Icons.info_outline_rounded,
+                  title: tr(LocaleKeys.about),
+                  onTap: () {},
+                ),
+              ],
+            ),
 
             const SizedBox(height: 8),
 
-            _menuSection([
-              _menuItem(Icons.logout_rounded, tr(LocaleKeys.logOut), () {
-                authCubit.onLogout();
-              }, isDestructive: true),
-            ]),
+            // Logout action
+            UserMenuCard(
+              children: [
+                UserMenuTile(
+                  icon: Icons.logout_rounded,
+                  title: tr(LocaleKeys.logOut),
+                  onTap: () => authCubit.onLogout(),
+                  isDestructive: true,
+                ),
+              ],
+            ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _menuSection(List<Widget> items) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: items,
-      ),
-    );
-  }
-
-  Widget _menuItem(IconData icon, String title, VoidCallback onTap,
-      {bool isDestructive = false}) {
-    final color =
-        isDestructive ? AppColors.googleRed : AppColors.googleDarkText;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color:
-                      (isDestructive ? AppColors.googleRed : AppColors.sMapTeal)
-                          .withAlpha(15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon,
-                    size: 20,
-                    color: isDestructive
-                        ? AppColors.googleRed
-                        : AppColors.sMapTeal),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: color.textTheme.boldStyle.copyWith(fontSize: 15),
-                ),
-              ),
-              if (!isDestructive)
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.onSurfaceVariant,
-                  size: 20,
-                ),
-            ],
-          ),
         ),
       ),
     );

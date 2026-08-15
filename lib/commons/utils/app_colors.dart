@@ -177,8 +177,19 @@ class AppColors {
   static const surfaceDim = Color(0xFFF8F9FA);
   static const onSurfaceVariant = Color(0xFF5F6368);
 
+  // Map Symbol Colors
+  static const mapSymbolText = Color(0xFF0F172A);
+  static const mapSymbolHalo = Color(0xFFFFFFFF);
 }
 
-extension ToTextStyle on Color {
+extension ColorExtension on Color {
   TextStyle get toTextStyle => TextStyle(color: this);
+
+  /// Chuyển đổi Color sang chuỗi Hex '#RRGGBB' (phù hợp cho MapLibre)
+  String get toHex {
+    final rInt = (r * 255).round().toRadixString(16).padLeft(2, '0');
+    final gInt = (g * 255).round().toRadixString(16).padLeft(2, '0');
+    final bInt = (b * 255).round().toRadixString(16).padLeft(2, '0');
+    return '#$rInt$gInt$bInt'.toUpperCase();
+  }
 }

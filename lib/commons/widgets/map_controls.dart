@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
-import 'package:s_map/screens/map/widgets/map_compass_button.dart';
+import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class MapControls extends StatelessWidget {
   final VoidCallback onZoomIn;
