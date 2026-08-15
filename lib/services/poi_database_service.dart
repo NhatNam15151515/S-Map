@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:s_map/interfaces/i_poi_database_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:sqflite/sqflite.dart';
 
 // Backward compatibility alias

@@ -1,7 +1,6 @@
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
-import 'package:s_map/interfaces/i_poi_database_service.dart';
-import 'package:s_map/interfaces/i_poi_repository.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/poi_model.dart';
 import 'package:s_map/services/poi_database_service.dart';
 import 'package:sqflite/sqflite.dart';

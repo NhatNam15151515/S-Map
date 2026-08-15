@@ -1,4 +1,4 @@
-import 'package:s_map/interfaces/i_recent_search_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Backward compatibility alias
@@ -23,7 +23,7 @@ class RecentSearchServiceImpl implements IRecentSearchService {
   @override
   Future<List<String>> getRecentSearches() async {
     final prefs = await _getPrefs();
-    return prefs.getStringList(_storageKey) ?? [];
+    return List<String>.from(prefs.getStringList(_storageKey) ?? []);
   }
 
   @override
@@ -32,10 +32,12 @@ class RecentSearchServiceImpl implements IRecentSearchService {
     if (cleanQuery.isEmpty) return;
 
     final prefs = await _getPrefs();
-    final List<String> currentList = prefs.getStringList(_storageKey) ?? [];
+    final List<String> currentList =
+        List<String>.from(prefs.getStringList(_storageKey) ?? []);
 
     // Xóa từ khóa nếu đã tồn tại để đưa lên đầu danh sách
-    currentList.removeWhere((item) => item.toLowerCase() == cleanQuery.toLowerCase());
+    currentList.removeWhere(
+        (item) => item.toLowerCase() == cleanQuery.toLowerCase());
     currentList.insert(0, cleanQuery);
 
     // Giới hạn số lượng tối đa
@@ -52,9 +54,11 @@ class RecentSearchServiceImpl implements IRecentSearchService {
     if (cleanQuery.isEmpty) return;
 
     final prefs = await _getPrefs();
-    final List<String> currentList = prefs.getStringList(_storageKey) ?? [];
+    final List<String> currentList =
+        List<String>.from(prefs.getStringList(_storageKey) ?? []);
 
-    currentList.removeWhere((item) => item.toLowerCase() == cleanQuery.toLowerCase());
+    currentList.removeWhere(
+        (item) => item.toLowerCase() == cleanQuery.toLowerCase());
     await prefs.setStringList(_storageKey, currentList);
   }
 

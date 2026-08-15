@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
-import 'package:s_map/interfaces/i_poi_repository.dart';
-import 'package:s_map/interfaces/i_recent_search_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/poi_repository.dart';
 import 'package:s_map/services/recent_search_service.dart';
 import 'search_state.dart';
@@ -112,7 +111,7 @@ class SearchCubit extends Cubit<SearchState> {
       emit(state.copyWith(
         status: SearchStatus.success,
         results: results,
-        suggestions: mergedSuggestions,
+        suggestions: mergedSuggestions.take(10).toList(),
         clearError: true,
       ));
     } catch (e) {
