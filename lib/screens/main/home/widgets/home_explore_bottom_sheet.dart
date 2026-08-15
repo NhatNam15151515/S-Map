@@ -21,11 +21,11 @@ class HomeExploreBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       controller: controller,
-      initialChildSize: 0.24,
+      initialChildSize: 0.14,
       minChildSize: 0.14,
-      maxChildSize: 0.75,
+      maxChildSize: 0.85,
       snap: true,
-      snapSizes: const [0.14, 0.24, 0.5, 0.75],
+      snapSizes: const [0.14, 0.40, 0.85],
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
