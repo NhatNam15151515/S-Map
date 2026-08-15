@@ -1,5 +1,6 @@
 export 'i_auth_repos.dart';
 export 'i_compass_service.dart';
+export 'i_favorites_service.dart';
 export 'i_firebase_analytics_service.dart';
 export 'i_firebase_auth_service.dart';
 export 'i_firebase_firestore_service.dart';

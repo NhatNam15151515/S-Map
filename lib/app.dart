@@ -18,6 +18,7 @@ class _MyAppState extends State<MyApp> {
   late AppCubit appCubit;
   late AuthCubit authCubit;
   late NotificationCubit notificationCubit;
+  late FavoritesCubit favoritesCubit;
 
   @override
   void initState() {
@@ -25,7 +26,14 @@ class _MyAppState extends State<MyApp> {
     appCubit = AppCubit();
     authCubit = AuthCubit();
     notificationCubit = NotificationCubit();
+    favoritesCubit = FavoritesCubit();
     Routes.instance.applyWithAuthState(authCubit);
+  }
+
+  @override
+  void dispose() {
+    favoritesCubit.close();
+    super.dispose();
   }
 
   @override
@@ -35,6 +43,7 @@ class _MyAppState extends State<MyApp> {
         BlocProvider.value(value: appCubit),
         BlocProvider.value(value: authCubit),
         BlocProvider.value(value: notificationCubit),
+        BlocProvider.value(value: favoritesCubit),
       ],
       child: BlocBuilder<AppCubit, AppState>(
         bloc: appCubit,

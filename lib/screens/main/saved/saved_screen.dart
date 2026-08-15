@@ -1,7 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
+import 'widgets/widgets.dart';
 
 class SavedScreen extends StatefulWidget {
   static const String path = '/SavedScreen';
@@ -9,30 +11,18 @@ class SavedScreen extends StatefulWidget {
   const SavedScreen({super.key});
 
   @override
-  _SavedScreenState createState() => _SavedScreenState();
+  State<SavedScreen> createState() => _SavedScreenState();
 }
 
-class _SavedScreenState extends State<SavedScreen>
-    with AppMixin, AuthStateChanged {
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
+class _SavedScreenState extends State<SavedScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.white,
       appBar: TitleAppBar(
         title: tr(LocaleKeys.savedPlaces),
       ),
-      body: EmptyWidget(
-        title: tr(LocaleKeys.noSavedPlaces),
-        subtitle: tr(LocaleKeys.savePlacesSubtitle),
-        icon: Icons.bookmark_border_rounded,
-      ),
+      body: const SavedScreenContent(),
     );
   }
-
-  @override
-  void onAuthStateChanged() {}
 }

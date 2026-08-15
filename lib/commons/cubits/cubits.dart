@@ -1,7 +1,11 @@
 export 'app_cubit/app_cubit.dart';
 export 'app_cubit/app_state.dart';
 export 'auth_cubit/auth_cubit.dart';
+export 'auth_cubit/auth_fallbacks.dart';
 export 'auth_cubit/auth_state.dart';
+export 'favorites_cubit/favorites_cubit.dart';
+export 'favorites_cubit/favorites_fallbacks.dart';
+export 'favorites_cubit/favorites_state.dart';
 export 'generic_list_cubit/generic_list_cubit.dart';
 export 'generic_list_cubit/generic_list_cubit_state.dart';
 export 'map_display_cubit/map_display_cubit.dart';

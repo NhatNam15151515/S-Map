@@ -41,6 +41,7 @@ class TitleAppBar extends StatelessWidget with AppMixin, AppBarMixin {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return AppBarContainer(
       height: appBarHeight,
       child: Opacity(
@@ -53,7 +54,7 @@ class TitleAppBar extends StatelessWidget with AppMixin, AppBarMixin {
                 child: leftWidget!),
             Text(
               title,
-              style: styles.blackTextColor.textTheme.subTitleStyle.copyWith(
+              style: style.blackTextColor.textTheme.subTitleStyle.copyWith(
                 fontSize: 18,
               ),
             ),
@@ -80,6 +81,7 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return AppBarContainer(
       height: appBarHeight,
       child: Opacity(
@@ -96,7 +98,7 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
                 icon: Icon(
                   Icons.arrow_back_rounded,
                   size: 24,
-                  color: styles.blackTextColor,
+                  color: style.blackTextColor,
                 ),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.transparent,
@@ -105,7 +107,7 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
             ),
             Text(
               title,
-              style: styles.blackTextColor.textTheme.subTitleStyle.copyWith(
+              style: style.blackTextColor.textTheme.subTitleStyle.copyWith(
                 fontSize: 18,
               ),
             ),
