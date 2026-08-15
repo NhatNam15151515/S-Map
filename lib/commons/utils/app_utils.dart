@@ -38,4 +38,34 @@ class AppUtils with AppMixin {
   Future<bool> openLocation(num? lat, num? lon) {
     return launchUrlString('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
   }
+
+  /// Chuẩn hóa bỏ dấu tiếng Việt chuyển thành chuỗi ASCII (ví dụ: "Phở Bát Đàn" -> "pho bat dan")
+  String removeVietnameseAccents(String? text) {
+    if (text == null || text.isEmpty) return "";
+    var result = text;
+    const vietnameseMap = {
+      'a': r'[àáạảãâầấậẩẫăằắặẳẵ]',
+      'A': r'[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]',
+      'e': r'[èéẹẻẽêềếệểễ]',
+      'E': r'[ÈÉẸẺẼÊỀẾỆỂỄ]',
+      'i': r'[ìíịỉĩ]',
+      'I': r'[ÌÍỊỈĨ]',
+      'o': r'[òóọỏõôồốộổỗơờớợởỡ]',
+      'O': r'[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]',
+      'u': r'[ùúụủũưừứựửữ]',
+      'U': r'[ÙÚỤỦŨƯỪỨỰỬỮ]',
+      'y': r'[ỳýỵỷỹ]',
+      'Y': r'[ỲÝỴỶỸ]',
+      'd': r'[đ]',
+      'D': r'[Đ]',
+    };
+
+    for (final entry in vietnameseMap.entries) {
+      result = result.replaceAll(RegExp(entry.value), entry.key);
+    }
+    return result.toLowerCase().trim();
+  }
+
+  /// Alias tiện ích cho removeVietnameseAccents
+  String toAscii(String? text) => removeVietnameseAccents(text);
 }

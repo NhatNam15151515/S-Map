@@ -1,15 +1,22 @@
+import 'package:s_map/interfaces/i_auth_repos.dart';
+import 'package:s_map/interfaces/i_notification_repos.dart';
+import 'package:s_map/interfaces/i_poi_repository.dart';
 import 'package:s_map/repos/auth_repos.dart';
 import 'package:s_map/repos/notification_repos.dart';
+import 'package:s_map/repos/poi_repository.dart';
 
 class AppReposProvider {
-  final AuthRepos authRepos;
-  final NotificationRepos notiRepos;
+  final IAuthRepos authRepos;
+  final INotificationRepos notiRepos;
+  final IPoiRepository poiRepos;
 
   AppReposProvider({
-    AuthRepos? authRepos,
-    NotificationRepos? notiRepos,
+    IAuthRepos? authRepos,
+    INotificationRepos? notiRepos,
+    IPoiRepository? poiRepos,
   })  : authRepos = authRepos ?? AuthReposImpl(),
-        notiRepos = notiRepos ?? NotificationReposImpl();
+        notiRepos = notiRepos ?? NotificationReposImpl(),
+        poiRepos = poiRepos ?? PoiRepositoryImpl();
 
   static final AppReposProvider instance = AppReposProvider();
 }

@@ -41,4 +41,13 @@ class Validator {
     return mapUrlRegExp.hasMatch(query.trim());
   }
 
+  /// Kiểm tra chuỗi có chứa ký tự tiếng Việt có dấu hay không
+  bool hasDiacritics(String? query) {
+    if (query == null || query.isEmpty) return false;
+    final vietnamesePattern = RegExp(
+      r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ'
+      r'ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]',
+    );
+    return vietnamesePattern.hasMatch(query);
+  }
 }
