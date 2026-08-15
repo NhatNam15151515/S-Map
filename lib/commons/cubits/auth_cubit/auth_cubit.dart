@@ -5,15 +5,40 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
-import 'package:s_map/services/services.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final IAuthRepos _authRepos;
+  final ISecureStorage _secureStorage;
+  final ISharedPreferences _sharedPreferences;
+  final ILocalAuthService _localAuthService;
+  final IFirebaseAnalyticsService _analyticsService;
   final ValueNotifier<bool> faceIdAcceptStream = ValueNotifier(false);
 
-  AuthCubit({IAuthRepos? authRepos})
-      : _authRepos = authRepos ?? AuthReposImpl(),
+  /// Global service resolvers set during app bootstrap
+  static ISecureStorage? defaultSecureStorage;
+  static ISharedPreferences? defaultSharedPreferences;
+  static ILocalAuthService? defaultLocalAuthService;
+  static IFirebaseAnalyticsService? defaultAnalyticsService;
+
+  AuthCubit({
+    IAuthRepos? authRepos,
+    ISecureStorage? secureStorage,
+    ISharedPreferences? sharedPreferences,
+    ILocalAuthService? localAuthService,
+    IFirebaseAnalyticsService? analyticsService,
+  })  : _authRepos = authRepos ?? AuthReposImpl(),
+        _secureStorage =
+            secureStorage ?? defaultSecureStorage ?? _NoOpSecureStorage(),
+        _sharedPreferences = sharedPreferences ??
+            defaultSharedPreferences ??
+            _NoOpSharedPreferences(),
+        _localAuthService = localAuthService ??
+            defaultLocalAuthService ??
+            _NoOpLocalAuthService(),
+        _analyticsService = analyticsService ??
+            defaultAnalyticsService ??
+            _NoOpAnalyticsService(),
         super(const InitialAuth()) {
     onAppStarted();
   }
@@ -34,26 +59,28 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> onAppStarted() async {
     // checkpoint to clear secure storage on 1st install
-    if (await AppSharedPreferences().get1stInstall()) {
-      await AppSecureStorage.onLogOutClear();
-      await AppSharedPreferences().save1stInstall();
+    if (await _sharedPreferences.get1stInstall()) {
+      await _secureStorage.onLogOutClear();
+      await _sharedPreferences.save1stInstall();
     }
 
-    final authToken = await AppSecureStorage.getStoredAuthToken();
-    final profile = await AppSecureStorage.getStoredProfile();
+    final authToken = await _secureStorage.getStoredAuthToken();
+    final profile = await _secureStorage.getStoredProfile();
 
     if (authToken != null && profile != null) {
-      final reqAuth = await AppSecureStorage.getReqAuth();
+      final reqAuth = await _secureStorage.getReqAuth();
       faceIdAcceptStream.value = reqAuth;
       await onAuthenticated(profile);
     } else {
-      emit(const UnAuthenticated());
+      if (state is InitialAuth) {
+        emit(const UnAuthenticated());
+      }
     }
     FlutterNativeSplash.remove();
   }
 
   Future<void> onAuthenticated(User user) async {
-    await AppSecureStorage.saveProfile(user);
+    await _secureStorage.saveProfile(user);
     emit(Authenticated(user));
     await getAfterAuthStateEmitted();
   }
@@ -95,7 +122,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> updateProfile(User user) async {
-    await AppSecureStorage.saveProfile(user);
+    await _secureStorage.saveProfile(user);
     emit(Authenticated(user));
   }
 
@@ -113,21 +140,21 @@ class AuthCubit extends Cubit<AuthState> {
   void toggleAuthWithFaceId(bool accepted) async {
     final curState = state;
     if (curState is Authenticated) {
-      final res = await FlutterLocalAuth.instance.authenticate();
+      final res = await _localAuthService.authenticate();
       if (res) {
-        await AppSecureStorage.saveReqAuth(accepted);
+        await _secureStorage.saveReqAuth(accepted);
         faceIdAcceptStream.value = accepted;
       }
     }
   }
 
   Future<void> getAfterAuthStateEmitted() async {
-    await FirebaseAnalyticsService().resetUserDetail(profile: currentProfile);
+    await _analyticsService.resetUserDetail(profile: currentProfile);
   }
 
   void onLogout({bool requestLogout = true}) async {
     emit(const UnAuthenticated());
-    await AppSecureStorage.onLogOutClear();
+    await _secureStorage.onLogOutClear();
     if (requestLogout) await _requestLogout();
   }
 
@@ -138,4 +165,75 @@ class AuthCubit extends Cubit<AuthState> {
       DLog.error('Lỗi đăng xuất: $e');
     }
   }
+}
+
+// Private fallback implementations for test and decoupled environments
+
+class _NoOpSecureStorage implements ISecureStorage {
+  String? _token;
+  User? _profile;
+  bool _reqAuth = false;
+
+  @override
+  Future<String?> getStoredAuthToken() async => _token;
+
+  @override
+  Future<User?> getStoredProfile() async => _profile;
+
+  @override
+  Future<bool> getReqAuth() async => _reqAuth;
+
+  @override
+  Future<void> onLogOutClear() async {
+    _token = null;
+    _profile = null;
+    _reqAuth = false;
+  }
+
+  @override
+  Future<void> saveAuthToken(String token) async => _token = token;
+
+  @override
+  Future<void> saveProfile(User user) async => _profile = user;
+
+  @override
+  Future<void> saveReqAuth(bool value) async => _reqAuth = value;
+}
+
+class _NoOpSharedPreferences implements ISharedPreferences {
+  bool _firstInstall = false;
+
+  @override
+  Future<bool> get1stInstall() async => _firstInstall;
+
+  @override
+  Future<void> save1stInstall() async => _firstInstall = false;
+}
+
+class _NoOpLocalAuthService implements ILocalAuthService {
+  @override
+  bool get faceIdAvailable => false;
+
+  @override
+  bool get initDone => true;
+
+  @override
+  Future<bool> authenticate() async => true;
+
+  @override
+  Future<void> getAvailableBio() async {}
+
+  @override
+  Future<void> init() async {}
+}
+
+class _NoOpAnalyticsService implements IFirebaseAnalyticsService {
+  @override
+  Future init() async {}
+
+  @override
+  Future logEvent(String name, Map<String, dynamic> params) async {}
+
+  @override
+  Future resetUserDetail({User? profile}) async {}
 }

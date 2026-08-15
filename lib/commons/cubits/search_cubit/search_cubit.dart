@@ -5,7 +5,6 @@ import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/repos.dart';
-import 'package:s_map/services/services.dart';
 import 'search_state.dart';
 
 class SearchCubit extends Cubit<SearchState> {
@@ -15,12 +14,16 @@ class SearchCubit extends Cubit<SearchState> {
   Timer? _debounceTimer;
   static const Duration defaultDebounceDuration = Duration(milliseconds: 300);
 
+  /// Optional global default service resolver set by the app shell
+  static IRecentSearchService? defaultRecentSearchService;
+
   SearchCubit({
     IPoiRepository? poiRepository,
     IRecentSearchService? recentSearchService,
   })  : _poiRepository = poiRepository ?? PoiRepositoryImpl(),
-        _recentSearchService =
-            recentSearchService ?? RecentSearchServiceImpl.instance,
+        _recentSearchService = recentSearchService ??
+            defaultRecentSearchService ??
+            _NoOpRecentSearchService(),
         super(const SearchState());
 
   @override
@@ -229,3 +232,29 @@ class SearchCubit extends Cubit<SearchState> {
     return super.close();
   }
 }
+
+class _NoOpRecentSearchService implements IRecentSearchService {
+  final List<String> _searches = [];
+
+  @override
+  Future<void> addRecentSearch(String query) async {
+    _searches.remove(query);
+    _searches.insert(0, query);
+  }
+
+  @override
+  Future<void> clearRecentSearches() async {
+    _searches.clear();
+  }
+
+  @override
+  Future<List<String>> getRecentSearches() async {
+    return List.unmodifiable(_searches);
+  }
+
+  @override
+  Future<void> removeRecentSearch(String query) async {
+    _searches.remove(query);
+  }
+}
+

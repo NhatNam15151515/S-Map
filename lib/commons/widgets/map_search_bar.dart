@@ -6,18 +6,19 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/screens/search/search_screen.dart';
 
 class MapSearchBar extends StatelessWidget {
   final bool showBackButton;
   final VoidCallback? onBackPressed;
   final ValueChanged<PoiModel>? onPoiSelected;
+  final VoidCallback? onTap;
 
   const MapSearchBar({
     super.key,
     this.showBackButton = false,
     this.onBackPressed,
     this.onPoiSelected,
+    this.onTap,
   });
 
   @override
@@ -52,12 +53,7 @@ class MapSearchBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           child: InkWell(
             borderRadius: BorderRadius.circular(28),
-            onTap: () async {
-              final poi = await context.push<PoiModel>(SearchScreen.path);
-              if (poi != null && context.mounted) {
-                onPoiSelected?.call(poi);
-              }
-            },
+            onTap: onTap,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(

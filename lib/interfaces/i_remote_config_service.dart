@@ -1,4 +1,4 @@
-import 'package:s_map/services/remote_config_service.dart';
+import 'package:s_map/models/models.dart';
 
 abstract class IRemoteConfigService {
   Future<void> initialize();

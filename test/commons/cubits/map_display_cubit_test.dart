@@ -6,7 +6,6 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 
 class MockSuccessLocationService implements ILocationService {
   final Position mockPosition;

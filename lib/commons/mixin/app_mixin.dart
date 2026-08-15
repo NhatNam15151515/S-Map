@@ -4,9 +4,9 @@ import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/utils/popup_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 export 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:s_map/routers/routers.dart';
-import 'package:s_map/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -29,6 +29,9 @@ mixin AppMixin {
   Validator get validatorUtils => Validator.instance;
 
   AppReposProvider get appRepos => AppReposProvider.instance;
+
+  static IFirebaseAnalyticsService? analyticsService;
+  static IFireStoreService? defaultFireStoreService;
 
   void unFocus() =>
       WidgetsBinding.instance.focusManager.primaryFocus?.unfocus();
@@ -90,8 +93,8 @@ mixin AppMixin {
   }
 
   Future logFA(String name, {Map<String, dynamic>? params}) =>
-      FirebaseAnalyticsService().logEvent(name, params ?? {});
+      analyticsService?.logEvent(name, params ?? {}) ?? Future.value();
 
   bool get isAuthenticated => authCubit.state.isAuthenticated;
-  FireStoreService get fireStoreService => FireStoreService();
+  IFireStoreService? get fireStoreService => defaultFireStoreService;
 }

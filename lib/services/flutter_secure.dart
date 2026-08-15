@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import '../models/user.dart';
 
-class AppSecureStorage {
+class AppSecureStorage implements ISecureStorage {
   static const FlutterSecureStorage repos = FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
@@ -15,20 +16,29 @@ class AppSecureStorage {
   static const String loggedInProfile = "loggedInProfile";
   static const String requestLocalAuth = "requestLocalAuth";
 
-  static Future<void> saveAuthToken(String token) async {
+  /// Singleton instance for use when injection is not available.
+  static final AppSecureStorage instance = AppSecureStorage._();
+  AppSecureStorage._();
+  factory AppSecureStorage() => instance;
+
+  @override
+  Future<void> saveAuthToken(String token) async {
     await repos.write(key: appAccessToken, value: token);
   }
 
-  static Future<String?> getStoredAuthToken() async {
+  @override
+  Future<String?> getStoredAuthToken() async {
     final token = await repos.read(key: appAccessToken);
     return token;
   }
 
-  static Future<void> saveProfile(User user) async {
+  @override
+  Future<void> saveProfile(User user) async {
     await repos.write(key: loggedInProfile, value: jsonEncode(user.toJson()));
   }
 
-  static Future<User?> getStoredProfile() async {
+  @override
+  Future<User?> getStoredProfile() async {
     final rawProfile = await repos.read(key: loggedInProfile);
     if (rawProfile != null) {
       try {
@@ -38,16 +48,19 @@ class AppSecureStorage {
     return null;
   }
 
-  static Future<void> saveReqAuth(bool value) async {
+  @override
+  Future<void> saveReqAuth(bool value) async {
     await repos.write(key: requestLocalAuth, value: value ? "1" : "0");
   }
 
-  static Future<bool> getReqAuth() async {
+  @override
+  Future<bool> getReqAuth() async {
     final raw = await repos.read(key: requestLocalAuth);
     return raw == "1";
   }
 
-  static Future<void> onLogOutClear() {
+  @override
+  Future<void> onLogOutClear() {
     return Future.wait([
       repos.delete(key: appAccessToken),
       repos.delete(key: loggedInProfile),
@@ -56,7 +69,7 @@ class AppSecureStorage {
   }
 }
 
-class AppSharedPreferences {
+class AppSharedPreferences implements ISharedPreferences {
   late SharedPreferences prefs;
   Completer<bool> initComplete = Completer();
   static const String firstInstall = "first_install";
@@ -75,11 +88,13 @@ class AppSharedPreferences {
     initComplete.complete(true);
   }
 
+  @override
   Future<bool> get1stInstall() async {
     await initComplete.future;
     return prefs.getBool(firstInstall) ?? true;
   }
 
+  @override
   Future<void> save1stInstall() async {
     await initComplete.future;
     await prefs.setBool(firstInstall, false);

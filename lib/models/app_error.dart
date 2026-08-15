@@ -11,3 +11,13 @@ class AppError implements Exception {
   @override
   String toString() => message;
 }
+
+class LocationPermissionDeniedForeverException implements Exception {
+  final String message;
+  LocationPermissionDeniedForeverException(
+      [this.message = 'Location permissions are permanently denied.']);
+
+  @override
+  String toString() => message;
+}
+

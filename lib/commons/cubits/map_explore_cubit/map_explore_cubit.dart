@@ -4,15 +4,14 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 import 'map_explore_state.dart';
 
 class MapExploreCubit extends Cubit<MapExploreState> {
   final IFireStoreService _fireStoreService;
   StreamSubscription<List<PlaceModel>>? _placesSubscription;
 
-  MapExploreCubit({IFireStoreService? fireStoreService})
-      : _fireStoreService = fireStoreService ?? FireStoreService.instance,
+  MapExploreCubit({required IFireStoreService fireStoreService})
+      : _fireStoreService = fireStoreService,
         super(const MapExploreState());
 
   @override

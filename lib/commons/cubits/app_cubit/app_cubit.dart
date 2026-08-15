@@ -1,20 +1,32 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/styles/themes/default_theme.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/routers/routers.dart';
-import 'package:s_map/services/services.dart';
 import 'app_state.dart';
 
 class AppCubit extends Cubit<AppState> {
-  AppCubit({String? appName})
+  /// Global service resolvers set during app initialization
+  static IPackageInfoService? defaultPackageInfoService;
+  static IFirebaseMessagingService? defaultMessagingService;
+
+  AppCubit({String? appName, IPackageInfoService? packageInfoService})
       : super(AppState(
             type: AppStateType.initial,
             appStyle: DefaultTheme(),
-            appName: appName ?? PackageInfoService.instance.appName,
-            supportedLocale: SupportedLocale.vi));
+            appName: appName ??
+                (packageInfoService ?? defaultPackageInfoService)?.appName ??
+                'S-Map',
+            supportedLocale: SupportedLocale.vi)) {
+    // Register resolver to break circular dependency:
+    // styles.dart ↔ app_cubit.dart ↔ default_theme.dart
+    AppStyle.setResolver(
+      (context) => BlocProvider.of<AppCubit>(context).state.appStyle,
+    );
+  }
 
   @override
   void emit(AppState state) {
@@ -22,7 +34,8 @@ class AppCubit extends Cubit<AppState> {
     super.emit(state);
   }
 
-  void onChangeLocale(SupportedLocale supportedLocale, [BuildContext? context]) {
+  void onChangeLocale(SupportedLocale supportedLocale,
+      [BuildContext? context]) {
     emit(state.copyWith(supportedLocale: supportedLocale));
     if (context != null) {
       context.setLocale(supportedLocale.locale);
@@ -36,8 +49,13 @@ class AppCubit extends Cubit<AppState> {
   }
 
   void onMainScreenMounted({IFirebaseMessagingService? messagingService}) {
-    final service = messagingService ?? FirebaseMessagingService.instance;
-    service.fmsCompleter.completeAfter(true);
-    service.onAppStartedWithNotification();
+    final service = messagingService ?? defaultMessagingService;
+    if (service != null) {
+      if (!service.fmsCompleter.isCompleted) {
+        service.fmsCompleter.complete(true);
+      }
+      service.onAppStartedWithNotification();
+    }
   }
 }
+

@@ -3,13 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:location/location.dart' as loc_pkg;
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 
-class LocationPermissionDeniedForeverException implements Exception {
-  final String message;
-  LocationPermissionDeniedForeverException([this.message = 'Location permissions are permanently denied.']);
-  @override
-  String toString() => message;
-}
 
 /// LocationService implements [ILocationService] combining:
 /// 1. [Geolocator] for high-performance position streaming, permission checks, and background coordinates.
