@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/screens/map/widgets/map_compass_button.dart';
 
 class HomeMapControls extends StatelessWidget {
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
   final VoidCallback onLocateMe;
   final VoidCallback? onSwitchLayers;
+  final VoidCallback? onToggleOrientation;
+  final double rotation;
+  final MapOrientationMode orientationMode;
 
   const HomeMapControls({
     super.key,
@@ -13,6 +18,9 @@ class HomeMapControls extends StatelessWidget {
     required this.onZoomOut,
     required this.onLocateMe,
     this.onSwitchLayers,
+    this.onToggleOrientation,
+    this.rotation = 0.0,
+    this.orientationMode = MapOrientationMode.northUp,
   });
 
   @override
@@ -20,6 +28,14 @@ class HomeMapControls extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (onToggleOrientation != null) ...[
+          MapCompassButton(
+            rotation: rotation,
+            orientationMode: orientationMode,
+            onTap: onToggleOrientation!,
+          ),
+          const SizedBox(height: 10),
+        ],
         _buildControlButton(
           icon: Icons.layers_rounded,
           onPressed: onSwitchLayers ?? () {},

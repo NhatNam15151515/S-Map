@@ -1,17 +1,25 @@
+import 'package:flutter/material.dart';
+import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:flutter/material.dart';
+import 'map_compass_button.dart';
 
 class MapFabButtons extends StatelessWidget with AppMixin {
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
   final VoidCallback onLocateMe;
+  final VoidCallback? onToggleOrientation;
+  final double rotation;
+  final MapOrientationMode orientationMode;
 
   const MapFabButtons({
     super.key,
     required this.onZoomIn,
     required this.onZoomOut,
     required this.onLocateMe,
+    this.onToggleOrientation,
+    this.rotation = 0.0,
+    this.orientationMode = MapOrientationMode.northUp,
   });
 
   @override
@@ -22,6 +30,14 @@ class MapFabButtons extends StatelessWidget with AppMixin {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (onToggleOrientation != null) ...[
+            MapCompassButton(
+              rotation: rotation,
+              orientationMode: orientationMode,
+              onTap: onToggleOrientation!,
+            ),
+            const SizedBox(height: 10),
+          ],
           FloatingActionButton.small(
             heroTag: 'map_zoom_in',
             onPressed: onZoomIn,

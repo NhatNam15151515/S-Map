@@ -1,26 +1,33 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/models/app_error.dart';
 import 'generic_list_cubit_state.dart';
 
-typedef GenericListCubitInputFuture<T> = Future<List<T>> Function(int page, int limit);
+typedef GenericListCubitInputFuture<T> = Future<List<T>> Function(
+    int page, int limit);
 
 class GenericListCubit<T> extends Cubit<GenericListState<T>> {
   GenericListCubit({required this.future, this.limit = 10})
-      : super(GenericListState<T>(type: GenericListStateType.initial, value: []));
+      : super(GenericListState<T>(
+            type: GenericListStateType.initial, value: const []));
 
   final GenericListCubitInputFuture<T> future;
   final int limit;
 
   int _currentPage = 1;
   bool _canLoadMore = true;
-  final ScrollController scrollController = ScrollController();
 
   bool get isLoadingInitial => state.type == GenericListStateType.loading;
   bool get isRefreshing => state.type == GenericListStateType.refresh;
   bool get isLoadingMore => state.type == GenericListStateType.loadMore;
+  bool get canLoadMore => _canLoadMore;
 
-  void request() async {
+  @override
+  void emit(GenericListState<T> state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
+
+  Future<void> request() async {
     if (isClosed) return;
     _currentPage = 1;
     _canLoadMore = true;
@@ -39,7 +46,7 @@ class GenericListCubit<T> extends Cubit<GenericListState<T>> {
     }
   }
 
-  void refresh() async {
+  Future<void> refresh() async {
     if (isClosed) return;
     _currentPage = 1;
     _canLoadMore = true;
@@ -58,7 +65,7 @@ class GenericListCubit<T> extends Cubit<GenericListState<T>> {
     }
   }
 
-  void loadMore() async {
+  Future<void> loadMore() async {
     if (!_canLoadMore || isLoadingMore || isClosed) return;
     emit(state.copyWith(type: GenericListStateType.loadMore));
     try {
@@ -76,11 +83,5 @@ class GenericListCubit<T> extends Cubit<GenericListState<T>> {
         errorMessage: AppError.defaultError(statusMessage: e.toString()),
       ));
     }
-  }
-
-  @override
-  Future<void> close() {
-    scrollController.dispose();
-    return super.close();
   }
 }

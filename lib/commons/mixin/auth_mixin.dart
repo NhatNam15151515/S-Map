@@ -12,8 +12,7 @@ mixin AuthMixin {
   AuthCubit get _authCubit => BlocProvider.of<AuthCubit>(_appContext);
   BuildContext get _appContext => Routes.instance.context;
 
-  User get currentProfile => _authCubit.profileController.current;
-
+  User get currentProfile => _authCubit.currentProfile;
 }
 
 mixin AuthStateChanged<T extends StatefulWidget> on State<T> {
