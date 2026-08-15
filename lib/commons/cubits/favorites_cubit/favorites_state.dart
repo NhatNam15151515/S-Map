@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:s_map/models/models.dart';
 
-enum FavoritesStatus { initial, loading, loaded, error }
+enum FavoritesStatus { initial, loading, success, error }
 
 class FavoritesState extends Equatable {
   final FavoritesStatus status;
@@ -18,7 +18,10 @@ class FavoritesState extends Equatable {
 
   bool isFavorite(String poiId) => favoriteIds.contains(poiId);
 
+  bool get isInitial => status == FavoritesStatus.initial;
   bool get isLoading => status == FavoritesStatus.loading;
+  bool get isSuccess => status == FavoritesStatus.success;
+  bool get isError => status == FavoritesStatus.error;
 
   FavoritesState copyWith({
     FavoritesStatus? status,

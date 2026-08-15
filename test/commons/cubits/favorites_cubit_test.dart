@@ -75,9 +75,13 @@ void main() {
       cubit.close();
     });
 
-    test('Initial state loads empty favorites successfully', () async {
+    test('Initial state loads empty favorites successfully and helper getters work',
+        () async {
       await Future.delayed(const Duration(milliseconds: 10));
-      expect(cubit.state.status, equals(FavoritesStatus.loaded));
+      expect(cubit.state.status, equals(FavoritesStatus.success));
+      expect(cubit.state.isSuccess, isTrue);
+      expect(cubit.state.isLoading, isFalse);
+      expect(cubit.state.isError, isFalse);
       expect(cubit.state.favorites, isEmpty);
       expect(cubit.state.favoriteIds, isEmpty);
     });

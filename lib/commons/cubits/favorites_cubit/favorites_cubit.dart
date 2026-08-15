@@ -38,7 +38,7 @@ class FavoritesCubit extends Cubit<FavoritesState> {
       final items = await _favoritesService.getFavorites();
       final ids = items.map((p) => getPoiKey(p)).toSet();
       emit(state.copyWith(
-        status: FavoritesStatus.loaded,
+        status: FavoritesStatus.success,
         favorites: items,
         favoriteIds: ids,
         clearError: true,
