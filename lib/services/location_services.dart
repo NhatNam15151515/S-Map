@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:location/location.dart' as loc_pkg;
 import 'package:s_map/commons/log/log.dart';
-import 'package:s_map/interfaces/i_location_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 
 class LocationPermissionDeniedForeverException implements Exception {
   final String message;

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:s_map/interfaces/i_remote_config_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 
 import 'package_info_service.dart';
 

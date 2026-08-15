@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:s_map/commons/log/log.dart';
-import 'package:s_map/interfaces/i_firebase_firestore_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/notification_model.dart';
 import 'package:s_map/models/place_model.dart';
 import 'package:s_map/models/user.dart';

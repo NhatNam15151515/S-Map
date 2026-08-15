@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:s_map/commons/cubits/app_cubit/app_cubit.dart';
 import 'package:s_map/commons/cubits/auth_cubit/auth_cubit.dart';
 import 'package:s_map/commons/log/log.dart';
-import 'package:s_map/interfaces/i_firebase_messaging_service.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/notification_model.dart';
 import 'package:s_map/routers/routers.dart';
 import 'package:s_map/services/local_notification_service.dart';
