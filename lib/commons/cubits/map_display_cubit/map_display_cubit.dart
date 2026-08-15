@@ -5,6 +5,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/services/services.dart';
 import 'map_display_state.dart';
 
@@ -271,6 +272,29 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
         timestamp: DateTime.now().microsecondsSinceEpoch,
       ),
     ));
+  }
+
+  /// Chọn địa điểm POI từ kết quả tìm kiếm và animate camera tới vị trí đó
+  void selectPoi(PoiModel poi) {
+    final target = LatLng(poi.lat, poi.lon);
+    emit(state.copyWith(
+      selectedPoi: poi,
+      currentPosition: target,
+      center: target,
+      isFollowingUser: false,
+      clearError: true,
+      cameraAction: MapCameraAction(
+        type: MapCameraActionType.animateToPosition,
+        target: target,
+        zoom: 16.0,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      ),
+    ));
+  }
+
+  /// Xóa POI đang được chọn
+  void clearSelectedPoi() {
+    emit(state.copyWith(clearSelectedPoi: true));
   }
 
   @override

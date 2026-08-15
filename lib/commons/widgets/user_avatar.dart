@@ -1,6 +1,6 @@
-import 'package:s_map/commons/mixin/app_mixin.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/utils/utils.dart';
 
 class ProfileAvatar extends StatelessWidget with AppMixin {
   final double? size;

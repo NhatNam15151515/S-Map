@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/constants/constants.dart';
 import 'package:shimmer/shimmer.dart';
-
-import '../../commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/constants/constants.dart';
 
 class InitialScreen extends StatefulWidget {
   static const String path = '/';

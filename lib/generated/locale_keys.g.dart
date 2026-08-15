@@ -28,6 +28,13 @@ abstract class  LocaleKeys {
   static const recentSearches = 'recentSearches';
   static const clearAll = 'clearAll';
   static const noRecentSearches = 'noRecentSearches';
+  static const no_search_results = 'no_search_results';
+  static const no_search_results_desc = 'no_search_results_desc';
+  static const clear_search = 'clear_search';
+  static const search_suggestions = 'search_suggestions';
+  static const search_results = 'search_results';
+  static const cancel = 'cancel';
+  static const confirm = 'confirm';
   static const reviews = 'reviews';
   static const only = 'only';
   static const viewDetails = 'viewDetails';

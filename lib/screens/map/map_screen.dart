@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/mixin/app_mixin.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/constants.dart';
-import 'package:s_map/screens/map/widgets/map_error_overlay.dart';
-import 'package:s_map/screens/map/widgets/map_view.dart';
+import 'widgets/widgets.dart';
 
 class MapScreen extends StatefulWidget {
   static const String path = '/map';
@@ -76,11 +75,29 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
           BlocConsumer<MapDisplayCubit, MapDisplayState>(
             listenWhen: (prev, curr) =>
                 prev.cameraAction != curr.cameraAction ||
+                prev.selectedPoi != curr.selectedPoi ||
                 (curr.errorMessageKey != null &&
                     prev.errorMessageKey != curr.errorMessageKey),
             listener: (context, state) {
               if (state.cameraAction != null) {
                 _handleCameraAction(state.cameraAction!);
+              }
+              if (state.selectedPoi != null && _mapController != null) {
+                try {
+                  _mapController!.clearSymbols();
+                  _mapController!.addSymbol(
+                    SymbolOptions(
+                      geometry: LatLng(
+                        state.selectedPoi!.lat,
+                        state.selectedPoi!.lon,
+                      ),
+                      iconSize: 1.2,
+                      textField: state.selectedPoi!.name,
+                      textSize: 12.0,
+                      textOffset: const Offset(0, 1.2),
+                    ),
+                  );
+                } catch (_) {}
               }
               if (state.errorMessageKey != null &&
                   state.status != MapDisplayStatus.error) {
@@ -151,7 +168,10 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const MapSearchBar(showBackButton: true),
+                MapSearchBar(
+                  showBackButton: true,
+                  onPoiSelected: (poi) => displayCubit.selectPoi(poi),
+                ),
                 const SizedBox(height: 10),
                 BlocBuilder<MapExploreCubit, MapExploreState>(
                   buildWhen: (prev, curr) =>

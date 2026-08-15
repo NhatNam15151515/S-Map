@@ -1,10 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:s_map/commons/mixin/app_mixin.dart';
-import 'package:s_map/commons/mixin/auth_mixin.dart';
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 
 class UserScreen extends StatefulWidget {
   static const String path = '/UserScreen';
@@ -81,18 +80,22 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
 
             // Menu items
             _menuSection([
-              _menuItem(Icons.bookmark_rounded, tr(LocaleKeys.savedPlaces), () {}),
-              _menuItem(Icons.history_rounded, tr(LocaleKeys.activityHistory), () {}),
-              _menuItem(Icons.share_rounded, tr(LocaleKeys.shareLocation), () {}),
+              _menuItem(
+                  Icons.bookmark_rounded, tr(LocaleKeys.savedPlaces), () {}),
+              _menuItem(
+                  Icons.history_rounded, tr(LocaleKeys.activityHistory), () {}),
+              _menuItem(
+                  Icons.share_rounded, tr(LocaleKeys.shareLocation), () {}),
             ]),
 
             const SizedBox(height: 8),
 
             _menuSection([
               _menuItem(Icons.settings_rounded, tr(LocaleKeys.settings), () {}),
+              _menuItem(Icons.help_outline_rounded,
+                  tr(LocaleKeys.helpAndFeedback), () {}),
               _menuItem(
-                  Icons.help_outline_rounded, tr(LocaleKeys.helpAndFeedback), () {}),
-              _menuItem(Icons.info_outline_rounded, tr(LocaleKeys.about), () {}),
+                  Icons.info_outline_rounded, tr(LocaleKeys.about), () {}),
             ]),
 
             const SizedBox(height: 8),

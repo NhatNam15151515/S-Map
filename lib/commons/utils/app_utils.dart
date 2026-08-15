@@ -4,6 +4,7 @@ import 'package:s_map/models/models.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../mixin/app_mixin.dart';
 import 'dart:math' show cos, sqrt, asin;
+export 'poi_category_helper.dart';
 
 class AppUtils with AppMixin {
   static final AppUtils instance = AppUtils();

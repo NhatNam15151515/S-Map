@@ -2,19 +2,22 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/commons/widgets/user_avatar.dart';
+import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/search/search_screen.dart';
 
 class MapSearchBar extends StatelessWidget {
   final bool showBackButton;
   final VoidCallback? onBackPressed;
+  final ValueChanged<PoiModel>? onPoiSelected;
 
   const MapSearchBar({
     super.key,
     this.showBackButton = false,
     this.onBackPressed,
+    this.onPoiSelected,
   });
 
   @override
@@ -49,7 +52,12 @@ class MapSearchBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           child: InkWell(
             borderRadius: BorderRadius.circular(28),
-            onTap: () => context.push(SearchScreen.path),
+            onTap: () async {
+              final poi = await context.push<PoiModel>(SearchScreen.path);
+              if (poi != null && context.mounted) {
+                onPoiSelected?.call(poi);
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
@@ -77,7 +85,8 @@ class MapSearchBar extends StatelessWidget {
                   Expanded(
                     child: Text(
                       tr(LocaleKeys.search_bar_placeholder),
-                      style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                      style: AppColors.onSurfaceVariant.textTheme.textStyle
+                          .copyWith(
                         fontSize: 15,
                         fontWeight: AppFontWeight.regular.weight,
                       ),

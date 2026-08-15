@@ -5,6 +5,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/services/services.dart';
 
 class MockSuccessLocationService implements ILocationService {
@@ -419,6 +420,32 @@ void main() {
 
       cubit.close();
       mockCompass.dispose();
+    });
+
+    test('selectPoi updates selectedPoi, center, currentPosition, and triggers animateToPosition cameraAction', () {
+      final cubit = MapDisplayCubit();
+      const poi = PoiModel(
+        name: 'Hồ Hoàn Kiếm',
+        nameAscii: 'Ho Hoan Kiem',
+        lat: 21.0285,
+        lon: 105.8542,
+        category: 'tourism',
+      );
+
+      cubit.selectPoi(poi);
+
+      expect(cubit.state.selectedPoi, equals(poi));
+      expect(cubit.state.center, equals(const LatLng(21.0285, 105.8542)));
+      expect(cubit.state.currentPosition, equals(const LatLng(21.0285, 105.8542)));
+      expect(cubit.state.isFollowingUser, isFalse);
+      expect(cubit.state.cameraAction?.type, equals(MapCameraActionType.animateToPosition));
+      expect(cubit.state.cameraAction?.target, equals(const LatLng(21.0285, 105.8542)));
+      expect(cubit.state.cameraAction?.zoom, equals(16.0));
+
+      cubit.clearSelectedPoi();
+      expect(cubit.state.selectedPoi, isNull);
+
+      cubit.close();
     });
   });
 }
