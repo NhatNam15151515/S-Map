@@ -288,5 +288,15 @@ void main() {
       expect(results, isNotEmpty);
       expect(stopwatch.elapsedMilliseconds, lessThan(50));
     });
+
+    test('getSuggestions should return distinct place names matching query prefix', () async {
+      final suggestions = await poiRepo.getSuggestions('ph');
+      expect(suggestions, isNotEmpty);
+      expect(suggestions.contains('Phở Thìn Lò Đúc'), isTrue);
+      expect(suggestions.contains('Phở Hòa Pasteur'), isTrue);
+
+      final empty = await poiRepo.getSuggestions('');
+      expect(empty, isEmpty);
+    });
   });
 }

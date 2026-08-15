@@ -182,6 +182,50 @@ class PoiRepositoryImpl implements IPoiRepository {
   }
 
   @override
+  Future<List<String>> getSuggestions(String query, {int limit = 10}) async {
+    if (query.trim().isEmpty) return [];
+
+    final cleanQuery = _sanitizeFtsQuery(AppUtils.instance.toAscii(query));
+    if (cleanQuery.isEmpty) return [];
+
+    final db = await _getDb();
+    final ftsPattern = 'name_ascii: "$cleanQuery"*';
+
+    try {
+      final List<Map<String, dynamic>> results = await db.rawQuery(
+        '''
+        SELECT DISTINCT p.name
+        FROM poi_fts f
+        JOIN poi p ON f.rowid = p.id
+        WHERE poi_fts MATCH ?
+        LIMIT ?
+        ''',
+        [ftsPattern, limit],
+      );
+
+      return results
+          .map((row) => row['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList();
+    } catch (_) {
+      final fallbackResults = await db.rawQuery(
+        '''
+        SELECT DISTINCT name
+        FROM poi
+        WHERE name_ascii LIKE ?
+        LIMIT ?
+        ''',
+        ['%$cleanQuery%', limit],
+      );
+
+      return fallbackResults
+          .map((row) => row['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList();
+    }
+  }
+
+  @override
   Future<PoiModel?> getPoiById(int id) async {
     final db = await _getDb();
     final results = await db.query(
