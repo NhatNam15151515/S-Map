@@ -28,7 +28,7 @@ reviews:
     github-checks:
       enabled: true
   auto_review:
-    enabled: false
+    enabled: true
     drafts: false
     # Chỉ review 1 lần khi tạo PR, KHÔNG review lại khi push thêm commit
     ignore_title_keywords:
