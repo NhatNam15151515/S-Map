@@ -161,6 +161,18 @@ class XxxState extends Equatable {
   @override
   List<Object?> get props => [status, items, errorMessage];
 }
+
+// ✅ Concurrency Guard cho Bloc Event Handler với restartable():
+Future<void> _onAsyncEvent(
+  AsyncEvent event,
+  Emitter<XxxState> emit,
+) async {
+  emit(state.copyWith(status: XxxStatus.loading));
+  final results = await _repository.fetchData();
+  // BẮT BUỘC: Kiểm tra emit.isDone trước khi emit sau async gap
+  if (emit.isDone) return;
+  emit(state.copyWith(status: XxxStatus.success, items: results));
+}
 ```
 
 ### Anti-patterns (CẤM TUYỆT ĐỐI)

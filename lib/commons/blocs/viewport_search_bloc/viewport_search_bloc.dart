@@ -119,6 +119,9 @@ class ViewportSearchBloc
         limit: limit,
       );
 
+      // Guard: kiểm tra emitter có bị hủy bởi restartable() trước khi emit
+      if (emit.isDone) return;
+
       // Lọc theo category nếu người dùng chỉ định danh mục cụ thể
       if (category.isNotEmpty && category != CategoryConstants.all) {
         pois = pois
@@ -146,6 +149,7 @@ class ViewportSearchBloc
         ));
       }
     } catch (_) {
+      if (emit.isDone) return;
       emit(state.copyWith(
         status: ViewportSearchStatus.error,
         errorMessageKey: LocaleKeys.no_pois_in_viewport,
