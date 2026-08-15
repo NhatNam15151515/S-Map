@@ -53,6 +53,11 @@
   "termAndCondition": "Term & Condition",
   "notification": "Notification",
   "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications",
+  "savedPlaces": "Saved Places",
+  "activityHistory": "Activity History",
+  "shareLocation": "Share Location",
+  "helpAndFeedback": "Help & Feedback",
+  "about": "About",
   "common": {
     "back": "Back"
   },

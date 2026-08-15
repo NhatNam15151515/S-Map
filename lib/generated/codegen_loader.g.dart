@@ -69,6 +69,11 @@ class CodegenLoader extends AssetLoader{
   "termAndCondition": "Term & Condition",
   "notification": "Notification",
   "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications",
+  "savedPlaces": "Saved Places",
+  "activityHistory": "Activity History",
+  "shareLocation": "Share Location",
+  "helpAndFeedback": "Help & Feedback",
+  "about": "About",
   "common": {
     "back": "Back"
   },
@@ -153,6 +158,11 @@ static const Map<String,dynamic> _vi = {
   "termAndCondition": "Điều khoản sử dụng",
   "notification": "Thông báo",
   "playSoundWhenThereAreNewNotifications": "Phát âm thanh khi có thông báo",
+  "savedPlaces": "Địa điểm đã lưu",
+  "activityHistory": "Lịch sử hoạt động",
+  "shareLocation": "Chia sẻ vị trí",
+  "helpAndFeedback": "Trợ giúp & phản hồi",
+  "about": "Giới thiệu",
   "common": {
     "back": "Quay lại"
   },

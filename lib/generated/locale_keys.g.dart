@@ -54,6 +54,11 @@ abstract class  LocaleKeys {
   static const termAndCondition = 'termAndCondition';
   static const notification = 'notification';
   static const playSoundWhenThereAreNewNotifications = 'playSoundWhenThereAreNewNotifications';
+  static const savedPlaces = 'savedPlaces';
+  static const activityHistory = 'activityHistory';
+  static const shareLocation = 'shareLocation';
+  static const helpAndFeedback = 'helpAndFeedback';
+  static const about = 'about';
   static const common_back = 'common.back';
   static const common = 'common';
   static const category_all = 'category.all';

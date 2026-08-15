@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/mixin/auth_mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
@@ -81,24 +82,24 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
 
             // Menu items
             _menuSection([
-              _menuItem(Icons.bookmark_rounded, "Địa điểm đã lưu", () {}),
-              _menuItem(Icons.history_rounded, "Lịch sử hoạt động", () {}),
-              _menuItem(Icons.share_rounded, "Chia sẻ vị trí", () {}),
+              _menuItem(Icons.bookmark_rounded, tr(LocaleKeys.savedPlaces), () {}),
+              _menuItem(Icons.history_rounded, tr(LocaleKeys.activityHistory), () {}),
+              _menuItem(Icons.share_rounded, tr(LocaleKeys.shareLocation), () {}),
             ]),
 
             const SizedBox(height: 8),
 
             _menuSection([
-              _menuItem(Icons.settings_rounded, "Cài đặt", () {}),
+              _menuItem(Icons.settings_rounded, tr(LocaleKeys.settings), () {}),
               _menuItem(
-                  Icons.help_outline_rounded, "Trợ giúp & phản hồi", () {}),
-              _menuItem(Icons.info_outline_rounded, "Giới thiệu", () {}),
+                  Icons.help_outline_rounded, tr(LocaleKeys.helpAndFeedback), () {}),
+              _menuItem(Icons.info_outline_rounded, tr(LocaleKeys.about), () {}),
             ]),
 
             const SizedBox(height: 8),
 
             _menuSection([
-              _menuItem(Icons.logout_rounded, "Đăng xuất", () {
+              _menuItem(Icons.logout_rounded, tr(LocaleKeys.logOut), () {
                 authCubit.onLogout();
               }, isDestructive: true),
             ]),
