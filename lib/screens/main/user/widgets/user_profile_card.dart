@@ -4,15 +4,16 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
-import 'package:s_map/services/services.dart';
 
 class UserProfileCard extends StatelessWidget {
   final String? username;
+  final String appName;
   final VoidCallback? onViewProfile;
 
   const UserProfileCard({
     super.key,
     this.username,
+    required this.appName,
     this.onViewProfile,
   });
 
@@ -22,7 +23,7 @@ class UserProfileCard extends StatelessWidget {
         ? username!.trim()
         : tr(
             LocaleKeys.default_user_name,
-            args: [PackageInfoService.instance.appName],
+            args: [appName],
           );
 
     return Container(

@@ -27,6 +27,7 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
             // Profile header card
             UserProfileCard(
               username: currentProfile.username,
+              appName: appName,
               onViewProfile: () {},
             ),
 

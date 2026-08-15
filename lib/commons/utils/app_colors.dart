@@ -33,8 +33,7 @@ class AppColors {
   static const victorianGreenhouse = Color(0xFF00B592); //
   static const victorianGreenhouse_1 = Color(0xFF00B492); //
   static const maltedMintMadness = Color(0xFF11D3AE);
-  static const porcelainGreen
-  = Color(0xFF0E9278);
+  static const porcelainGreen = Color(0xFF0E9278);
 
   static const white = Color(0xFFFFFFFF);
   static const doctor = Color(0xFFF9F9F9);
@@ -187,9 +186,10 @@ extension ColorExtension on Color {
 
   /// Chuyển đổi Color sang chuỗi Hex '#RRGGBB' (phù hợp cho MapLibre)
   String get toHex {
-    final rInt = (r * 255).round().toRadixString(16).padLeft(2, '0');
-    final gInt = (g * 255).round().toRadixString(16).padLeft(2, '0');
-    final bInt = (b * 255).round().toRadixString(16).padLeft(2, '0');
+    final argb = toARGB32();
+    final rInt = ((argb >> 16) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final gInt = ((argb >> 8) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final bInt = (argb & 0xFF).toRadixString(16).padLeft(2, '0');
     return '#$rInt$gInt$bInt'.toUpperCase();
   }
 }

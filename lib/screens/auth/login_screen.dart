@@ -4,7 +4,6 @@ import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/screens/auth/widgets/widgets.dart';
-import 'package:s_map/services/services.dart';
 
 class LoginScreen extends StatefulWidget {
   static const String path = '/LoginScreen';
@@ -57,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
             ? usernameController.text
             : tr(
                 LocaleKeys.default_user_name,
-                args: [PackageInfoService.instance.appName],
+                args: [appName],
               ),
         password: passwordController.text,
       );
@@ -91,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const LoginHeaderWidget(),
+              LoginHeaderWidget(appName: appName),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Column(

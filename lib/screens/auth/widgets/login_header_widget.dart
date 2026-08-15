@@ -4,10 +4,14 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
-import 'package:s_map/services/services.dart';
 
 class LoginHeaderWidget extends StatelessWidget {
-  const LoginHeaderWidget({super.key});
+  final String appName;
+
+  const LoginHeaderWidget({
+    super.key,
+    required this.appName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +50,7 @@ class LoginHeaderWidget extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            PackageInfoService.instance.appName,
+            appName,
             style: AppColors.sMapDarkTeal.textTheme.headlineStyle.copyWith(
               letterSpacing: 1,
               fontSize: 28,

@@ -58,7 +58,7 @@ class _InitialScreenState extends State<InitialScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const InitialLogoWidget(),
+                InitialLogoWidget(appName: appName),
                 const SizedBox(height: 48),
                 SizedBox(
                   width: 24,

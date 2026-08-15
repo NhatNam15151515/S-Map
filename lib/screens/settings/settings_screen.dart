@@ -4,7 +4,6 @@ import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/screens/settings/widgets/widgets.dart';
-import 'package:s_map/services/services.dart';
 
 class SettingsScreen extends StatefulWidget {
   static const String path = '/settings';
@@ -63,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
                   icon: Icons.info_outline_rounded,
                   title: tr(
                     LocaleKeys.aboutSMap,
-                    args: [PackageInfoService.instance.appName],
+                    args: [appName],
                   ),
                   subtitle: tr(LocaleKeys.appVersion),
                 ),
