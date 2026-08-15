@@ -5,6 +5,7 @@ export 'explore_bottom_sheet.dart';
 export 'feature_placeholder_widget.dart';
 export 'main_bottom_bar.dart';
 export 'maintenance_popup.dart';
+export 'map_compass_button.dart';
 export 'map_category_chips.dart';
 export 'map_controls.dart';
 export 'map_search_bar.dart';

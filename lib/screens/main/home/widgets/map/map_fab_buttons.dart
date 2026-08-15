@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
-import 'map_compass_button.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 
 class MapFabButtons extends StatelessWidget with AppMixin {
   final VoidCallback onZoomIn;

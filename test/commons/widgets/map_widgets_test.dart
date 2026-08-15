@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/constants.dart';
 
@@ -75,6 +76,25 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.my_location_rounded));
       expect(locateMe, true);
+    });
+
+    testWidgets('MapCompassButton renders correctly and triggers onTap', (tester) async {
+      bool tapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MapCompassButton(
+              rotation: 45.0,
+              orientationMode: MapOrientationMode.northUp,
+              onTap: () => tapped = true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.navigation_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.navigation_rounded));
+      expect(tapped, true);
     });
   });
 }

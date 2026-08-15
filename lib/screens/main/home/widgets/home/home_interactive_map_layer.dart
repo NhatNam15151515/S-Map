@@ -8,8 +8,7 @@ import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
-import '../map/map_error_overlay.dart';
-import '../map/map_view.dart';
+import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeInteractiveMapLayer extends StatefulWidget {
   final ValueChanged<PoiModel> onPoiTapped;

@@ -8,7 +8,7 @@ class NotificationCubit extends Cubit<NotificationState> {
   final INotificationRepos _notiRepos;
 
   NotificationCubit({INotificationRepos? notiRepos})
-      : _notiRepos = notiRepos ?? NotificationReposImpl(),
+      : _notiRepos = notiRepos ?? AppReposProvider.instance.notiRepos,
         super(const NotificationState());
 
   @override
