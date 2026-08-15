@@ -1,13 +1,10 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s_map/commons/cubits/map_explore_cubit/map_explore_cubit.dart';
-import 'package:s_map/commons/cubits/map_explore_cubit/map_explore_state.dart';
-import 'package:s_map/constants/category_constants.dart';
-import 'package:s_map/interfaces/i_firebase_firestore_service.dart';
-import 'package:s_map/models/notification_model.dart';
-import 'package:s_map/models/place_model.dart';
-import 'package:s_map/models/user.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/constants/constants.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 
 class MockFireStoreService implements IFireStoreService {
   final _placesStreamController = StreamController<List<PlaceModel>>.broadcast();

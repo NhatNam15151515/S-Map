@@ -3,9 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/models/notification_model.dart';
-import 'package:s_map/models/place_model.dart';
-import 'package:s_map/models/user.dart';
+import 'package:s_map/models/models.dart';
 
 class FireStoreService implements IFireStoreService {
   FireStoreService._() {

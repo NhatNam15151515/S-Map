@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:s_map/models/app_error.dart';
+import 'package:s_map/models/models.dart';
 
 enum GenericListStateType {
   initial,

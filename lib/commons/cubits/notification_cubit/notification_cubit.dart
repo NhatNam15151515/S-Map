@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:s_map/models/notification_model.dart';
+import 'package:s_map/models/models.dart';
 import 'notification_state.dart';
 
 class NotificationCubit extends Cubit<NotificationState> {

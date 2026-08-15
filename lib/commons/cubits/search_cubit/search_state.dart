@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:s_map/models/poi_model.dart';
+import 'package:s_map/models/models.dart';
 
 enum SearchStatus { initial, loading, success, error }
 

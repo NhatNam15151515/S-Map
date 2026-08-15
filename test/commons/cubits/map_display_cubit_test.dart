@@ -2,12 +2,10 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:s_map/commons/cubits/map_display_cubit/map_display_cubit.dart';
-import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
-import 'package:s_map/constants/map_constants.dart';
-import 'package:s_map/interfaces/i_compass_service.dart';
-import 'package:s_map/interfaces/i_location_service.dart';
-import 'package:s_map/services/location_services.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/constants/constants.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/services/services.dart';
 
 class MockSuccessLocationService implements ILocationService {
   final Position mockPosition;

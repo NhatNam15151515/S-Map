@@ -4,8 +4,8 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/repos/poi_repository.dart';
-import 'package:s_map/services/recent_search_service.dart';
+import 'package:s_map/repos/repos.dart';
+import 'package:s_map/services/services.dart';
 import 'search_state.dart';
 
 class SearchCubit extends Cubit<SearchState> {

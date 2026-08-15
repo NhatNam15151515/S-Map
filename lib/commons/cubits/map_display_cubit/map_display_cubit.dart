@@ -3,10 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
-import 'package:s_map/constants/map_constants.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/services/compass_service.dart';
-import 'package:s_map/services/location_services.dart';
+import 'package:s_map/services/services.dart';
 import 'map_display_state.dart';
 
 class MapDisplayCubit extends Cubit<MapDisplayState> {

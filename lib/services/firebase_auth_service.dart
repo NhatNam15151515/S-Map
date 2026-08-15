@@ -4,8 +4,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/firebase_options.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/models/user.dart';
-import 'package:s_map/services/firebase_firestore_service.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/services/services.dart';
 
 class FirebaseAuthService implements IFirebaseAuthService {
   FirebaseAuthService._();

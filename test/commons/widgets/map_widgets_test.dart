@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s_map/commons/widgets/map_category_chips.dart';
-import 'package:s_map/commons/widgets/map_controls.dart';
-import 'package:s_map/commons/widgets/map_search_bar.dart';
-import 'package:s_map/constants/category_constants.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/constants/constants.dart';
 
 void main() {
   group('Commons Map Widgets Tests', () {

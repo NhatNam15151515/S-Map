@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s_map/commons/cubits/notification_cubit/notification_cubit.dart';
-import 'package:s_map/commons/cubits/notification_cubit/notification_state.dart';
-import 'package:s_map/models/notification_model.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/models/models.dart';
 
 void main() {
   group('NotificationCubit Tests', () {

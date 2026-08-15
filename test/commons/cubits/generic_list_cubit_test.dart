@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:s_map/commons/cubits/generic_list_cubit/generic_list_cubit.dart';
-import 'package:s_map/commons/cubits/generic_list_cubit/generic_list_cubit_state.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
 
 void main() {
   group('GenericListCubit Tests', () {
