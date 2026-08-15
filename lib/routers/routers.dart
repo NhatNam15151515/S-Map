@@ -15,7 +15,6 @@ import 'package:s_map/screens/main/main_screen.dart';
 import 'package:s_map/screens/main/notification/notification_screen.dart';
 import 'package:s_map/screens/main/saved/saved_screen.dart';
 import 'package:s_map/screens/main/user/user_screen.dart';
-import 'package:s_map/screens/map/map_screen.dart';
 import 'package:s_map/screens/search/search_screen.dart';
 import 'package:s_map/screens/navigation/navigation_screen.dart';
 import 'package:s_map/screens/route_drawing/route_drawing_screen.dart';
@@ -62,10 +61,6 @@ class Routes extends NavigatorObserver {
         GoRoute(
           path: LoginScreen.path,
           builder: (context, state) => const LoginScreen(),
-        ),
-        GoRoute(
-          path: MapScreen.path,
-          builder: (context, state) => const MapScreen(),
         ),
         GoRoute(
           path: SearchScreen.path,

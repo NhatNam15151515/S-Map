@@ -33,8 +33,7 @@ class AppColors {
   static const victorianGreenhouse = Color(0xFF00B592); //
   static const victorianGreenhouse_1 = Color(0xFF00B492); //
   static const maltedMintMadness = Color(0xFF11D3AE);
-  static const porcelainGreen
-  = Color(0xFF0E9278);
+  static const porcelainGreen = Color(0xFF0E9278);
 
   static const white = Color(0xFFFFFFFF);
   static const doctor = Color(0xFFF9F9F9);
@@ -177,8 +176,20 @@ class AppColors {
   static const surfaceDim = Color(0xFFF8F9FA);
   static const onSurfaceVariant = Color(0xFF5F6368);
 
+  // Map Symbol Colors
+  static const mapSymbolText = Color(0xFF0F172A);
+  static const mapSymbolHalo = Color(0xFFFFFFFF);
 }
 
-extension ToTextStyle on Color {
+extension ColorExtension on Color {
   TextStyle get toTextStyle => TextStyle(color: this);
+
+  /// Chuyển đổi Color sang chuỗi Hex '#RRGGBB' (phù hợp cho MapLibre)
+  String get toHex {
+    final argb = toARGB32();
+    final rInt = ((argb >> 16) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final gInt = ((argb >> 8) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final bInt = (argb & 0xFF).toRadixString(16).padLeft(2, '0');
+    return '#$rInt$gInt$bInt'.toUpperCase();
+  }
 }

@@ -11,7 +11,7 @@ class AuthReposImpl implements IAuthRepos {
   @override
   Future<User?> login(String username, String password) async {
     return User(
-      username: username.isNotEmpty ? username : "Người dùng S-Map",
+      username: username.trim(),
     );
   }
 
@@ -22,9 +22,7 @@ class AuthReposImpl implements IAuthRepos {
 
   @override
   Future<User?> getProfile() async {
-    return User(
-      username: "Người dùng S-Map",
-    );
+    return User();
   }
 
   @override

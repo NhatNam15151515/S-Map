@@ -24,6 +24,8 @@ mixin AppMixin {
 
   AppStyle get styles => appCubit.state.appStyle;
 
+  String get appName => appCubit.state.appName;
+
   Validator get validatorUtils => Validator.instance;
 
   AppReposProvider get appRepos => AppReposProvider.instance;

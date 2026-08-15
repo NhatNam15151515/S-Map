@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
-import 'package:s_map/constants/constants.dart';
+import 'package:s_map/screens/initial/widgets/widgets.dart';
 
 class InitialScreen extends StatefulWidget {
   static const String path = '/';
@@ -60,42 +58,7 @@ class _InitialScreenState extends State<InitialScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withAlpha(30),
-                    shape: BoxShape.circle,
-                  ),
-                  child: AppAsset.logo.image.build(
-                    size: const Size(64, 64),
-                    color: AppColors.white,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // App name
-                Shimmer.fromColors(
-                  baseColor: AppColors.white,
-                  highlightColor: AppColors.white.withAlpha(128),
-                  child: Text(
-                    "S-Map",
-                    style: AppColors.white.textTheme.displayStyle.copyWith(
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Khám phá thế giới xung quanh",
-                  style: AppColors.white
-                      .withAlpha(200)
-                      .textTheme
-                      .textStyle
-                      .copyWith(
-                        fontSize: 14,
-                        letterSpacing: 0.5,
-                      ),
-                ),
+                InitialLogoWidget(appName: appName),
                 const SizedBox(height: 48),
                 SizedBox(
                   width: 24,

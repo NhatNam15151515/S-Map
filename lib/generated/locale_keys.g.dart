@@ -38,6 +38,14 @@ abstract class  LocaleKeys {
   static const no_pois_in_viewport = 'no_pois_in_viewport';
   static const poi_found_count = 'poi_found_count';
   static const directions = 'directions';
+  static const app_tagline = 'app_tagline';
+  static const login_subtitle = 'login_subtitle';
+  static const login_failed = 'login_failed';
+  static const default_user_name = 'default_user_name';
+  static const stats = 'stats';
+  static const navigation = 'navigation';
+  static const route_drawing = 'route_drawing';
+  static const feature_under_development = 'feature_under_development';
   static const cancel = 'cancel';
   static const confirm = 'confirm';
   static const reviews = 'reviews';

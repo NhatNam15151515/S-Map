@@ -19,16 +19,41 @@ class PackageInfoService implements IPackageInfoService {
   @override
   Future<void> init() async {
     WidgetsFlutterBinding.ensureInitialized();
-    packageInfo = await PackageInfo.fromPlatform();
-    initCompleter.complete(true);
+    try {
+      packageInfo = await PackageInfo.fromPlatform();
+    } catch (_) {}
+    if (!initCompleter.isCompleted) {
+      initCompleter.complete(true);
+    }
   }
 
   @override
-  String get appName => packageInfo?.appName ?? "-";
+  String get appName {
+    if (packageInfo?.appName != null &&
+        packageInfo!.appName.isNotEmpty &&
+        packageInfo!.appName != "-") {
+      return packageInfo!.appName;
+    }
+    try {
+      if (Flavor.instance.displayName.isNotEmpty) {
+        return Flavor.instance.displayName;
+      }
+    } catch (_) {}
+    return "S-Map";
+  }
+
   @override
   String get packageName => packageInfo?.packageName ?? "-";
+
   @override
-  String get version => "${packageInfo?.version}($buildNumber)${Flavor.instance.subEnv}";
+  String get version {
+    String subEnv = "";
+    try {
+      subEnv = Flavor.instance.subEnv;
+    } catch (_) {}
+    return "${packageInfo?.version ?? '-'}($buildNumber)$subEnv";
+  }
+
   @override
   String get buildNumber => packageInfo?.buildNumber ?? "-";
 }

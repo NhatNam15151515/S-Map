@@ -9,10 +9,11 @@ import 'package:s_map/services/services.dart';
 import 'app_state.dart';
 
 class AppCubit extends Cubit<AppState> {
-  AppCubit()
+  AppCubit({String? appName})
       : super(AppState(
             type: AppStateType.initial,
             appStyle: DefaultTheme(),
+            appName: appName ?? PackageInfoService.instance.appName,
             supportedLocale: SupportedLocale.vi));
 
   @override
