@@ -527,6 +527,32 @@ Dự án cấu hình `EasyLocalization` với bộ tải mã nguồn sinh trư�
 | 27 | Import lẻ tẻ từng file thành phần | Dùng Barrel export file (`models/models.dart`, `widgets/widgets.dart`...) |
 | 28 | Raw type `Completer` không khai báo kiểu generic | Khai báo rõ kiểu: `Completer<bool>` / `Completer<T>` |
 | 29 | Chạy lệnh terminal inline `python -c "..."` dài dòng | Gọi trực tiếp file script (`python test_server.py`, `python tools/...`) |
+| 30 | Viết test ảo / mock hời hợt / assert cho có | Viết test thật, dữ liệu thật, kiểm thử edge cases, benchmark đo đạc thời gian thực tế |
+
+---
+
+## 12. Testing Rules & Authentic Verification Standards (Quy chuẩn Viết Test Thật - Kết Quả Thật)
+
+Mọi thành viên và AI Agent **BẮT BUỘC** phải tuân thủ triệt để nguyên tắc **"Test Thật - Kết Quả Thật" (No Dummy/Fake Tests)**:
+
+### 1. Dữ liệu Thật & Kiểm thử Toàn diện (Real Data & Deep Assertions)
+- **Tọa độ & Payload thật**: Dữ liệu kiểm thử phải phản ánh đúng ngữ cảnh thực tế (ví dụ: tọa độ GPS thật của Việt Nam, cấu trúc JSON response thật, turn-by-turn instructions thật).
+- **Deep Assertion**: CẤM chỉ assert hời hợt kiểu `expect(result, isNotNull)` hoặc `expect(true, isTrue)`. BẮT BUỘC phải assert chi tiết từng trường quan trọng (`distance`, `duration`, `points`, `instructions`, `bbox`, `sign`, `streetName`, `errorCode`).
+
+### 2. Mô phỏng Mock Chính xác & Bao phủ Edge Cases (Realistic Mocking)
+- Mock phải mô phỏng chính xác logic decode/encode, độ trễ xử lý thực tế (`await Future.delayed(...)`).
+- Phải bao phủ 100% các nhánh kịch bản:
+  - **Happy Path**: Dữ liệu chuẩn, giải mã thành công, chuyển tiếp đúng profile xe.
+  - **Edge Cases**: Tọa độ null, tham số rỗng/thiếu, kiểu dữ liệu bất thường, định dạng JSON sai.
+  - **Error & Exception Paths**: PlatformException từ Native, lỗi mạng, Service chưa khởi tạo, không tìm thấy đường.
+
+### 3. Đo lường Hiệu năng & An toàn Bộ nhớ Thực tế (Real Benchmark & Zero-OOM)
+- **Đo đạc thời gian thực**: Sử dụng `Stopwatch` hoặc `System.currentTimeMillis()` đo thời gian thực thi qua nhiều lần lặp (`iterations >= 20`), tính toán `avgLatency` và assert chỉ tiêu cụ thể (ví dụ: `< 300ms`, `< 200ms`).
+- **Memory Footprint**: Kiểm tra chênh lệch Heap RAM (`Runtime.getRuntime()` / Garbage Collection) dưới tải nặng để đảm bảo không bị memory leak hay OOM.
+
+### 4. Xác minh Thực tế trên Tầng Release & ProGuard/R8
+- Không chỉ chạy test trên môi trường giả lập (Debug JVM), mà **BẮT BUỘC** phải xác minh khả năng build Release thật (`assembleRelease` với `minifyEnabled true`) để kiểm chứng ProGuard keep rules không bị strip mất các class dùng Reflection.
+
 
 
 
