@@ -1,10 +1,26 @@
 package com.vnsmap.app.routing
 
+import android.os.Handler
+import android.os.Looper
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 class RoutingMethodChannelHandler(
-    private val routingService: IGraphHopperService = GraphHopperService.instance
+    private val routingService: IGraphHopperService = GraphHopperService.instance,
+    private val backgroundExecutor: Executor = Executors.newSingleThreadExecutor(),
+    private val resultPoster: (Runnable) -> Unit = { runnable ->
+        try {
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                runnable.run()
+            } else {
+                Handler(Looper.getMainLooper()).post(runnable)
+            }
+        } catch (_: Exception) {
+            runnable.run()
+        }
+    }
 ) : MethodChannel.MethodCallHandler {
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -17,10 +33,19 @@ class RoutingMethodChannelHandler(
         }
     }
 
+    private fun postSuccess(result: MethodChannel.Result, value: Any?) {
+        resultPoster(Runnable { result.success(value) })
+    }
+
+    private fun postError(result: MethodChannel.Result, errorCode: String, errorMessage: String?, errorDetails: Any?) {
+        resultPoster(Runnable { result.error(errorCode, errorMessage, errorDetails) })
+    }
+
     private fun handleInitGraphHopper(call: MethodCall, result: MethodChannel.Result) {
         val graphPath = call.argument<String>(RoutingConstants.ARG_GRAPH_PATH)
         if (graphPath.isNullOrBlank()) {
-            result.error(
+            postError(
+                result,
                 RoutingConstants.ERR_CODE_INVALID_ARGUMENTS,
                 "Missing or blank '${RoutingConstants.ARG_GRAPH_PATH}' argument",
                 null
@@ -28,15 +53,18 @@ class RoutingMethodChannelHandler(
             return
         }
 
-        try {
-            val success = routingService.init(graphPath)
-            result.success(success)
-        } catch (e: Exception) {
-            result.error(
-                RoutingConstants.ERR_CODE_ROUTING_FAILED,
-                "Failed to initialize GraphHopper: ${e.message}",
-                null
-            )
+        backgroundExecutor.execute {
+            try {
+                val success = routingService.init(graphPath)
+                postSuccess(result, success)
+            } catch (e: Exception) {
+                postError(
+                    result,
+                    RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                    "Failed to initialize GraphHopper: ${e.message}",
+                    null
+                )
+            }
         }
     }
 
@@ -49,7 +77,8 @@ class RoutingMethodChannelHandler(
             ?: RoutingConstants.DEFAULT_PROFILE
 
         if (fromLat == null || fromLon == null || toLat == null || toLon == null) {
-            result.error(
+            postError(
+                result,
                 RoutingConstants.ERR_CODE_INVALID_ARGUMENTS,
                 "Coordinates (fromLat, fromLon, toLat, toLon) must all be provided and valid numbers",
                 null
@@ -57,24 +86,28 @@ class RoutingMethodChannelHandler(
             return
         }
 
-        try {
-            val routeResult = routingService.route(fromLat, fromLon, toLat, toLon, vehicleProfile)
-            result.success(routeResult.toMap())
-        } catch (e: Exception) {
-            result.error(
-                RoutingConstants.ERR_CODE_ROUTING_FAILED,
-                "Error calculating route: ${e.message}",
-                null
-            )
+        backgroundExecutor.execute {
+            try {
+                val routeResult = routingService.route(fromLat, fromLon, toLat, toLon, vehicleProfile)
+                postSuccess(result, routeResult.toMap())
+            } catch (e: Exception) {
+                postError(
+                    result,
+                    RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                    "Error calculating route: ${e.message}",
+                    null
+                )
+            }
         }
     }
 
     private fun handleIsInitialized(result: MethodChannel.Result) {
         try {
             val initialized = routingService.isInitialized()
-            result.success(initialized)
+            postSuccess(result, initialized)
         } catch (e: Exception) {
-            result.error(
+            postError(
+                result,
                 RoutingConstants.ERR_CODE_ROUTING_FAILED,
                 "Failed to check initialization status: ${e.message}",
                 null
@@ -83,15 +116,18 @@ class RoutingMethodChannelHandler(
     }
 
     private fun handleDisposeGraphHopper(result: MethodChannel.Result) {
-        try {
-            routingService.dispose()
-            result.success(true)
-        } catch (e: Exception) {
-            result.error(
-                RoutingConstants.ERR_CODE_ROUTING_FAILED,
-                "Failed to dispose GraphHopper: ${e.message}",
-                null
-            )
+        backgroundExecutor.execute {
+            try {
+                routingService.dispose()
+                postSuccess(result, true)
+            } catch (e: Exception) {
+                postError(
+                    result,
+                    RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                    "Failed to dispose GraphHopper: ${e.message}",
+                    null
+                )
+            }
         }
     }
 }

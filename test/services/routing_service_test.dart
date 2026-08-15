@@ -24,14 +24,20 @@ void main() {
             if (path == null || path.isEmpty || path.contains('invalid')) {
               return false;
             }
+            if (path.contains('throw_exception')) {
+              throw PlatformException(
+                code: 'ROUTING_FAILED',
+                message: 'Failed to init graph file',
+              );
+            }
             return true;
 
           case RoutingConstants.methodGetRoute:
-            final fromLat = methodCall.arguments[RoutingConstants.argFromLat];
-            if (fromLat == null) {
+            final fromLat = methodCall.arguments[RoutingConstants.argFromLat] as double?;
+            if (fromLat == -999.0) {
               throw PlatformException(
-                code: 'INVALID_ARGUMENTS',
-                message: 'Missing coordinates',
+                code: 'ROUTING_FAILED',
+                message: 'Native routing exception occurred',
               );
             }
             if (fromLat == 0.0) {
@@ -97,9 +103,12 @@ void main() {
 
       final failure = await service.initGraphHopper('/invalid/path.ghz');
       expect(failure, isFalse);
+
+      final exceptionHandled = await service.initGraphHopper('/throw_exception.ghz');
+      expect(exceptionHandled, isFalse);
     });
 
-    test('getRoute should parse valid route result and forward profile', () async {
+    test('getRoute should parse valid route result and forward profile with deep assertions', () async {
       final result = await service.getRoute(
         fromLat: 21.0285,
         fromLon: 105.8542,
@@ -109,16 +118,32 @@ void main() {
       );
 
       expect(result.isSuccess, isTrue);
+      expect(result.isFailure, isFalse);
       expect(result.distance, equals(2500.0));
       expect(result.time, equals(300000));
-      expect(result.points.length, equals(2));
-      expect(result.instructions.length, equals(1));
-      expect(result.instructions.first.text, equals('Đi thẳng trên Kim Mã'));
-      expect(result.bbox, equals([105.7830, 21.0285, 105.8542, 21.0380]));
       expect(result.calculationTimeMs, equals(25));
       expect(result.hasInstructions, isTrue);
       expect(result.hasPoints, isTrue);
-      expect(result.isFailure, isFalse);
+
+      // Deep assert points
+      expect(result.points.length, equals(2));
+      expect(result.points[0], equals([21.0285, 105.8542]));
+      expect(result.points[1], equals([21.0380, 105.7830]));
+
+      // Deep assert bbox
+      expect(result.bbox, equals([105.7830, 21.0285, 105.8542, 21.0380]));
+
+      // Deep assert instructions
+      expect(result.instructions.length, equals(1));
+      final instruction = result.instructions.first;
+      expect(instruction.text, equals('Đi thẳng trên Kim Mã'));
+      expect(instruction.streetName, equals('Kim Mã'));
+      expect(instruction.distance, equals(1500.0));
+      expect(instruction.time, equals(180000));
+      expect(instruction.sign, equals(0));
+      expect(instruction.points.length, equals(2));
+      expect(instruction.points[0], equals([21.0285, 105.8542]));
+      expect(instruction.points[1], equals([21.0350, 105.8200]));
 
       expect(log.last.method, equals(RoutingConstants.methodGetRoute));
       expect(log.last.arguments[RoutingConstants.argVehicleProfile],
@@ -148,6 +173,19 @@ void main() {
       expect(result.isSuccess, isFalse);
       expect(result.isFailure, isTrue);
       expect(result.errorMessage, equals(RoutingConstants.errNoRouteFound));
+    });
+
+    test('getRoute should catch PlatformException and return Failure RouteResult', () async {
+      final result = await service.getRoute(
+        fromLat: -999.0,
+        fromLon: 105.8542,
+        toLat: 21.0380,
+        toLon: 105.7830,
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.isFailure, isTrue);
+      expect(result.errorMessage, contains('Native routing exception occurred'));
     });
 
     test('isInitialized and dispose should invoke platform channel correctly', () async {

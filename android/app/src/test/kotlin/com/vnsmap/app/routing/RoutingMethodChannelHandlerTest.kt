@@ -9,6 +9,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.Executor
 
 class RoutingMethodChannelHandlerTest {
 
@@ -22,8 +23,10 @@ class RoutingMethodChannelHandlerTest {
         var lastProfile: String? = null
         var disposeCalled = false
         var initializedState = false
+        var shouldThrow = false
 
         override fun init(graphPath: String): Boolean {
+            if (shouldThrow) throw RuntimeException("Init failed intentionally")
             initCalled = true
             initPath = graphPath
             initializedState = true
@@ -37,6 +40,7 @@ class RoutingMethodChannelHandlerTest {
             toLon: Double,
             vehicleProfile: String
         ): RouteResult {
+            if (shouldThrow) throw RuntimeException("Route computation failed intentionally")
             routeCalled = true
             lastProfile = vehicleProfile
             return RouteResult(
@@ -46,15 +50,19 @@ class RoutingMethodChannelHandlerTest {
                 points = listOf(listOf(fromLat, fromLon), listOf(toLat, toLon)),
                 bbox = listOf(fromLon, fromLat, toLon, toLat),
                 instructions = listOf(
-                    RouteInstruction("Đi thẳng", "Nguyễn Trãi", 1500.0, 180000L, 0, emptyList())
+                    RouteInstruction("Đi thẳng trên đường Nguyễn Trãi", "Nguyễn Trãi", 1500.0, 180000L, 0, listOf(listOf(fromLat, fromLon), listOf(toLat, toLon)))
                 ),
                 calculationTimeMs = 12L
             )
         }
 
-        override fun isInitialized(): Boolean = initializedState
+        override fun isInitialized(): Boolean {
+            if (shouldThrow) throw RuntimeException("isInitialized check failed")
+            return initializedState
+        }
 
         override fun dispose() {
+            if (shouldThrow) throw RuntimeException("Dispose failed intentionally")
             disposeCalled = true
             initializedState = false
         }
@@ -85,7 +93,12 @@ class RoutingMethodChannelHandlerTest {
     @Before
     fun setUp() {
         mockService = MockGraphHopperService()
-        handler = RoutingMethodChannelHandler(mockService)
+        // Use synchronous executor and direct result runner for unit tests
+        handler = RoutingMethodChannelHandler(
+            routingService = mockService,
+            backgroundExecutor = Executor { it.run() },
+            resultPoster = { it.run() }
+        )
     }
 
     @Test
@@ -117,7 +130,21 @@ class RoutingMethodChannelHandlerTest {
     }
 
     @Test
-    fun testGetRouteSuccessWithProfileForwarding() {
+    fun testInitGraphHopperExceptionReturnsRoutingFailed() {
+        mockService.shouldThrow = true
+        val call = MethodCall(
+            RoutingConstants.METHOD_INIT_GRAPH_HOPPER,
+            mapOf(RoutingConstants.ARG_GRAPH_PATH to "/data/invalid.ghz")
+        )
+        val result = TestResult()
+
+        handler.onMethodCall(call, result)
+
+        assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
+    }
+
+    @Test
+    fun testGetRouteSuccessWithProfileForwardingAndDeepAssertions() {
         val call = MethodCall(
             RoutingConstants.METHOD_GET_ROUTE,
             mapOf(
@@ -135,9 +162,44 @@ class RoutingMethodChannelHandlerTest {
         assertTrue(mockService.routeCalled)
         assertEquals(RoutingConstants.PROFILE_MOTORCYCLE, mockService.lastProfile)
         assertNotNull(result.successResult)
-        val resultMap = result.successResult as Map<*, *>
+        
+        @Suppress("UNCHECKED_CAST")
+        val resultMap = result.successResult as Map<String, Any?>
         assertEquals(true, resultMap["isSuccess"])
         assertEquals(1500.0, resultMap["distance"])
+        assertEquals(180000L, resultMap["time"])
+        assertEquals(12L, resultMap["calculationTimeMs"])
+        
+        // Deep assert points and bbox
+        @Suppress("UNCHECKED_CAST")
+        val points = resultMap["points"] as List<List<Double>>
+        assertEquals(2, points.size)
+        assertEquals(21.0285, points[0][0], 0.0001)
+        assertEquals(105.8542, points[0][1], 0.0001)
+        assertEquals(21.0380, points[1][0], 0.0001)
+        assertEquals(105.7830, points[1][1], 0.0001)
+
+        @Suppress("UNCHECKED_CAST")
+        val bbox = resultMap["bbox"] as List<Double>
+        assertEquals(4, bbox.size)
+        assertEquals(105.8542, bbox[0], 0.0001)
+        assertEquals(21.0285, bbox[1], 0.0001)
+        assertEquals(105.7830, bbox[2], 0.0001)
+        assertEquals(21.0380, bbox[3], 0.0001)
+
+        // Deep assert instructions
+        @Suppress("UNCHECKED_CAST")
+        val instructions = resultMap["instructions"] as List<Map<String, Any?>>
+        assertEquals(1, instructions.size)
+        val ins = instructions[0]
+        assertEquals("Đi thẳng trên đường Nguyễn Trãi", ins["text"])
+        assertEquals("Nguyễn Trãi", ins["streetName"])
+        assertEquals(1500.0, ins["distance"])
+        assertEquals(180000L, ins["time"])
+        assertEquals(0, ins["sign"])
+        @Suppress("UNCHECKED_CAST")
+        val insPoints = ins["points"] as List<List<Double>>
+        assertEquals(2, insPoints.size)
     }
 
     @Test
@@ -154,6 +216,25 @@ class RoutingMethodChannelHandlerTest {
         handler.onMethodCall(call, result)
 
         assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
+    }
+
+    @Test
+    fun testGetRouteExceptionReturnsRoutingFailed() {
+        mockService.shouldThrow = true
+        val call = MethodCall(
+            RoutingConstants.METHOD_GET_ROUTE,
+            mapOf(
+                RoutingConstants.ARG_FROM_LAT to 21.0285,
+                RoutingConstants.ARG_FROM_LON to 105.8542,
+                RoutingConstants.ARG_TO_LAT to 21.0380,
+                RoutingConstants.ARG_TO_LON to 105.7830
+            )
+        )
+        val result = TestResult()
+
+        handler.onMethodCall(call, result)
+
+        assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
     }
 
     @Test

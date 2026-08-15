@@ -72,7 +72,7 @@ class MockRoutingService implements IRoutingService {
     routeCalled = true;
     lastProfile = vehicleProfile;
     // Simulate real-world invocation delay
-    await Future.delayed(const Duration(milliseconds: 5));
+    await Future.delayed(const Duration(milliseconds: 2));
     return mockResult;
   }
 
@@ -104,7 +104,7 @@ void main() {
       expect(mockService.lastGraphPath, equals('/path/to/hanoi.ghz'));
     });
 
-    test('calculateRoute should return parsed RouteResult and forward profile', () async {
+    test('calculateRoute should return parsed RouteResult and forward profile with deep assertions', () async {
       final result = await repository.calculateRoute(
         fromLat: 21.0285,
         fromLon: 105.8542,
@@ -114,14 +114,40 @@ void main() {
       );
 
       expect(result.isSuccess, isTrue);
+      expect(result.isFailure, isFalse);
       expect(result.distance, equals(3500.0));
       expect(result.time, equals(420000));
-      expect(result.points.length, equals(3));
-      expect(result.instructions.length, equals(2));
-      expect(result.instructions.first.text, equals('Đi thẳng trên Tràng Thi'));
-      expect(result.instructions.last.text, equals('Rẽ phải vào Kim Mã'));
-      expect(result.bbox, equals([105.7830, 21.0285, 105.8542, 21.0380]));
       expect(result.calculationTimeMs, equals(18));
+      expect(result.bbox, equals([105.7830, 21.0285, 105.8542, 21.0380]));
+
+      // Deep assert points
+      expect(result.points.length, equals(3));
+      expect(result.points[0], equals([21.0285, 105.8542]));
+      expect(result.points[1], equals([21.0330, 105.8200]));
+      expect(result.points[2], equals([21.0380, 105.7830]));
+
+      // Deep assert instructions
+      expect(result.instructions.length, equals(2));
+      final ins1 = result.instructions[0];
+      expect(ins1.text, equals('Đi thẳng trên Tràng Thi'));
+      expect(ins1.streetName, equals('Tràng Thi'));
+      expect(ins1.distance, equals(800.0));
+      expect(ins1.time, equals(120000));
+      expect(ins1.sign, equals(0));
+      expect(ins1.points.length, equals(2));
+      expect(ins1.points[0], equals([21.0285, 105.8542]));
+      expect(ins1.points[1], equals([21.0300, 105.8450]));
+
+      final ins2 = result.instructions[1];
+      expect(ins2.text, equals('Rẽ phải vào Kim Mã'));
+      expect(ins2.streetName, equals('Kim Mã'));
+      expect(ins2.distance, equals(2700.0));
+      expect(ins2.time, equals(300000));
+      expect(ins2.sign, equals(2));
+      expect(ins2.points.length, equals(2));
+      expect(ins2.points[0], equals([21.0300, 105.8450]));
+      expect(ins2.points[1], equals([21.0380, 105.7830]));
+
       expect(mockService.routeCalled, isTrue);
       expect(mockService.lastProfile, equals(RoutingConstants.profileMopedVn));
     });
@@ -137,7 +163,7 @@ void main() {
       expect(await repository.isEngineReady(), isFalse);
     });
 
-    test('Acceptance Criteria: 20 consecutive route requests avg latency < 300ms', () async {
+    test('Acceptance Criteria: 20 consecutive route requests execution benchmark', () async {
       final latencies = <int>[];
 
       for (int i = 0; i < 20; i++) {
@@ -160,7 +186,7 @@ void main() {
           reason: 'Benchmark failure: 20 requests avg was $avgLatency ms (must be < 300ms)');
     });
 
-    test('AppReposProvider integrates routingRepos instance', () {
+    test('AppReposProvider integrates routingRepos instance with DI', () {
       final provider = AppReposProvider(routingRepos: repository);
       expect(provider.routingRepos, equals(repository));
     });

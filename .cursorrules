@@ -48,6 +48,7 @@ Font: Montserrat. Platforms: Android & iOS ONLY.
 - **Authentic Testing & Verification Standards (No Fake/Dummy Tests)**:
   - NEVER write dummy/placeholder tests, superficial assertions (`expect(true, isTrue)`), or unverified mocks.
   - MUST test with realistic coordinates (e.g. Vietnam GPS), real payloads, deep assertions across all model fields (`distance`, `duration`, `points`, `instructions`, `bbox`).
-  - MUST cover edge cases, null arguments, invalid data types, error/exception fallbacks, and real performance benchmarks with iterations and latency assertions (< 300ms).
+  - MUST cover edge cases, null arguments, invalid data types, error/exception fallbacks, and real performance benchmarks with minimum 20 iterations (500 for native engine stress tests) and latency assertions (< 300ms).
   - MUST verify real Release APK compilation (`assembleRelease` with R8 minification) for reflection and ProGuard safety.
+
 

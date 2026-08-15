@@ -1,12 +1,11 @@
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 
 class RoutingRepositoryImpl implements IRoutingRepository {
   final IRoutingService _routingService;
 
-  RoutingRepositoryImpl({IRoutingService? routingService})
-      : _routingService = routingService ?? RoutingServiceImpl.instance;
+  RoutingRepositoryImpl({required IRoutingService routingService})
+      : _routingService = routingService;
 
   @override
   Future<bool> initializeEngine(String graphPath) {
