@@ -15,8 +15,9 @@
   "resetIt": "Đặt lại mật khẩu",
   "hi": "Chào bạn",
   "welcomeBack": "Chào mừng trở lại",
-  "search": {
-    "title": "Tìm kiếm địa điểm",
+  "search": "Tìm kiếm",
+  "search_bar": {
+    "title": "Thanh tìm kiếm địa điểm",
     "placeholder": "Tìm kiếm ở đây",
     "voice": "Tìm kiếm bằng giọng nói"
   },

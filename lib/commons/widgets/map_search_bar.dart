@@ -19,7 +19,7 @@ class MapSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: tr('search.title'),
+      label: tr('search_bar.title'),
       button: true,
       child: Container(
         height: 52,
@@ -75,7 +75,7 @@ class MapSearchBar extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      tr('search.placeholder'),
+                      tr('search_bar.placeholder'),
                       style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
                         fontSize: 15,
                         fontWeight: AppFontWeight.regular.weight,
@@ -91,7 +91,7 @@ class MapSearchBar extends StatelessWidget {
                       size: 22,
                     ),
                     onPressed: () {},
-                    tooltip: tr('search.voice'),
+                    tooltip: tr('search_bar.voice'),
                     padding: const EdgeInsets.all(8),
                     constraints: const BoxConstraints(),
                   ),

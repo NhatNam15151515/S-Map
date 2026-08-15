@@ -15,7 +15,8 @@
   "resetIt": "Reset It",
   "hi": "Hi",
   "welcomeBack": "Welcome Back",
-  "search": {
+  "search": "Search",
+  "search_bar": {
     "title": "Search places",
     "placeholder": "Search here",
     "voice": "Voice Search"
