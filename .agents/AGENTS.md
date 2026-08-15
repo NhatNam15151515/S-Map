@@ -110,9 +110,9 @@ screens → cubits → [interfaces: IRepos] → repos → [interfaces: IServices
 ### Convention
 
 - **Cubit** là lựa chọn mặc định cho phần lớn use case
-- **Bloc** được phép khi cần event transformer (`restartable()`, `droppable()`, `sequential()`) để kiểm soát concurrency — ví dụ: GPS stream, viewport search, reroute logic
-- **Equatable Standard**: Mọi State class của BLoC/Cubit **BẮT BUỘC** `extends Equatable` (cả root abstract state lẫn concrete states) và override `props`. **TUYỆT ĐỐI KHÔNG** dùng `with EquatableMixin` (đã bị deprecated trong package `equatable`) hoặc tự viết `operator ==` thủ công.
-- Cubit/Bloc global (auth, app): đặt trong `commons/cubits/`
+- **Single Class State Pattern (BẮT BUỘC)**: Mọi State class của BLoC/Cubit phải sử dụng mô hình **Single Class** với `enum *Status { initial, loading, success, empty, error }`, phương thức `copyWith`, các helper boolean getters (`isInitial`, `isLoading`, `isSuccess`, `isEmpty`, `isError`, v.v.), và override `props` đầy đủ. **TUYỆT ĐỐI KHÔNG** dùng State Inheritance / Subclassing (như `XxxInitial`, `XxxLoading`, `XxxSuccess`) để đảm bảo tính nhất quán trên toàn bộ codebase.
+- **Equatable Standard**: Mọi State class của BLoC/Cubit **BẮT BUỘC** `extends Equatable` và override `props`. **TUYỆT ĐỐI KHÔNG** dùng `with EquatableMixin` (đã bị deprecated trong package `equatable`) hoặc tự viết `operator ==` thủ công.
+- Cubit/Bloc global (auth, app): đặt trong `commons/cubits/` hoặc `commons/blocs/`
 - Cubit/Bloc local (feature-specific): đặt trong `screens/<feature>/cubits/`
 
 ### Quy tắc chọn Cubit vs Bloc
@@ -120,23 +120,46 @@ screens → cubits → [interfaces: IRepos] → repos → [interfaces: IServices
 - ✅ **Cubit** khi: state thay đổi theo action đơn giản, không có stream event liên tục
 - ✅ **Bloc** khi: có event stream cần transformer để kiểm soát concurrency (race condition, debounce, queue)
 - ❌ KHÔNG dùng Bloc chỉ vì "muốn tách event" — nếu không cần transformer thì dùng Cubit
+- ✅ **Single Class Pattern**: State class duy nhất có `enum Status`, `copyWith` và `props`
 - ✅ **extends Equatable**: Tất cả state đều kế thừa `Equatable` và khai báo `props` đầy đủ
 
 ### Pattern bắt buộc
 
 ```dart
-// ✅ Mọi state kế thừa Equatable
-abstract class XxxState extends Equatable {
-  const XxxState();
-  @override
-  List<Object?> get props => [];
-}
+// ✅ Single Class State Pattern với enum Status
+enum XxxStatus { initial, loading, success, error }
 
-// ✅ Override emit() để tránh emit-after-close crash (áp dụng cả Cubit lẫn Bloc)
-@override
-void emit(XxxState state) {
-  if (isClosed) return;
-  super.emit(state);
+class XxxState extends Equatable {
+  final XxxStatus status;
+  final List<Model> items;
+  final String? errorMessage;
+
+  const XxxState({
+    this.status = XxxStatus.initial,
+    this.items = const [],
+    this.errorMessage,
+  });
+
+  bool get isInitial => status == XxxStatus.initial;
+  bool get isLoading => status == XxxStatus.loading;
+  bool get isSuccess => status == XxxStatus.success;
+  bool get isError => status == XxxStatus.error;
+
+  XxxState copyWith({
+    XxxStatus? status,
+    List<Model>? items,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return XxxState(
+      status: status ?? this.status,
+      items: items ?? this.items,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    );
+  }
+
+  @override
+  List<Object?> get props => [status, items, errorMessage];
 }
 ```
 
