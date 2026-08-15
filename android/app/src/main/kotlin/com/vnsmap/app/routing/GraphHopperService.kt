@@ -17,6 +17,8 @@ class GraphHopperService(
     @Volatile
     private var initialized = false
 
+    private val lifecycleLock = Any()
+
     companion object {
         val instance: GraphHopperService by lazy { GraphHopperService() }
     }
@@ -25,7 +27,7 @@ class GraphHopperService(
         return init(File(graphPath))
     }
 
-    fun init(graphLocation: File): Boolean {
+    fun init(graphLocation: File): Boolean = synchronized(lifecycleLock) {
         dispose()
 
         return try {
@@ -66,7 +68,7 @@ class GraphHopperService(
         toLat: Double,
         toLon: Double,
         vehicleProfile: String
-    ): RouteResult {
+    ): RouteResult = synchronized(lifecycleLock) {
         val engine = engineInstance
         if (!initialized || engine == null) {
             return RouteResult.failure(RoutingConstants.ERR_SERVICE_NOT_INITIALIZED)
@@ -79,15 +81,19 @@ class GraphHopperService(
         }
     }
 
-    override fun isInitialized(): Boolean = initialized && engineInstance != null
+    override fun isInitialized(): Boolean = synchronized(lifecycleLock) {
+        initialized && engineInstance != null
+    }
 
     override fun dispose() {
-        try {
-            engineInstance?.close()
-        } catch (_: Exception) {
-        } finally {
-            engineInstance = null
-            initialized = false
+        synchronized(lifecycleLock) {
+            try {
+                engineInstance?.close()
+            } catch (_: Exception) {
+            } finally {
+                engineInstance = null
+                initialized = false
+            }
         }
     }
 }

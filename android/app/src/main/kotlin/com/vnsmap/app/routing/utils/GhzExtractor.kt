@@ -5,34 +5,35 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 object GhzExtractor : IGhzExtractor {
-
-    private const val SUCCESS_MARKER = ".extracted_success"
 
     override fun extract(ghzPath: String, targetFolderPath: String, overwrite: Boolean): Boolean {
         return extract(File(ghzPath), File(targetFolderPath), overwrite)
     }
 
     /**
-     * Giải nén file .ghz (zip) vào thư mục targetFolder an toàn qua staging directory
+     * Giải nén file .ghz (zip) vào thư mục targetFolder an toàn qua staging directory & backup
      */
-    @Throws(IOException::class)
+    @Throws(IOException::class, SecurityException::class)
     fun extract(ghzFile: File, targetFolder: File, overwrite: Boolean = false): Boolean {
         if (!ghzFile.exists() || !ghzFile.isFile) {
             return false
         }
 
-        val successMarkerFile = File(targetFolder, SUCCESS_MARKER)
+        val successMarkerFile = File(targetFolder, RoutingConstants.SUCCESS_MARKER)
         if (targetFolder.exists() && !overwrite && successMarkerFile.exists()) {
             return true
         }
 
-        // Tạo thư mục staging cùng cấp để giải nén an toàn
         val parentDir = targetFolder.parentFile ?: ghzFile.parentFile ?: File(".")
-        val stagingFolder = File(parentDir, "${targetFolder.name}_staging_${System.currentTimeMillis()}")
+        val stagingFolder = File(
+            parentDir,
+            "${targetFolder.name}${RoutingConstants.STAGING_DIR_SUFFIX}${System.nanoTime()}_${UUID.randomUUID()}"
+        )
         if (!stagingFolder.exists()) {
             stagingFolder.mkdirs()
         }
@@ -72,18 +73,34 @@ object GhzExtractor : IGhzExtractor {
             }
 
             // Ghi file marker báo hiệu giải nén toàn vẹn
-            File(stagingFolder, SUCCESS_MARKER).createNewFile()
+            File(stagingFolder, RoutingConstants.SUCCESS_MARKER).createNewFile()
 
-            // Xóa targetFolder cũ nếu có và rename stagingFolder sang targetFolder
-            if (targetFolder.exists()) {
-                targetFolder.deleteRecursively()
+            // Giữ dữ liệu cũ trong backup cho tới khi thay thế thành công
+            val backupFolder = File(
+                parentDir,
+                "${targetFolder.name}${RoutingConstants.BACKUP_DIR_SUFFIX}${System.nanoTime()}_${UUID.randomUUID()}"
+            )
+            val hasBackup = targetFolder.exists() && targetFolder.renameTo(backupFolder)
+            if (targetFolder.exists() && !hasBackup) {
+                stagingFolder.deleteRecursively()
+                return false
             }
 
-            val renamed = stagingFolder.renameTo(targetFolder)
-            if (!renamed) {
-                // Fallback nếu renameTo khác partition
-                stagingFolder.copyRecursively(targetFolder, overwrite = true)
+            val replaced = stagingFolder.renameTo(targetFolder) ||
+                (stagingFolder.copyRecursively(targetFolder, overwrite = true)
+                    .also { copied -> if (copied) stagingFolder.deleteRecursively() })
+
+            if (!replaced) {
+                targetFolder.deleteRecursively()
+                if (hasBackup) {
+                    backupFolder.renameTo(targetFolder)
+                }
                 stagingFolder.deleteRecursively()
+                return false
+            }
+
+            if (hasBackup) {
+                backupFolder.deleteRecursively()
             }
 
             return true

@@ -2,6 +2,7 @@ package com.vnsmap.app.routing
 
 import com.vnsmap.app.routing.utils.GhzExtractor
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -49,6 +50,7 @@ class GhzExtractorTest {
         assertTrue(targetDir.exists())
         assertTrue(File(targetDir, "properties").exists())
         assertTrue(File(targetDir, "nodes").exists())
+        assertTrue(File(targetDir, RoutingConstants.SUCCESS_MARKER).exists())
     }
 
     @Test
@@ -74,5 +76,34 @@ class GhzExtractorTest {
             val outsideFile = File(tempDir, "outside_file.txt")
             assertFalse("Outside file must never be created", outsideFile.exists())
         }
+    }
+
+    @Test
+    fun testStagingFolderCleanedUpAfterZipSlip() {
+        val maliciousGhz = File(tempDir, "malicious_clean.ghz")
+        ZipOutputStream(FileOutputStream(maliciousGhz)).use { zos ->
+            zos.putNextEntry(ZipEntry("../outside_clean.txt"))
+            zos.write("payload".toByteArray())
+            zos.closeEntry()
+        }
+
+        try {
+            GhzExtractor.extract(maliciousGhz, File(tempDir, "safe_target_clean"))
+        } catch (_: SecurityException) {
+            // Expected
+        }
+
+        val leftovers = tempDir.listFiles { f -> f.isDirectory && f.name.contains(RoutingConstants.STAGING_DIR_SUFFIX) }
+        assertTrue("Staging folder must be cleaned up after error", leftovers == null || leftovers.isEmpty())
+    }
+
+    @Test
+    fun testSecondExtractSkipsWhenMarkerExists() {
+        assertTrue(GhzExtractor.extract(sampleGhz, targetDir))
+        val firstModified = File(targetDir, "nodes").lastModified()
+
+        // Second extract with overwrite = false
+        assertTrue(GhzExtractor.extract(sampleGhz, targetDir, overwrite = false))
+        assertEquals(firstModified, File(targetDir, "nodes").lastModified())
     }
 }

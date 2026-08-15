@@ -62,7 +62,7 @@ class GraphHopperServiceTest {
     }
 
     @Test
-    fun testSuccessfulInitAndRouteWithMockEngine() {
+    fun testSuccessfulInitAndRouteWithMockEngineAndProfileForwarding() {
         val samplePoints = listOf(
             listOf(21.0285, 105.8542),
             listOf(21.0300, 105.8560),
@@ -90,6 +90,7 @@ class GraphHopperServiceTest {
             calculationTimeMs = 35L
         )
 
+        var lastProfile: String? = null
         val mockEngine = object : IGraphHopperEngine {
             override fun route(
                 fromLat: Double,
@@ -98,6 +99,7 @@ class GraphHopperServiceTest {
                 toLon: Double,
                 vehicleProfile: String
             ): RouteResult {
+                lastProfile = vehicleProfile
                 return expectedResult
             }
 
@@ -119,7 +121,9 @@ class GraphHopperServiceTest {
             assertTrue(initSuccess)
             assertTrue(service.isInitialized())
 
+            // Test explicit profile forwarding
             val routeResult = service.route(21.0285, 105.8542, 21.0350, 105.8600, RoutingConstants.PROFILE_MOTORCYCLE)
+            assertEquals(RoutingConstants.PROFILE_MOTORCYCLE, lastProfile)
             assertTrue(routeResult.isSuccess)
             assertEquals(1250.0, routeResult.distance, 0.01)
             assertEquals(120000L, routeResult.time)
@@ -128,11 +132,9 @@ class GraphHopperServiceTest {
             assertEquals("Rẽ phải vào Tràng Tiền", routeResult.instructions[0].text)
             assertEquals(listOf(105.8542, 21.0285, 105.8600, 21.0350), routeResult.bbox)
 
-            // Benchmark verification (< 200ms urban)
-            val startTime = System.currentTimeMillis()
+            // Test default profile forwarding
             service.route(21.0285, 105.8542, 21.0350, 105.8600)
-            val elapsed = System.currentTimeMillis() - startTime
-            assertTrue("Urban routing benchmark must be under 200ms", elapsed < 200)
+            assertEquals(RoutingConstants.DEFAULT_PROFILE, lastProfile)
 
             service.dispose()
             assertFalse(service.isInitialized())

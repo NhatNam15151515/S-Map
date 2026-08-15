@@ -6,6 +6,8 @@ import com.graphhopper.GraphHopper
 import com.graphhopper.GraphHopperConfig
 import com.graphhopper.ResponsePath
 import com.graphhopper.util.Instruction
+import com.graphhopper.util.Translation
+import com.graphhopper.util.TranslationMap
 import com.vnsmap.app.routing.RoutingConstants
 import com.vnsmap.app.routing.engine.IGraphHopperEngine
 import com.vnsmap.app.routing.models.RouteInstruction
@@ -27,7 +29,7 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             try {
                 hopper.close()
             } catch (_: Exception) {}
-            throw IllegalStateException("Graph data is missing or incomplete at ${graphDirectory.absolutePath}")
+            throw IllegalStateException("${RoutingConstants.ERR_GRAPH_DATA_INCOMPLETE} at ${graphDirectory.absolutePath}")
         }
 
         return GraphHopperEngineWrapper(hopper)
@@ -36,6 +38,14 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
     private class GraphHopperEngineWrapper(
         private val hopper: GraphHopper
     ) : IGraphHopperEngine {
+
+        private val translation: Translation by lazy {
+            try {
+                TranslationMap().doImport().get(RoutingConstants.DEFAULT_LOCALE)
+            } catch (_: Exception) {
+                TranslationMap().doImport().get("en")
+            }
+        }
 
         override fun route(
             fromLat: Double,
@@ -60,17 +70,21 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                     return RouteResult.failure("${RoutingConstants.ERR_ROUTING_PREFIX}$errors", elapsed)
                 }
 
+                if (response.all.isEmpty()) {
+                    return RouteResult.failure(RoutingConstants.ERR_NO_ROUTE_FOUND, elapsed)
+                }
+
                 val path: ResponsePath = response.best
                     ?: return RouteResult.failure(RoutingConstants.ERR_NO_ROUTE_FOUND, elapsed)
 
-                // Extract Polyline coordinates [lat, lon]
+                // Trích xuất danh sách tọa độ Polyline [lat, lon]
                 val pointList = path.points
                 val points = ArrayList<List<Double>>(pointList.size())
                 for (i in 0 until pointList.size()) {
                     points.add(listOf(pointList.getLat(i), pointList.getLon(i)))
                 }
 
-                // Extract Turn-by-turn Instructions
+                // Trích xuất danh sách hướng dẫn rẽ (Turn-by-turn Instructions) có mô tả hành động
                 val instructionList = path.instructions
                 val instructions = ArrayList<RouteInstruction>(instructionList?.size ?: 0)
                 if (instructionList != null) {
@@ -81,7 +95,17 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                         }
 
                         val street = ins.name ?: ""
-                        val text = if (street.isNotEmpty()) street else RoutingConstants.DEFAULT_INSTRUCTION_TEXT
+                        val turnDescription = try {
+                            ins.getTurnDescription(translation)
+                        } catch (_: Exception) {
+                            ""
+                        }
+
+                        val text = when {
+                            turnDescription.isNotBlank() -> turnDescription
+                            street.isNotBlank() -> street
+                            else -> RoutingConstants.DEFAULT_INSTRUCTION_TEXT
+                        }
 
                         instructions.add(
                             RouteInstruction(
@@ -96,7 +120,7 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                     }
                 }
 
-                // Calculate Bounding Box [minLon, minLat, maxLon, maxLat]
+                // Tính toán Bounding Box [minLon, minLat, maxLon, maxLat]
                 val bbox: List<Double>? = if (points.isNotEmpty()) {
                     var minLat = points[0][0]
                     var maxLat = points[0][0]
@@ -111,9 +135,7 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                         if (lon > maxLon) maxLon = lon
                     }
                     listOf(minLon, minLat, maxLon, maxLat)
-                } else {
-                    null
-                }
+                } else null
 
                 RouteResult(
                     isSuccess = true,
