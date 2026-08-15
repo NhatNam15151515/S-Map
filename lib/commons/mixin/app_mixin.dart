@@ -5,7 +5,7 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/utils/popup_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
-import 'package:s_map/generated/locale_keys.g.dart';
+export 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/repos/app_repos_provider.dart';
 import 'package:s_map/routers/routers.dart';
 import 'package:s_map/services/firebase_analytics_service.dart';
@@ -22,7 +22,8 @@ mixin AppMixin {
 
   AuthCubit get authCubit => appUtils.getCubit<AuthCubit>(appContext);
 
-  NotificationCubit get notiCubit => appUtils.getCubit<NotificationCubit>(appContext);
+  NotificationCubit get notiCubit =>
+      appUtils.getCubit<NotificationCubit>(appContext);
 
   AppStyle get styles => appCubit.state.appStyle;
 
@@ -32,8 +33,6 @@ mixin AppMixin {
 
   void unFocus() =>
       WidgetsBinding.instance.focusManager.primaryFocus?.unfocus();
-
-  LocaleKeys get locale => LocaleKeys();
 
   Future showSuccess(String? text) {
     if (text != null) {

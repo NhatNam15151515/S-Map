@@ -16,7 +16,6 @@ class UserScreen extends StatefulWidget {
 }
 
 class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
-
   @override
   void initState() {
     super.initState();
@@ -36,7 +35,7 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
-        title: locale.profile,
+        title: LocaleKeys.profile,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(bottom: marginBottomDefault),
@@ -64,7 +63,8 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
                   const SizedBox(height: 16),
                   Text(
                     "${currentProfile.username}",
-                    style: styles.blackTextColor.textTheme.subTitleStyle.copyWith(
+                    style:
+                        styles.blackTextColor.textTheme.subTitleStyle.copyWith(
                       fontSize: 20,
                     ),
                   ),
@@ -90,7 +90,8 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
 
             _menuSection([
               _menuItem(Icons.settings_rounded, "Cài đặt", () {}),
-              _menuItem(Icons.help_outline_rounded, "Trợ giúp & phản hồi", () {}),
+              _menuItem(
+                  Icons.help_outline_rounded, "Trợ giúp & phản hồi", () {}),
               _menuItem(Icons.info_outline_rounded, "Giới thiệu", () {}),
             ]),
 
@@ -120,8 +121,10 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
     );
   }
 
-  Widget _menuItem(IconData icon, String title, VoidCallback onTap, {bool isDestructive = false}) {
-    final color = isDestructive ? AppColors.googleRed : AppColors.googleDarkText;
+  Widget _menuItem(IconData icon, String title, VoidCallback onTap,
+      {bool isDestructive = false}) {
+    final color =
+        isDestructive ? AppColors.googleRed : AppColors.googleDarkText;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -134,10 +137,16 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: (isDestructive ? AppColors.googleRed : AppColors.sMapTeal).withAlpha(15),
+                  color:
+                      (isDestructive ? AppColors.googleRed : AppColors.sMapTeal)
+                          .withAlpha(15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 20, color: isDestructive ? AppColors.googleRed : AppColors.sMapTeal),
+                child: Icon(icon,
+                    size: 20,
+                    color: isDestructive
+                        ? AppColors.googleRed
+                        : AppColors.sMapTeal),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -146,11 +155,12 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
                   style: color.textTheme.boldStyle.copyWith(fontSize: 15),
                 ),
               ),
-              if (!isDestructive) const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.onSurfaceVariant,
-                size: 20,
-              ),
+              if (!isDestructive)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.onSurfaceVariant,
+                  size: 20,
+                ),
             ],
           ),
         ),

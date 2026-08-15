@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/user_avatar.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/screens/search/search_screen.dart';
 
 class MapSearchBar extends StatelessWidget {
@@ -19,7 +20,7 @@ class MapSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: tr('search_bar.title'),
+      label: tr(LocaleKeys.search_bar_title),
       button: true,
       child: Container(
         height: 52,
@@ -61,7 +62,7 @@ class MapSearchBar extends StatelessWidget {
                         size: 22,
                       ),
                       onPressed: onBackPressed ?? () => context.pop(),
-                      tooltip: tr('common.back'),
+                      tooltip: tr(LocaleKeys.common_back),
                     )
                   else
                     const Padding(
@@ -75,7 +76,7 @@ class MapSearchBar extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      tr('search_bar.placeholder'),
+                      tr(LocaleKeys.search_bar_placeholder),
                       style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
                         fontSize: 15,
                         fontWeight: AppFontWeight.regular.weight,
@@ -91,7 +92,7 @@ class MapSearchBar extends StatelessWidget {
                       size: 22,
                     ),
                     onPressed: () {},
-                    tooltip: tr('search_bar.voice'),
+                    tooltip: tr(LocaleKeys.search_bar_voice),
                     padding: const EdgeInsets.all(8),
                     constraints: const BoxConstraints(),
                   ),

@@ -8,7 +8,6 @@ import 'package:s_map/commons/utils/app_image.dart';
 import 'package:s_map/commons/widgets/maintenance_popup.dart';
 import 'package:s_map/commons/widgets/update_popup.dart';
 import 'package:s_map/constants/app_asset.dart';
-import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/screens/auth/login_screen.dart';
 import 'package:s_map/screens/initial/initial_screen.dart';
 import 'package:s_map/screens/main/full_image.dart';
@@ -91,7 +90,8 @@ class Routes extends NavigatorObserver {
         ),
         GoRoute(
           path: FullImageScreen.path,
-          builder: (context, state) => FullImageScreen(args: state.extra as AppImage),
+          builder: (context, state) =>
+              FullImageScreen(args: state.extra as AppImage),
         ),
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
@@ -141,10 +141,10 @@ class Routes extends NavigatorObserver {
       await routeMounted.future;
       switch (event.type) {
         case AuthStateType.unAuthenticated:
-          if(context.mounted) context.go(LoginScreen.path);
+          if (context.mounted) context.go(LoginScreen.path);
           break;
         case AuthStateType.authenticated:
-          if(context.mounted) context.go(HomeScreen.path);
+          if (context.mounted) context.go(HomeScreen.path);
           break;
         default:
           break;
@@ -152,12 +152,9 @@ class Routes extends NavigatorObserver {
     });
   }
 
-  OverlayState? get _appOverlayState =>
-      rootNavigatorKey.currentState?.overlay;
+  OverlayState? get _appOverlayState => rootNavigatorKey.currentState?.overlay;
 
   AppStyle get styles => AppStyle.of(context);
-
-  LocaleKeys get locale => LocaleKeys();
 
   OverlayEntry showLoadingOverlay() {
     OverlayEntry overlayEntry = OverlayEntry(builder: (context) {
@@ -199,7 +196,7 @@ class Routes extends NavigatorObserver {
 
   Future<void> showMaintenanceAppDialog() async {
     final res = RemoteConfigService().maintenance;
-    if(!res) return;
+    if (!res) return;
 
     final Completer removeUpdateOverlayCompleter = Completer();
     OverlayEntry overlayEntry = OverlayEntry(builder: (context) {
@@ -214,7 +211,7 @@ class Routes extends NavigatorObserver {
 
   Future<void> showUpdateAppDialog() async {
     final res = await RemoteConfigService().mustUpdate();
-    if(!res) return;
+    if (!res) return;
 
     final Completer removeUpdateOverlayCompleter = Completer();
     OverlayEntry overlayEntry = OverlayEntry(builder: (context) {

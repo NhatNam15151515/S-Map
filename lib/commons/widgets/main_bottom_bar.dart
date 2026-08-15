@@ -44,22 +44,22 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.mapPin, false),
             activeIcon: _buildNavItem(HeroIcons.mapPin, true),
-            label: locale.home,
+            label: LocaleKeys.home,
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.bookmark, false),
             activeIcon: _buildNavItem(HeroIcons.bookmark, true),
-            label: locale.location,
+            label: LocaleKeys.location,
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.bell, false),
             activeIcon: _buildNavItem(HeroIcons.bell, true),
-            label: locale.notification,
+            label: LocaleKeys.notification,
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.userCircle, false),
             activeIcon: _buildNavItem(HeroIcons.userCircle, true),
-            label: locale.account,
+            label: LocaleKeys.account,
           ),
         ],
         currentIndex: widget.navigationShell.currentIndex,

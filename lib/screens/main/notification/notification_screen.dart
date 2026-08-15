@@ -91,7 +91,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
-        title: locale.notification,
+        title: LocaleKeys.notification,
       ),
       body: Column(
         children: [
