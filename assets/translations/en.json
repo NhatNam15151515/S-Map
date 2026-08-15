@@ -16,6 +16,11 @@
   "hi": "Hi",
   "welcomeBack": "Welcome Back",
   "search": "Search",
+  "search_bar": {
+    "title": "Search places",
+    "placeholder": "Search here",
+    "voice": "Voice Search"
+  },
   "reviews": "Reviews",
   "only": "Only",
   "viewDetails": "View Details",
@@ -29,10 +34,6 @@
   "dayS": "Day(s)",
   "dateAndTime": "Date and Time",
   "location": "Location",
-  "notification": {
-    "tab_system": "System",
-    "tab_customer": "Personal"
-  },
   "checkTheMap": "Check the Map",
   "profile": "Profile",
   "helpCenter": "Help Center",
@@ -52,11 +53,32 @@
   "termAndCondition": "Term & Condition",
   "notification": "Notification",
   "playSoundWhenThereAreNewNotifications": "Play sound when there are new notifications",
+  "common": {
+    "back": "Back"
+  },
+  "category": {
+    "all": "All",
+    "food": "Food & Dining",
+    "coffee": "Coffee & Tea",
+    "hotel": "Hotels",
+    "gas": "Gas Station",
+    "atm": "ATM",
+    "hospital": "Hospital"
+  },
+  "explore": {
+    "title": "Explore nearby places",
+    "subtitle": "Trending places around you",
+    "empty": "No places found"
+  },
   "map": {
     "error_load": "Unable to load map data",
     "locate_error": "Unable to get current location",
     "location_service_disabled": "Location services (GPS) are disabled. Please enable location to continue.",
     "location_permission_denied": "Location permission is required to determine your position.",
-    "location_permission_denied_forever": "Location permission is permanently denied. Please grant permission in Settings."
+    "location_permission_denied_forever": "Location permission is permanently denied. Please grant permission in Settings.",
+    "switch_layers": "Switch map layers",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "current_location": "Current location"
   }
 }

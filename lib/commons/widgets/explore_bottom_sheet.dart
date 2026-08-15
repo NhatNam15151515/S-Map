@@ -1,15 +1,17 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/widgets/shimmers.dart';
 import 'package:s_map/models/place_model.dart';
 
-class HomeExploreBottomSheet extends StatelessWidget {
+class ExploreBottomSheet extends StatelessWidget {
   final DraggableScrollableController controller;
   final List<PlaceModel>? places;
   final bool isLoading;
   final ValueChanged<PlaceModel>? onPlaceTap;
 
-  const HomeExploreBottomSheet({
+  const ExploreBottomSheet({
     super.key,
     required this.controller,
     this.places,
@@ -21,11 +23,11 @@ class HomeExploreBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       controller: controller,
-      initialChildSize: 0.24,
+      initialChildSize: 0.14,
       minChildSize: 0.14,
-      maxChildSize: 0.75,
+      maxChildSize: 0.85,
       snap: true,
-      snapSizes: const [0.14, 0.24, 0.5, 0.75],
+      snapSizes: const [0.14, 0.40, 0.85],
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -36,9 +38,9 @@ class HomeExploreBottomSheet extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.15),
-                blurRadius: 15,
-                offset: Offset(0, -2),
+                color: Color.fromRGBO(0, 0, 0, 0.12),
+                blurRadius: 16,
+                offset: Offset(0, -3),
               ),
             ],
           ),
@@ -73,15 +75,15 @@ class HomeExploreBottomSheet extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Khám phá khu vực lân cận",
+                                  tr('explore.title'),
                                   style: AppColors.googleDarkText.textTheme.subTitleStyle.copyWith(
                                     fontSize: 17,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: AppFontWeight.bold.weight,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  "Các địa điểm thịnh hành xung quanh bạn",
+                                  tr('explore.subtitle'),
                                   style: AppColors.onSurfaceVariant.textTheme.captionStyle,
                                 ),
                               ],
@@ -103,72 +105,35 @@ class HomeExploreBottomSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Shortcuts
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          _buildShortcut(Icons.directions_rounded, "Chỉ đường", AppColors.googleBlue, () {}),
-                          _buildShortcut(Icons.bookmark_border_rounded, "Đã lưu", AppColors.sMapTeal, () {}),
-                          _buildShortcut(Icons.share_location_rounded, "Chia sẻ", AppColors.googleGreen, () {}),
-                          _buildShortcut(Icons.add_location_alt_rounded, "Thêm vị trí", AppColors.constructionZone, () {}),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Divider(height: 1),
-                    const SizedBox(height: 16),
-
-                    // Popular Places Title
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        "Địa điểm nổi bật",
-                        style: AppColors.googleDarkText.textTheme.subTitleStyle.copyWith(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
                   ],
                 ),
               ),
 
-              // Slivers for Dynamic Places
+              // Content Body
               if (isLoading)
                 const SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.sMapTeal,
-                        strokeWidth: 2.5,
-                      ),
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: DefaultListingShimmer(),
                   ),
                 )
               else if (places == null || places!.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                    padding: const EdgeInsets.all(32),
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_off_rounded,
                             size: 40,
-                            color: AppColors.outlineVariant,
+                            color: AppColors.onSurfaceVariant.withAlpha(120),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Text(
-                            "Chưa có địa điểm nào trong khu vực này",
-                            style: AppColors.onSurfaceVariant.textTheme.captionStyle.copyWith(
-                              fontSize: 13,
-                            ),
-                            textAlign: TextAlign.center,
+                            tr('explore.empty'),
+                            style: AppColors.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 14),
                           ),
                         ],
                       ),
@@ -180,63 +145,23 @@ class HomeExploreBottomSheet extends StatelessWidget {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final place = places![index];
-                      return _buildPlaceItem(
-                        place: place,
-                        onTap: () => onPlaceTap?.call(place),
+                      return RepaintBoundary(
+                        child: _buildPlaceItem(
+                          place: place,
+                          onTap: () => onPlaceTap?.call(place),
+                        ),
                       );
                     },
                     childCount: places!.length,
                   ),
                 ),
-
-              // Bottom spacing for floating navigation bar
               const SliverToBoxAdapter(
-                child: SizedBox(height: 110),
+                child: SizedBox(height: 40),
               ),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildShortcut(IconData icon, String label, Color color, VoidCallback onTap) {
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(20),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 22),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.googleDarkText,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -275,10 +200,9 @@ class HomeExploreBottomSheet extends StatelessWidget {
                     children: [
                       Text(
                         place.title,
-                        style: const TextStyle(
+                        style: AppColors.googleDarkText.textTheme.textStyle.copyWith(
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.googleDarkText,
+                          fontWeight: AppFontWeight.semiBold.weight,
                         ),
                       ),
                       if (place.subtitle != null && place.subtitle!.isNotEmpty) ...[

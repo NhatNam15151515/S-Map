@@ -16,6 +16,11 @@
   "hi": "Chào bạn",
   "welcomeBack": "Chào mừng trở lại",
   "search": "Tìm kiếm",
+  "search_bar": {
+    "title": "Thanh tìm kiếm địa điểm",
+    "placeholder": "Tìm kiếm ở đây",
+    "voice": "Tìm kiếm bằng giọng nói"
+  },
   "reviews": "Đánh giá",
   "only": "Chỉ",
   "viewDetails": "Xem chi tiết",
@@ -48,11 +53,32 @@
   "termAndCondition": "Điều khoản sử dụng",
   "notification": "Thông báo",
   "playSoundWhenThereAreNewNotifications": "Phát âm thanh khi có thông báo",
+  "common": {
+    "back": "Quay lại"
+  },
+  "category": {
+    "all": "Tất cả",
+    "food": "Ăn uống",
+    "coffee": "Cà phê",
+    "hotel": "Khách sạn",
+    "gas": "Cây xăng",
+    "atm": "ATM",
+    "hospital": "Bệnh viện"
+  },
+  "explore": {
+    "title": "Khám phá khu vực lân cận",
+    "subtitle": "Các địa điểm thịnh hành xung quanh bạn",
+    "empty": "Không tìm thấy địa điểm nào"
+  },
   "map": {
     "error_load": "Không thể tải dữ liệu bản đồ",
     "locate_error": "Không thể xác định vị trí hiện tại",
     "location_service_disabled": "Dịch vụ định vị (GPS) đang tắt. Vui lòng bật định vị để tiếp tục.",
     "location_permission_denied": "Ứng dụng cần quyền truy cập vị trí để định vị.",
-    "location_permission_denied_forever": "Quyền vị trí bị từ chối vĩnh viễn. Vui lòng cấp quyền trong Cài đặt."
+    "location_permission_denied_forever": "Quyền vị trí bị từ chối vĩnh viễn. Vui lòng cấp quyền trong Cài đặt.",
+    "switch_layers": "Chuyển đổi lớp bản đồ",
+    "zoom_in": "Phóng to",
+    "zoom_out": "Thu nhỏ",
+    "current_location": "Vị trí hiện tại"
   }
 }
