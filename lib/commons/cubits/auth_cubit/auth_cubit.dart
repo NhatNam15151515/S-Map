@@ -63,6 +63,24 @@ class AuthCubit extends Cubit<AuthState> {
     await onAuthenticated(user);
   }
 
+  Future<bool> signInWithGoogle() async {
+    emit(const LoadingAuth());
+    try {
+      final user = await _authRepos.signInWithGoogle();
+      if (user != null) {
+        await onLoggedIn(user);
+        return true;
+      } else {
+        emit(const UnAuthenticated());
+        return false;
+      }
+    } catch (e) {
+      DLog.error('Lỗi đăng nhập Google: $e');
+      emit(const UnAuthenticated());
+      return false;
+    }
+  }
+
   Future<void> updateProfile(User user) async {
     await AppSecureStorage.saveProfile(user);
     emit(Authenticated(user));

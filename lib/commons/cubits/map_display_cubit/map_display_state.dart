@@ -33,6 +33,7 @@ class MapCameraAction extends Equatable {
 
 class MapDisplayState extends Equatable {
   final MapDisplayStatus status;
+  final String styleString;
   final String? errorMessageKey;
   final LatLng? currentPosition;
   final LatLng? center;
@@ -45,6 +46,7 @@ class MapDisplayState extends Equatable {
 
   const MapDisplayState({
     required this.status,
+    this.styleString = '',
     this.errorMessageKey,
     this.currentPosition,
     this.center,
@@ -58,6 +60,7 @@ class MapDisplayState extends Equatable {
 
   MapDisplayState copyWith({
     MapDisplayStatus? status,
+    String? styleString,
     String? errorMessageKey,
     bool clearError = false,
     LatLng? currentPosition,
@@ -72,6 +75,7 @@ class MapDisplayState extends Equatable {
   }) {
     return MapDisplayState(
       status: status ?? this.status,
+      styleString: styleString ?? this.styleString,
       errorMessageKey:
           clearError ? null : (errorMessageKey ?? this.errorMessageKey),
       currentPosition: currentPosition ?? this.currentPosition,
@@ -89,6 +93,7 @@ class MapDisplayState extends Equatable {
   @override
   List<Object?> get props => [
         status,
+        styleString,
         errorMessageKey,
         currentPosition,
         center,

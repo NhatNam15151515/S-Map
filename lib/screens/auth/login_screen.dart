@@ -1,14 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
 import 'package:s_map/commons/mixin/app_mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/validators/validator.dart';
-import 'package:s_map/commons/widgets/app_text_field.dart';
-import 'package:s_map/constants/app_asset.dart';
-import 'package:s_map/models/user.dart';
-import 'package:flutter/material.dart';
-
-import 'package:s_map/services/firebase_auth_service.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/constants/constants.dart';
+import 'package:s_map/models/models.dart';
 
 class LoginScreen extends StatefulWidget {
   static const String path = '/LoginScreen';
@@ -43,9 +41,9 @@ class _LoginScreenState extends State<LoginScreen> with AppMixin {
     });
 
     try {
-      final user = await FirebaseAuthService.instance.signInWithGoogle();
-      if (user != null) {
-        authCubit.onLoggedIn(user);
+      final success = await authCubit.signInWithGoogle();
+      if (!success && mounted) {
+        showError("Đăng nhập Google không thành công");
       }
     } catch (e) {
       showError("Đăng nhập Google thất bại: $e");

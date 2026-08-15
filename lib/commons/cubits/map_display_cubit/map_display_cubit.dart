@@ -21,9 +21,13 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
   MapDisplayCubit({
     ILocationService? locationService,
     ICompassService? compassService,
+    IMapStyleService? mapStyleService,
   })  : _locationService = locationService ?? LocationService.instance,
         _compassService = compassService ?? CompassService.instance,
-        super(const MapDisplayState(status: MapDisplayStatus.initial));
+        super(MapDisplayState(
+          status: MapDisplayStatus.initial,
+          styleString: (mapStyleService ?? MapStyleService.instance).styleJson,
+        ));
 
   /// Safe emit guard rule mandatory for all Cubits/Blocs
   @override

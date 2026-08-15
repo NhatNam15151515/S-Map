@@ -1,10 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:s_map/constants/map_constants.dart';
-import 'package:s_map/services/map_style_service.dart';
+import 'package:s_map/constants/constants.dart';
 
 class MapView extends StatelessWidget {
+  final String styleString;
   final MapCreatedCallback onMapCreated;
   final VoidCallback onStyleLoadedCallback;
   final VoidCallback? onCameraTrackingDismissed;
@@ -13,6 +13,7 @@ class MapView extends StatelessWidget {
 
   const MapView({
     super.key,
+    required this.styleString,
     required this.onMapCreated,
     required this.onStyleLoadedCallback,
     this.onCameraTrackingDismissed,
@@ -23,7 +24,7 @@ class MapView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MapLibreMap(
-      styleString: MapStyleService.instance.styleJson,
+      styleString: styleString,
       initialCameraPosition: const CameraPosition(
         target: MapConstants.defaultLocation,
         zoom: MapConstants.defaultZoom,

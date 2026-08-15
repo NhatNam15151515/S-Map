@@ -16,6 +16,11 @@ class AuthReposImpl implements IAuthRepos {
   }
 
   @override
+  Future<User?> signInWithGoogle() async {
+    return await FirebaseAuthService.instance.signInWithGoogle();
+  }
+
+  @override
   Future<User?> getProfile() async {
     return User(
       username: "Người dùng S-Map",

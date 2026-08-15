@@ -128,6 +128,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> with AppMixin {
               return Stack(
                 children: [
                   MapView(
+                    styleString: state.styleString,
                     onMapCreated: (controller) {
                       _mapController = controller;
                       displayCubit.onMapCreated();

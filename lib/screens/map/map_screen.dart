@@ -98,6 +98,7 @@ class _MyMapScreenContentState extends State<_MyMapScreenContent> with AppMixin 
               return Stack(
                 children: [
                   MapView(
+                    styleString: state.styleString,
                     onMapCreated: (controller) {
                       _mapController = controller;
                       displayCubit.onMapCreated();
