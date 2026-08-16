@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,9 +30,11 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   MapLibreMapController? _mapController;
   final MapSymbolManager _symbolManager = MapSymbolManager();
   final MapCameraController _cameraController = MapCameraController();
+  final MapRouteManager _routeManager = MapRouteManager();
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
+  RoutePreviewCubit get routePreviewCubit => context.read<RoutePreviewCubit>();
 
   /// Kích hoạt tìm kiếm theo danh mục trong khung nhìn hiện tại (đồng bộ từ UI)
   void searchByCategory(String category) {
@@ -90,6 +93,11 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     _symbolManager.showSearchResults(_mapController, pois);
   }
 
+  /// Chuyển tiếp sự kiện chạm giữ (Long Press) trên bản đồ trực tiếp sang Cubit
+  void _onMapLongClick(Point<double> point, LatLng latLng) {
+    routePreviewCubit.previewRouteToCoordinate(latLng);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
@@ -124,6 +132,33 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
             }
           },
         ),
+        BlocListener<RoutePreviewCubit, RoutePreviewState>(
+          listenWhen: (prev, curr) =>
+              prev.status != curr.status ||
+              prev.routeResult != curr.routeResult,
+          listener: (context, state) {
+            if (state.isSuccess && state.routeResult != null) {
+              _routeManager.drawRoute(
+                controller: _mapController,
+                routeResult: state.routeResult!,
+                origin: state.origin!,
+                destination: state.destination!,
+                destinationName: state.destinationName,
+              );
+              _routeManager.fitRouteBounds(
+                controller: _mapController,
+                routeResult: state.routeResult!,
+                origin: state.origin,
+                destination: state.destination,
+              );
+            } else if (state.isInitial) {
+              _routeManager.clearRoute(_mapController);
+            } else if (state.isError && state.errorMessageKey != null) {
+              _routeManager.clearRoute(_mapController);
+              showError(tr(state.errorMessageKey!));
+            }
+          },
+        ),
       ],
       child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
         buildWhen: (prev, curr) =>
@@ -145,12 +180,14 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 },
                 onStyleLoadedCallback: () {
                   _symbolManager.loadMarkerAssets(_mapController);
+                  _routeManager.loadMarkerAssets(_mapController);
                   displayCubit.onStyleLoaded();
                 },
                 onCameraTrackingDismissed:
                     displayCubit.onCameraTrackingDismissed,
                 onCameraMove: displayCubit.onCameraMove,
                 onCameraIdle: _onCameraIdle,
+                onMapLongClick: _onMapLongClick,
               ),
               if (state.status == MapDisplayStatus.loading)
                 const Positioned.fill(
@@ -162,7 +199,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 MapErrorOverlay(
                   errorMessage: state.errorMessageKey != null
                       ? tr(state.errorMessageKey!)
-                      : tr('map.error_load'),
+                      : tr(LocaleKeys.map_error_load),
                   onRetry: displayCubit.locateMe,
                 ),
             ],

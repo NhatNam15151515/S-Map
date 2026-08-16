@@ -159,6 +159,15 @@ class CodegenLoader extends AssetLoader{
     "zoom_in": "Zoom in",
     "zoom_out": "Zoom out",
     "current_location": "Current location"
+  },
+  "routing": {
+    "calculating_moped_route": "Calculating motorcycle route...",
+    "start_navigation": "Start",
+    "destination_fallback": "Destination",
+    "my_location": "Your location",
+    "selected_point": "Selected point",
+    "error_generic": "Could not find a valid route",
+    "feature_under_development": "Turn-by-turn navigation is coming soon"
   }
 };
 static const Map<String,dynamic> _vi = {
@@ -306,6 +315,15 @@ static const Map<String,dynamic> _vi = {
     "zoom_in": "Phóng to",
     "zoom_out": "Thu nhỏ",
     "current_location": "Vị trí hiện tại"
+  },
+  "routing": {
+    "calculating_moped_route": "Đang tính toán lộ trình xe máy...",
+    "start_navigation": "Bắt đầu",
+    "destination_fallback": "Điểm đến",
+    "my_location": "Vị trí của bạn",
+    "selected_point": "Điểm đã chọn",
+    "error_generic": "Không thể tìm thấy lộ trình phù hợp",
+    "feature_under_development": "Tính năng điều hướng đang được cập nhật"
   }
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};

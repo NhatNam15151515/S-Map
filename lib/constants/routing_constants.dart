@@ -28,4 +28,19 @@ class RoutingConstants {
   static const String errNoRouteFound = 'No valid route found between given coordinates';
   static const String errInvalidCoordinates = 'Invalid coordinates provided';
   static const String errPlatformChannel = 'Platform channel communication error';
+
+  // Polyline & Route Display Constants
+  static const double routeCasingLineWidth = 7.0;
+  static const double routeMainLineWidth = 5.0;
+  static const double routeCasingOpacity = 0.85;
+  static const double routeMainOpacity = 1.0;
+  static const String routeLineJoin = 'round';
+  static const String markerImageKey = 'red_marker';
+
+  static const double routeFitPaddingLeft = 48.0;
+  static const double routeFitPaddingTop = 120.0;
+  static const double routeFitPaddingRight = 48.0;
+  static const double routeFitPaddingBottom = 240.0;
+  static const double minDistanceForFitBoundsKm = 0.05;
+  static const double closeDistanceZoomLevel = 16.0;
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final MapDisplayCubit _mapCubit;
   late final MapExploreCubit _exploreCubit;
   late final ViewportSearchBloc _viewportBloc;
+  late final RoutePreviewCubit _routePreviewCubit;
 
   @override
   void initState() {
@@ -22,6 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _mapCubit = MapDisplayCubit();
     _exploreCubit = MapExploreCubit()..watchExplorePlaces();
     _viewportBloc = ViewportSearchBloc();
+    _routePreviewCubit = RoutePreviewCubit(
+      routingRepository: AppReposProvider.instance.routingRepos,
+    );
   }
 
   @override
@@ -29,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _mapCubit.close();
     _exploreCubit.close();
     _viewportBloc.close();
+    _routePreviewCubit.close();
     super.dispose();
   }
 
@@ -39,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
         BlocProvider.value(value: _mapCubit),
         BlocProvider.value(value: _exploreCubit),
         BlocProvider.value(value: _viewportBloc),
+        BlocProvider.value(value: _routePreviewCubit),
       ],
       child: const HomeScreenContent(),
     );
