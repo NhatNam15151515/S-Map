@@ -1,10 +1,15 @@
 package com.vnsmap.app.routing.factory
 
+import android.util.Log
 import com.graphhopper.GHRequest
 import com.graphhopper.GHResponse
 import com.graphhopper.GraphHopper
 import com.graphhopper.GraphHopperConfig
 import com.graphhopper.ResponsePath
+import com.graphhopper.config.CHProfile
+import com.graphhopper.config.Profile
+import com.graphhopper.jackson.Jackson
+import com.graphhopper.util.CustomModel
 import com.graphhopper.util.Instruction
 import com.graphhopper.util.Translation
 import com.graphhopper.util.TranslationMap
@@ -16,22 +21,189 @@ import java.io.File
 
 class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
 
+    companion object {
+        private const val TAG = "GraphHopperFactory"
+
+        private val CUSTOM_MODEL_JSON = """
+        {
+          "priority": [
+            {
+              "if": "road_class == MOTORWAY || road_class == STEPS || road_class == FOOTWAY || road_class == PEDESTRIAN || road_class == CYCLEWAY",
+              "multiply_by": 0.0
+            },
+            {
+              "else_if": "road_class == TRUNK && max_speed > 60",
+              "multiply_by": 0.0
+            },
+            {
+              "else_if": "road_class == TRUNK",
+              "multiply_by": 0.4
+            },
+            {
+              "else_if": "road_class == PRIMARY",
+              "multiply_by": 0.7
+            },
+            {
+              "else_if": "road_class == SECONDARY",
+              "multiply_by": 0.9
+            },
+            {
+              "else_if": "road_class == TERTIARY || road_class == RESIDENTIAL",
+              "multiply_by": 1.0
+            },
+            {
+              "else_if": "road_class == LIVING_STREET",
+              "multiply_by": 0.9
+            },
+            {
+              "else_if": "road_class == SERVICE",
+              "multiply_by": 0.9
+            },
+            {
+              "else_if": "road_class == UNCLASSIFIED",
+              "multiply_by": 0.7
+            },
+            {
+              "else_if": "road_class == TRACK",
+              "multiply_by": 0.3
+            },
+            {
+              "if": "road_access == PRIVATE || road_access == NO",
+              "multiply_by": 0.0
+            },
+            {
+              "if": "road_access == DESTINATION || road_access == DELIVERY",
+              "multiply_by": 0.1
+            },
+            {
+              "if": "road_environment == FERRY",
+              "multiply_by": 0.0
+            },
+            {
+              "if": "road_environment == TUNNEL",
+              "multiply_by": 0.3
+            },
+            {
+              "if": "lanes > 4 && road_class == TRUNK",
+              "multiply_by": 0.0
+            },
+            {
+              "if": "lanes > 4 && road_class == PRIMARY",
+              "multiply_by": 0.3
+            },
+            {
+              "if": "surface == DIRT || surface == SAND",
+              "multiply_by": 0.3
+            },
+            {
+              "else_if": "surface == GRAVEL",
+              "multiply_by": 0.5
+            },
+            {
+              "if": "toll == ALL || toll == HGV",
+              "multiply_by": 0.1
+            }
+          ],
+          "speed": [
+            {
+              "if": "road_class == TRUNK",
+              "limit_to": 50
+            },
+            {
+              "else_if": "road_class == PRIMARY",
+              "limit_to": 40
+            },
+            {
+              "else_if": "road_class == SECONDARY",
+              "limit_to": 40
+            },
+            {
+              "else_if": "road_class == TERTIARY",
+              "limit_to": 35
+            },
+            {
+              "else_if": "road_class == RESIDENTIAL",
+              "limit_to": 30
+            },
+            {
+              "else_if": "road_class == LIVING_STREET || road_class == SERVICE",
+              "limit_to": 20
+            },
+            {
+              "else_if": "road_class == UNCLASSIFIED",
+              "limit_to": 25
+            },
+            {
+              "else_if": "road_class == TRACK",
+              "limit_to": 15
+            },
+            {
+              "if": "surface == SAND",
+              "limit_to": 10
+            },
+            {
+              "else_if": "surface == GRAVEL || surface == DIRT",
+              "limit_to": 15
+            }
+          ],
+          "distance_influence": 50
+        }
+        """.trimIndent()
+    }
+
     override fun createAndLoad(graphDirectory: File): IGraphHopperEngine {
+        Log.i(TAG, "Loading GraphHopper from directory: ${graphDirectory.absolutePath}")
+
         val config = GraphHopperConfig().apply {
             putObject(RoutingConstants.CONFIG_GRAPH_DATAACCESS, RoutingConstants.STORAGE_DAT_MMAP)
             putObject(RoutingConstants.CONFIG_GRAPH_LOCATION, graphDirectory.absolutePath)
             putObject(RoutingConstants.CONFIG_DATAREADER_FILE, "")
             putObject(RoutingConstants.CONFIG_IMPORT_OSM_IGNORED_HIGHWAYS, "")
+            putObject("graph.encoded_values", "road_class,road_environment,road_access,surface,toll,max_speed,lanes,country")
+            setProfiles(listOf(
+                Profile("moped_vn")
+                    .setVehicle("car")
+                    .setWeighting("custom")
+                    .setCustomModel(CustomModel().apply { distanceInfluence = null })
+            ))
+            setCHProfiles(listOf(
+                CHProfile("moped_vn")
+            ))
         }
 
-        val hopper = GraphHopper().init(config)
-        if (!hopper.load()) {
+        val hopper = object : GraphHopper() {
+            override fun createWeightingFactory(): com.graphhopper.routing.WeightingFactory {
+                return com.graphhopper.routing.WeightingFactory { profile, _, _ ->
+                    val accessEnc = encodingManager.getBooleanEncodedValue(
+                        com.graphhopper.routing.ev.VehicleAccess.key(profile.vehicle)
+                    )
+                    val avSpeedEnc = encodingManager.getDecimalEncodedValue(
+                        com.graphhopper.routing.ev.VehicleSpeed.key(profile.vehicle)
+                    )
+                    com.graphhopper.routing.weighting.FastestWeighting(accessEnc, avSpeedEnc)
+                }
+            }
+        }.init(config)
+        val loadSuccess = try {
+            hopper.load()
+        } catch (e: Exception) {
+            Log.e(TAG, "hopper.load() threw exception: ${e.message}", e)
+            println("❌ [GraphHopper Native Error] ${e.javaClass.simpleName}: ${e.message}")
+            e.printStackTrace()
+            try { hopper.close() } catch (_: Exception) {}
+            throw e
+        }
+
+        if (!loadSuccess) {
             try {
                 hopper.close()
             } catch (_: Exception) {}
+            Log.e(TAG, "hopper.load() returned false for ${graphDirectory.absolutePath}")
+            println("❌ [GraphHopper Native Error] hopper.load() returned false for ${graphDirectory.absolutePath}")
             throw IllegalStateException("${RoutingConstants.ERR_GRAPH_DATA_INCOMPLETE} at ${graphDirectory.absolutePath}")
         }
 
+        Log.i(TAG, "GraphHopper successfully loaded from ${graphDirectory.absolutePath}!")
         return GraphHopperEngineWrapper(hopper)
     }
 

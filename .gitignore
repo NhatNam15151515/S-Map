@@ -52,6 +52,8 @@ output_pmtiles/
 graph-cache/
 data-pipeline/data/
 data-pipeline/tools/
+data-pipeline/*.jar
+*.jar
 data/*.db
 data/*.zip
 

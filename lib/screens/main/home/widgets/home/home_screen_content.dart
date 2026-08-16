@@ -1,9 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
@@ -67,6 +67,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
   void _handleDirections() {
     if (_selectedMarkerPoi != null) {
       final poi = _selectedMarkerPoi!;
+      DLog.info('🧭 [HomeScreen] "Chỉ đường" tapped for POI: "${poi.name}" (${poi.lat}, ${poi.lon})');
       _mapLayerKey.currentState?.clearSelectedPoiMarker();
       displayCubit.clearSelectedPoi();
       setState(() => _selectedMarkerPoi = null);
@@ -89,8 +90,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
               HomeInteractiveMapLayer(
                 key: _mapLayerKey,
                 onPoiTapped: (poi) {
-                  _mapLayerKey.currentState?.setSelectedPoiMarker(poi);
-                  setState(() => _selectedMarkerPoi = poi);
+                  _handlePoiSelected(poi);
                 },
                 onSearchAreaVisibilityChanged: (show) {
                   if (mounted && !isRouteActive) {
@@ -124,14 +124,15 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                   selectedMarkerPoi: _selectedMarkerPoi,
                   onPlaceTap: (place) {
                     if (place.latitude != null && place.longitude != null) {
-                      _mapLayerKey.currentState?.handleCameraAction(
-                        MapCameraAction(
-                          type: MapCameraActionType.animateToPosition,
-                          target: LatLng(place.latitude!, place.longitude!),
-                          zoom: 16.0,
-                          timestamp: DateTime.now().microsecondsSinceEpoch,
-                        ),
+                      final poi = PoiModel(
+                        id: place.id?.hashCode ?? DateTime.now().millisecondsSinceEpoch,
+                        name: place.name ?? '',
+                        nameAscii: '',
+                        lat: place.latitude!,
+                        lon: place.longitude!,
+                        category: place.category,
                       );
+                      _handlePoiSelected(poi);
                     }
                   },
                   onClosePoiCard: () {
@@ -153,9 +154,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                     top: false,
                     child: RoutePreviewBottomSheet(
                       onClose: () {
+                        DLog.info('❌ [HomeScreen] Close Route Preview tapped');
                         routePreviewCubit.clearRoute();
                       },
                       onStartNavigation: () {
+                        DLog.info('🚀 [HomeScreen] "Bắt đầu" Navigation tapped');
                         showInfo(tr(LocaleKeys.routing_feature_under_development));
                       },
                     ),

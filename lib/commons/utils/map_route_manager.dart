@@ -22,8 +22,9 @@ class MapRouteManager {
       final bytes = byteData.buffer.asUint8List();
       await controller.addImage(RoutingConstants.markerImageKey, bytes);
       _isAssetLoaded = true;
+      DLog.info('🗺️ [MapRouteManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine');
     } catch (e, stack) {
-      DLog.warning('Failed to load marker asset in MapRouteManager: $e', stack);
+      DLog.warning('⚠️ [MapRouteManager] Failed to load marker asset: $e', stack);
     }
   }
 
@@ -76,6 +77,8 @@ class MapRouteManager {
     final latLngs = parseRoutePoints(routeResult.points);
     if (latLngs.isEmpty) return;
 
+    DLog.info('🗺️ [MapRouteManager] Drawing route on map [Gen #$generation]: ${latLngs.length} points | Destination: "$destinationName"');
+
     try {
       await loadMarkerAssets(controller);
       if (generation != _renderGeneration) return;
@@ -124,6 +127,7 @@ class MapRouteManager {
       );
 
       if (generation != _renderGeneration) {
+        DLog.info('⏭️ [MapRouteManager] Discarding stale drawn route objects (Current #$_renderGeneration vs #$generation)');
         await _removeOrphan(controller, line: casingLine);
         await _removeOrphan(controller, line: mainLine);
         await _removeOrphan(controller, symbol: destSymbol);
@@ -133,8 +137,9 @@ class MapRouteManager {
       _routeCasingLine = casingLine;
       _routeLine = mainLine;
       _destinationSymbol = destSymbol;
+      DLog.info('✅ [MapRouteManager] Route line & destination marker drawn successfully on map');
     } catch (e, stack) {
-      DLog.error('Error drawing route in MapRouteManager: $e', stack);
+      DLog.error('❌ [MapRouteManager] Error drawing route on map: $e', stack);
     }
   }
 
@@ -159,6 +164,7 @@ class MapRouteManager {
         destination.lon,
       );
       if (distKm < RoutingConstants.minDistanceForFitBoundsKm) {
+        DLog.info('🎥 [MapRouteManager] Points very close (${(distKm * 1000).round()}m) -> Zooming to 16.0');
         controller.animateCamera(
           CameraUpdate.newLatLngZoom(
             LatLng(destination.lat, destination.lon),
@@ -171,6 +177,7 @@ class MapRouteManager {
 
     final bounds = calculateRouteBounds(latLngs);
     if (bounds != null) {
+      DLog.info('🎥 [MapRouteManager] Animating camera to fit bounds: SW(${bounds.southwest.latitude.toStringAsFixed(4)}, ${bounds.southwest.longitude.toStringAsFixed(4)}) -> NE(${bounds.northeast.latitude.toStringAsFixed(4)}, ${bounds.northeast.longitude.toStringAsFixed(4)})');
       controller.animateCamera(
         CameraUpdate.newLatLngBounds(
           bounds,
@@ -185,6 +192,7 @@ class MapRouteManager {
 
   /// Xóa toàn bộ đường đi và marker lộ trình
   Future<void> clearRoute(MapLibreMapController? controller) async {
+    DLog.info('🧹 [MapRouteManager] Clearing route lines & markers from map');
     _renderGeneration++;
     await _clearLinesAndSymbols(controller);
   }
@@ -199,14 +207,14 @@ class MapRouteManager {
       try {
         await controller.removeLine(line);
       } catch (e) {
-        DLog.warning('Failed to remove orphan line in MapRouteManager: $e');
+        DLog.warning('⚠️ [MapRouteManager] Failed to remove orphan line: $e');
       }
     }
     if (symbol != null) {
       try {
         await controller.removeSymbol(symbol);
       } catch (e) {
-        DLog.warning('Failed to remove orphan symbol in MapRouteManager: $e');
+        DLog.warning('⚠️ [MapRouteManager] Failed to remove orphan symbol: $e');
       }
     }
   }
@@ -218,7 +226,7 @@ class MapRouteManager {
       try {
         await controller.removeLine(_routeLine!);
       } catch (e) {
-        DLog.warning('Failed to remove _routeLine in MapRouteManager: $e');
+        DLog.warning('⚠️ [MapRouteManager] Failed to remove _routeLine: $e');
       }
       _routeLine = null;
     }
@@ -227,7 +235,7 @@ class MapRouteManager {
       try {
         await controller.removeLine(_routeCasingLine!);
       } catch (e) {
-        DLog.warning('Failed to remove _routeCasingLine in MapRouteManager: $e');
+        DLog.warning('⚠️ [MapRouteManager] Failed to remove _routeCasingLine: $e');
       }
       _routeCasingLine = null;
     }
@@ -236,7 +244,7 @@ class MapRouteManager {
       try {
         await controller.removeSymbol(_destinationSymbol!);
       } catch (e) {
-        DLog.warning('Failed to remove _destinationSymbol in MapRouteManager: $e');
+        DLog.warning('⚠️ [MapRouteManager] Failed to remove _destinationSymbol: $e');
       }
       _destinationSymbol = null;
     }

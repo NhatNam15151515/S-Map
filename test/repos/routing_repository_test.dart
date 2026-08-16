@@ -93,7 +93,7 @@ void main() {
   late RoutingRepositoryImpl repository;
 
   setUp(() {
-    mockService = MockRoutingService();
+    mockService = MockRoutingService()..readyState = true;
     repository = RoutingRepositoryImpl(routingService: mockService);
   });
 
@@ -154,6 +154,7 @@ void main() {
     });
 
     test('isEngineReady and dispose lifecycle operations', () async {
+      mockService.readyState = false;
       expect(await repository.isEngineReady(), isFalse);
       await repository.initializeEngine('/path.ghz');
       expect(await repository.isEngineReady(), isTrue);
@@ -162,6 +163,21 @@ void main() {
       expect(disposed, isTrue);
       expect(mockService.disposeCalled, isTrue);
       expect(await repository.isEngineReady(), isFalse);
+    });
+
+    test('calculateRoute fallback generates valid route when engine is uninitialized', () async {
+      mockService.readyState = false;
+      final fallbackResult = await repository.calculateRoute(
+        fromLat: 10.7844,
+        fromLon: 106.6456,
+        toLat: 10.7705,
+        toLon: 106.6656,
+      );
+
+      expect(fallbackResult.isSuccess, isTrue);
+      expect(fallbackResult.points.isNotEmpty, isTrue);
+      expect(fallbackResult.distance, greaterThan(0));
+      expect(fallbackResult.time, greaterThan(0));
     });
 
     test('Acceptance Criteria: 20 consecutive route requests execution benchmark', () async {

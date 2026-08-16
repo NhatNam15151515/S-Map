@@ -1,5 +1,6 @@
 package com.vnsmap.app.routing
 
+import android.util.Log
 import com.vnsmap.app.routing.engine.IGraphHopperEngine
 import com.vnsmap.app.routing.factory.DefaultGraphHopperEngineFactory
 import com.vnsmap.app.routing.factory.IGraphHopperEngineFactory
@@ -23,6 +24,7 @@ class GraphHopperService(
     private val rwLock = ReentrantReadWriteLock()
 
     companion object {
+        private const val TAG = "GraphHopperService"
         val instance: GraphHopperService by lazy { GraphHopperService() }
     }
 
@@ -34,6 +36,7 @@ class GraphHopperService(
         disposeInternal()
 
         return try {
+            Log.i(TAG, "Initializing GraphHopper from location: ${graphLocation.absolutePath}")
             val targetDir: File = if (graphLocation.isFile && graphLocation.name.endsWith(RoutingConstants.GHZ_EXTENSION, ignoreCase = true)) {
                 val extractedDir = File(
                     graphLocation.parentFile ?: File("."),
@@ -45,6 +48,7 @@ class GraphHopperService(
                     overwrite = false
                 )
                 if (!extractSuccess) {
+                    Log.e(TAG, "Failed to extract .ghz archive to ${extractedDir.absolutePath}")
                     return false
                 }
                 extractedDir
@@ -53,13 +57,16 @@ class GraphHopperService(
             }
 
             if (!targetDir.exists() || !targetDir.isDirectory) {
+                Log.e(TAG, "Target directory does not exist or is not a directory: ${targetDir.absolutePath}")
                 return false
             }
 
             engineInstance = engineFactory.createAndLoad(targetDir)
             initialized = true
+            Log.i(TAG, "GraphHopper successfully initialized!")
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "GraphHopper init failed: ${e.message}", e)
             disposeInternal()
             false
         }

@@ -1,14 +1,19 @@
 package com.vnsmap.app.routing
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.Closeable
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class RoutingMethodChannelHandler(
+    private val context: Context? = null,
     private val routingService: IGraphHopperService = GraphHopperService.instance,
     private val backgroundExecutor: ExecutorService = Executors.newSingleThreadExecutor(),
     private val resultPoster: (Runnable) -> Unit = { runnable ->
@@ -66,9 +71,35 @@ class RoutingMethodChannelHandler(
 
         backgroundExecutor.execute {
             try {
-                val success = routingService.init(graphPath)
+                var resolvedPath = graphPath
+                if (context != null && (graphPath.startsWith("assets/") || graphPath.startsWith("asset:"))) {
+                    val cleanAssetPath = graphPath.removePrefix("asset:").removePrefix("/")
+                    val flutterAssetPath = "flutter_assets/$cleanAssetPath"
+                    val targetFile = File(context.filesDir, File(cleanAssetPath).name)
+
+                    if (!targetFile.exists() || targetFile.length() == 0L) {
+                        Log.i("RoutingChannel", "Copying graph asset from APK: $flutterAssetPath to ${targetFile.absolutePath}")
+                        context.assets.open(flutterAssetPath).use { input ->
+                            FileOutputStream(targetFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        Log.i("RoutingChannel", "Graph asset successfully copied to ${targetFile.absolutePath}")
+                    }
+                    resolvedPath = targetFile.absolutePath
+                }
+
+                val success = routingService.init(resolvedPath)
+                if (success) {
+                    println("✅ [RoutingChannel Native] GraphHopper successfully initialized with path: $resolvedPath")
+                } else {
+                    println("❌ [RoutingChannel Native] GraphHopper init returned false for path: $resolvedPath")
+                }
                 postSuccess(result, success)
             } catch (e: Exception) {
+                Log.e("RoutingChannel", "Failed to initialize GraphHopper: ${e.message}", e)
+                println("❌ [RoutingChannel Native Exception] ${e.javaClass.simpleName}: ${e.message}")
+                e.printStackTrace()
                 postError(
                     result,
                     RoutingConstants.ERR_CODE_ROUTING_FAILED,
