@@ -50,3 +50,9 @@ Domains: `style`, `color`, `typography`, `ux`, `icons`, `chart`, `landing`, `pro
   - Khi cập nhật `assets/translations/vi.json` hoặc `en.json`, BẮT BUỘC chạy sinh mã:
     `dart run easy_localization:generate -S assets/translations -O lib/generated; dart run easy_localization:generate -S assets/translations -f keys -O lib/generated -o locale_keys.g.dart`
   - Không đặt key trùng tên giữa String nguyên thủy và Map lồng nhau để tránh xung đột kiểu.
+- **Quy chuẩn Viết Test Thật - Kết Quả Thật (Authentic Testing Standards)**:
+  - TUYỆT ĐỐI CẤM viết test ảo, mock cho có hay assert kiểu `expect(true, isTrue)`.
+  - Dữ liệu test phải thực tế (GPS Việt Nam, full payload), assert sâu từng trường dữ liệu (`distance`, `duration`, `points`, `instructions`, `bbox`).
+  - Bao phủ toàn diện edge cases, null arguments, exception/fallback và đo lường benchmark hiệu năng thực tế (`iterations >= 20`, latency < 300ms).
+  - Xác thực thực tế trên cả Release APK (`assembleRelease` với R8) để đảm bảo không bị lỗi stripping reflection.
+

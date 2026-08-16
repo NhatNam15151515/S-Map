@@ -1,6 +1,21 @@
 package com.vnsmap.app.routing
 
 object RoutingConstants {
+    // MethodChannel Configurations
+    const val CHANNEL_NAME = "com.smap/routing"
+    const val METHOD_INIT_GRAPH_HOPPER = "initGraphHopper"
+    const val METHOD_GET_ROUTE = "getRoute"
+    const val METHOD_IS_INITIALIZED = "isInitialized"
+    const val METHOD_DISPOSE_GRAPH_HOPPER = "disposeGraphHopper"
+
+    // MethodChannel Arguments
+    const val ARG_GRAPH_PATH = "graphPath"
+    const val ARG_FROM_LAT = "fromLat"
+    const val ARG_FROM_LON = "fromLon"
+    const val ARG_TO_LAT = "toLat"
+    const val ARG_TO_LON = "toLon"
+    const val ARG_VEHICLE_PROFILE = "vehicleProfile"
+
     // GraphHopper Engine Configurations
     const val CONFIG_GRAPH_DATAACCESS = "graph.dataaccess"
     const val CONFIG_GRAPH_LOCATION = "graph.location"
@@ -31,7 +46,10 @@ object RoutingConstants {
     const val DEFAULT_INSTRUCTION_TEXT = "Đi thẳng"
     const val DEFAULT_LOCALE = "vi"
 
-    // Error Messages
+    // Error Messages & Codes
+    const val ERR_CODE_INVALID_ARGUMENTS = "INVALID_ARGUMENTS"
+    const val ERR_CODE_ROUTING_FAILED = "ROUTING_FAILED"
+    const val ERR_CODE_UNKNOWN_METHOD = "NOT_IMPLEMENTED"
     const val ERR_SERVICE_NOT_INITIALIZED = "Routing service has not been initialized"
     const val ERR_NO_ROUTE_FOUND = "No valid route found between given coordinates"
     const val ERR_ROUTING_PREFIX = "Routing error: "

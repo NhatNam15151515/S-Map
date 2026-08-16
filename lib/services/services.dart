@@ -13,3 +13,4 @@ export 'package_info_service.dart';
 export 'poi_database_service.dart';
 export 'recent_search_service.dart';
 export 'remote_config_service.dart';
+export 'routing_service.dart';
