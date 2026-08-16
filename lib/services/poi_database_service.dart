@@ -10,6 +10,7 @@ typedef PoiDatabaseService = IPoiDatabaseService;
 
 class PoiDatabaseServiceImpl implements IPoiDatabaseService {
   Database? _db;
+  Future<Database>? _openFuture;
   final DatabaseFactory? _customFactory;
 
   PoiDatabaseServiceImpl({DatabaseFactory? customFactory, Database? initialDb})
@@ -30,6 +31,24 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
       return _db!;
     }
 
+    if (_openFuture != null) {
+      return await _openFuture!;
+    }
+
+    _openFuture = _performOpenDatabase(customPath: customPath);
+    try {
+      final db = await _openFuture!;
+      return db;
+    } finally {
+      _openFuture = null;
+    }
+  }
+
+  Future<Database> _performOpenDatabase({String? customPath}) async {
+    if (_db != null && _db!.isOpen) {
+      return _db!;
+    }
+
     String dbPath = customPath ?? '';
     if (dbPath.isEmpty) {
       final appDir = await getApplicationDocumentsDirectory();
@@ -38,19 +57,39 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
 
     final file = File(dbPath);
     if (!await file.exists()) {
+      ByteData byteData;
       try {
-        final byteData = await rootBundle.load('assets/database/poi.db');
-        final buffer = byteData.buffer;
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(
-          buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
-          flush: true,
-        );
+        byteData = await rootBundle.load('assets/database/poi.db');
       } catch (e) {
-        throw FileSystemException("POI database file not found at: $dbPath ($e)");
+        throw FileSystemException(
+          'Failed to load POI database asset from bundle: assets/database/poi.db ($e)',
+          dbPath,
+        );
+      }
+
+      final buffer = byteData.buffer;
+      final tmpPath = '$dbPath.tmp_${DateTime.now().microsecondsSinceEpoch}';
+      final tmpFile = File(tmpPath);
+      await tmpFile.parent.create(recursive: true);
+      await tmpFile.writeAsBytes(
+        buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+        flush: true,
+      );
+
+      try {
+        await tmpFile.rename(dbPath);
+      } catch (e) {
+        if (!await file.exists()) {
+          rethrow;
+        }
+        // If another process completed the rename first, delete the tmp file
+        try {
+          if (await tmpFile.exists()) {
+            await tmpFile.delete();
+          }
+        } catch (_) {}
       }
     }
-
 
     if (_customFactory != null) {
       _db = await _customFactory.openDatabase(
@@ -77,5 +116,6 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
       await _db!.close();
       _db = null;
     }
+    _openFuture = null;
   }
 }

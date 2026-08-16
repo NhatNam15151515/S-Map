@@ -36,7 +36,7 @@ class _SearchScreenContentState extends State<SearchScreenContent>
     super.dispose();
   }
 
-  bool _isSubmitting = false;
+  String? _submittedQuery;
 
   void _onPoiSelected(PoiModel poi) {
     final cubit = context.read<SearchCubit>();
@@ -45,6 +45,7 @@ class _SearchScreenContentState extends State<SearchScreenContent>
   }
 
   void _onCategorySelected(String category) {
+    _submittedQuery = null;
     _textController.text = category;
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: category.length),
@@ -53,6 +54,7 @@ class _SearchScreenContentState extends State<SearchScreenContent>
   }
 
   void _onKeywordSelected(String keyword) {
+    _submittedQuery = null;
     _textController.text = keyword;
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: keyword.length),
@@ -74,11 +76,12 @@ class _SearchScreenContentState extends State<SearchScreenContent>
       );
       return;
     }
-    _isSubmitting = true;
+    _submittedQuery = clean;
     cubit.search(clean);
   }
 
   void _onClear() {
+    _submittedQuery = null;
     _textController.clear();
     context.read<SearchCubit>().clearSearch();
   }
@@ -96,7 +99,10 @@ class _SearchScreenContentState extends State<SearchScreenContent>
             SearchInputField(
               controller: _textController,
               focusNode: _focusNode,
-              onQueryChanged: (query) => searchCubit.onQueryChanged(query),
+              onQueryChanged: (query) {
+                _submittedQuery = null;
+                searchCubit.onQueryChanged(query);
+              },
               onSubmitted: _onSubmitted,
               onClear: _onClear,
               onBackPressed: () => context.pop(),
@@ -105,18 +111,20 @@ class _SearchScreenContentState extends State<SearchScreenContent>
             // 2. Main Content: Recent/Category or Search Results
             Expanded(
               child: BlocConsumer<SearchCubit, SearchState>(
-                listenWhen: (prev, curr) => _isSubmitting && curr.isSuccess,
+                listenWhen: (prev, curr) =>
+                    _submittedQuery != null &&
+                    curr.query == _submittedQuery &&
+                    (curr.isSuccess || curr.isError || curr.isInitial),
                 listener: (context, state) {
-                  if (_isSubmitting) {
-                    _isSubmitting = false;
-                    if (state.results.isNotEmpty) {
-                      context.pop(
-                        SearchResultPayload.all(
-                          allResults: state.results,
-                          submittedQuery: state.query,
-                        ),
-                      );
-                    }
+                  final submitted = _submittedQuery;
+                  _submittedQuery = null;
+                  if (state.isSuccess && state.results.isNotEmpty && submitted != null) {
+                    context.pop(
+                      SearchResultPayload.all(
+                        allResults: state.results,
+                        submittedQuery: submitted,
+                      ),
+                    );
                   }
                 },
                 builder: (context, state) {

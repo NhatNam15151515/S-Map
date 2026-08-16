@@ -18,6 +18,7 @@ Widget createTestableWidget(Widget child, {FavoritesCubit? favoritesCubit}) {
     child: MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => AppCubit()),
+        BlocProvider(create: (_) => MapDisplayCubit()),
         BlocProvider(create: (_) => favoritesCubit ?? FavoritesCubit()),
       ],
       child: MaterialApp(
@@ -72,7 +73,7 @@ void main() {
       // Tap Bookmark
       await tester.tap(find.byIcon(Icons.bookmark_outline_rounded));
       await tester.pumpAndSettle();
-      expect(favCubit.state.isFavorite('1'), isTrue);
+      expect(favCubit.state.isFavorite('id:1'), isTrue);
       expect(find.byIcon(Icons.bookmark_rounded), findsOneWidget);
 
       // Tap directions

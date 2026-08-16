@@ -95,6 +95,7 @@ class MapCameraController {
   ) {
     if (controller == null) return;
     controller.getVisibleRegion().then((bounds) {
+      lastSearchedBounds = bounds;
       onBounds(bounds);
     }).catchError((_) {});
   }

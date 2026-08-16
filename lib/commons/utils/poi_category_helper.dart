@@ -7,11 +7,11 @@ import 'package:s_map/models/models.dart';
 class PoiCategoryHelper {
   PoiCategoryHelper._();
 
-  /// Lấy unique key định danh cho một POI (id -> osm_id -> name)
+  /// Lấy unique key định danh cho một POI (id -> osm_id -> name_lat_lon)
   static String getPoiKey(PoiModel poi) {
-    if (poi.id != null) return poi.id.toString();
-    if (poi.osmId != null && poi.osmId!.isNotEmpty) return poi.osmId!;
-    return poi.name;
+    if (poi.id != null) return 'id:${poi.id}';
+    if (poi.osmId != null && poi.osmId!.isNotEmpty) return 'osm:${poi.osmId}';
+    return 'poi:${poi.name}_${poi.lat}_${poi.lon}';
   }
 
   /// Ánh xạ từ category / sub_category sang IconData tương ứng

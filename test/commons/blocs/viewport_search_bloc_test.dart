@@ -26,14 +26,22 @@ class FakePoiRepository implements IPoiRepository {
     if (shouldThrow) {
       throw Exception('Database query error');
     }
-    return mockPois
-        .where((p) =>
-            p.lat >= minLat &&
-            p.lat <= maxLat &&
-            p.lon >= minLon &&
-            p.lon <= maxLon)
-        .take(limit)
-        .toList();
+    var filtered = mockPois.where((p) =>
+        p.lat >= minLat &&
+        p.lat <= maxLat &&
+        p.lon >= minLon &&
+        p.lon <= maxLon);
+
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.trim().toLowerCase();
+      filtered = filtered.where((p) =>
+          p.name.toLowerCase().contains(q) ||
+          p.nameAscii.toLowerCase().contains(q) ||
+          (p.category != null && p.category!.toLowerCase().contains(q)) ||
+          (p.subCategory != null && p.subCategory!.toLowerCase().contains(q)));
+    }
+
+    return filtered.take(limit).toList();
   }
 
   @override

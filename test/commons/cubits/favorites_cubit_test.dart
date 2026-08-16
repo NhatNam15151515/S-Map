@@ -91,16 +91,16 @@ void main() {
 
       expect(cubit.state.favorites.length, equals(1));
       expect(cubit.state.favorites.first.name, equals('Cà phê Giảng'));
-      expect(cubit.state.isFavorite('101'), isTrue);
-      expect(cubit.state.favoriteIds.contains('101'), isTrue);
+      expect(cubit.state.isFavorite('id:101'), isTrue);
+      expect(cubit.state.favoriteIds.contains('id:101'), isTrue);
     });
 
     test('toggleFavorite removes POI when already in favorites', () async {
       await cubit.toggleFavorite(poi1);
-      expect(cubit.state.isFavorite('101'), isTrue);
+      expect(cubit.state.isFavorite('id:101'), isTrue);
 
       await cubit.toggleFavorite(poi1);
-      expect(cubit.state.isFavorite('101'), isFalse);
+      expect(cubit.state.isFavorite('id:101'), isFalse);
       expect(cubit.state.favorites, isEmpty);
       expect(cubit.state.favoriteIds, isEmpty);
     });
@@ -110,10 +110,10 @@ void main() {
       await cubit.toggleFavorite(poi2);
       expect(cubit.state.favorites.length, equals(2));
 
-      await cubit.removeFavorite('101');
+      await cubit.removeFavorite('id:101');
       expect(cubit.state.favorites.length, equals(1));
-      expect(cubit.state.isFavorite('101'), isFalse);
-      expect(cubit.state.isFavorite('102'), isTrue);
+      expect(cubit.state.isFavorite('id:101'), isFalse);
+      expect(cubit.state.isFavorite('id:102'), isTrue);
     });
 
     test('clearFavorites removes all favorites', () async {

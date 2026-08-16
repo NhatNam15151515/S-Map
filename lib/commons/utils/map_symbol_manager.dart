@@ -1,13 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/constants/constants.dart';
+import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/models/models.dart';
 
 /// Quản lý Symbol/Marker và tính toán Camera Bounds độc lập khỏi tầng UI.
 class MapSymbolManager {
   final Map<String, PoiModel> _renderedSymbols = {};
   Symbol? _singleSelectedSymbol;
+  int _renderGeneration = 0;
 
   /// Lấy POI tương ứng từ symbol ID khi người dùng bấm vào marker
   PoiModel? getPoiBySymbolId(String symbolId) => _renderedSymbols[symbolId];
@@ -21,34 +22,41 @@ class MapSymbolManager {
     }).catchError((_) {});
   }
 
-  /// Render danh sách POI thành các Symbol trên bản đồ
+  /// Render danh sách POI thành các Symbol trên bản đồ tuần tự theo thế hệ
   void renderPoiList(
     MapLibreMapController? controller,
     List<PoiModel> pois,
   ) {
     if (controller == null) return;
-    controller.clearSymbols().then((_) {
+    final generation = ++_renderGeneration;
+
+    controller.clearSymbols().then((_) async {
+      if (generation != _renderGeneration) return;
       _renderedSymbols.clear();
       _singleSelectedSymbol = null;
 
       for (final poi in pois) {
-        controller.addSymbol(
-          SymbolOptions(
-            geometry: LatLng(poi.lat, poi.lon),
-            iconImage: 'red_marker',
-            iconSize: 0.65,
-            iconAnchor: 'bottom',
-            textField: poi.name,
-            textSize: MapConstants.symbolTextSize,
-            textColor: AppColors.mapSymbolText.toHex,
-            textHaloColor: AppColors.mapSymbolHalo.toHex,
-            textHaloWidth: MapConstants.symbolTextHaloWidth,
-            textOffset: const Offset(0, 0.6),
-            textAnchor: 'top',
-          ),
-        ).then((symbol) {
-          _renderedSymbols[symbol.id] = poi;
-        }).catchError((_) {});
+        if (generation != _renderGeneration) break;
+        try {
+          final symbol = await controller.addSymbol(
+            SymbolOptions(
+              geometry: LatLng(poi.lat, poi.lon),
+              iconImage: 'red_marker',
+              iconSize: 0.65,
+              iconAnchor: 'bottom',
+              textField: poi.name,
+              textSize: MapConstants.symbolTextSize,
+              textColor: AppColors.mapSymbolText.toHex,
+              textHaloColor: AppColors.mapSymbolHalo.toHex,
+              textHaloWidth: MapConstants.symbolTextHaloWidth,
+              textOffset: const Offset(0, 0.6),
+              textAnchor: 'top',
+            ),
+          );
+          if (generation == _renderGeneration) {
+            _renderedSymbols[symbol.id] = poi;
+          }
+        } catch (_) {}
       }
     }).catchError((_) {});
   }
@@ -59,39 +67,45 @@ class MapSymbolManager {
     PoiModel poi,
   ) {
     if (controller == null) return;
+    final generation = ++_renderGeneration;
+
     final clearOld = _singleSelectedSymbol != null
         ? controller.removeSymbol(_singleSelectedSymbol!)
         : Future<void>.value();
 
-    clearOld.then((_) {
+    clearOld.then((_) async {
+      if (generation != _renderGeneration) return;
       _singleSelectedSymbol = null;
-      controller.addSymbol(
-        SymbolOptions(
-          geometry: LatLng(poi.lat, poi.lon),
-          iconImage: 'red_marker',
-          iconSize: 0.85,
-          iconAnchor: 'bottom',
-          textField: poi.name,
-          textSize: 12.0,
-          textColor: AppColors.mapSymbolText.toHex,
-          textHaloColor: AppColors.mapSymbolHalo.toHex,
-          textHaloWidth: MapConstants.symbolTextHaloWidth,
-          textOffset: const Offset(0, 0.6),
-          textAnchor: 'top',
-        ),
-      ).then((symbol) {
-        _singleSelectedSymbol = symbol;
-        _renderedSymbols[symbol.id] = poi;
-      }).catchError((_) {});
+      try {
+        final symbol = await controller.addSymbol(
+          SymbolOptions(
+            geometry: LatLng(poi.lat, poi.lon),
+            iconImage: 'red_marker',
+            iconSize: 0.85,
+            iconAnchor: 'bottom',
+            textField: poi.name,
+            textSize: 12.0,
+            textColor: AppColors.mapSymbolText.toHex,
+            textHaloColor: AppColors.mapSymbolHalo.toHex,
+            textHaloWidth: MapConstants.symbolTextHaloWidth,
+            textOffset: const Offset(0, 0.6),
+            textAnchor: 'top',
+          ),
+        );
+        if (generation == _renderGeneration) {
+          _singleSelectedSymbol = symbol;
+          _renderedSymbols[symbol.id] = poi;
+        }
+      } catch (_) {}
     }).catchError((_) {});
   }
 
   /// Xóa ghim đơn lẻ khi đóng thẻ POI
   void clearSelectedPoiMarker(MapLibreMapController? controller) {
     if (controller == null || _singleSelectedSymbol == null) return;
-    controller.removeSymbol(_singleSelectedSymbol!).then((_) {
-      _singleSelectedSymbol = null;
-    }).catchError((_) {});
+    final symbolToRemove = _singleSelectedSymbol!;
+    _singleSelectedSymbol = null;
+    controller.removeSymbol(symbolToRemove).catchError((_) {});
   }
 
   /// Tính toán khung bao LatLngBounds từ danh sách POIs (thuần túy, dễ viết test)
@@ -148,6 +162,7 @@ class MapSymbolManager {
 
   /// Dọn sạch toàn bộ marker và bộ nhớ tạm
   void clearAll(MapLibreMapController? controller) {
+    _renderGeneration++;
     _renderedSymbols.clear();
     _singleSelectedSymbol = null;
     if (controller != null) {
