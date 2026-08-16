@@ -11,6 +11,7 @@ typedef PoiDatabaseService = IPoiDatabaseService;
 class PoiDatabaseServiceImpl implements IPoiDatabaseService {
   Database? _db;
   Future<Database>? _openFuture;
+  Future<void>? _closeFuture;
   final DatabaseFactory? _customFactory;
 
   PoiDatabaseServiceImpl({DatabaseFactory? customFactory, Database? initialDb})
@@ -27,6 +28,10 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
 
   @override
   Future<Database> openDatabaseInstance({String? customPath}) async {
+    while (_closeFuture != null) {
+      await _closeFuture;
+    }
+
     if (_db != null && _db!.isOpen) {
       return _db!;
     }
@@ -115,6 +120,21 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
 
   @override
   Future<void> close() async {
+    if (_closeFuture != null) {
+      await _closeFuture;
+      return;
+    }
+
+    final closeOp = _performClose();
+    _closeFuture = closeOp;
+    try {
+      await closeOp;
+    } finally {
+      _closeFuture = null;
+    }
+  }
+
+  Future<void> _performClose() async {
     if (_openFuture != null) {
       try {
         await _openFuture;

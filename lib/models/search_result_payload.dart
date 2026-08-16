@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:s_map/models/models.dart';
+import 'poi_model.dart';
 
 class SearchResultPayload extends Equatable {
   final PoiModel? selectedPoi;

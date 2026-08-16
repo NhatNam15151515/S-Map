@@ -21,10 +21,14 @@ class FakeDatabase implements Database {
 class FakeDatabaseFactory implements DatabaseFactory {
   int openCount = 0;
   Duration delay = Duration.zero;
+  String? lastPath;
+  OpenDatabaseOptions? lastOptions;
 
   @override
   Future<Database> openDatabase(String path, {OpenDatabaseOptions? options}) async {
     openCount++;
+    lastPath = path;
+    lastOptions = options;
     if (delay > Duration.zero) {
       await Future.delayed(delay);
     }
@@ -55,7 +59,7 @@ void main() {
   });
 
   group('PoiDatabaseServiceImpl Tests', () {
-    test('openDatabaseInstance returns open database instance and reuses it', () async {
+    test('openDatabaseInstance returns open database instance and asserts open contract', () async {
       final fakeFactory = FakeDatabaseFactory();
       final service = PoiDatabaseServiceImpl(customFactory: fakeFactory);
 
@@ -63,6 +67,9 @@ void main() {
       expect(db1.isOpen, isTrue);
       expect(service.isOpen, isTrue);
       expect(fakeFactory.openCount, equals(1));
+      expect(fakeFactory.lastPath, equals(testDbPath));
+      expect(fakeFactory.lastOptions?.readOnly, isTrue);
+      expect(fakeFactory.lastOptions?.singleInstance, isTrue);
 
       final db2 = await service.openDatabaseInstance(customPath: testDbPath);
       expect(identical(db1, db2), isTrue);
@@ -72,24 +79,39 @@ void main() {
       expect(service.isOpen, isFalse);
     });
 
-    test('openDatabaseInstance synchronizes concurrent calls with a shared Future', () async {
-      final fakeFactory = FakeDatabaseFactory()..delay = const Duration(milliseconds: 50);
-      final service = PoiDatabaseServiceImpl(customFactory: fakeFactory);
+    test('openDatabaseInstance synchronizes concurrent calls with shared Future across benchmark iterations', () async {
+      // Warm up: ensure test database file exists so file copy is not timed during benchmark
+      final warmupFactory = FakeDatabaseFactory();
+      final warmupService = PoiDatabaseServiceImpl(customFactory: warmupFactory);
+      await warmupService.openDatabaseInstance(customPath: testDbPath);
+      await warmupService.close();
 
-      final results = await Future.wait([
-        service.openDatabaseInstance(customPath: testDbPath),
-        service.openDatabaseInstance(customPath: testDbPath),
-        service.openDatabaseInstance(customPath: testDbPath),
-      ]);
+      const iterations = 20;
 
-      expect(fakeFactory.openCount, equals(1));
-      expect(identical(results[0], results[1]), isTrue);
-      expect(identical(results[1], results[2]), isTrue);
+      for (int i = 0; i < iterations; i++) {
+        final fakeFactory = FakeDatabaseFactory()..delay = const Duration(milliseconds: 5);
+        final service = PoiDatabaseServiceImpl(customFactory: fakeFactory);
 
-      await service.close();
+        final stopwatch = Stopwatch()..start();
+        final results = await Future.wait([
+          service.openDatabaseInstance(customPath: testDbPath),
+          service.openDatabaseInstance(customPath: testDbPath),
+          service.openDatabaseInstance(customPath: testDbPath),
+          service.openDatabaseInstance(customPath: testDbPath),
+        ]);
+        stopwatch.stop();
+
+        expect(stopwatch.elapsedMilliseconds, lessThan(300));
+        expect(fakeFactory.openCount, equals(1));
+        expect(identical(results[0], results[1]), isTrue);
+        expect(identical(results[1], results[2]), isTrue);
+        expect(identical(results[2], results[3]), isTrue);
+
+        await service.close();
+      }
     });
 
-    test('open -> close -> open sequence correctly serializes when first open is pending', () async {
+    test('open -> close -> open sequence correctly queues when first open is pending', () async {
       final fakeFactory = FakeDatabaseFactory()..delay = const Duration(milliseconds: 30);
       final service = PoiDatabaseServiceImpl(customFactory: fakeFactory);
 
@@ -99,13 +121,17 @@ void main() {
       // Call close while open is in-flight
       final closeFuture = service.close();
 
-      await Future.wait([openFuture1, closeFuture]);
-      expect(service.isOpen, isFalse);
+      // Immediately queue reopen while open1 and close are in-flight
+      final reopenFuture = service.openDatabaseInstance(customPath: testDbPath);
 
-      // Subsequent open should succeed and open a fresh database
-      final db2 = await service.openDatabaseInstance(customPath: testDbPath);
+      final db1 = await openFuture1;
+      await closeFuture;
+      final db2 = await reopenFuture;
+
+      expect(db1.isOpen, isFalse);
       expect(db2.isOpen, isTrue);
       expect(service.isOpen, isTrue);
+      expect(identical(db1, db2), isFalse);
       expect(fakeFactory.openCount, equals(2));
 
       await service.close();

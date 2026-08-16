@@ -4,17 +4,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/models/models.dart';
 
-class MockLocationService extends NoOpLocationService {
+class MockLocationService implements ILocationService {
   LatLng? current;
 
   @override
-  Future<Position> getCurrentPosition() async {
+  Position get position {
     final pos = current ?? const LatLng(21.0300, 105.8400);
     return Position(
       latitude: pos.latitude,
@@ -31,7 +32,34 @@ class MockLocationService extends NoOpLocationService {
   }
 
   @override
-  Future<Position?> getLastKnownPosition() async => current != null ? getCurrentPosition() : null;
+  (double, double) get latLng {
+    final pos = current ?? const LatLng(21.0300, 105.8400);
+    return (pos.latitude, pos.longitude);
+  }
+
+  @override
+  Stream<Position> get positionStream => const Stream.empty();
+
+  @override
+  Future<Position> getCurrentPosition() async => position;
+
+  @override
+  Future<Position?> getLastKnownPosition() async => current != null ? position : null;
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => true;
+
+  @override
+  Future<LocationPermission> checkPermission() async => LocationPermission.always;
+
+  @override
+  Future<LocationPermission> requestPermission() async => LocationPermission.always;
+
+  @override
+  Future<bool> openLocationSettings() async => true;
+
+  @override
+  Future<bool> openAppSettings() async => true;
 }
 
 Widget createTestableWidget(

@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/constants/map_constants.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 
 /// Quản lý Symbol/Marker và tính toán Camera Bounds độc lập khỏi tầng UI.
@@ -19,7 +19,7 @@ class MapSymbolManager {
   Future<void> loadMarkerAssets(MapLibreMapController? controller) async {
     if (controller == null || _isAssetLoaded) return;
     try {
-      final byteData = await rootBundle.load('assets/images/red_marker.png');
+      final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
       final bytes = byteData.buffer.asUint8List();
       await controller.addImage('red_marker', bytes);
       _isAssetLoaded = true;
