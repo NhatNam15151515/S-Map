@@ -267,6 +267,33 @@ void main() {
       expect(results.any((e) => e.name == 'Phở Thìn Lò Đúc'), isTrue);
       expect(results.any((e) => e.name == 'Highlands Coffee Nhà Thờ'), isTrue);
     });
+
+    test('searchInBounds with query filter should return matching POIs inside bounding box only',
+        () async {
+      // Query "phở" in TP.HCM bbox -> returns only 'Phở Hòa Pasteur'
+      final hcmPho = await poiRepo.searchInBounds(
+        minLat: 10.70,
+        maxLat: 10.85,
+        minLon: 106.60,
+        maxLon: 106.75,
+        query: 'phở',
+      );
+
+      expect(hcmPho.length, 1);
+      expect(hcmPho.first.name, 'Phở Hòa Pasteur');
+
+      // Query "coffee" / "cafe" in Hanoi bbox -> returns 'Highlands Coffee Nhà Thờ'
+      final hnCafe = await poiRepo.searchInBounds(
+        minLat: 21.00,
+        maxLat: 21.05,
+        minLon: 105.80,
+        maxLon: 105.90,
+        query: 'coffee',
+      );
+
+      expect(hnCafe.length, 1);
+      expect(hnCafe.first.name, 'Highlands Coffee Nhà Thờ');
+    });
   });
 
   group('PoiRepository - ID & Benchmark Tests', () {

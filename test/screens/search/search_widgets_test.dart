@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
@@ -174,6 +175,34 @@ void main() {
       await tester.tap(find.text('Phở Gia Truyền Bát Đàn'));
       await tester.pump();
       expect(selectedPoi?.id, equals(1));
+    });
+
+    testWidgets('SearchResultsList displays distance prefix when userLocation is provided', (tester) async {
+      const samplePois = [
+        PoiModel(
+          id: 1,
+          name: 'Phở Gia Truyền Bát Đàn',
+          nameAscii: 'Pho Gia Truyen Bat Dan',
+          category: 'food',
+          lat: 21.033,
+          lon: 105.845,
+          address: '49 Bát Đàn, Hoàn Kiếm',
+        ),
+      ];
+
+      await tester.pumpWidget(createTestableWidget(
+        SearchResultsList(
+          results: samplePois,
+          suggestions: const [],
+          isLoading: false,
+          userLocation: const LatLng(21.030, 105.840),
+          onPoiTap: (_) {},
+          onSuggestionTap: (_) {},
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('• 49 Bát Đàn, Hoàn Kiếm'), findsOneWidget);
     });
 
     testWidgets('SearchResultsList displays suggestions when no POIs are present', (tester) async {

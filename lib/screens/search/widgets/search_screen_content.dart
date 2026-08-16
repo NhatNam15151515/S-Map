@@ -36,13 +36,16 @@ class _SearchScreenContentState extends State<SearchScreenContent>
     super.dispose();
   }
 
+  String? _submittedQuery;
+
   void _onPoiSelected(PoiModel poi) {
     final cubit = context.read<SearchCubit>();
     cubit.addRecentSearch(poi.name);
-    context.pop(poi);
+    context.pop(SearchResultPayload.single(poi));
   }
 
   void _onCategorySelected(String category) {
+    _submittedQuery = null;
     _textController.text = category;
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: category.length),
@@ -51,6 +54,7 @@ class _SearchScreenContentState extends State<SearchScreenContent>
   }
 
   void _onKeywordSelected(String keyword) {
+    _submittedQuery = null;
     _textController.text = keyword;
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: keyword.length),
@@ -58,7 +62,26 @@ class _SearchScreenContentState extends State<SearchScreenContent>
     context.read<SearchCubit>().search(keyword);
   }
 
+  void _onSubmitted(String query) {
+    final clean = query.trim();
+    if (clean.isEmpty) return;
+    final cubit = context.read<SearchCubit>();
+    if (cubit.state.results.isNotEmpty && cubit.state.query == clean) {
+      cubit.addRecentSearch(clean);
+      context.pop(
+        SearchResultPayload.all(
+          allResults: cubit.state.results,
+          submittedQuery: clean,
+        ),
+      );
+      return;
+    }
+    _submittedQuery = clean;
+    cubit.search(clean);
+  }
+
   void _onClear() {
+    _submittedQuery = null;
     _textController.clear();
     context.read<SearchCubit>().clearSearch();
   }
@@ -76,15 +99,34 @@ class _SearchScreenContentState extends State<SearchScreenContent>
             SearchInputField(
               controller: _textController,
               focusNode: _focusNode,
-              onQueryChanged: (query) => searchCubit.onQueryChanged(query),
-              onSubmitted: (query) => searchCubit.search(query),
+              onQueryChanged: (query) {
+                _submittedQuery = null;
+                searchCubit.onQueryChanged(query);
+              },
+              onSubmitted: _onSubmitted,
               onClear: _onClear,
               onBackPressed: () => context.pop(),
             ),
 
             // 2. Main Content: Recent/Category or Search Results
             Expanded(
-              child: BlocBuilder<SearchCubit, SearchState>(
+              child: BlocConsumer<SearchCubit, SearchState>(
+                listenWhen: (prev, curr) =>
+                    _submittedQuery != null &&
+                    curr.query == _submittedQuery &&
+                    (curr.isSuccess || curr.isError || curr.isInitial),
+                listener: (context, state) {
+                  final submitted = _submittedQuery;
+                  _submittedQuery = null;
+                  if (state.isSuccess && state.results.isNotEmpty && submitted != null) {
+                    context.pop(
+                      SearchResultPayload.all(
+                        allResults: state.results,
+                        submittedQuery: submitted,
+                      ),
+                    );
+                  }
+                },
                 builder: (context, state) {
                   final isQueryEmpty =
                       state.query.isEmpty && state.results.isEmpty;
@@ -115,6 +157,7 @@ class _SearchScreenContentState extends State<SearchScreenContent>
                     results: state.results,
                     suggestions: state.suggestions,
                     isLoading: state.status == SearchStatus.loading,
+                    userLocation: state.userLocation,
                     onPoiTap: _onPoiSelected,
                     onSuggestionTap: _onKeywordSelected,
                   );

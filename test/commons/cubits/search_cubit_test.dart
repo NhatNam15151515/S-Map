@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -87,6 +88,7 @@ class FakePoiRepository implements IPoiRepository {
     required double maxLat,
     required double minLon,
     required double maxLon,
+    String? query,
     int limit = 50,
   }) async =>
       mockPois;
@@ -293,6 +295,27 @@ void main() {
       expect(searchCubit.state.query, '');
       expect(searchCubit.state.results, isEmpty);
       expect(searchCubit.state.suggestions, isEmpty);
+    });
+
+    test('search and suggestions should sort POIs by closest distance to userLocation', () async {
+      final tpHcmCubit = SearchCubit(
+        poiRepository: fakeRepo,
+        recentSearchService: fakeRecentService,
+        userLocation: const LatLng(10.7800, 106.6900), // TP.HCM
+      );
+
+      // Search "phở" -> Phở Hòa Pasteur (TP.HCM) must be first, Phở Thìn (Hà Nội) second
+      await tpHcmCubit.search('phở');
+      expect(tpHcmCubit.state.results.length, 2);
+      expect(tpHcmCubit.state.results[0].name, 'Phở Hòa Pasteur');
+      expect(tpHcmCubit.state.results[1].name, 'Phở Thìn Lò Đúc');
+
+      // Update location to Hanoi -> Phở Thìn (Hà Nội) should become first
+      tpHcmCubit.updateUserLocation(const LatLng(21.0200, 105.8500));
+      expect(tpHcmCubit.state.results[0].name, 'Phở Thìn Lò Đúc');
+      expect(tpHcmCubit.state.results[1].name, 'Phở Hòa Pasteur');
+
+      await tpHcmCubit.close();
     });
   });
 }

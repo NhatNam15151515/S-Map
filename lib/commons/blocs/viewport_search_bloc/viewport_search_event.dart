@@ -12,32 +12,36 @@ abstract class ViewportSearchEvent extends Equatable {
 class SearchInViewportRequested extends ViewportSearchEvent {
   final LatLngBounds bounds;
   final String? category;
+  final String? query;
   final int limit;
 
   const SearchInViewportRequested(
     this.bounds, {
     this.category,
+    this.query,
     this.limit = 50,
   });
 
   @override
-  List<Object?> get props => [bounds, category, limit];
+  List<Object?> get props => [bounds, category, query, limit];
 }
 
 /// Event phát ra khi người dùng chủ động nhấn nút "Tìm trong khu vực này"
 class SearchThisAreaPressed extends ViewportSearchEvent {
   final LatLngBounds bounds;
   final String? category;
+  final String? query;
   final int limit;
 
   const SearchThisAreaPressed(
     this.bounds, {
     this.category,
+    this.query,
     this.limit = 50,
   });
 
   @override
-  List<Object?> get props => [bounds, category, limit];
+  List<Object?> get props => [bounds, category, query, limit];
 }
 
 /// Event phát ra khi chọn filter category trên thanh MapCategoryChips

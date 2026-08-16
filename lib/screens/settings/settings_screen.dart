@@ -6,8 +6,6 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/screens/settings/widgets/widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
-  static const String path = '/settings';
-
   const SettingsScreen({super.key});
 
   @override

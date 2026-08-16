@@ -10,8 +10,6 @@ import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/notification/widgets/widgets.dart';
 
 class NotificationScreen extends StatefulWidget {
-  static const String path = '/NotificationScreen';
-
   const NotificationScreen({super.key});
 
   @override

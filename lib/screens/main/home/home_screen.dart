@@ -5,7 +5,6 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
-  static const String path = '/HomeScreen';
   const HomeScreen({super.key});
 
   @override

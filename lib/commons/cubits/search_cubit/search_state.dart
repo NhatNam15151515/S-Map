@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/models/models.dart';
 
 enum SearchStatus { initial, loading, success, error }
@@ -9,6 +10,7 @@ class SearchState extends Equatable {
   final List<PoiModel> results;
   final List<String> suggestions;
   final List<String> recentSearches;
+  final LatLng? userLocation;
   final String? errorMessage;
 
   const SearchState({
@@ -17,6 +19,7 @@ class SearchState extends Equatable {
     this.results = const [],
     this.suggestions = const [],
     this.recentSearches = const [],
+    this.userLocation,
     this.errorMessage,
   });
 
@@ -34,6 +37,7 @@ class SearchState extends Equatable {
     List<PoiModel>? results,
     List<String>? suggestions,
     List<String>? recentSearches,
+    LatLng? userLocation,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -43,6 +47,7 @@ class SearchState extends Equatable {
       results: results ?? this.results,
       suggestions: suggestions ?? this.suggestions,
       recentSearches: recentSearches ?? this.recentSearches,
+      userLocation: userLocation ?? this.userLocation,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -54,6 +59,7 @@ class SearchState extends Equatable {
         results,
         suggestions,
         recentSearches,
+        userLocation,
         errorMessage,
       ];
 }

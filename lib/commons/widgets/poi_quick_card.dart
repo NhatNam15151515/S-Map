@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
@@ -26,6 +27,20 @@ class PoiQuickCard extends StatelessWidget {
     final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);
     final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
     final address = PoiCategoryHelper.formatAddress(poi);
+    final userLocation = context.select<MapDisplayCubit, LatLng?>(
+      (c) => c.state.currentPosition,
+    );
+    String subtitleText = address;
+    if (userLocation != null) {
+      final distKm = AppUtils.instance.calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        poi.lat,
+        poi.lon,
+      );
+      final distStr = PoiCategoryHelper.formatDistance(distKm);
+      subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -74,10 +89,10 @@ class PoiQuickCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (address.isNotEmpty) ...[
+                    if (subtitleText.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        address,
+                        subtitleText,
                         style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
                           fontSize: 13,
                           fontWeight: AppFontWeight.regular.weight,
@@ -89,19 +104,11 @@ class PoiQuickCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Builder(
-                builder: (context) {
-                  FavoritesCubit? cubit;
-                  try {
-                    cubit = context.watch<FavoritesCubit>();
-                  } catch (_) {}
-
-                  if (cubit == null) {
-                    return const SizedBox.shrink();
-                  }
-
+              BlocBuilder<FavoritesCubit, FavoritesState>(
+                builder: (context, favState) {
+                  final cubit = context.read<FavoritesCubit>();
                   final key = cubit.getPoiKey(poi);
-                  final isFav = cubit.state.isFavorite(key);
+                  final isFav = favState.isFavorite(key);
 
                   return IconButton(
                     icon: Icon(
@@ -113,7 +120,7 @@ class PoiQuickCard extends StatelessWidget {
                           ? AppColors.sMapTeal
                           : AppColors.onSurfaceVariant,
                     ),
-                    onPressed: () => cubit?.toggleFavorite(poi),
+                    onPressed: () => cubit.toggleFavorite(poi),
                     tooltip: tr(LocaleKeys.savedPlaces),
                   );
                 },

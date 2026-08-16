@@ -5,15 +5,19 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 
+import 'package:s_map/routers/routers.dart';
+
 class HomeHeaderSearchBar extends StatelessWidget {
   final double topPadding;
   final ValueChanged<PoiModel> onPoiSelected;
+  final void Function(List<PoiModel> pois, String? query) onSearchResults;
   final ValueChanged<String?> onCategorySelected;
 
   const HomeHeaderSearchBar({
     super.key,
     required this.topPadding,
     required this.onPoiSelected,
+    required this.onSearchResults,
     required this.onCategorySelected,
   });
 
@@ -28,11 +32,25 @@ class HomeHeaderSearchBar extends StatelessWidget {
         children: [
           MapSearchBar(
             onPoiSelected: onPoiSelected,
-            onTap: () async {
-              final poi = await context.push<PoiModel>('/search');
-              if (poi != null && context.mounted) {
-                onPoiSelected(poi);
-              }
+            onTap: () {
+              final userLocation =
+                  context.read<MapDisplayCubit>().state.currentPosition;
+              context.push<dynamic>(
+                AppRoutes.search,
+                extra: userLocation,
+              ).then((result) {
+                if (result != null && context.mounted) {
+                  if (result is SearchResultPayload) {
+                    if (result.isSingle && result.selectedPoi != null) {
+                      onPoiSelected(result.selectedPoi!);
+                    } else if (result.isAll && result.allResults != null) {
+                      onSearchResults(result.allResults!, result.submittedQuery);
+                    }
+                  } else if (result is PoiModel) {
+                    onPoiSelected(result);
+                  }
+                }
+              });
             },
           ),
           const SizedBox(height: 10),

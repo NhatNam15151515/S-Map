@@ -5,8 +5,6 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class RouteDrawingScreen extends StatelessWidget {
-  static const String path = '/route_drawing';
-
   const RouteDrawingScreen({super.key});
 
   @override

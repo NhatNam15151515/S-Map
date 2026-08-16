@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
-import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/repos.dart';
@@ -21,11 +22,22 @@ class SearchCubit extends Cubit<SearchState> {
   SearchCubit({
     IPoiRepository? poiRepository,
     IRecentSearchService? recentSearchService,
+    LatLng? userLocation,
   })  : _poiRepository = poiRepository ?? PoiRepositoryImpl(),
         _recentSearchService = recentSearchService ??
             defaultRecentSearchService ??
             NoOpRecentSearchService(),
-        super(const SearchState());
+        super(SearchState(userLocation: userLocation));
+
+  /// Cập nhật vị trí GPS người dùng để tính khoảng cách tới các POI
+  void updateUserLocation(LatLng location) {
+    final sortedResults =
+        PoiCategoryHelper.sortPoisByDistance(state.results, location);
+    emit(state.copyWith(
+      userLocation: location,
+      results: sortedResults,
+    ));
+  }
 
   @override
   void emit(SearchState state) {
@@ -87,6 +99,10 @@ class SearchCubit extends Cubit<SearchState> {
       // Đảm bảo kết quả phản hồi khớp với query hiện tại, tránh race condition
       if (state.query != query || isClosed) return;
 
+      // Sắp xếp kết quả đề xuất theo khoảng cách gần nhất
+      final sortedResults =
+          PoiCategoryHelper.sortPoisByDistance(results, state.userLocation);
+
       // Lọc các từ khóa trong Recent Searches khớp với query (chuyển về toLowerCase)
       final asciiQuery = AppUtils.instance.toAscii(query).toLowerCase();
       final matchedRecents = state.recentSearches.where((recent) {
@@ -114,7 +130,7 @@ class SearchCubit extends Cubit<SearchState> {
 
       emit(state.copyWith(
         status: SearchStatus.success,
-        results: results,
+        results: sortedResults,
         suggestions: mergedSuggestions.take(10).toList(),
         clearError: true,
       ));
@@ -133,7 +149,8 @@ class SearchCubit extends Cubit<SearchState> {
     _debounceTimer?.cancel();
 
     final cleanQuery = query.trim();
-    if (cleanQuery.isEmpty || !Validator.instance.isValidSearchQuery(cleanQuery)) {
+    if (cleanQuery.isEmpty ||
+        !Validator.instance.isValidSearchQuery(cleanQuery)) {
       emit(state.copyWith(
         status: SearchStatus.initial,
         query: cleanQuery,
@@ -153,6 +170,10 @@ class SearchCubit extends Cubit<SearchState> {
 
       if (state.query != cleanQuery || isClosed) return;
 
+      // Sắp xếp kết quả tìm kiếm theo khoảng cách gần nhất
+      final sortedResults =
+          PoiCategoryHelper.sortPoisByDistance(results, state.userLocation);
+
       // Tự động lưu vào Recent Searches
       await _recentSearchService.addRecentSearch(cleanQuery);
       final updatedRecents = await _recentSearchService.getRecentSearches();
@@ -161,7 +182,7 @@ class SearchCubit extends Cubit<SearchState> {
 
       emit(state.copyWith(
         status: SearchStatus.success,
-        results: results,
+        results: sortedResults,
         recentSearches: updatedRecents,
         clearError: true,
       ));

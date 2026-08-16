@@ -26,6 +26,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
 
   bool _showSearchThisArea = false;
   PoiModel? _selectedMarkerPoi;
+  String? _currentSearchQuery;
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   MapExploreCubit get exploreCubit => context.read<MapExploreCubit>();
@@ -37,20 +38,32 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     super.dispose();
   }
 
-  void _handleCategorySelected(String? cat) async {
+  void _handleCategorySelected(String? cat) {
     if (cat == null) return;
     exploreCubit.selectCategory(cat);
-    final bounds = await _mapLayerKey.currentState?.getVisibleRegion();
-    if (bounds != null && mounted) {
-      viewportBloc.add(ViewportCategoryFilterChanged(cat, bounds: bounds));
-    }
+    _mapLayerKey.currentState?.searchByCategory(cat);
   }
 
-  void _handleSearchThisArea() async {
-    final bounds = await _mapLayerKey.currentState?.getVisibleRegion();
-    if (bounds != null && mounted) {
-      setState(() => _showSearchThisArea = false);
-      viewportBloc.add(SearchThisAreaPressed(bounds));
+  void _handleSearchThisArea() {
+    setState(() => _showSearchThisArea = false);
+    _mapLayerKey.currentState?.searchThisArea(query: _currentSearchQuery);
+  }
+
+  void _handlePoiSelected(PoiModel poi) {
+    displayCubit.selectPoi(poi);
+    _mapLayerKey.currentState?.setSelectedPoiMarker(poi);
+    setState(() {
+      _selectedMarkerPoi = poi;
+    });
+  }
+
+  void _handleSearchResults(List<PoiModel> pois, String? query) {
+    _currentSearchQuery = query;
+    _mapLayerKey.currentState?.showSearchResults(pois);
+    if (pois.isNotEmpty) {
+      setState(() {
+        _selectedMarkerPoi = pois.first;
+      });
     }
   }
 
@@ -64,7 +77,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
           // 1. Interactive Map Layer
           HomeInteractiveMapLayer(
             key: _mapLayerKey,
-            onPoiTapped: (poi) => setState(() => _selectedMarkerPoi = poi),
+            onPoiTapped: (poi) {
+              _mapLayerKey.currentState?.setSelectedPoiMarker(poi);
+              setState(() => _selectedMarkerPoi = poi);
+            },
             onSearchAreaVisibilityChanged: (show) {
               if (mounted) setState(() => _showSearchThisArea = show);
             },
@@ -76,7 +92,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
           // 3. Top Floating Search Bar & Category Chips
           HomeHeaderSearchBar(
             topPadding: topPadding,
-            onPoiSelected: (poi) => displayCubit.selectPoi(poi),
+            onPoiSelected: _handlePoiSelected,
+            onSearchResults: _handleSearchResults,
             onCategorySelected: _handleCategorySelected,
           ),
 
@@ -103,7 +120,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                 );
               }
             },
-            onClosePoiCard: () => setState(() => _selectedMarkerPoi = null),
+            onClosePoiCard: () {
+              _mapLayerKey.currentState?.clearSelectedPoiMarker();
+              displayCubit.clearSelectedPoi();
+              setState(() => _selectedMarkerPoi = null);
+            },
             onDirections: () {
               if (_selectedMarkerPoi != null) {
                 AppUtils.instance.openLocation(
