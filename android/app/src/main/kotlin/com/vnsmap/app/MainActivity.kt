@@ -18,7 +18,7 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             RoutingConstants.CHANNEL_NAME
         )
-        val handler = RoutingMethodChannelHandler()
+        val handler = RoutingMethodChannelHandler(context = applicationContext)
         routingMethodChannelHandler = handler
         routingChannel.setMethodCallHandler(handler)
     }
@@ -29,3 +29,4 @@ class MainActivity : FlutterActivity() {
         routingMethodChannelHandler = null
     }
 }
+

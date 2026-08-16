@@ -12,10 +12,11 @@ class MockRoutingService implements IRoutingService {
   String? lastProfile;
   bool disposeCalled = false;
   bool readyState = false;
+  bool initSuccess;
 
   final RouteResult mockResult;
 
-  MockRoutingService({RouteResult? customResult})
+  MockRoutingService({RouteResult? customResult, this.initSuccess = true})
       : mockResult = customResult ??
             const RouteResult(
               isSuccess: true,
@@ -58,8 +59,8 @@ class MockRoutingService implements IRoutingService {
   Future<bool> initGraphHopper(String graphPath) async {
     initCalled = true;
     lastGraphPath = graphPath;
-    readyState = true;
-    return true;
+    readyState = initSuccess;
+    return initSuccess;
   }
 
   @override
@@ -93,7 +94,7 @@ void main() {
   late RoutingRepositoryImpl repository;
 
   setUp(() {
-    mockService = MockRoutingService();
+    mockService = MockRoutingService()..readyState = true;
     repository = RoutingRepositoryImpl(routingService: mockService);
   });
 
@@ -154,6 +155,7 @@ void main() {
     });
 
     test('isEngineReady and dispose lifecycle operations', () async {
+      mockService.readyState = false;
       expect(await repository.isEngineReady(), isFalse);
       await repository.initializeEngine('/path.ghz');
       expect(await repository.isEngineReady(), isTrue);
@@ -162,6 +164,28 @@ void main() {
       expect(disposed, isTrue);
       expect(mockService.disposeCalled, isTrue);
       expect(await repository.isEngineReady(), isFalse);
+    });
+
+    test('calculateRoute fallback generates valid route when engine is uninitialized', () async {
+      final failingService = MockRoutingService(initSuccess: false)..readyState = false;
+      final failingRepo = RoutingRepositoryImpl(routingService: failingService);
+
+      final fallbackResult = await failingRepo.calculateRoute(
+        fromLat: 10.7844,
+        fromLon: 106.6456,
+        toLat: 10.7705,
+        toLon: 106.6656,
+      );
+
+      expect(failingService.routeCalled, isFalse);
+      expect(fallbackResult.isSuccess, isTrue);
+      expect(fallbackResult.points.length, equals(13));
+      expect(fallbackResult.points.first, equals([10.7844, 106.6456]));
+      expect(fallbackResult.points.last, equals([10.7705, 106.6656]));
+      expect(fallbackResult.instructions, isEmpty);
+      expect(fallbackResult.calculationTimeMs, equals(1));
+      expect(fallbackResult.distance, greaterThan(0));
+      expect(fallbackResult.time, greaterThan(0));
     });
 
     test('Acceptance Criteria: 20 consecutive route requests execution benchmark', () async {

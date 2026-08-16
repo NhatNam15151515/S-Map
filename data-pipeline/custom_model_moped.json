@@ -124,11 +124,6 @@
     {
       "else_if": "surface == GRAVEL || surface == DIRT",
       "limit_to": 15
-    },
-
-    {
-      "if": "urban_density == CITY",
-      "limit_to": 30
     }
   ],
 

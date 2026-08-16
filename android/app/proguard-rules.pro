@@ -39,3 +39,5 @@
 # ------------------------------------------------------------------------------
 -keep class com.vnsmap.app.routing.** { *; }
 -keepclassmembers class com.vnsmap.app.routing.models.** { *; }
+-keep class javax.lang.model.** { *; }
+

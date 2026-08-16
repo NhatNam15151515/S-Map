@@ -133,3 +133,57 @@ configurations.all {
     }
 }
 
+tasks.register('autoPushGraphData') {
+    doLast {
+        def sdkDir = android.sdkDirectory.path
+        def adbExecutable = new File(sdkDir, "platform-tools/adb" + (org.gradle.internal.os.OperatingSystem.current().isWindows() ? ".exe" : ""))
+        if (!adbExecutable.exists()) return
+
+        try {
+            def devicesOutput = new ByteArrayOutputStream()
+            exec {
+                commandLine adbExecutable.path, 'devices'
+                standardOutput = devicesOutput
+                ignoreExitValue = true
+            }
+            def outputStr = devicesOutput.toString()
+            if (outputStr.contains("\tdevice")) {
+                println "📱 [S-Map Gradle] Checking GraphHopper map data on connected device..."
+                
+                def checkOutput = new ByteArrayOutputStream()
+                exec {
+                    commandLine adbExecutable.path, 'shell', 'ls /sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted/nodes 2>/dev/null'
+                    standardOutput = checkOutput
+                    ignoreExitValue = true
+                }
+                
+                if (!checkOutput.toString().contains("nodes")) {
+                    println "⚠️ [S-Map Gradle] GraphHopper data MISSING on device! Auto-pushing graph data..."
+                    def graphDir = file("../../data-pipeline/data/graph-cache/metro_hcm")
+                    if (graphDir.exists()) {
+                        exec {
+                            commandLine adbExecutable.path, 'shell', 'mkdir -p /sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted'
+                            ignoreExitValue = true
+                        }
+                        exec {
+                            commandLine adbExecutable.path, 'push', "${graphDir.path}/.", '/sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted/'
+                        }
+                        println "✅ [S-Map Gradle] GraphHopper data successfully pushed to device!"
+                    } else {
+                        println "⚠️ [S-Map Gradle] Graph data cache not found at ${graphDir.path}. Skipping auto-push."
+                    }
+                } else {
+                    println "✅ [S-Map Gradle] GraphHopper data already exists on device."
+                }
+            }
+        } catch (Exception e) {
+            println "⚠️ [S-Map Gradle] autoPushGraphData warning: ${e.message}"
+        }
+    }
+}
+
+tasks.matching { it.name.startsWith("assemble") || it.name.startsWith("install") }.configureEach {
+    finalizedBy 'autoPushGraphData'
+}
+
+

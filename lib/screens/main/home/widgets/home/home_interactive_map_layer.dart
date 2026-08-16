@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/models/models.dart';
@@ -95,6 +96,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
   /// Chuyển tiếp sự kiện chạm giữ (Long Press) trên bản đồ trực tiếp sang Cubit
   void _onMapLongClick(Point<double> point, LatLng latLng) {
+    DLog.info('👆 [Map] Long press detected at: (${latLng.latitude.toStringAsFixed(5)}, ${latLng.longitude.toStringAsFixed(5)})');
     routePreviewCubit.previewRouteToCoordinate(latLng);
   }
 
