@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/constants/constants.dart';
@@ -21,7 +22,9 @@ class MapRouteManager {
       final bytes = byteData.buffer.asUint8List();
       await controller.addImage(RoutingConstants.markerImageKey, bytes);
       _isAssetLoaded = true;
-    } catch (_) {}
+    } catch (e, stack) {
+      DLog.warning('Failed to load marker asset in MapRouteManager: $e', stack);
+    }
   }
 
   /// Chuyển đổi danh sách [lat, lon] sang List<LatLng> an toàn
@@ -81,8 +84,8 @@ class MapRouteManager {
       await _clearLinesAndSymbols(controller);
       if (generation != _renderGeneration) return;
 
-      // 1. Vẽ Casing Line (Viền đậm bên dưới tạo độ nổi khối)
-      _routeCasingLine = await controller.addLine(
+      // 1. Tạo Casing Line (Viền đậm bên dưới tạo độ nổi khối)
+      final casingLine = await controller.addLine(
         LineOptions(
           geometry: latLngs,
           lineColor: AppColors.routeCasingColor.toHex,
@@ -92,8 +95,8 @@ class MapRouteManager {
         ),
       );
 
-      // 2. Vẽ Main Route Line (Màu xanh Google Blue chính)
-      _routeLine = await controller.addLine(
+      // 2. Tạo Main Route Line (Màu xanh Google Blue chính)
+      final mainLine = await controller.addLine(
         LineOptions(
           geometry: latLngs,
           lineColor: AppColors.routeMainColor.toHex,
@@ -103,8 +106,8 @@ class MapRouteManager {
         ),
       );
 
-      // 3. Ghim điểm đến (Destination)
-      _destinationSymbol = await controller.addSymbol(
+      // 3. Tạo Marker điểm đến (Destination)
+      final destSymbol = await controller.addSymbol(
         SymbolOptions(
           geometry: LatLng(destination.lat, destination.lon),
           iconImage: RoutingConstants.markerImageKey,
@@ -121,9 +124,18 @@ class MapRouteManager {
       );
 
       if (generation != _renderGeneration) {
-        await _clearLinesAndSymbols(controller);
+        await _removeOrphan(controller, line: casingLine);
+        await _removeOrphan(controller, line: mainLine);
+        await _removeOrphan(controller, symbol: destSymbol);
+        return;
       }
-    } catch (_) {}
+
+      _routeCasingLine = casingLine;
+      _routeLine = mainLine;
+      _destinationSymbol = destSymbol;
+    } catch (e, stack) {
+      DLog.error('Error drawing route in MapRouteManager: $e', stack);
+    }
   }
 
   /// Căn chỉnh Camera ôm trọn lộ trình với khoảng cách an toàn (tránh đè BottomSheet)
@@ -177,27 +189,55 @@ class MapRouteManager {
     await _clearLinesAndSymbols(controller);
   }
 
+  Future<void> _removeOrphan(
+    MapLibreMapController? controller, {
+    Line? line,
+    Symbol? symbol,
+  }) async {
+    if (controller == null) return;
+    if (line != null) {
+      try {
+        await controller.removeLine(line);
+      } catch (e) {
+        DLog.warning('Failed to remove orphan line in MapRouteManager: $e');
+      }
+    }
+    if (symbol != null) {
+      try {
+        await controller.removeSymbol(symbol);
+      } catch (e) {
+        DLog.warning('Failed to remove orphan symbol in MapRouteManager: $e');
+      }
+    }
+  }
+
   Future<void> _clearLinesAndSymbols(MapLibreMapController? controller) async {
     if (controller == null) return;
 
     if (_routeLine != null) {
       try {
         await controller.removeLine(_routeLine!);
-      } catch (_) {}
+      } catch (e) {
+        DLog.warning('Failed to remove _routeLine in MapRouteManager: $e');
+      }
       _routeLine = null;
     }
 
     if (_routeCasingLine != null) {
       try {
         await controller.removeLine(_routeCasingLine!);
-      } catch (_) {}
+      } catch (e) {
+        DLog.warning('Failed to remove _routeCasingLine in MapRouteManager: $e');
+      }
       _routeCasingLine = null;
     }
 
     if (_destinationSymbol != null) {
       try {
         await controller.removeSymbol(_destinationSymbol!);
-      } catch (_) {}
+      } catch (e) {
+        DLog.warning('Failed to remove _destinationSymbol in MapRouteManager: $e');
+      }
       _destinationSymbol = null;
     }
   }

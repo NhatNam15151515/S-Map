@@ -9,6 +9,10 @@ class DLog {
     _logger.i(message);
   }
 
+  static void warning(dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.w(message, time: null, error: error, stackTrace: stackTrace);
+  }
+
   static void error(dynamic message, [dynamic error, StackTrace? stackTrace]) {
     _logger.e(message,time:null,error:error,stackTrace: stackTrace);
   }

@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/constants.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/services/services.dart';
@@ -34,7 +35,8 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
       }
       final current = await _locationService.getCurrentPosition();
       return LatLng(current.latitude, current.longitude);
-    } catch (_) {
+    } catch (e, stack) {
+      DLog.warning('Failed to resolve user GPS position, falling back to default location: $e', stack);
       return MapConstants.defaultLocation;
     }
   }
@@ -74,6 +76,7 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
       origin: origin,
       destination: destination,
       destinationName: destinationName,
+      clearDestinationName: destinationName == null,
       profile: selectedProfile,
       requestGeneration: generation,
       clearError: true,
@@ -97,6 +100,7 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
           origin: origin,
           destination: destination,
           destinationName: destinationName,
+          clearDestinationName: destinationName == null,
           profile: selectedProfile,
           requestGeneration: generation,
           clearError: true,
@@ -107,6 +111,7 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
           status: RoutePreviewStatus.error,
           errorMessageKey: result.errorMessage ?? RoutingConstants.errNoRouteFound,
           requestGeneration: generation,
+          clearRoute: true,
         ));
       }
     } catch (e, stack) {
@@ -114,8 +119,9 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
       DLog.error('Exception in RoutePreviewCubit.getRoute', e, stack);
       emit(state.copyWith(
         status: RoutePreviewStatus.error,
-        errorMessageKey: 'routing.error_generic',
+        errorMessageKey: LocaleKeys.routing_error_generic,
         requestGeneration: generation,
+        clearRoute: true,
       ));
     }
   }

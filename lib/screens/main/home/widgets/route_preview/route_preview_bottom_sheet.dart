@@ -182,10 +182,8 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                       ),
                       label: Text(
                         tr(LocaleKeys.routing_start_navigation),
-                        style: const TextStyle(
+                        style: style.whiteTextColor.textTheme.boldStyle.copyWith(
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.white,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(

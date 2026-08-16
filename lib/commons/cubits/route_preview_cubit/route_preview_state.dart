@@ -45,14 +45,16 @@ class RoutePreviewState extends Equatable {
     int? requestGeneration,
     bool clearRoute = false,
     bool clearError = false,
+    bool clearDestinationName = false,
   }) {
     return RoutePreviewState(
       status: status ?? this.status,
       routeResult: clearRoute ? null : (routeResult ?? this.routeResult),
       origin: clearRoute ? null : (origin ?? this.origin),
       destination: clearRoute ? null : (destination ?? this.destination),
-      destinationName:
-          clearRoute ? null : (destinationName ?? this.destinationName),
+      destinationName: clearRoute || clearDestinationName
+          ? null
+          : (destinationName ?? this.destinationName),
       profile: profile ?? this.profile,
       errorMessageKey:
           clearError ? null : (errorMessageKey ?? this.errorMessageKey),

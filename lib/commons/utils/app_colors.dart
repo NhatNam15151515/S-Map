@@ -179,7 +179,7 @@ class AppColors {
   // Map Symbol & Route Colors
   static const mapSymbolText = Color(0xFF0F172A);
   static const mapSymbolHalo = Color(0xFFFFFFFF);
-  static const routeMainColor = Color(0xFF1A73E8);
+  static const routeMainColor = googleBlue;
   static const routeCasingColor = Color(0xFF1557B0);
 }
 

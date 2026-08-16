@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/constants/constants.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
@@ -10,6 +11,7 @@ class FakeRoutingRepository implements IRoutingRepository {
   Duration delay = Duration.zero;
   bool shouldThrow = false;
   RouteResult? customResult;
+  Future<RouteResult> Function(double fromLat, double fromLon, double toLat, double toLon)? customRouteHandler;
   int callCount = 0;
   String? lastProfile;
 
@@ -23,6 +25,9 @@ class FakeRoutingRepository implements IRoutingRepository {
   }) async {
     callCount++;
     lastProfile = vehicleProfile;
+    if (customRouteHandler != null) {
+      return customRouteHandler!(fromLat, fromLon, toLat, toLon);
+    }
     if (delay > Duration.zero) {
       await Future.delayed(delay);
     }
@@ -162,6 +167,7 @@ void main() {
       expect(cubit.state.status, equals(RoutePreviewStatus.success));
       expect(cubit.state.destination?.lat, closeTo(21.0400, 0.0001));
       expect(cubit.state.destination?.lon, closeTo(105.8500, 0.0001));
+      expect(cubit.state.destinationName, isNull);
       expect(fakeRepo.callCount, equals(1));
     });
 
@@ -197,6 +203,7 @@ void main() {
       expect(cubit.state.status, equals(RoutePreviewStatus.error));
       expect(cubit.state.isError, isTrue);
       expect(cubit.state.errorMessageKey, equals('No valid route found'));
+      expect(cubit.state.routeResult, isNull);
     });
 
     test('getRoute handles exceptions gracefully and emits error state', () async {
@@ -206,7 +213,8 @@ void main() {
 
       expect(cubit.state.status, equals(RoutePreviewStatus.error));
       expect(cubit.state.isError, isTrue);
-      expect(cubit.state.errorMessageKey, equals('routing.error_generic'));
+      expect(cubit.state.errorMessageKey, equals(LocaleKeys.routing_error_generic));
+      expect(cubit.state.routeResult, isNull);
     });
 
     test('clearRoute resets state to initial and clears route result', () async {
@@ -222,9 +230,19 @@ void main() {
     });
 
     test('Ignores stale response when newer request is dispatched (Generation protection)', () async {
-      fakeRepo.delay = const Duration(milliseconds: 50);
+      fakeRepo.customRouteHandler = (fromLat, fromLon, toLat, toLon) async {
+        if (toLat == 21.0350) {
+          // Request 1 takes longer (60ms)
+          await Future.delayed(const Duration(milliseconds: 60));
+          return const RouteResult(isSuccess: true, distance: 1000.0);
+        } else {
+          // Request 2 completes quickly (10ms)
+          await Future.delayed(const Duration(milliseconds: 10));
+          return const RouteResult(isSuccess: true, distance: 2000.0);
+        }
+      };
 
-      // Start Request 1 (will be stale)
+      // Start Request 1 (will resolve AFTER Request 2)
       final req1 = cubit.getRoute(origin: origin, destination: destination, destinationName: 'Điểm 1');
 
       // Immediately start Request 2 with different destination
@@ -233,8 +251,11 @@ void main() {
 
       await Future.wait([req1, req2]);
 
-      // Cubit should hold the state of Request 2
+      // Cubit should hold the state of Request 2, ignoring the stale Request 1 response
       expect(cubit.state.destinationName, equals('Điểm 2'));
+      expect(cubit.state.destination, equals(dest2));
+      expect(cubit.state.routeResult?.distance, equals(2000.0));
+      expect(cubit.state.requestGeneration, equals(2));
     });
   });
 }

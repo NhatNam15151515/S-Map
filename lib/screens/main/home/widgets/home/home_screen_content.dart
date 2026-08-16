@@ -81,7 +81,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     return Scaffold(
       body: BlocBuilder<RoutePreviewCubit, RoutePreviewState>(
         builder: (context, routeState) {
-          final isRouteActive = routeState.hasRoute || routeState.isLoading;
+          final isRouteActive = routeState.isLoading || routeState.isSuccess;
 
           return Stack(
             children: [
