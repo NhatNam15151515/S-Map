@@ -35,12 +35,15 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
       return await _openFuture!;
     }
 
-    _openFuture = _performOpenDatabase(customPath: customPath);
+    final future = _performOpenDatabase(customPath: customPath);
+    _openFuture = future;
     try {
-      final db = await _openFuture!;
+      final db = await future;
       return db;
     } finally {
-      _openFuture = null;
+      if (identical(_openFuture, future)) {
+        _openFuture = null;
+      }
     }
   }
 
@@ -112,6 +115,11 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
 
   @override
   Future<void> close() async {
+    if (_openFuture != null) {
+      try {
+        await _openFuture;
+      } catch (_) {}
+    }
     if (_db != null && _db!.isOpen) {
       await _db!.close();
       _db = null;

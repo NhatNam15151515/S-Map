@@ -9,29 +9,38 @@ class MapSymbolManager {
   final Map<String, PoiModel> _renderedSymbols = {};
   Symbol? _singleSelectedSymbol;
   int _renderGeneration = 0;
+  int _selectedGeneration = 0;
+  bool _isAssetLoaded = false;
 
   /// Lấy POI tương ứng từ symbol ID khi người dùng bấm vào marker
   PoiModel? getPoiBySymbolId(String symbolId) => _renderedSymbols[symbolId];
 
   /// Nạp icon ảnh ghim đỏ vào MapLibre Sprite Engine
-  void loadMarkerAssets(MapLibreMapController? controller) {
-    if (controller == null) return;
-    rootBundle.load('assets/images/red_marker.png').then((byteData) {
+  Future<void> loadMarkerAssets(MapLibreMapController? controller) async {
+    if (controller == null || _isAssetLoaded) return;
+    try {
+      final byteData = await rootBundle.load('assets/images/red_marker.png');
       final bytes = byteData.buffer.asUint8List();
-      controller.addImage('red_marker', bytes);
-    }).catchError((_) {});
+      await controller.addImage('red_marker', bytes);
+      _isAssetLoaded = true;
+    } catch (_) {}
   }
 
   /// Render danh sách POI thành các Symbol trên bản đồ tuần tự theo thế hệ
-  void renderPoiList(
+  Future<void> renderPoiList(
     MapLibreMapController? controller,
     List<PoiModel> pois,
-  ) {
+  ) async {
     if (controller == null) return;
     final generation = ++_renderGeneration;
 
-    controller.clearSymbols().then((_) async {
+    try {
+      await loadMarkerAssets(controller);
       if (generation != _renderGeneration) return;
+
+      await controller.clearSymbols();
+      if (generation != _renderGeneration) return;
+
       _renderedSymbols.clear();
       _singleSelectedSymbol = null;
 
@@ -58,53 +67,62 @@ class MapSymbolManager {
           }
         } catch (_) {}
       }
-    }).catchError((_) {});
+    } catch (_) {}
   }
 
   /// Hiển thị ghim đỏ nổi bật cho một POI được chọn
-  void setSelectedPoiMarker(
+  Future<void> setSelectedPoiMarker(
     MapLibreMapController? controller,
     PoiModel poi,
-  ) {
+  ) async {
     if (controller == null) return;
-    final generation = ++_renderGeneration;
+    final generation = ++_selectedGeneration;
 
-    final clearOld = _singleSelectedSymbol != null
-        ? controller.removeSymbol(_singleSelectedSymbol!)
-        : Future<void>.value();
+    try {
+      await loadMarkerAssets(controller);
+      if (generation != _selectedGeneration) return;
 
-    clearOld.then((_) async {
-      if (generation != _renderGeneration) return;
-      _singleSelectedSymbol = null;
-      try {
-        final symbol = await controller.addSymbol(
-          SymbolOptions(
-            geometry: LatLng(poi.lat, poi.lon),
-            iconImage: 'red_marker',
-            iconSize: 0.85,
-            iconAnchor: 'bottom',
-            textField: poi.name,
-            textSize: 12.0,
-            textColor: AppColors.mapSymbolText.toHex,
-            textHaloColor: AppColors.mapSymbolHalo.toHex,
-            textHaloWidth: MapConstants.symbolTextHaloWidth,
-            textOffset: const Offset(0, 0.6),
-            textAnchor: 'top',
-          ),
-        );
-        if (generation == _renderGeneration) {
-          _singleSelectedSymbol = symbol;
-          _renderedSymbols[symbol.id] = poi;
-        }
-      } catch (_) {}
-    }).catchError((_) {});
+      if (_singleSelectedSymbol != null) {
+        final oldSymbol = _singleSelectedSymbol!;
+        _singleSelectedSymbol = null;
+        _renderedSymbols.remove(oldSymbol.id);
+        try {
+          await controller.removeSymbol(oldSymbol);
+        } catch (_) {}
+      }
+
+      if (generation != _selectedGeneration) return;
+
+      final symbol = await controller.addSymbol(
+        SymbolOptions(
+          geometry: LatLng(poi.lat, poi.lon),
+          iconImage: 'red_marker',
+          iconSize: 0.85,
+          iconAnchor: 'bottom',
+          textField: poi.name,
+          textSize: 12.0,
+          textColor: AppColors.mapSymbolText.toHex,
+          textHaloColor: AppColors.mapSymbolHalo.toHex,
+          textHaloWidth: MapConstants.symbolTextHaloWidth,
+          textOffset: const Offset(0, 0.6),
+          textAnchor: 'top',
+        ),
+      );
+
+      if (generation == _selectedGeneration) {
+        _singleSelectedSymbol = symbol;
+        _renderedSymbols[symbol.id] = poi;
+      }
+    } catch (_) {}
   }
 
   /// Xóa ghim đơn lẻ khi đóng thẻ POI
   void clearSelectedPoiMarker(MapLibreMapController? controller) {
+    _selectedGeneration++;
     if (controller == null || _singleSelectedSymbol == null) return;
     final symbolToRemove = _singleSelectedSymbol!;
     _singleSelectedSymbol = null;
+    _renderedSymbols.remove(symbolToRemove.id);
     controller.removeSymbol(symbolToRemove).catchError((_) {});
   }
 
@@ -163,6 +181,7 @@ class MapSymbolManager {
   /// Dọn sạch toàn bộ marker và bộ nhớ tạm
   void clearAll(MapLibreMapController? controller) {
     _renderGeneration++;
+    _selectedGeneration++;
     _renderedSymbols.clear();
     _singleSelectedSymbol = null;
     if (controller != null) {
