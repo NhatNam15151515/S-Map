@@ -143,5 +143,14 @@
     "zoom_in": "Phóng to",
     "zoom_out": "Thu nhỏ",
     "current_location": "Vị trí hiện tại"
+  },
+  "routing": {
+    "calculating_moped_route": "Đang tính toán lộ trình xe máy...",
+    "start_navigation": "Bắt đầu",
+    "destination_fallback": "Điểm đến",
+    "my_location": "Vị trí của bạn",
+    "selected_point": "Điểm đã chọn",
+    "error_generic": "Không thể tìm thấy lộ trình phù hợp",
+    "feature_under_development": "Tính năng điều hướng đang được cập nhật"
   }
 }

@@ -143,5 +143,14 @@
     "zoom_in": "Zoom in",
     "zoom_out": "Zoom out",
     "current_location": "Current location"
+  },
+  "routing": {
+    "calculating_moped_route": "Calculating motorcycle route...",
+    "start_navigation": "Start",
+    "destination_fallback": "Destination",
+    "my_location": "Your location",
+    "selected_point": "Selected point",
+    "error_generic": "Could not find a valid route",
+    "feature_under_development": "Turn-by-turn navigation is coming soon"
   }
 }

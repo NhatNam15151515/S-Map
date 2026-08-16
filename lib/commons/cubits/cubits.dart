@@ -16,6 +16,8 @@ export 'map_explore_cubit/map_explore_fallbacks.dart';
 export 'map_explore_cubit/map_explore_state.dart';
 export 'notification_cubit/notification_cubit.dart';
 export 'notification_cubit/notification_state.dart';
+export 'route_preview_cubit/route_preview_cubit.dart';
+export 'route_preview_cubit/route_preview_state.dart';
 export 'search_cubit/search_cubit.dart';
 export 'search_cubit/search_fallbacks.dart';
 export 'search_cubit/search_state.dart';

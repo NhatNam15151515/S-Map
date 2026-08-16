@@ -1,16 +1,12 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/models/models.dart';
-import 'home_bottom_overlay.dart';
-import 'home_header_search_bar.dart';
-import 'home_interactive_map_layer.dart';
-import 'home_map_controls.dart';
-import 'home_search_area_button.dart';
+import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeScreenContent extends StatefulWidget {
   const HomeScreenContent({super.key});
@@ -31,6 +27,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   MapExploreCubit get exploreCubit => context.read<MapExploreCubit>();
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
+  RoutePreviewCubit get routePreviewCubit => context.read<RoutePreviewCubit>();
 
   @override
   void dispose() {
@@ -67,74 +64,106 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     }
   }
 
+  void _handleDirections() {
+    if (_selectedMarkerPoi != null) {
+      final poi = _selectedMarkerPoi!;
+      _mapLayerKey.currentState?.clearSelectedPoiMarker();
+      displayCubit.clearSelectedPoi();
+      setState(() => _selectedMarkerPoi = null);
+      routePreviewCubit.previewRouteToPoi(poi);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // 1. Interactive Map Layer
-          HomeInteractiveMapLayer(
-            key: _mapLayerKey,
-            onPoiTapped: (poi) {
-              _mapLayerKey.currentState?.setSelectedPoiMarker(poi);
-              setState(() => _selectedMarkerPoi = poi);
-            },
-            onSearchAreaVisibilityChanged: (show) {
-              if (mounted) setState(() => _showSearchThisArea = show);
-            },
-          ),
+      body: BlocBuilder<RoutePreviewCubit, RoutePreviewState>(
+        builder: (context, routeState) {
+          final isRouteActive = routeState.hasRoute || routeState.isLoading;
 
-          // 2. Right Map Controls
-          HomeMapControls(displayCubit: displayCubit),
+          return Stack(
+            children: [
+              // 1. Interactive Map Layer
+              HomeInteractiveMapLayer(
+                key: _mapLayerKey,
+                onPoiTapped: (poi) {
+                  _mapLayerKey.currentState?.setSelectedPoiMarker(poi);
+                  setState(() => _selectedMarkerPoi = poi);
+                },
+                onSearchAreaVisibilityChanged: (show) {
+                  if (mounted && !isRouteActive) {
+                    setState(() => _showSearchThisArea = show);
+                  }
+                },
+              ),
 
-          // 3. Top Floating Search Bar & Category Chips
-          HomeHeaderSearchBar(
-            topPadding: topPadding,
-            onPoiSelected: _handlePoiSelected,
-            onSearchResults: _handleSearchResults,
-            onCategorySelected: _handleCategorySelected,
-          ),
+              // 2. Right Map Controls
+              HomeMapControls(displayCubit: displayCubit),
 
-          // 4. Floating "Search This Area" Button
-          HomeSearchAreaButton(
-            topPadding: topPadding,
-            isVisible: _showSearchThisArea,
-            onPressed: _handleSearchThisArea,
-          ),
+              // 3. Top Floating Search Bar & Category Chips (Ẩn khi đang xem route)
+              if (!isRouteActive) ...[
+                HomeHeaderSearchBar(
+                  topPadding: topPadding,
+                  onPoiSelected: _handlePoiSelected,
+                  onSearchResults: _handleSearchResults,
+                  onCategorySelected: _handleCategorySelected,
+                ),
 
-          // 5. Dynamic Bottom Overlay (Explore Sheet / POI Quick Card)
-          HomeBottomOverlay(
-            sheetController: _sheetController,
-            selectedMarkerPoi: _selectedMarkerPoi,
-            onPlaceTap: (place) {
-              if (place.latitude != null && place.longitude != null) {
-                _mapLayerKey.currentState?.handleCameraAction(
-                  MapCameraAction(
-                    type: MapCameraActionType.animateToPosition,
-                    target: LatLng(place.latitude!, place.longitude!),
-                    zoom: 16.0,
-                    timestamp: DateTime.now().microsecondsSinceEpoch,
+                // 4. Floating "Search This Area" Button
+                HomeSearchAreaButton(
+                  topPadding: topPadding,
+                  isVisible: _showSearchThisArea,
+                  onPressed: _handleSearchThisArea,
+                ),
+
+                // 5. Dynamic Bottom Overlay (Explore Sheet / POI Quick Card)
+                HomeBottomOverlay(
+                  sheetController: _sheetController,
+                  selectedMarkerPoi: _selectedMarkerPoi,
+                  onPlaceTap: (place) {
+                    if (place.latitude != null && place.longitude != null) {
+                      _mapLayerKey.currentState?.handleCameraAction(
+                        MapCameraAction(
+                          type: MapCameraActionType.animateToPosition,
+                          target: LatLng(place.latitude!, place.longitude!),
+                          zoom: 16.0,
+                          timestamp: DateTime.now().microsecondsSinceEpoch,
+                        ),
+                      );
+                    }
+                  },
+                  onClosePoiCard: () {
+                    _mapLayerKey.currentState?.clearSelectedPoiMarker();
+                    displayCubit.clearSelectedPoi();
+                    setState(() => _selectedMarkerPoi = null);
+                  },
+                  onDirections: _handleDirections,
+                ),
+              ],
+
+              // 6. Route Preview Bottom Sheet (Hiển thị khi Route đang tính toán hoặc sẵn sàng)
+              if (isRouteActive)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: RoutePreviewBottomSheet(
+                      onClose: () {
+                        routePreviewCubit.clearRoute();
+                      },
+                      onStartNavigation: () {
+                        showInfo(tr(LocaleKeys.routing_feature_under_development));
+                      },
+                    ),
                   ),
-                );
-              }
-            },
-            onClosePoiCard: () {
-              _mapLayerKey.currentState?.clearSelectedPoiMarker();
-              displayCubit.clearSelectedPoi();
-              setState(() => _selectedMarkerPoi = null);
-            },
-            onDirections: () {
-              if (_selectedMarkerPoi != null) {
-                AppUtils.instance.openLocation(
-                  _selectedMarkerPoi!.lat,
-                  _selectedMarkerPoi!.lon,
-                );
-              }
-            },
-          ),
-        ],
+                ),
+            ],
+          );
+        },
       ),
     );
   }

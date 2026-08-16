@@ -176,9 +176,11 @@ class AppColors {
   static const surfaceDim = Color(0xFFF8F9FA);
   static const onSurfaceVariant = Color(0xFF5F6368);
 
-  // Map Symbol Colors
+  // Map Symbol & Route Colors
   static const mapSymbolText = Color(0xFF0F172A);
   static const mapSymbolHalo = Color(0xFFFFFFFF);
+  static const routeMainColor = Color(0xFF1A73E8);
+  static const routeCasingColor = Color(0xFF1557B0);
 }
 
 extension ColorExtension on Color {

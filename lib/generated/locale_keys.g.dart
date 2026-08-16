@@ -140,5 +140,13 @@ abstract class  LocaleKeys {
   static const map_zoom_out = 'map.zoom_out';
   static const map_current_location = 'map.current_location';
   static const map = 'map';
+  static const routing_calculating_moped_route = 'routing.calculating_moped_route';
+  static const routing_start_navigation = 'routing.start_navigation';
+  static const routing_destination_fallback = 'routing.destination_fallback';
+  static const routing_my_location = 'routing.my_location';
+  static const routing_selected_point = 'routing.selected_point';
+  static const routing_error_generic = 'routing.error_generic';
+  static const routing_feature_under_development = 'routing.feature_under_development';
+  static const routing = 'routing';
 
 }
