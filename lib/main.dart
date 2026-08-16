@@ -10,6 +10,7 @@ import 'package:s_map/app.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/flavor/flavor.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:s_map/services/services.dart';
 
 void main() async {
@@ -18,7 +19,8 @@ void main() async {
 
   await Hive.initFlutter();
 
-  // Setup default service resolvers (Dependency Inversion)
+  // Setup default service resolvers & AppReposProvider (Composition Root)
+  AppReposProvider.init(routingService: RoutingServiceImpl.instance);
   MapDisplayCubit.defaultLocationService = LocationService.instance;
   MapDisplayCubit.defaultCompassService = CompassService.instance;
   MapDisplayCubit.defaultMapStyleService = MapStyleService.instance;

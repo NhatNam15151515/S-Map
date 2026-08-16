@@ -96,6 +96,9 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -114,7 +117,9 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
-    implementation 'com.graphhopper:graphhopper-core:8.0'
+    implementation('com.graphhopper:graphhopper-core:8.0') {
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+    }
     implementation 'org.slf4j:slf4j-android:1.7.36'
 
     testImplementation 'junit:junit:4.13.2'
