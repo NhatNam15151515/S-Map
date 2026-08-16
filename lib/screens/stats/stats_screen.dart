@@ -5,8 +5,6 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class StatsScreen extends StatelessWidget {
-  static const String path = '/stats';
-
   const StatsScreen({super.key});
 
   @override

@@ -108,13 +108,29 @@ screens → cubits → [interfaces: IRepos] → repos → [interfaces: IServices
 ### Clean Architecture & UI Separation Rules (BẮT BUỘC)
 
 1. **UI Không gọi trực tiếp Service/Repository**: UI Screens và Widgets **TUYỆT ĐỐI KHÔNG** import `services/` hay gọi các singleton `Service.instance` (ngoại trừ pure UI utilities như `Validator`). Mọi tương tác Service I/O (Auth, Map Style, GPS, Messaging, Storage) phải được bọc trong Cubit / Bloc / Repos.
-2. **Pure UI Widgets**: Các Widget con (như `MapView`, `MapControls`, `ExploreBottomSheet`) chỉ nhận data và callback từ parameters (props) do Screen / Cubit truyền xuống, không tự truy xuất Singleton Service.
-3. **Barrel Export Convention**: Luôn import từ các barrel export file chuẩn (`models/models.dart`, `services/services.dart`, `repos/repos.dart`, `interfaces/interfaces.dart`, `constants/constants.dart`, `commons/widgets/widgets.dart`, `commons/cubits/cubits.dart`). **CẤM import lẻ tẻ** từng file thành phần khi đã có barrel file.
-4. **Type-Safety cho Completer / Async**: Bắt buộc chỉ định rõ generic type cho `Completer<T>` (ví dụ: `Completer<bool>`), không dùng raw type `Completer`.
+2. **Pure Declarative UI & No Future in UI (BẮT BUỘC)**:
+   - UI Widgets thuần túy là hàm của State (`UI = f(State)`).
+   - **TUYỆT ĐỐI KHÔNG** chứa các hàm `Future<T>` xử lý nghiệp vụ, `async-await`, manual `try-catch`, hay `setState(isLoading = true)` tự phát trong Widget.
+   - UI chỉ trigger các hàm đồng bộ từ Cubit (`cubit.login(...)`, `cubit.search(...)`) và render/điều hướng đồng bộ thông qua `BlocConsumer`, `BlocListener`, `BlocBuilder`.
+3. **Tách biệt Controller & Manager khỏi UI (Controller/Manager Separation Pattern)**:
+   - Các logic tương tác bản đồ phức tạp (Marker/Symbol rendering, nạp Sprite asset, Camera animation, tính toán Bounding Box/Camera bounds) **PHẢI** được đóng gói trong các Manager/Controller chuyên trách (như `MapSymbolManager`, `MapCameraController`) tại `lib/commons/utils/`.
+   - Widget Map chỉ là View khai báo và ủy quyền thực thi cho Manager/Controller.
+4. **Pure Functions in Helpers (Đưa thuật toán vào Helper/Utils)**:
+   - Các thuật toán tính toán và định dạng (Haversine distance, sắp xếp theo khoảng cách gần nhất, format khoảng cách/địa chỉ, sinh unique POI key) **PHẢI** là static pure functions trong `lib/commons/utils/` (`PoiCategoryHelper`, `AppUtils`), KHÔNG viết lẫn trong Cubit/BLoC hay Widget.
+5. **Centralized Route Management (Quản lý Route tập trung)**:
+   - Mọi route path **BẮT BUỘC** được định nghĩa duy nhất tại `lib/routers/app_routes.dart` (`AppRoutes`).
+   - **TUYỆT ĐỐI KHÔNG** hardcode string path (`'/search'`, `'/HomeScreen'`) và **KHÔNG** khai báo `static const String path` rải rác trong từng Widget Screen.
+   - Điều hướng sử dụng `context.go(AppRoutes.home)` hoặc `context.push(AppRoutes.search)`.
+6. **Pure UI Widgets**: Các Widget con (như `MapView`, `MapControls`, `ExploreBottomSheet`) chỉ nhận data và callback từ parameters (props) do Screen / Cubit truyền xuống, không tự truy xuất Singleton Service.
+7. **Barrel Export Convention**: Luôn import từ các barrel export file chuẩn (`models/models.dart`, `services/services.dart`, `repos/repos.dart`, `interfaces/interfaces.dart`, `constants/constants.dart`, `commons/widgets/widgets.dart`, `commons/cubits/cubits.dart`, `routers/routers.dart`). **CẤM import lẻ tẻ** từng file thành phần khi đã có barrel file.
+8. **Type-Safety cho Completer / Async**: Bắt buộc chỉ định rõ generic type cho `Completer<T>` (ví dụ: `Completer<bool>`), không dùng raw type `Completer`.
 
 ### Vi phạm kiến trúc nghiêm trọng
 
 - ❌ KHÔNG để UI Screens hoặc Widgets gọi trực tiếp `Service.instance` / `Repo.instance`
+- ❌ KHÔNG chứa hàm `Future` hay `async-await` nghiệp vụ bên trong Widget files
+- ❌ KHÔNG khai báo `static const String path` trong từng Widget Screen hoặc hardcode magic string URL
+- ❌ KHÔNG để logic điều khiển Map SDK / Symbol / Camera Bounds nằm lẫn trong UI Widget
 - ❌ KHÔNG tạo Service hoặc Repo mà thiếu Interface trong `lib/interfaces/`
 - ❌ KHÔNG phụ thuộc trực tiếp vào Concrete Service trong Cubit/Repo nếu đã có Interface
 - ❌ KHÔNG import lẻ tẻ từng file khi đã có barrel export file tương ứng

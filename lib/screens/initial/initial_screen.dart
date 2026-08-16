@@ -4,8 +4,6 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/screens/initial/widgets/widgets.dart';
 
 class InitialScreen extends StatefulWidget {
-  static const String path = '/';
-
   const InitialScreen({super.key});
 
   @override

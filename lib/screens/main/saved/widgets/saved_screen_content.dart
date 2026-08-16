@@ -7,6 +7,7 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/routers/routers.dart';
 import 'saved_poi_card.dart';
 
 class SavedScreenContent extends StatelessWidget {
@@ -16,7 +17,7 @@ class SavedScreenContent extends StatelessWidget {
     try {
       context.read<MapDisplayCubit>().selectPoi(poi);
     } catch (_) {}
-    context.go('/HomeScreen');
+    context.go(AppRoutes.home);
   }
 
   void _onDirections(PoiModel poi) {
@@ -24,9 +25,7 @@ class SavedScreenContent extends StatelessWidget {
   }
 
   void _onRemoveFavorite(BuildContext context, PoiModel poi) {
-    final cubit = context.read<FavoritesCubit>();
-    final key = cubit.getPoiKey(poi);
-    cubit.removeFavorite(key);
+    context.read<FavoritesCubit>().removeFavoritePoi(poi);
   }
 
   @override

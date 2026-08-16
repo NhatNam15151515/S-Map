@@ -26,6 +26,21 @@ class PoiQuickCard extends StatelessWidget {
     final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);
     final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
     final address = PoiCategoryHelper.formatAddress(poi);
+    String subtitleText = address;
+    try {
+      final userLocation =
+          context.read<MapDisplayCubit>().state.currentPosition;
+      if (userLocation != null) {
+        final distKm = AppUtils.instance.calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          poi.lat,
+          poi.lon,
+        );
+        final distStr = PoiCategoryHelper.formatDistance(distKm);
+        subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
+      }
+    } catch (_) {}
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -74,10 +89,10 @@ class PoiQuickCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (address.isNotEmpty) ...[
+                    if (subtitleText.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
-                        address,
+                        subtitleText,
                         style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
                           fontSize: 13,
                           fontWeight: AppFontWeight.regular.weight,

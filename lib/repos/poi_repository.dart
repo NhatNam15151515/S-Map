@@ -1,4 +1,4 @@
-import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -150,11 +150,42 @@ class PoiRepositoryImpl implements IPoiRepository {
     required double maxLat,
     required double minLon,
     required double maxLon,
+    String? query,
     int limit = 50,
   }) async {
     final db = await _getDb();
+    final cleanQuery = query != null ? _sanitizeFtsQuery(query) : '';
+    final cleanAscii = cleanQuery.isNotEmpty
+        ? _sanitizeFtsQuery(AppUtils.instance.toAscii(cleanQuery))
+        : '';
 
     try {
+      if (cleanQuery.isNotEmpty) {
+        final List<Map<String, dynamic>> results = await db.rawQuery(
+          '''
+          SELECT p.*
+          FROM poi_rtree r
+          JOIN poi p ON r.id = p.id
+          WHERE r.min_lat >= ? AND r.max_lat <= ?
+            AND r.min_lon >= ? AND r.max_lon <= ?
+            AND (p.name LIKE ? OR p.name_ascii LIKE ? OR p.category LIKE ? OR p.sub_category LIKE ?)
+          LIMIT ?
+          ''',
+          [
+            minLat,
+            maxLat,
+            minLon,
+            maxLon,
+            '%$cleanQuery%',
+            '%$cleanAscii%',
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+            limit
+          ],
+        );
+        return results.map(PoiModel.fromMap).toList();
+      }
+
       final List<Map<String, dynamic>> results = await db.rawQuery(
         '''
         SELECT p.*
@@ -170,6 +201,26 @@ class PoiRepositoryImpl implements IPoiRepository {
       return results.map(PoiModel.fromMap).toList();
     } catch (_) {
       // Fallback query bảng poi thông thường nếu R*Tree không khả dụng
+      if (cleanQuery.isNotEmpty) {
+        final fallbackResults = await db.query(
+          'poi',
+          where:
+              'lat >= ? AND lat <= ? AND lon >= ? AND lon <= ? AND (name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ?)',
+          whereArgs: [
+            minLat,
+            maxLat,
+            minLon,
+            maxLon,
+            '%$cleanQuery%',
+            '%$cleanAscii%',
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+          ],
+          limit: limit,
+        );
+        return fallbackResults.map(PoiModel.fromMap).toList();
+      }
+
       final fallbackResults = await db.query(
         'poi',
         where: 'lat >= ? AND lat <= ? AND lon >= ? AND lon <= ?',

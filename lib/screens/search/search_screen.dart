@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/services/services.dart';
 import 'widgets/widgets.dart';
 
 class SearchScreen extends StatefulWidget {
-  static const String path = '/search';
+  final LatLng? userLocation;
 
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.userLocation});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -21,6 +22,7 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     _searchCubit = SearchCubit(
       recentSearchService: RecentSearchServiceImpl.instance,
+      userLocation: widget.userLocation,
     )..loadRecentSearches();
   }
 

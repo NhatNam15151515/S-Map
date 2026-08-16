@@ -17,6 +17,7 @@ class FakePoiRepository implements IPoiRepository {
     required double maxLat,
     required double minLon,
     required double maxLon,
+    String? query,
     int limit = 50,
   }) async {
     if (delay > Duration.zero) {

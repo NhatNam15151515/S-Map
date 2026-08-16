@@ -85,6 +85,8 @@ flutter:
     - assets/map/
     - assets/translations/
     - assets/fonts/
+    - assets/database/
+
 
   fonts:
     - family: Montserrat

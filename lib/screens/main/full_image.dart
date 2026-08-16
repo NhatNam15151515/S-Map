@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/routers/routers.dart';
 
 class FullImageScreen extends StatefulWidget {
-  static String path = "/FullImageScreen";
   final AppImage args;
 
   const FullImageScreen({super.key, required this.args});
@@ -90,7 +90,7 @@ extension AppImageToFullScreen on AppImage {
   }) {
     return GestureDetector(
       onTap: () {
-        context.push(FullImageScreen.path, extra: this);
+        context.push(AppRoutes.fullImage, extra: this);
       },
       child: build(
         placeHolder: placeHolder,

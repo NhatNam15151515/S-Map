@@ -40,6 +40,11 @@ Font: Montserrat. Platforms: Android & iOS ONLY.
   - NEVER mix UI mixins (`with AppMixin`) or UI Context into Cubits, Services, or Repositories.
   - NEVER use `ValueNotifier` / `ChangeNotifier` controllers alongside Cubits for the same state (No Dual State Management).
   - Use Error Mapping Pattern instead of repetitive duplicate catch blocks in Cubit.
+- **UI Architecture & Management Rules**:
+  - **No Future in UI (Pure Declarative & Reactive UI)**: UI Widgets are functions of state (`UI = f(State)`). NEVER define `Future<T>` business logic, `async-await`, manual `try-catch`, or ad-hoc `setState(isLoading = true)` inside Widgets. UI triggers synchronous Cubit methods and renders/listens via `BlocConsumer`, `BlocListener`, and `BlocBuilder`.
+  - **Controller & Manager Separation**: Complex platform-view or map operations (Marker/Symbol rendering, Sprite asset loading, Camera movement & Bounding Box calculations) MUST be encapsulated in dedicated Manager/Controller classes (e.g. `MapSymbolManager`, `MapCameraController`) in `lib/commons/utils/`. UI Widgets act purely as View wrappers and delegate execution to Managers.
+  - **Pure Functions in Helpers**: Computational and transformation algorithms (Haversine distance calculation, sorting by proximity, address/distance formatting, POI unique key extraction, bounding box computation) MUST live in `lib/commons/utils/` (e.g. `PoiCategoryHelper`, `AppUtils`), NOT embedded directly inside Cubits or UI Widgets.
+  - **Centralized Route Management**: ALL route paths MUST be declared centrally in `lib/routers/app_routes.dart` (`AppRoutes`). NEVER hardcode string paths (`'/search'`, `'/HomeScreen'`) and NEVER define `static const String path` scattered across individual Screen Widgets. Use `context.go(AppRoutes.home)` or `context.push(AppRoutes.search)`.
 - **Localization & i18n Rules**:
   - NEVER hardcode UI strings. All UI text must use `tr(LocaleKeys.xxx)` (wrap in `tr()`).
   - When modifying `assets/translations/vi.json` or `en.json`, ALWAYS run:

@@ -1,10 +1,9 @@
 import 'dart:async';
-
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
-import 'package:s_map/commons/utils/app_image.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/screens/auth/login_screen.dart';
@@ -24,6 +23,9 @@ import 'package:s_map/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'app_routes.dart';
+
+export 'app_routes.dart';
 
 class Routes extends NavigatorObserver {
   static Routes instance = Routes();
@@ -50,41 +52,45 @@ class Routes extends NavigatorObserver {
     FirebaseMessagingService.loadingOverlayHandler = showLoadingDepend;
     router = GoRouter(
       navigatorKey: rootNavigatorKey,
-      initialLocation: InitialScreen.path,
+      initialLocation: AppRoutes.initial,
       errorBuilder: (context, state) {
         return const SizedBox();
       },
       routes: <RouteBase>[
         GoRoute(
-          path: InitialScreen.path,
+          path: AppRoutes.initial,
           builder: (context, state) => const InitialScreen(),
         ),
         GoRoute(
-          path: LoginScreen.path,
+          path: AppRoutes.login,
           builder: (context, state) => const LoginScreen(),
         ),
         GoRoute(
-          path: SearchScreen.path,
-          builder: (context, state) => const SearchScreen(),
+          path: AppRoutes.search,
+          builder: (context, state) {
+            final extra = state.extra;
+            final userLocation = extra is LatLng ? extra : null;
+            return SearchScreen(userLocation: userLocation);
+          },
         ),
         GoRoute(
-          path: NavigationScreen.path,
+          path: AppRoutes.navigation,
           builder: (context, state) => const NavigationScreen(),
         ),
         GoRoute(
-          path: RouteDrawingScreen.path,
+          path: AppRoutes.routeDrawing,
           builder: (context, state) => const RouteDrawingScreen(),
         ),
         GoRoute(
-          path: StatsScreen.path,
+          path: AppRoutes.stats,
           builder: (context, state) => const StatsScreen(),
         ),
         GoRoute(
-          path: SettingsScreen.path,
+          path: AppRoutes.settings,
           builder: (context, state) => const SettingsScreen(),
         ),
         GoRoute(
-          path: FullImageScreen.path,
+          path: AppRoutes.fullImage,
           builder: (context, state) =>
               FullImageScreen(args: state.extra as AppImage),
         ),
@@ -96,7 +102,7 @@ class Routes extends NavigatorObserver {
             StatefulShellBranch(
               routes: <RouteBase>[
                 GoRoute(
-                  path: HomeScreen.path,
+                  path: AppRoutes.home,
                   builder: (context, state) => const HomeScreen(),
                 ),
               ],
@@ -104,7 +110,7 @@ class Routes extends NavigatorObserver {
             StatefulShellBranch(
               routes: [
                 GoRoute(
-                  path: SavedScreen.path,
+                  path: AppRoutes.saved,
                   builder: (context, state) => const SavedScreen(),
                 ),
               ],
@@ -112,7 +118,7 @@ class Routes extends NavigatorObserver {
             StatefulShellBranch(
               routes: <RouteBase>[
                 GoRoute(
-                  path: NotificationScreen.path,
+                  path: AppRoutes.notification,
                   builder: (context, state) => const NotificationScreen(),
                 ),
               ],
@@ -120,7 +126,7 @@ class Routes extends NavigatorObserver {
             StatefulShellBranch(
               routes: <RouteBase>[
                 GoRoute(
-                  path: UserScreen.path,
+                  path: AppRoutes.user,
                   builder: (context, state) => const UserScreen(),
                 ),
               ],
@@ -136,10 +142,10 @@ class Routes extends NavigatorObserver {
       await routeMounted.future;
       switch (event.type) {
         case AuthStateType.unAuthenticated:
-          if (context.mounted) context.go(LoginScreen.path);
+          if (context.mounted) context.go(AppRoutes.login);
           break;
         case AuthStateType.authenticated:
-          if (context.mounted) context.go(HomeScreen.path);
+          if (context.mounted) context.go(AppRoutes.home);
           break;
         default:
           break;

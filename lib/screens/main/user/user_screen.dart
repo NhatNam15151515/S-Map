@@ -5,8 +5,6 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/screens/main/user/widgets/widgets.dart';
 
 class UserScreen extends StatefulWidget {
-  static const String path = '/UserScreen';
-
   const UserScreen({super.key});
 
   @override

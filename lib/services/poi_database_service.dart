@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -37,8 +38,19 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
 
     final file = File(dbPath);
     if (!await file.exists()) {
-      throw FileSystemException("POI database file not found at: $dbPath");
+      try {
+        final byteData = await rootBundle.load('assets/database/poi.db');
+        final buffer = byteData.buffer;
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(
+          buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+          flush: true,
+        );
+      } catch (e) {
+        throw FileSystemException("POI database file not found at: $dbPath ($e)");
+      }
     }
+
 
     if (_customFactory != null) {
       _db = await _customFactory.openDatabase(

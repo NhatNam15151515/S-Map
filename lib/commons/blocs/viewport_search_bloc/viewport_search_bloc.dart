@@ -44,6 +44,7 @@ class ViewportSearchBloc
       emit: emit,
       bounds: event.bounds,
       category: event.category ?? _currentCategory,
+      query: event.query,
       limit: event.limit,
     );
   }
@@ -56,6 +57,7 @@ class ViewportSearchBloc
       emit: emit,
       bounds: event.bounds,
       category: event.category ?? _currentCategory,
+      query: event.query,
       limit: event.limit,
     );
   }
@@ -71,6 +73,7 @@ class ViewportSearchBloc
         emit: emit,
         bounds: event.bounds!,
         category: _currentCategory,
+        query: null,
         limit: 50,
       );
     }
@@ -88,6 +91,7 @@ class ViewportSearchBloc
     required Emitter<ViewportSearchState> emit,
     required LatLngBounds bounds,
     required String category,
+    String? query,
     required int limit,
   }) async {
     emit(state.copyWith(
@@ -116,6 +120,7 @@ class ViewportSearchBloc
         maxLat: maxLat,
         minLon: minLon,
         maxLon: maxLon,
+        query: query,
         limit: limit,
       );
 

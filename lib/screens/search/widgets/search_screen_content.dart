@@ -36,10 +36,12 @@ class _SearchScreenContentState extends State<SearchScreenContent>
     super.dispose();
   }
 
+  bool _isSubmitting = false;
+
   void _onPoiSelected(PoiModel poi) {
     final cubit = context.read<SearchCubit>();
     cubit.addRecentSearch(poi.name);
-    context.pop(poi);
+    context.pop(SearchResultPayload.single(poi));
   }
 
   void _onCategorySelected(String category) {
@@ -56,6 +58,24 @@ class _SearchScreenContentState extends State<SearchScreenContent>
       TextPosition(offset: keyword.length),
     );
     context.read<SearchCubit>().search(keyword);
+  }
+
+  void _onSubmitted(String query) {
+    final clean = query.trim();
+    if (clean.isEmpty) return;
+    final cubit = context.read<SearchCubit>();
+    if (cubit.state.results.isNotEmpty && cubit.state.query == clean) {
+      cubit.addRecentSearch(clean);
+      context.pop(
+        SearchResultPayload.all(
+          allResults: cubit.state.results,
+          submittedQuery: clean,
+        ),
+      );
+      return;
+    }
+    _isSubmitting = true;
+    cubit.search(clean);
   }
 
   void _onClear() {
@@ -77,14 +97,28 @@ class _SearchScreenContentState extends State<SearchScreenContent>
               controller: _textController,
               focusNode: _focusNode,
               onQueryChanged: (query) => searchCubit.onQueryChanged(query),
-              onSubmitted: (query) => searchCubit.search(query),
+              onSubmitted: _onSubmitted,
               onClear: _onClear,
               onBackPressed: () => context.pop(),
             ),
 
             // 2. Main Content: Recent/Category or Search Results
             Expanded(
-              child: BlocBuilder<SearchCubit, SearchState>(
+              child: BlocConsumer<SearchCubit, SearchState>(
+                listenWhen: (prev, curr) => _isSubmitting && curr.isSuccess,
+                listener: (context, state) {
+                  if (_isSubmitting) {
+                    _isSubmitting = false;
+                    if (state.results.isNotEmpty) {
+                      context.pop(
+                        SearchResultPayload.all(
+                          allResults: state.results,
+                          submittedQuery: state.query,
+                        ),
+                      );
+                    }
+                  }
+                },
                 builder: (context, state) {
                   final isQueryEmpty =
                       state.query.isEmpty && state.results.isEmpty;
@@ -115,6 +149,7 @@ class _SearchScreenContentState extends State<SearchScreenContent>
                     results: state.results,
                     suggestions: state.suggestions,
                     isLoading: state.status == SearchStatus.loading,
+                    userLocation: state.userLocation,
                     onPoiTap: _onPoiSelected,
                     onSuggestionTap: _onKeywordSelected,
                   );

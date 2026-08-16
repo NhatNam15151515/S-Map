@@ -6,8 +6,6 @@ import 'package:s_map/generated/locale_keys.g.dart';
 import 'widgets/widgets.dart';
 
 class SavedScreen extends StatefulWidget {
-  static const String path = '/SavedScreen';
-
   const SavedScreen({super.key});
 
   @override

@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
 class PoiCategoryHelper {
   PoiCategoryHelper._();
+
+  /// Lấy unique key định danh cho một POI (id -> osm_id -> name)
+  static String getPoiKey(PoiModel poi) {
+    if (poi.id != null) return poi.id.toString();
+    if (poi.osmId != null && poi.osmId!.isNotEmpty) return poi.osmId!;
+    return poi.name;
+  }
 
   /// Ánh xạ từ category / sub_category sang IconData tương ứng
   static IconData getIcon(String? category, {String? subCategory}) {
@@ -82,28 +90,40 @@ class PoiCategoryHelper {
   static Color getIconColor(String? category, {String? subCategory}) {
     final cat = (category ?? '').toLowerCase().trim();
 
-    if (cat.contains('food') || cat.contains('restaurant') || cat.contains('ăn uống')) {
+    if (cat.contains('food') ||
+        cat.contains('restaurant') ||
+        cat.contains('ăn uống')) {
       return AppColors.sunOrange;
     }
-    if (cat.contains('cafe') || cat.contains('coffee') || cat.contains('cà phê')) {
+    if (cat.contains('cafe') ||
+        cat.contains('coffee') ||
+        cat.contains('cà phê')) {
       return AppColors.burningTrail;
     }
     if (cat.contains('hotel') || cat.contains('khách sạn')) {
       return AppColors.googleBlue;
     }
-    if (cat.contains('gas') || cat.contains('fuel') || cat.contains('cây xăng')) {
+    if (cat.contains('gas') ||
+        cat.contains('fuel') ||
+        cat.contains('cây xăng')) {
       return AppColors.flameOrange;
     }
-    if (cat.contains('atm') || cat.contains('bank') || cat.contains('ngân hàng')) {
+    if (cat.contains('atm') ||
+        cat.contains('bank') ||
+        cat.contains('ngân hàng')) {
       return AppColors.googleGreen;
     }
-    if (cat.contains('hospital') || cat.contains('bệnh viện') || cat.contains('pharmacy')) {
+    if (cat.contains('hospital') ||
+        cat.contains('bệnh viện') ||
+        cat.contains('pharmacy')) {
       return AppColors.redPigment;
     }
     if (cat.contains('school') || cat.contains('university')) {
       return AppColors.andreaBlue;
     }
-    if (cat.contains('shop') || cat.contains('market') || cat.contains('siêu thị')) {
+    if (cat.contains('shop') ||
+        cat.contains('market') ||
+        cat.contains('siêu thị')) {
       return AppColors.chineseNewYear;
     }
     if (cat.contains('park') || cat.contains('công viên')) {
@@ -118,7 +138,7 @@ class PoiCategoryHelper {
     return getIconColor(category, subCategory: subCategory).withAlpha(25);
   }
 
-  /// Định dạng địa chỉ của POI an toàn, tránh chuỗi rỗng hoặc thừa dấu phẩy
+  /// Định dạng địa chỉ của POI an toàn, có fallback sang loại hình khi khuyết trường địa chỉ
   static String formatAddress(PoiModel poi) {
     if (poi.address != null && poi.address!.trim().isNotEmpty) {
       return poi.address!.trim();
@@ -128,9 +148,60 @@ class PoiCategoryHelper {
       poi.housenumber,
       poi.street,
       poi.city,
-    ].where((part) => part != null && part.trim().isNotEmpty).map((e) => e!.trim()).toList();
+    ]
+        .where((part) => part != null && part.trim().isNotEmpty)
+        .map((e) => e!.trim())
+        .toList();
 
-    return parts.join(', ');
+    if (parts.isNotEmpty) {
+      return parts.join(', ');
+    }
+
+    // Fallback: nếu không có thông tin địa chỉ cụ thể, hiển thị subCategory hoặc category
+    if (poi.subCategory != null && poi.subCategory!.trim().isNotEmpty) {
+      return poi.subCategory!.trim();
+    }
+    if (poi.category != null && poi.category!.trim().isNotEmpty) {
+      return poi.category!.trim();
+    }
+
+    return '';
+  }
+
+  /// Định dạng khoảng cách mét / kilomet thân thiện
+  static String formatDistance(double distKm) {
+    if (distKm < 1.0) {
+      final meters = (distKm * 1000).round();
+      return '$meters m';
+    }
+    return '${distKm.toStringAsFixed(1)} km';
+  }
+
+  /// Sắp xếp danh sách POI theo khoảng cách tăng dần từ vị trí GPS người dùng
+  static List<PoiModel> sortPoisByDistance(
+    List<PoiModel> pois,
+    LatLng? userLocation,
+  ) {
+    if (userLocation == null || pois.length <= 1) {
+      return pois;
+    }
+    final sorted = List<PoiModel>.from(pois);
+    sorted.sort((a, b) {
+      final distA = AppUtils.instance.calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        a.lat,
+        a.lon,
+      );
+      final distB = AppUtils.instance.calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        b.lat,
+        b.lon,
+      );
+      return distA.compareTo(distB);
+    });
+    return sorted;
   }
 
   /// Lấy khóa dịch i18n cho Category

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'favorites_fallbacks.dart';
@@ -26,10 +27,10 @@ class FavoritesCubit extends Cubit<FavoritesState> {
     super.emit(state);
   }
 
-  String getPoiKey(PoiModel poi) {
-    if (poi.id != null) return poi.id.toString();
-    if (poi.osmId != null && poi.osmId!.isNotEmpty) return poi.osmId!;
-    return poi.name;
+  String getPoiKey(PoiModel poi) => PoiCategoryHelper.getPoiKey(poi);
+
+  Future<void> removeFavoritePoi(PoiModel poi) async {
+    await removeFavorite(getPoiKey(poi));
   }
 
   Future<void> loadFavorites() async {

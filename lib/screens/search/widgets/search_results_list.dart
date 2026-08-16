@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
@@ -10,6 +11,7 @@ class SearchResultsList extends StatelessWidget {
   final List<PoiModel> results;
   final List<String> suggestions;
   final bool isLoading;
+  final LatLng? userLocation;
   final ValueChanged<PoiModel> onPoiTap;
   final ValueChanged<String> onSuggestionTap;
 
@@ -18,6 +20,7 @@ class SearchResultsList extends StatelessWidget {
     required this.results,
     required this.suggestions,
     required this.isLoading,
+    this.userLocation,
     required this.onPoiTap,
     required this.onSuggestionTap,
   });
@@ -65,6 +68,18 @@ class SearchResultsList extends StatelessWidget {
           final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
           final address = PoiCategoryHelper.formatAddress(poi);
 
+          String subtitleText = address;
+          if (userLocation != null) {
+            final distKm = AppUtils.instance.calculateDistance(
+              userLocation!.latitude,
+              userLocation!.longitude,
+              poi.lat,
+              poi.lon,
+            );
+            final distStr = PoiCategoryHelper.formatDistance(distKm);
+            subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
+          }
+
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             leading: Container(
@@ -85,11 +100,11 @@ class SearchResultsList extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            subtitle: address.isNotEmpty
+            subtitle: subtitleText.isNotEmpty
                 ? Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      address,
+                      subtitleText,
                       style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
                         fontSize: 13,
                         fontWeight: AppFontWeight.regular.weight,
