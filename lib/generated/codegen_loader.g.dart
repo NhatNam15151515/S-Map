@@ -167,7 +167,10 @@ class CodegenLoader extends AssetLoader{
     "my_location": "Your location",
     "selected_point": "Selected point",
     "error_generic": "Could not find a valid route",
-    "feature_under_development": "Turn-by-turn navigation is coming soon"
+    "feature_under_development": "Turn-by-turn navigation is coming soon",
+    "rerouting": "Rerouting...",
+    "reroute_success": "Route updated",
+    "off_route_detected": "Off-route detected"
   }
 };
 static const Map<String,dynamic> _vi = {
@@ -323,7 +326,10 @@ static const Map<String,dynamic> _vi = {
     "my_location": "Vị trí của bạn",
     "selected_point": "Điểm đã chọn",
     "error_generic": "Không thể tìm thấy lộ trình phù hợp",
-    "feature_under_development": "Tính năng điều hướng đang được cập nhật"
+    "feature_under_development": "Tính năng điều hướng đang được cập nhật",
+    "rerouting": "Đang tính lại đường...",
+    "reroute_success": "Đã cập nhật lộ trình mới",
+    "off_route_detected": "Phát hiện lệch đường"
   }
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};

@@ -147,6 +147,9 @@ abstract class  LocaleKeys {
   static const routing_selected_point = 'routing.selected_point';
   static const routing_error_generic = 'routing.error_generic';
   static const routing_feature_under_development = 'routing.feature_under_development';
+  static const routing_rerouting = 'routing.rerouting';
+  static const routing_reroute_success = 'routing.reroute_success';
+  static const routing_off_route_detected = 'routing.off_route_detected';
   static const routing = 'routing';
 
 }

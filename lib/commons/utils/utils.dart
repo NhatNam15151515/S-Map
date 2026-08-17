@@ -4,6 +4,7 @@ export 'app_utils.dart';
 export 'map_camera_controller.dart';
 export 'map_route_manager.dart';
 export 'map_symbol_manager.dart';
+export 'off_route_detector.dart';
 export 'poi_category_helper.dart';
 export 'popup_utils.dart';
 export 'route_format_helper.dart';
