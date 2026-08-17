@@ -151,6 +151,9 @@
     "my_location": "Your location",
     "selected_point": "Selected point",
     "error_generic": "Could not find a valid route",
-    "feature_under_development": "Turn-by-turn navigation is coming soon"
+    "feature_under_development": "Turn-by-turn navigation is coming soon",
+    "rerouting": "Rerouting...",
+    "reroute_success": "Route updated",
+    "off_route_detected": "Off-route detected"
   }
 }
