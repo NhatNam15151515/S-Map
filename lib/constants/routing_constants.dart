@@ -43,4 +43,11 @@ class RoutingConstants {
   static const double routeFitPaddingBottom = 240.0;
   static const double minDistanceForFitBoundsKm = 0.05;
   static const double closeDistanceZoomLevel = 16.0;
+
+  // Turn-by-turn Navigation Thresholds
+  static const double defaultAdvanceThresholdMeters = 30.0;
+  static const double defaultPreAnnounceThresholdMeters = 200.0;
+  static const double defaultArrivalThresholdMeters = 20.0;
+  static const double defaultOffRouteThresholdMeters = 50.0;
+  static const double fallbackSpeedKmh = 30.0;
 }

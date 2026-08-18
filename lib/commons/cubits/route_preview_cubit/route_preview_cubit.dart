@@ -1,11 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/fallbacks/fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 import 'route_preview_state.dart';
 
 class RoutePreviewCubit extends Cubit<RoutePreviewState> {
@@ -13,11 +13,16 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
   final ILocationService _locationService;
   int _currentGeneration = 0;
 
+  /// Optional global default service resolver set by the composition root
+  static ILocationService? defaultLocationService;
+
   RoutePreviewCubit({
     required IRoutingRepository routingRepository,
     ILocationService? locationService,
   })  : _routingRepository = routingRepository,
-        _locationService = locationService ?? LocationService.instance,
+        _locationService = locationService ??
+            defaultLocationService ??
+            const NoOpLocationService(),
         super(const RoutePreviewState());
 
   @override

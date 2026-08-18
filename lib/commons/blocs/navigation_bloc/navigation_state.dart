@@ -34,6 +34,15 @@ class NavigationState extends Equatable {
   final int rerouteCount;
   final int requestGeneration;
 
+  // Turn-by-turn instruction progress properties
+  final int currentInstructionIndex;
+  final RouteInstruction? currentInstruction;
+  final RouteInstruction? nextInstruction;
+  final double distanceToNextInstruction;
+  final double remainingDistance;
+  final int remainingDurationMs;
+  final bool isPreAnnounced;
+
   // Notifications & errors
   final String? messageKey;
   final String? errorMessageKey;
@@ -56,6 +65,13 @@ class NavigationState extends Equatable {
     this.isRerouting = false,
     this.rerouteCount = 0,
     this.requestGeneration = 0,
+    this.currentInstructionIndex = 0,
+    this.currentInstruction,
+    this.nextInstruction,
+    this.distanceToNextInstruction = 0.0,
+    this.remainingDistance = 0.0,
+    this.remainingDurationMs = 0,
+    this.isPreAnnounced = false,
     this.messageKey,
     this.errorMessageKey,
   });
@@ -66,6 +82,12 @@ class NavigationState extends Equatable {
 
   bool get hasRoute =>
       currentRoute != null && currentRoute!.isSuccess && currentRoute!.hasPoints;
+
+  bool get hasInstructions =>
+      currentRoute != null && currentRoute!.hasInstructions;
+
+  InstructionType get instructionType =>
+      currentInstruction?.type ?? InstructionType.unknown;
 
   NavigationState copyWith({
     NavigationStatus? status,
@@ -86,6 +108,15 @@ class NavigationState extends Equatable {
     bool? isRerouting,
     int? rerouteCount,
     int? requestGeneration,
+    int? currentInstructionIndex,
+    RouteInstruction? currentInstruction,
+    bool clearCurrentInstruction = false,
+    RouteInstruction? nextInstruction,
+    bool clearNextInstruction = false,
+    double? distanceToNextInstruction,
+    double? remainingDistance,
+    int? remainingDurationMs,
+    bool? isPreAnnounced,
     String? messageKey,
     bool clearMessage = false,
     String? errorMessageKey,
@@ -111,6 +142,19 @@ class NavigationState extends Equatable {
       isRerouting: isRerouting ?? this.isRerouting,
       rerouteCount: rerouteCount ?? this.rerouteCount,
       requestGeneration: requestGeneration ?? this.requestGeneration,
+      currentInstructionIndex:
+          currentInstructionIndex ?? this.currentInstructionIndex,
+      currentInstruction: clearCurrentInstruction
+          ? null
+          : (currentInstruction ?? this.currentInstruction),
+      nextInstruction: clearNextInstruction
+          ? null
+          : (nextInstruction ?? this.nextInstruction),
+      distanceToNextInstruction:
+          distanceToNextInstruction ?? this.distanceToNextInstruction,
+      remainingDistance: remainingDistance ?? this.remainingDistance,
+      remainingDurationMs: remainingDurationMs ?? this.remainingDurationMs,
+      isPreAnnounced: isPreAnnounced ?? this.isPreAnnounced,
       messageKey: clearMessage ? null : (messageKey ?? this.messageKey),
       errorMessageKey:
           clearError ? null : (errorMessageKey ?? this.errorMessageKey),
@@ -136,6 +180,13 @@ class NavigationState extends Equatable {
         isRerouting,
         rerouteCount,
         requestGeneration,
+        currentInstructionIndex,
+        currentInstruction,
+        nextInstruction,
+        distanceToNextInstruction,
+        remainingDistance,
+        remainingDurationMs,
+        isPreAnnounced,
         messageKey,
         errorMessageKey,
       ];

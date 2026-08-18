@@ -28,15 +28,17 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     ILocationService? locationService,
     ICompassService? compassService,
     IMapStyleService? mapStyleService,
-  })  : _locationService =
-            locationService ?? defaultLocationService ?? NoOpLocationService(),
-        _compassService =
-            compassService ?? defaultCompassService ?? NoOpCompassService(),
+  })  : _locationService = locationService ??
+            defaultLocationService ??
+            const NoOpLocationService(),
+        _compassService = compassService ??
+            defaultCompassService ??
+            const NoOpCompassService(),
         super(MapDisplayState(
           status: MapDisplayStatus.initial,
           styleString: (mapStyleService ??
                   defaultMapStyleService ??
-                  NoOpMapStyleService())
+                  const NoOpMapStyleService())
               .styleJson,
         ));
 
