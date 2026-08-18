@@ -7,9 +7,9 @@ class NoOpLocationService implements ILocationService {
 
   @override
   Position get position => Position(
-        longitude: 106.660172,
-        latitude: 10.762622,
-        timestamp: DateTime.now(),
+        longitude: 0.0,
+        latitude: 0.0,
+        timestamp: DateTime.fromMillisecondsSinceEpoch(0),
         accuracy: 0,
         altitude: 0,
         altitudeAccuracy: 0,
@@ -20,7 +20,7 @@ class NoOpLocationService implements ILocationService {
       );
 
   @override
-  (double, double) get latLng => (10.762622, 106.660172);
+  (double, double) get latLng => (0.0, 0.0);
 
   @override
   Stream<Position> get positionStream => const Stream.empty();
@@ -32,21 +32,21 @@ class NoOpLocationService implements ILocationService {
   Future<Position?> getLastKnownPosition() async => null;
 
   @override
-  Future<bool> isLocationServiceEnabled() async => true;
+  Future<bool> isLocationServiceEnabled() async => false;
 
   @override
   Future<LocationPermission> checkPermission() async =>
-      LocationPermission.always;
+      LocationPermission.denied;
 
   @override
   Future<LocationPermission> requestPermission() async =>
-      LocationPermission.always;
+      LocationPermission.denied;
 
   @override
-  Future<bool> openLocationSettings() async => true;
+  Future<bool> openLocationSettings() async => false;
 
   @override
-  Future<bool> openAppSettings() async => true;
+  Future<bool> openAppSettings() async => false;
 }
 
 /// Fallback / No-Op implementation for ICompassService
