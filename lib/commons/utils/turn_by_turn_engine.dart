@@ -69,7 +69,8 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       return const InstructionProgress();
     }
 
-    int activeIndex = currentInstructionIndex.clamp(0, instructions.length - 1);
+    int activeIndex =
+        currentInstructionIndex.clamp(0, instructions.length - 1).toInt();
     double distToNextMeters = 0.0;
 
     // 1. Advance Logic: Kiểm tra xem đã vượt qua / đến gần (< 30m) điểm rẽ kế tiếp chưa
@@ -78,9 +79,11 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       final currentInstruction = instructions[activeIndex];
 
       // Mốc chuyển hướng là điểm bắt đầu của chặng tiếp theo hoặc điểm kết thúc chặng hiện tại
-      final maneuverPoint = nextInstruction.points.isNotEmpty
+      final maneuverPoint = (nextInstruction.points.isNotEmpty &&
+              _isValidCoordinate(nextInstruction.points.first))
           ? nextInstruction.points.first
-          : (currentInstruction.points.isNotEmpty
+          : (currentInstruction.points.isNotEmpty &&
+                  _isValidCoordinate(currentInstruction.points.last)
               ? currentInstruction.points.last
               : null);
 
@@ -98,7 +101,8 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
 
       // Kiểm tra xe đã rẽ qua mốc chuyển hướng và đang đi vào thân đoạn đường tiếp theo
       bool hasPassedTurn = false;
-      if (nextInstruction.points.length >= 2) {
+      if (nextInstruction.points.length >= 2 &&
+          _isValidCoordinate(nextInstruction.points[1])) {
         final p1 = nextInstruction.points[1];
         final distToP1 = _calculateHaversineDistanceMeters(
           currentLat,
@@ -126,7 +130,8 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
     // 2. Nếu đang ở chỉ dẫn cuối cùng (đích đến)
     if (activeIndex == instructions.length - 1) {
       final lastInstruction = instructions[activeIndex];
-      final destinationPoint = lastInstruction.points.isNotEmpty
+      final destinationPoint = (lastInstruction.points.isNotEmpty &&
+              _isValidCoordinate(lastInstruction.points.last))
           ? lastInstruction.points.last
           : null;
 
@@ -147,11 +152,9 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
         ? instructions[activeIndex + 1]
         : null;
 
-    // 3. Kiểm tra trạng thái đến đích (Arrival)
+    // 3. Kiểm tra trạng thái đến đích (Arrival: <= arrivalThresholdMeters = 20.0m)
     final bool hasArrived = (activeIndex == instructions.length - 1) &&
-        (distToNextMeters <= arrivalThresholdMeters ||
-            (currentInstruction.type == InstructionType.arrive &&
-                distToNextMeters <= advanceThresholdMeters));
+        (distToNextMeters <= arrivalThresholdMeters);
 
     // 4. Kiểm tra cảnh báo trước (Pre-announce: <= 200m)
     final bool isPreAnnounced =
@@ -217,5 +220,13 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
             math.sin(dLon / 2);
     final c = 2 * math.asin(math.sqrt(a.clamp(0.0, 1.0)));
     return _earthRadiusMeters * c;
+  }
+
+  /// Kiểm tra xem điểm tọa độ có hợp lệ và đầy đủ 2 thành phần kinh vĩ độ hay không
+  static bool _isValidCoordinate(List<double>? point) {
+    return point != null &&
+        point.length >= 2 &&
+        point[0].isFinite &&
+        point[1].isFinite;
   }
 }

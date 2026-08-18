@@ -341,6 +341,54 @@ void main() {
       expect(progress.hasArrived, isFalse);
     });
 
+    test('updateProgress handles malformed coordinate points safely without throwing', () {
+      const malformed = [
+        RouteInstruction(
+          text: 'Điểm lỗi',
+          streetName: 'Lỗi',
+          distance: 200.0,
+          time: 20000,
+          sign: 0,
+          points: [
+            [21.0245] // Only 1 element instead of [lat, lon]
+          ],
+        ),
+        RouteInstruction(
+          text: 'Đích',
+          streetName: 'Đích',
+          distance: 0.0,
+          time: 0,
+          sign: 4,
+          points: [
+            [21.0260] // Malformed
+          ],
+        ),
+      ];
+
+      final progress = engine.updateProgress(
+        currentLat: 21.0200,
+        currentLon: 105.8400,
+        instructions: malformed,
+        currentInstructionIndex: 0,
+      );
+
+      expect(progress.currentInstructionIndex, equals(0));
+      expect(progress.hasArrived, isFalse);
+    });
+
+    test('updateProgress strictly enforces arrivalThresholdMeters and does not mark arrived at 25m', () {
+      // 21.025774 is ~25 meters from destination point (21.0260, 105.8435)
+      final progress25m = engine.updateProgress(
+        currentLat: 21.025774,
+        currentLon: 105.8435,
+        instructions: sampleInstructions,
+        currentInstructionIndex: 3,
+      );
+
+      expect(progress25m.distanceToNextInstruction, greaterThan(20.0));
+      expect(progress25m.hasArrived, isFalse);
+    });
+
     test('updateProgress estimates duration using fallbackSpeedKmh for zero time instruction', () {
       const zeroTimeInstructions = [
         RouteInstruction(
@@ -363,8 +411,8 @@ void main() {
         currentInstructionIndex: 0,
       );
 
-      // Distance to destination is approx 556m -> at 30km/h (8.33 m/s) duration should be > 0
-      expect(progress.remainingDurationMs, greaterThan(0));
+      // Distance to destination is approx 556m -> at 30km/h (8.33 m/s) duration is ~66,720ms
+      expect(progress.remainingDurationMs, inInclusiveRange(60000, 75000));
     });
   });
 }

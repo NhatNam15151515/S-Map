@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:s_map/commons/cubits/map_display_cubit/map_display_fallbacks.dart';
+import 'package:s_map/commons/fallbacks/fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
-import 'package:s_map/commons/utils/app_utils.dart';
-import 'package:s_map/commons/utils/off_route_detector.dart';
-import 'package:s_map/commons/utils/turn_by_turn_engine.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
