@@ -382,5 +382,92 @@ void main() {
         ]),
       );
     });
+
+    test('Turn-by-turn instruction progress is initialized and advances with GPS stream', () async {
+      const multiStepRoute = RouteResult(
+        isSuccess: true,
+        distance: 1000.0,
+        time: 120000,
+        points: [
+          [10.7725, 106.6980],
+          [10.7750, 106.6980],
+          [10.7750, 106.7020],
+        ],
+        instructions: [
+          RouteInstruction(
+            text: 'Đi thẳng trên Lê Lợi',
+            streetName: 'Lê Lợi',
+            distance: 400.0,
+            time: 50000,
+            sign: 0,
+            points: [
+              [10.7725, 106.6980],
+              [10.7750, 106.6980],
+            ],
+          ),
+          RouteInstruction(
+            text: 'Rẽ phải vào Đồng Khởi',
+            streetName: 'Đồng Khởi',
+            distance: 600.0,
+            time: 70000,
+            sign: 2,
+            points: [
+              [10.7750, 106.6980],
+              [10.7750, 106.7020],
+            ],
+          ),
+        ],
+      );
+
+      bloc.add(const StartNavigation(
+        initialRoute: multiStepRoute,
+        origin: origin,
+        destination: destination,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((state) {
+          return state.status == NavigationStatus.navigating &&
+              state.currentInstructionIndex == 0 &&
+              state.currentInstruction?.text == 'Đi thẳng trên Lê Lợi' &&
+              state.nextInstruction?.text == 'Rẽ phải vào Đồng Khởi' &&
+              state.remainingDistance == 1000.0 &&
+              state.isPreAnnounced == false;
+        })),
+      );
+
+      // GPS di chuyển đến cách ngã rẽ ~150m (Pre-announce <= 200m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7738,
+        longitude: 106.6980,
+        speed: 10.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((state) {
+          return state.currentInstructionIndex == 0 &&
+              state.isPreAnnounced == true &&
+              state.distanceToNextInstruction <= 200.0;
+        })),
+      );
+
+      // GPS di chuyển đến sát ngã rẽ (<30m) -> tự động advance sang instruction 1
+      bloc.add(const LocationUpdated(
+        latitude: 10.7749,
+        longitude: 106.6980,
+        speed: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((state) {
+          return state.currentInstructionIndex == 1 &&
+              state.currentInstruction?.text == 'Rẽ phải vào Đồng Khởi' &&
+              state.nextInstruction == null;
+        })),
+      );
+    });
   });
 }

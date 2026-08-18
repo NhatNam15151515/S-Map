@@ -8,3 +8,4 @@ export 'off_route_detector.dart';
 export 'poi_category_helper.dart';
 export 'popup_utils.dart';
 export 'route_format_helper.dart';
+export 'turn_by_turn_engine.dart';

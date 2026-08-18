@@ -4,6 +4,7 @@ import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
+import 'package:s_map/services/services.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _viewportBloc = ViewportSearchBloc();
     _routePreviewCubit = RoutePreviewCubit(
       routingRepository: AppReposProvider.instance.routingRepos,
+      locationService: LocationService.instance,
     );
   }
 

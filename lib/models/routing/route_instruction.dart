@@ -1,5 +1,56 @@
 import 'package:equatable/equatable.dart';
 
+/// Các loại hướng chuyển động (Maneuver / Instruction Type) chuẩn GraphHopper
+enum InstructionType {
+  unknown(-99),
+  uTurnUnknown(-98),
+  uTurnLeft(-8),
+  keepLeft(-7),
+  leaveRoundabout(-6),
+  turnSharpLeft(-3),
+  turnLeft(-2),
+  turnSlightLeft(-1),
+  continueStraight(0),
+  turnSlightRight(1),
+  turnRight(2),
+  turnSharpRight(3),
+  arrive(4),
+  reachedVia(5),
+  useRoundabout(6),
+  keepRight(7),
+  uTurnRight(8);
+
+  final int sign;
+  const InstructionType(this.sign);
+
+  static InstructionType fromSign(int sign) {
+    return InstructionType.values.firstWhere(
+      (e) => e.sign == sign,
+      orElse: () => InstructionType.unknown,
+    );
+  }
+
+  bool get isTurnLeft =>
+      this == turnLeft || this == turnSharpLeft || this == turnSlightLeft;
+
+  bool get isTurnRight =>
+      this == turnRight || this == turnSharpRight || this == turnSlightRight;
+
+  bool get isStraight => this == continueStraight;
+
+  bool get isRoundabout =>
+      this == useRoundabout || this == leaveRoundabout;
+
+  bool get isArrive => this == arrive;
+
+  bool get isUTurn =>
+      this == uTurnLeft || this == uTurnRight || this == uTurnUnknown;
+
+  bool get isKeepLeft => this == keepLeft;
+
+  bool get isKeepRight => this == keepRight;
+}
+
 class RouteInstruction extends Equatable {
   final String text;
   final String streetName;
@@ -16,6 +67,15 @@ class RouteInstruction extends Equatable {
     required this.sign,
     required this.points,
   });
+
+  /// Kiểu hành động chỉ dẫn tương ứng theo mã sign
+  InstructionType get type => InstructionType.fromSign(sign);
+
+  /// Tọa độ điểm bắt đầu của chặng chỉ dẫn
+  List<double>? get startPoint => points.isNotEmpty ? points.first : null;
+
+  /// Tọa độ điểm kết thúc của chặng chỉ dẫn
+  List<double>? get endPoint => points.isNotEmpty ? points.last : null;
 
   factory RouteInstruction.fromMap(Map<String, dynamic> map) {
     final rawPoints = map['points'] as List<dynamic>? ?? [];

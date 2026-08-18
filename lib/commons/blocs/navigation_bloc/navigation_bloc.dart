@@ -5,10 +5,10 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/utils/off_route_detector.dart';
+import 'package:s_map/commons/utils/turn_by_turn_engine.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 import 'navigation_event.dart';
 import 'navigation_state.dart';
 
@@ -17,8 +17,9 @@ export 'navigation_state.dart';
 
 class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final IRoutingRepository _routingRepository;
-  final ILocationService _locationService;
+  final ILocationService? _locationService;
   final IOffRouteDetector _offRouteDetector;
+  final ITurnByTurnEngine _turnByTurnEngine;
 
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
@@ -34,9 +35,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     required IRoutingRepository routingRepository,
     ILocationService? locationService,
     IOffRouteDetector? offRouteDetector,
+    ITurnByTurnEngine? turnByTurnEngine,
   })  : _routingRepository = routingRepository,
-        _locationService = locationService ?? LocationService.instance,
+        _locationService = locationService,
         _offRouteDetector = offRouteDetector ?? const OffRouteDetector(),
+        _turnByTurnEngine = turnByTurnEngine ?? const TurnByTurnEngine(),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
@@ -54,6 +57,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     await _locationSubscription?.cancel();
     _locationSubscription = null;
 
+    final initialProgress = _turnByTurnEngine.initializeProgress(
+      event.initialRoute.instructions,
+    );
+
     emit(state.copyWith(
       status: NavigationStatus.navigating,
       currentRoute: event.initialRoute,
@@ -67,20 +74,32 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       isOffRoute: false,
       isRerouting: false,
       rerouteCount: 0,
+      currentInstructionIndex: initialProgress.currentInstructionIndex,
+      currentInstruction: initialProgress.currentInstruction,
+      clearCurrentInstruction: initialProgress.currentInstruction == null,
+      nextInstruction: initialProgress.nextInstruction,
+      clearNextInstruction: initialProgress.nextInstruction == null,
+      distanceToNextInstruction: initialProgress.distanceToNextInstruction,
+      remainingDistance: initialProgress.remainingDistance,
+      remainingDurationMs: initialProgress.remainingDurationMs,
+      isPreAnnounced: initialProgress.isPreAnnounced,
       clearError: true,
       clearMessage: true,
     ));
 
-    _locationSubscription = _locationService.positionStream.listen(
-      (position) {
-        if (!isClosed) {
-          add(LocationUpdated.fromPosition(position));
-        }
-      },
-      onError: (error) {
-        DLog.error('❌ [NavigationBloc] GPS Position Stream error: $error');
-      },
-    );
+    final locService = _locationService;
+    if (locService != null) {
+      _locationSubscription = locService.positionStream.listen(
+        (position) {
+          if (!isClosed) {
+            add(LocationUpdated.fromPosition(position));
+          }
+        },
+        onError: (error) {
+          DLog.error('❌ [NavigationBloc] GPS Position Stream error: $error');
+        },
+      );
+    }
   }
 
   void _onLocationUpdated(
@@ -93,8 +112,19 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     final currentLon = event.longitude;
     final speedKmh = event.speed != null ? event.speed! * 3.6 : null;
 
-    // 1. Kiểm tra đã đến đích chưa
-    if (state.destination != null) {
+    // 1. Cập nhật tiến trình chỉ dẫn (Turn-by-turn Instruction Engine)
+    final progress = _turnByTurnEngine.updateProgress(
+      currentLat: currentLat,
+      currentLon: currentLon,
+      instructions: state.currentRoute!.instructions,
+      currentInstructionIndex: state.currentInstructionIndex,
+      routePoints: state.currentRoute!.points,
+      currentSegmentIndex: state.currentSegmentIndex,
+    );
+
+    // 2. Kiểm tra đã đến đích chưa (thông qua engine hoặc khoảng cách đích)
+    bool isArrived = progress.hasArrived;
+    if (!isArrived && state.destination != null) {
       final distToDestKm = AppUtils.instance.calculateDistance(
         currentLat,
         currentLon,
@@ -102,24 +132,36 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         state.destination!.lon,
       );
       final distToDestMeters = distToDestKm * 1000.0;
-
       if (distToDestMeters <= _arrivalThresholdMeters) {
-        DLog.info('🏁 [NavigationBloc] User arrived at destination! (dist=${distToDestMeters.toStringAsFixed(1)}m)');
-        emit(state.copyWith(
-          status: NavigationStatus.arrived,
-          currentLat: currentLat,
-          currentLon: currentLon,
-          currentSpeedKmh: speedKmh,
-          currentHeading: event.heading,
-          currentAccuracy: event.accuracy,
-          isOffRoute: false,
-          distanceToRoute: 0.0,
-        ));
-        return;
+        isArrived = true;
       }
     }
 
-    // 2. Kiểm tra lệch tuyến (Off-route detection)
+    if (isArrived) {
+      DLog.info('🏁 [NavigationBloc] User arrived at destination!');
+      emit(state.copyWith(
+        status: NavigationStatus.arrived,
+        currentLat: currentLat,
+        currentLon: currentLon,
+        currentSpeedKmh: speedKmh,
+        currentHeading: event.heading,
+        currentAccuracy: event.accuracy,
+        currentInstructionIndex: progress.currentInstructionIndex,
+        currentInstruction: progress.currentInstruction,
+        clearCurrentInstruction: progress.currentInstruction == null,
+        nextInstruction: progress.nextInstruction,
+        clearNextInstruction: progress.nextInstruction == null,
+        distanceToNextInstruction: 0.0,
+        remainingDistance: 0.0,
+        remainingDurationMs: 0,
+        isPreAnnounced: false,
+        isOffRoute: false,
+        distanceToRoute: 0.0,
+      ));
+      return;
+    }
+
+    // 3. Kiểm tra lệch tuyến (Off-route detection)
     final routePoints = state.currentRoute!.points;
     final offRouteStatus = _offRouteDetector.checkOffRoute(
       currentLat: currentLat,
@@ -138,9 +180,18 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       currentSegmentIndex: offRouteStatus.segmentIndex,
       distanceToRoute: offRouteStatus.distanceToRoute,
       isOffRoute: offRouteStatus.isOffRoute,
+      currentInstructionIndex: progress.currentInstructionIndex,
+      currentInstruction: progress.currentInstruction,
+      clearCurrentInstruction: progress.currentInstruction == null,
+      nextInstruction: progress.nextInstruction,
+      clearNextInstruction: progress.nextInstruction == null,
+      distanceToNextInstruction: progress.distanceToNextInstruction,
+      remainingDistance: progress.remainingDistance,
+      remainingDurationMs: progress.remainingDurationMs,
+      isPreAnnounced: progress.isPreAnnounced,
     ));
 
-    // 3. Tự động kích hoạt tính lại đường (Reroute) khi phát hiện lệch tuyến > 50m
+    // 4. Tự động kích hoạt tính lại đường (Reroute) khi phát hiện lệch tuyến > 50m
     if (offRouteStatus.isOffRoute && !state.isRerouting) {
       final now = DateTime.now();
       final canReroute = _lastRerouteTime == null ||
@@ -195,6 +246,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       if (newRoute.isSuccess && newRoute.hasPoints) {
         DLog.info(
             '✅ [NavigationBloc] Reroute calculated successfully: ${(newRoute.distance / 1000).toStringAsFixed(2)}km, ${(newRoute.time / 60000).round()} mins');
+        final newProgress = _turnByTurnEngine.initializeProgress(
+          newRoute.instructions,
+        );
+
         emit(state.copyWith(
           status: NavigationStatus.navigating,
           currentRoute: newRoute,
@@ -204,6 +259,15 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
           isRerouting: false,
           rerouteCount: state.rerouteCount + 1,
           requestGeneration: generation,
+          currentInstructionIndex: newProgress.currentInstructionIndex,
+          currentInstruction: newProgress.currentInstruction,
+          clearCurrentInstruction: newProgress.currentInstruction == null,
+          nextInstruction: newProgress.nextInstruction,
+          clearNextInstruction: newProgress.nextInstruction == null,
+          distanceToNextInstruction: newProgress.distanceToNextInstruction,
+          remainingDistance: newProgress.remainingDistance,
+          remainingDurationMs: newProgress.remainingDurationMs,
+          isPreAnnounced: newProgress.isPreAnnounced,
           messageKey: LocaleKeys.routing_reroute_success,
           clearError: true,
         ));

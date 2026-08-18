@@ -5,19 +5,18 @@ import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 import 'route_preview_state.dart';
 
 class RoutePreviewCubit extends Cubit<RoutePreviewState> {
   final IRoutingRepository _routingRepository;
-  final ILocationService _locationService;
+  final ILocationService? _locationService;
   int _currentGeneration = 0;
 
   RoutePreviewCubit({
     required IRoutingRepository routingRepository,
     ILocationService? locationService,
   })  : _routingRepository = routingRepository,
-        _locationService = locationService ?? LocationService.instance,
+        _locationService = locationService,
         super(const RoutePreviewState());
 
   @override
@@ -28,13 +27,17 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
 
   /// Lấy vị trí GPS hiện tại hoặc fallback về vị trí mặc định an toàn
   Future<LatLng> _getUserPosition() async {
+    final locService = _locationService;
+    if (locService == null) {
+      return MapConstants.defaultLocation;
+    }
     try {
-      final lastKnown = await _locationService.getLastKnownPosition();
+      final lastKnown = await locService.getLastKnownPosition();
       if (lastKnown != null) {
         DLog.info('📍 [GPS] Using last known location: (${lastKnown.latitude}, ${lastKnown.longitude})');
         return LatLng(lastKnown.latitude, lastKnown.longitude);
       }
-      final current = await _locationService.getCurrentPosition();
+      final current = await locService.getCurrentPosition();
       DLog.info('📍 [GPS] Acquired current location: (${current.latitude}, ${current.longitude})');
       return LatLng(current.latitude, current.longitude);
     } catch (e, stack) {
