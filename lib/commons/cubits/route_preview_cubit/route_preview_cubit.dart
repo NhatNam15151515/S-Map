@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/cubits/map_display_cubit/map_display_fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -9,14 +10,19 @@ import 'route_preview_state.dart';
 
 class RoutePreviewCubit extends Cubit<RoutePreviewState> {
   final IRoutingRepository _routingRepository;
-  final ILocationService? _locationService;
+  final ILocationService _locationService;
   int _currentGeneration = 0;
+
+  /// Optional global default service resolver set by the composition root
+  static ILocationService? defaultLocationService;
 
   RoutePreviewCubit({
     required IRoutingRepository routingRepository,
     ILocationService? locationService,
   })  : _routingRepository = routingRepository,
-        _locationService = locationService,
+        _locationService = locationService ??
+            defaultLocationService ??
+            const NoOpLocationService(),
         super(const RoutePreviewState());
 
   @override
@@ -27,17 +33,13 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
 
   /// Lấy vị trí GPS hiện tại hoặc fallback về vị trí mặc định an toàn
   Future<LatLng> _getUserPosition() async {
-    final locService = _locationService;
-    if (locService == null) {
-      return MapConstants.defaultLocation;
-    }
     try {
-      final lastKnown = await locService.getLastKnownPosition();
+      final lastKnown = await _locationService.getLastKnownPosition();
       if (lastKnown != null) {
         DLog.info('📍 [GPS] Using last known location: (${lastKnown.latitude}, ${lastKnown.longitude})');
         return LatLng(lastKnown.latitude, lastKnown.longitude);
       }
-      final current = await locService.getCurrentPosition();
+      final current = await _locationService.getCurrentPosition();
       DLog.info('📍 [GPS] Acquired current location: (${current.latitude}, ${current.longitude})');
       return LatLng(current.latitude, current.longitude);
     } catch (e, stack) {

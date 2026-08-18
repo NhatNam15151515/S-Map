@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/i_off_route_detector.dart';
 
 /// Bộ phát hiện lệch tuyến đường (Off-route Detector) tối ưu hóa với thuật toán
 /// Local Equirectangular Projection và Sliding Window Search.
 class OffRouteDetector implements IOffRouteDetector {
-  static const double _defaultThresholdMeters = 50.0;
   static const double _earthRadiusMeters = 6371000.0;
   static const double _degToRad = math.pi / 180.0;
   static const double _radToDeg = 180.0 / math.pi;
@@ -14,7 +14,7 @@ class OffRouteDetector implements IOffRouteDetector {
   final double thresholdMeters;
 
   const OffRouteDetector({
-    this.thresholdMeters = _defaultThresholdMeters,
+    this.thresholdMeters = RoutingConstants.defaultOffRouteThresholdMeters,
   });
 
   /// Tính khoảng cách trực giao ngắn nhất (mét) và điểm chiếu gần nhất từ điểm P đến đoạn thẳng AB

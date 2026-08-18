@@ -38,16 +38,6 @@ class InstructionProgress extends Equatable {
     this.hasArrived = false,
   });
 
-  const InstructionProgress.initial({
-    this.currentInstruction,
-    this.nextInstruction,
-    this.distanceToNextInstruction = 0.0,
-    this.remainingDistance = 0.0,
-    this.remainingDurationMs = 0,
-  })  : currentInstructionIndex = 0,
-        isPreAnnounced = false,
-        hasArrived = false;
-
   InstructionProgress copyWith({
     int? currentInstructionIndex,
     RouteInstruction? currentInstruction,

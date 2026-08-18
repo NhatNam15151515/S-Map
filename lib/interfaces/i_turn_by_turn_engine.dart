@@ -19,14 +19,10 @@ abstract class ITurnByTurnEngine {
   /// [currentLat], [currentLon]: Tọa độ GPS hiện tại
   /// [instructions]: Danh sách các chỉ dẫn rẽ trên lộ trình
   /// [currentInstructionIndex]: Chỉ số chỉ dẫn hiện tại
-  /// [routePoints]: Danh sách tọa độ đa tuyến polyline
-  /// [currentSegmentIndex]: Chỉ số đoạn polyline hiện tại
   InstructionProgress updateProgress({
     required double currentLat,
     required double currentLon,
     required List<RouteInstruction> instructions,
     required int currentInstructionIndex,
-    List<List<double>> routePoints = const [],
-    int currentSegmentIndex = 0,
   });
 }

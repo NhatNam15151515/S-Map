@@ -3,6 +3,8 @@ import 'package:s_map/interfaces/interfaces.dart';
 
 /// Fallback / No-Op implementation for ILocationService in detached/testing environments
 class NoOpLocationService implements ILocationService {
+  const NoOpLocationService();
+
   @override
   Position get position => Position(
         longitude: 106.660172,

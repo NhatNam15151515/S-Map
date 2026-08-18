@@ -49,4 +49,5 @@ class RoutingConstants {
   static const double defaultPreAnnounceThresholdMeters = 200.0;
   static const double defaultArrivalThresholdMeters = 20.0;
   static const double defaultOffRouteThresholdMeters = 50.0;
+  static const double fallbackSpeedKmh = 30.0;
 }

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:s_map/app.dart';
+import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/flavor/flavor.dart';
@@ -27,6 +28,8 @@ void main() async {
   MapExploreCubit.defaultFireStoreService = FireStoreService.instance;
   FavoritesCubit.defaultFavoritesService = FavoritesServiceImpl.instance;
   AppCubit.defaultMessagingService = FirebaseMessagingService.instance;
+  RoutePreviewCubit.defaultLocationService = LocationService.instance;
+  NavigationBloc.defaultLocationService = LocationService.instance;
   ListenComingNotification.messagingServiceResolver = FirebaseMessagingService.instance;
 
   await EasyLocalization.ensureInitialized();

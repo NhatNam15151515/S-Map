@@ -85,7 +85,7 @@ void main() {
 
   group('InstructionProgress Model Tests', () {
     test('copyWith and props behave as expected', () {
-      const initial = InstructionProgress.initial(
+      const initial = InstructionProgress(
         distanceToNextInstruction: 350.0,
         remainingDistance: 1200.0,
         remainingDurationMs: 120000,
@@ -108,6 +108,42 @@ void main() {
       expect(updated.isPreAnnounced, isTrue);
       expect(updated.distanceToNextInstruction, equals(150.0));
       expect(updated.remainingDistance, equals(850.0));
+
+      const withInstruction = InstructionProgress(
+        currentInstruction: RouteInstruction(
+          text: 'Rẽ trái',
+          streetName: 'Quán Sứ',
+          distance: 200.0,
+          time: 25000,
+          sign: -2,
+          points: [
+            [21.0245, 105.8435]
+          ],
+        ),
+        nextInstruction: RouteInstruction(
+          text: 'Đến đích',
+          streetName: 'Nhà hát Lớn',
+          distance: 0.0,
+          time: 0,
+          sign: 4,
+          points: [
+            [21.0260, 105.8435]
+          ],
+        ),
+      );
+
+      expect(
+        withInstruction.copyWith(clearCurrentInstruction: true).currentInstruction,
+        isNull,
+      );
+      expect(
+        withInstruction.copyWith(clearNextInstruction: true).nextInstruction,
+        isNull,
+      );
+      expect(
+        const InstructionProgress(currentInstructionIndex: 2),
+        equals(const InstructionProgress(currentInstructionIndex: 2)),
+      );
     });
   });
 
@@ -271,6 +307,64 @@ void main() {
         currentInstructionIndex: 0,
       );
       expect(progressEmpty.hasArrived, isFalse);
+    });
+
+    test('updateProgress falls back to instruction distance when points are empty', () {
+      const corrupted = [
+        RouteInstruction(
+          text: 'Đi thẳng',
+          streetName: 'Lê Duẩn',
+          distance: 400.0,
+          time: 50000,
+          sign: 0,
+          points: [],
+        ),
+        RouteInstruction(
+          text: 'Đến đích',
+          streetName: 'Nhà hát Lớn',
+          distance: 0.0,
+          time: 0,
+          sign: 4,
+          points: [],
+        ),
+      ];
+
+      final progress = engine.updateProgress(
+        currentLat: 21.0200,
+        currentLon: 105.8400,
+        instructions: corrupted,
+        currentInstructionIndex: 0,
+      );
+
+      expect(progress.currentInstructionIndex, equals(0));
+      expect(progress.distanceToNextInstruction, equals(400.0));
+      expect(progress.hasArrived, isFalse);
+    });
+
+    test('updateProgress estimates duration using fallbackSpeedKmh for zero time instruction', () {
+      const zeroTimeInstructions = [
+        RouteInstruction(
+          text: 'Điểm đến',
+          streetName: 'Đích',
+          distance: 500.0,
+          time: 0, // zero time
+          sign: 4,
+          points: [
+            [21.0200, 105.8400],
+            [21.0250, 105.8400],
+          ],
+        ),
+      ];
+
+      final progress = engine.updateProgress(
+        currentLat: 21.0200,
+        currentLon: 105.8400,
+        instructions: zeroTimeInstructions,
+        currentInstructionIndex: 0,
+      );
+
+      // Distance to destination is approx 556m -> at 30km/h (8.33 m/s) duration should be > 0
+      expect(progress.remainingDurationMs, greaterThan(0));
     });
   });
 }

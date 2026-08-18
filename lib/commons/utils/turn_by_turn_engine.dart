@@ -64,8 +64,6 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
     required double currentLon,
     required List<RouteInstruction> instructions,
     required int currentInstructionIndex,
-    List<List<double>> routePoints = const [],
-    int currentSegmentIndex = 0,
   }) {
     if (instructions.isEmpty) {
       return const InstructionProgress();
@@ -98,11 +96,26 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
         maneuverPoint[1],
       );
 
-      if (d < advanceThresholdMeters) {
+      // Kiểm tra xe đã rẽ qua mốc chuyển hướng và đang đi vào thân đoạn đường tiếp theo
+      bool hasPassedTurn = false;
+      if (nextInstruction.points.length >= 2) {
+        final p1 = nextInstruction.points[1];
+        final distToP1 = _calculateHaversineDistanceMeters(
+          currentLat,
+          currentLon,
+          p1[0],
+          p1[1],
+        );
+        if (distToP1 < d && distToP1 < advanceThresholdMeters * 2) {
+          hasPassedTurn = true;
+        }
+      }
+
+      if (d < advanceThresholdMeters || hasPassedTurn) {
         activeIndex++;
         distToNextMeters = d;
         DLog.info(
-          '⏭️ [TurnByTurnEngine] Advance to instruction #$activeIndex: "${instructions[activeIndex].text}" (dist=${d.toStringAsFixed(1)}m < ${advanceThresholdMeters.toStringAsFixed(0)}m)',
+          '⏭️ [TurnByTurnEngine] Advance to instruction #$activeIndex: "${instructions[activeIndex].text}" (dist=${d.toStringAsFixed(1)}m < ${advanceThresholdMeters.toStringAsFixed(0)}m, hasPassed=$hasPassedTurn)',
         );
       } else {
         distToNextMeters = d;
@@ -156,10 +169,18 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
     int remainingDuration = 0;
     if (!hasArrived) {
       final currentTotalDist = currentInstruction.distance;
-      final currentFraction = currentTotalDist > 0.0
-          ? (distToNextMeters / currentTotalDist).clamp(0.0, 1.0)
-          : 0.0;
-      int currentDurationPart = (currentInstruction.time * currentFraction).round();
+      int currentDurationPart;
+      if (currentTotalDist > 0.0 && currentInstruction.time > 0) {
+        final currentFraction =
+            (distToNextMeters / currentTotalDist).clamp(0.0, 1.0);
+        currentDurationPart =
+            (currentInstruction.time * currentFraction).round();
+      } else if (distToNextMeters > 0.0) {
+        const speedMps = RoutingConstants.fallbackSpeedKmh / 3.6;
+        currentDurationPart = ((distToNextMeters / speedMps) * 1000).round();
+      } else {
+        currentDurationPart = 0;
+      }
 
       int subsequentDuration = 0;
       for (int i = activeIndex + 1; i < instructions.length; i++) {

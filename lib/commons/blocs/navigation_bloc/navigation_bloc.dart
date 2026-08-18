@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:s_map/commons/cubits/map_display_cubit/map_display_fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
@@ -17,7 +18,7 @@ export 'navigation_state.dart';
 
 class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final IRoutingRepository _routingRepository;
-  final ILocationService? _locationService;
+  final ILocationService _locationService;
   final IOffRouteDetector _offRouteDetector;
   final ITurnByTurnEngine _turnByTurnEngine;
 
@@ -25,11 +26,12 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   int _requestGeneration = 0;
   DateTime? _lastRerouteTime;
 
+  /// Optional global default service resolvers set by the composition root
+  static ILocationService? defaultLocationService;
+  static ITurnByTurnEngine? defaultTurnByTurnEngine;
+
   /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
   static const Duration _rerouteCooldown = Duration(seconds: 2);
-
-  /// Bán kính xem như đã đến đích (20 mét)
-  static const double _arrivalThresholdMeters = 20.0;
 
   NavigationBloc({
     required IRoutingRepository routingRepository,
@@ -37,9 +39,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     IOffRouteDetector? offRouteDetector,
     ITurnByTurnEngine? turnByTurnEngine,
   })  : _routingRepository = routingRepository,
-        _locationService = locationService,
+        _locationService = locationService ??
+            defaultLocationService ??
+            const NoOpLocationService(),
         _offRouteDetector = offRouteDetector ?? const OffRouteDetector(),
-        _turnByTurnEngine = turnByTurnEngine ?? const TurnByTurnEngine(),
+        _turnByTurnEngine = turnByTurnEngine ??
+            defaultTurnByTurnEngine ??
+            const TurnByTurnEngine(),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
@@ -87,19 +93,16 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       clearMessage: true,
     ));
 
-    final locService = _locationService;
-    if (locService != null) {
-      _locationSubscription = locService.positionStream.listen(
-        (position) {
-          if (!isClosed) {
-            add(LocationUpdated.fromPosition(position));
-          }
-        },
-        onError: (error) {
-          DLog.error('❌ [NavigationBloc] GPS Position Stream error: $error');
-        },
-      );
-    }
+    _locationSubscription = _locationService.positionStream.listen(
+      (position) {
+        if (!isClosed) {
+          add(LocationUpdated.fromPosition(position));
+        }
+      },
+      onError: (error) {
+        DLog.error('❌ [NavigationBloc] GPS Position Stream error: $error');
+      },
+    );
   }
 
   void _onLocationUpdated(
@@ -118,8 +121,6 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       currentLon: currentLon,
       instructions: state.currentRoute!.instructions,
       currentInstructionIndex: state.currentInstructionIndex,
-      routePoints: state.currentRoute!.points,
-      currentSegmentIndex: state.currentSegmentIndex,
     );
 
     // 2. Kiểm tra đã đến đích chưa (thông qua engine hoặc khoảng cách đích)
@@ -132,13 +133,16 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         state.destination!.lon,
       );
       final distToDestMeters = distToDestKm * 1000.0;
-      if (distToDestMeters <= _arrivalThresholdMeters) {
+      if (distToDestMeters <= _turnByTurnEngine.arrivalThresholdMeters) {
         isArrived = true;
       }
     }
 
     if (isArrived) {
       DLog.info('🏁 [NavigationBloc] User arrived at destination!');
+      _locationSubscription?.cancel();
+      _locationSubscription = null;
+
       emit(state.copyWith(
         status: NavigationStatus.arrived,
         currentLat: currentLat,
