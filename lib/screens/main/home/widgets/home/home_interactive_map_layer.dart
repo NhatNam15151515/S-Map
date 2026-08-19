@@ -161,6 +161,45 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
             }
           },
         ),
+        BlocListener<NavigationBloc, NavigationState>(
+          listener: (context, navState) {
+            if (navState.isNavigating &&
+                navState.currentLat != null &&
+                navState.currentLon != null) {
+              // 1. Cập nhật camera dẫn đường 3D: Heading-up + Dynamic zoom theo tốc độ + Tilt 50
+              _cameraController.updateNavigationCamera(
+                controller: _mapController,
+                lat: navState.currentLat!,
+                lon: navState.currentLon!,
+                heading: navState.currentHeading,
+                speedKmh: navState.currentSpeedKmh,
+              );
+
+              // 2. Làm mờ đoạn đường đã đi qua (Dimming passed polyline)
+              if (navState.currentRoute != null) {
+                _routeManager.updateNavigationProgress(
+                  controller: _mapController,
+                  rawPoints: navState.currentRoute!.points,
+                  currentSegmentIndex: navState.currentSegmentIndex,
+                );
+              }
+            } else if (navState.status == NavigationStatus.navigating &&
+                navState.currentRoute != null &&
+                navState.origin != null &&
+                navState.destination != null) {
+              _routeManager.drawRoute(
+                controller: _mapController,
+                routeResult: navState.currentRoute!,
+                origin: navState.origin!,
+                destination: navState.destination!,
+                destinationName: navState.destinationName,
+              );
+            } else if (navState.status == NavigationStatus.stopped ||
+                navState.status == NavigationStatus.initial) {
+              _routeManager.clearRoute(_mapController);
+            }
+          },
+        ),
       ],
       child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
         buildWhen: (prev, curr) =>

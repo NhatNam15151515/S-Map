@@ -147,6 +147,7 @@
   "routing": {
     "calculating_moped_route": "Đang tính toán lộ trình xe máy...",
     "start_navigation": "Bắt đầu",
+    "end_navigation": "Kết thúc",
     "destination_fallback": "Điểm đến",
     "my_location": "Vị trí của bạn",
     "selected_point": "Điểm đã chọn",
@@ -154,6 +155,19 @@
     "feature_under_development": "Tính năng điều hướng đang được cập nhật",
     "rerouting": "Đang tính lại đường...",
     "reroute_success": "Đã cập nhật lộ trình mới",
-    "off_route_detected": "Phát hiện lệch đường"
+    "off_route_detected": "Phát hiện lệch đường",
+    "arrived_destination": "Bạn đã đến nơi!",
+    "trip_summary": "Tóm tắt chuyến đi",
+    "trip_completed_title": "Đã đến nơi an toàn! 🎉",
+    "trip_stopped_title": "Chuyến đi đã kết thúc",
+    "trip_duration": "Thời gian",
+    "trip_distance": "Quãng đường",
+    "avg_speed": "Tốc độ TB",
+    "max_speed": "Tốc độ tối đa",
+    "done": "Xong",
+    "speed_kmh": "km/h",
+    "prepare_turn": "Chuẩn bị rẽ",
+    "continue_straight": "Đi thẳng",
+    "then_turn": "Sau đó"
   }
 }

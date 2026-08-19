@@ -50,4 +50,14 @@ class RoutingConstants {
   static const double defaultArrivalThresholdMeters = 20.0;
   static const double defaultOffRouteThresholdMeters = 50.0;
   static const double fallbackSpeedKmh = 30.0;
+
+  // Navigation Camera & Polyline Dimming Constants
+  static const double navCameraTilt = 50.0;
+  static const double navLowSpeedThresholdKmh = 15.0;
+  static const double navHighSpeedThresholdKmh = 40.0;
+  static const double navZoomLowSpeed = 18.0;
+  static const double navZoomMidSpeed = 17.0;
+  static const double navZoomHighSpeed = 16.0;
+  static const double routeDimmedLineWidth = 4.0;
+  static const double routeDimmedOpacity = 0.55;
 }

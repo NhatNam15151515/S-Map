@@ -49,6 +49,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     on<LocationUpdated>(_onLocationUpdated);
     on<RerouteRequested>(_onRerouteRequested, transformer: restartable());
     on<StopNavigation>(_onStopNavigation);
+    on<ClearNavigation>(_onClearNavigation);
   }
 
   Future<void> _onStartNavigation(
@@ -87,6 +88,12 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       remainingDistance: initialProgress.remainingDistance,
       remainingDurationMs: initialProgress.remainingDurationMs,
       isPreAnnounced: initialProgress.isPreAnnounced,
+      tripStartTime: DateTime.now(),
+      maxSpeedKmh: 0.0,
+      totalDistanceTraveledMeters: 0.0,
+      speedSampleSum: 0.0,
+      speedSampleCount: 0,
+      clearTripSummary: true,
       clearError: true,
       clearMessage: true,
     ));
@@ -112,6 +119,30 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     final currentLat = event.latitude;
     final currentLon = event.longitude;
     final speedKmh = event.speed != null ? event.speed! * 3.6 : null;
+
+    // 0. Cập nhật thống kê vận tốc và quãng đường tích lũy
+    final currentMaxSpeed = speedKmh != null && speedKmh > state.maxSpeedKmh
+        ? speedKmh
+        : state.maxSpeedKmh;
+    final newSampleSum = speedKmh != null && speedKmh > 0
+        ? state.speedSampleSum + speedKmh
+        : state.speedSampleSum;
+    final newSampleCount = speedKmh != null && speedKmh > 0
+        ? state.speedSampleCount + 1
+        : state.speedSampleCount;
+
+    double addedDistance = 0.0;
+    if (state.currentLat != null && state.currentLon != null) {
+      final deltaKm = AppUtils.instance.calculateDistance(
+        state.currentLat!,
+        state.currentLon!,
+        currentLat,
+        currentLon,
+      );
+      addedDistance = deltaKm * 1000.0;
+    }
+    final totalDistanceTraveled =
+        state.totalDistanceTraveledMeters + addedDistance;
 
     // 1. Cập nhật tiến trình chỉ dẫn (Turn-by-turn Instruction Engine)
     final progress = _turnByTurnEngine.updateProgress(
@@ -141,6 +172,27 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       _locationSubscription?.cancel();
       _locationSubscription = null;
 
+      final tripDuration = state.tripStartTime != null
+          ? DateTime.now().difference(state.tripStartTime!)
+          : Duration.zero;
+      final avgSpeed = newSampleCount > 0
+          ? newSampleSum / newSampleCount
+          : (tripDuration.inSeconds > 0
+              ? (totalDistanceTraveled / 1000.0) /
+                  (tripDuration.inSeconds / 3600.0)
+              : 0.0);
+
+      final summary = TripSummary(
+        duration: tripDuration,
+        distanceMeters: totalDistanceTraveled > 0
+            ? totalDistanceTraveled
+            : (state.currentRoute?.distance ?? 0.0),
+        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
+        topSpeedKmh: currentMaxSpeed,
+        destinationName: state.destinationName,
+        hasArrived: true,
+      );
+
       emit(state.copyWith(
         status: NavigationStatus.arrived,
         currentLat: currentLat,
@@ -159,6 +211,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         isPreAnnounced: false,
         isOffRoute: false,
         distanceToRoute: 0.0,
+        maxSpeedKmh: currentMaxSpeed,
+        totalDistanceTraveledMeters: totalDistanceTraveled,
+        speedSampleSum: newSampleSum,
+        speedSampleCount: newSampleCount,
+        tripSummary: summary,
       ));
       return;
     }
@@ -191,6 +248,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       remainingDistance: progress.remainingDistance,
       remainingDurationMs: progress.remainingDurationMs,
       isPreAnnounced: progress.isPreAnnounced,
+      maxSpeedKmh: currentMaxSpeed,
+      totalDistanceTraveledMeters: totalDistanceTraveled,
+      speedSampleSum: newSampleSum,
+      speedSampleCount: newSampleCount,
     ));
 
     // 4. Tự động kích hoạt tính lại đường (Reroute) khi phát hiện lệch tuyến > 50m
@@ -302,7 +363,40 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     await _locationSubscription?.cancel();
     _locationSubscription = null;
     _requestGeneration++;
-    emit(const NavigationState(status: NavigationStatus.stopped));
+
+    final tripDuration = state.tripStartTime != null
+        ? DateTime.now().difference(state.tripStartTime!)
+        : Duration.zero;
+    final avgSpeed = state.speedSampleCount > 0
+        ? state.speedSampleSum / state.speedSampleCount
+        : (tripDuration.inSeconds > 0
+            ? (state.totalDistanceTraveledMeters / 1000.0) /
+                (tripDuration.inSeconds / 3600.0)
+            : 0.0);
+
+    final summary = TripSummary(
+      duration: tripDuration,
+      distanceMeters: state.totalDistanceTraveledMeters > 0
+          ? state.totalDistanceTraveledMeters
+          : (state.currentRoute?.distance ?? 0.0),
+      avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
+      topSpeedKmh: state.maxSpeedKmh,
+      destinationName: state.destinationName,
+      hasArrived: false,
+    );
+
+    emit(state.copyWith(
+      status: NavigationStatus.stopped,
+      tripSummary: summary,
+    ));
+  }
+
+  void _onClearNavigation(
+    ClearNavigation event,
+    Emitter<NavigationState> emit,
+  ) {
+    DLog.info('🧹 [NavigationBloc] Clearing navigation state back to initial');
+    emit(const NavigationState());
   }
 
   @override

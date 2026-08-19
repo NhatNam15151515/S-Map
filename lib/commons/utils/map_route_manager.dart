@@ -10,9 +10,11 @@ import 'package:s_map/models/models.dart';
 class MapRouteManager {
   Line? _routeLine;
   Line? _routeCasingLine;
+  Line? _passedRouteLine;
   Symbol? _destinationSymbol;
   int _renderGeneration = 0;
   bool _isAssetLoaded = false;
+  int _lastPassedSegmentIndex = -1;
 
   /// Nạp icon marker vào engine MapLibre
   Future<void> loadMarkerAssets(MapLibreMapController? controller) async {
@@ -77,6 +79,7 @@ class MapRouteManager {
     final latLngs = parseRoutePoints(routeResult.points);
     if (latLngs.isEmpty) return;
 
+    _lastPassedSegmentIndex = -1;
     DLog.info('🗺️ [MapRouteManager] Drawing route on map [Gen #$generation]: ${latLngs.length} points | Destination: "$destinationName"');
 
     try {
@@ -143,6 +146,59 @@ class MapRouteManager {
     }
   }
 
+  /// Cập nhật trạng thái tiến trình dẫn đường: làm mờ đoạn đường đã đi qua (Dim Passed Polyline)
+  Future<void> updateNavigationProgress({
+    required MapLibreMapController? controller,
+    required List<List<double>> rawPoints,
+    required int currentSegmentIndex,
+  }) async {
+    if (controller == null ||
+        rawPoints.isEmpty ||
+        currentSegmentIndex == _lastPassedSegmentIndex ||
+        _routeLine == null) {
+      return;
+    }
+
+    _lastPassedSegmentIndex = currentSegmentIndex;
+    final allPoints = parseRoutePoints(rawPoints);
+    if (allPoints.isEmpty) return;
+
+    try {
+      if (currentSegmentIndex > 0 && currentSegmentIndex < allPoints.length) {
+        final passedPoints = allPoints.sublist(0, currentSegmentIndex + 1);
+        final remainingPoints = allPoints.sublist(currentSegmentIndex);
+
+        // 1. Cập nhật hoặc tạo đường xám mờ cho đoạn đã đi qua
+        if (_passedRouteLine == null) {
+          _passedRouteLine = await controller.addLine(
+            LineOptions(
+              geometry: passedPoints,
+              lineColor: AppColors.routeDimmedColor.toHex,
+              lineWidth: RoutingConstants.routeDimmedLineWidth,
+              lineOpacity: RoutingConstants.routeDimmedOpacity,
+              lineJoin: RoutingConstants.routeLineJoin,
+            ),
+          );
+        } else {
+          await controller.updateLine(
+            _passedRouteLine!,
+            LineOptions(geometry: passedPoints),
+          );
+        }
+
+        // 2. Thu gọn đường màu xanh chính vào phần còn lại phía trước
+        if (remainingPoints.isNotEmpty) {
+          await controller.updateLine(
+            _routeLine!,
+            LineOptions(geometry: remainingPoints),
+          );
+        }
+      }
+    } catch (e) {
+      DLog.warning('⚠️ [MapRouteManager] Error updating navigation progress polyline: $e');
+    }
+  }
+
   /// Căn chỉnh Camera ôm trọn lộ trình với khoảng cách an toàn (tránh đè BottomSheet)
   void fitRouteBounds({
     required MapLibreMapController? controller,
@@ -194,6 +250,7 @@ class MapRouteManager {
   Future<void> clearRoute(MapLibreMapController? controller) async {
     DLog.info('🧹 [MapRouteManager] Clearing route lines & markers from map');
     _renderGeneration++;
+    _lastPassedSegmentIndex = -1;
     await _clearLinesAndSymbols(controller);
   }
 
@@ -221,6 +278,15 @@ class MapRouteManager {
 
   Future<void> _clearLinesAndSymbols(MapLibreMapController? controller) async {
     if (controller == null) return;
+
+    if (_passedRouteLine != null) {
+      try {
+        await controller.removeLine(_passedRouteLine!);
+      } catch (e) {
+        DLog.warning('⚠️ [MapRouteManager] Failed to remove _passedRouteLine: $e');
+      }
+      _passedRouteLine = null;
+    }
 
     if (_routeLine != null) {
       try {

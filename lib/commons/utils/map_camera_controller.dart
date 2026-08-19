@@ -100,6 +100,41 @@ class MapCameraController {
     }).catchError((_) {});
   }
 
+  /// Tính toán mức zoom camera linh hoạt theo tốc độ di chuyển
+  static double calculateDynamicZoom(double? speedKmh) {
+    if (speedKmh == null ||
+        speedKmh <= RoutingConstants.navLowSpeedThresholdKmh) {
+      return RoutingConstants.navZoomLowSpeed;
+    }
+    if (speedKmh <= RoutingConstants.navHighSpeedThresholdKmh) {
+      return RoutingConstants.navZoomMidSpeed;
+    }
+    return RoutingConstants.navZoomHighSpeed;
+  }
+
+  /// Cập nhật Camera theo góc nhìn dẫn đường 3D (Heading-up + Tilt + Dynamic Zoom)
+  void updateNavigationCamera({
+    required MapLibreMapController? controller,
+    required double lat,
+    required double lon,
+    required double? heading,
+    required double? speedKmh,
+    double tilt = RoutingConstants.navCameraTilt,
+  }) {
+    if (controller == null) return;
+    final zoom = calculateDynamicZoom(speedKmh);
+    controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: LatLng(lat, lon),
+          zoom: zoom,
+          bearing: heading ?? 0.0,
+          tilt: tilt,
+        ),
+      ),
+    );
+  }
+
   /// Reset vị trí tìm kiếm đã lưu
   void reset() {
     lastSearchedBounds = null;

@@ -140,11 +140,17 @@ class AppTextTheme {
   TextStyle get textStyle =>
       mainStyle.copyWith(fontWeight: AppFontWeight.regular.weight);
 
+  TextStyle get regularStyle => textStyle;
+
   TextStyle get boldStyle =>
       mainStyle.copyWith(fontWeight: AppFontWeight.medium.weight);
 
+  TextStyle get mediumStyle => boldStyle;
+
   TextStyle get subTitleStyle =>
       mainStyle.copyWith(fontWeight: AppFontWeight.semiBold.weight);
+
+  TextStyle get semiBoldStyle => subTitleStyle;
 
   TextStyle get textTitleStyle =>
       mainStyle.copyWith(fontWeight: AppFontWeight.bold.weight);

@@ -469,5 +469,89 @@ void main() {
         })),
       );
     });
+
+    test('Arriving at destination generates TripSummary with hasArrived true', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      // Điểm gần đích (< 20m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.77659,
+        longitude: 106.70319,
+        speed: 8.5, // ~30.6 km/h
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.arrived &&
+              s.tripSummary != null &&
+              s.tripSummary!.hasArrived == true &&
+              s.tripSummary!.destinationName == 'Nhà hát Thành phố' &&
+              s.tripSummary!.topSpeedKmh > 0;
+        })),
+      );
+    });
+
+    test('StopNavigation generates TripSummary with hasArrived false and Stop status', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7740,
+        longitude: 106.7000,
+        speed: 10.0, // 36 km/h
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.currentSpeedKmh != null)),
+      );
+
+      bloc.add(const StopNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.stopped &&
+              s.tripSummary != null &&
+              s.tripSummary!.hasArrived == false &&
+              s.tripSummary!.destinationName == 'Nhà hát Thành phố' &&
+              s.tripSummary!.topSpeedKmh >= 35.0;
+        })),
+      );
+    });
+
+    test('ClearNavigation resets navigation state back to initial', () async {
+      bloc.add(const StopNavigation());
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.stopped)),
+      );
+
+      bloc.add(const ClearNavigation());
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.initial && s.tripSummary == null)),
+      );
+    });
   });
 }

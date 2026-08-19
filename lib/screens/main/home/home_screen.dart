@@ -17,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final MapExploreCubit _exploreCubit;
   late final ViewportSearchBloc _viewportBloc;
   late final RoutePreviewCubit _routePreviewCubit;
+  late final NavigationBloc _navigationBloc;
 
   @override
   void initState() {
@@ -27,6 +28,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _routePreviewCubit = RoutePreviewCubit(
       routingRepository: AppReposProvider.instance.routingRepos,
     );
+    _navigationBloc = NavigationBloc(
+      routingRepository: AppReposProvider.instance.routingRepos,
+    );
   }
 
   @override
@@ -35,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _exploreCubit.close();
     _viewportBloc.close();
     _routePreviewCubit.close();
+    _navigationBloc.close();
     super.dispose();
   }
 
@@ -46,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
         BlocProvider.value(value: _exploreCubit),
         BlocProvider.value(value: _viewportBloc),
         BlocProvider.value(value: _routePreviewCubit),
+        BlocProvider.value(value: _navigationBloc),
       ],
       child: const HomeScreenContent(),
     );
