@@ -169,6 +169,10 @@
     "prepare_turn": "Chuẩn bị rẽ",
     "continue_straight": "Đi thẳng",
     "then_turn": "Sau đó",
-    "remaining": "còn lại"
+    "remaining": "còn lại",
+    "unit_second": "giây",
+    "unit_minute": "phút",
+    "unit_hour": "giờ",
+    "sub_minute": "< 1 phút"
   }
 }

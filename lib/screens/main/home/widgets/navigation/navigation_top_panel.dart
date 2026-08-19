@@ -199,7 +199,7 @@ class NavigationTopPanel extends StatelessWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withAlpha(80),
+                          color: AppColors.black.withAlpha(80),
                           borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(15),
                           ),

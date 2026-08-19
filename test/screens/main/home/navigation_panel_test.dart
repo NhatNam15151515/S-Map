@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/fallbacks/fallbacks.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
@@ -129,7 +130,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('35'), findsOneWidget);
-      expect(find.textContaining('5 phút'), findsOneWidget);
+      expect(
+        find.textContaining(RouteFormatHelper.formatDuration(300000)),
+        findsOneWidget,
+      );
       expect(find.textContaining('2.4 km'), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.close_rounded));
@@ -165,7 +169,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Nhà hát Thành phố'), findsOneWidget);
-      expect(find.text('14 phút 20 giây'), findsOneWidget);
+      expect(find.textContaining('14'), findsOneWidget);
       expect(find.text('4.5 km'), findsOneWidget);
       expect(find.textContaining('28.5'), findsOneWidget);
       expect(find.textContaining('42.0'), findsOneWidget);

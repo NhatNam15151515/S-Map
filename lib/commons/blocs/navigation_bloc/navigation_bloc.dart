@@ -176,18 +176,14 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       final tripDuration = state.tripStartTime != null
           ? DateTime.now().difference(state.tripStartTime!)
           : Duration.zero;
-      final avgSpeed = newSampleCount > 0
-          ? newSampleSum / newSampleCount
-          : (tripDuration.inSeconds > 0
-              ? (totalDistanceTraveled / 1000.0) /
-                  (tripDuration.inSeconds / 3600.0)
-              : 0.0);
+      final avgSpeed = tripDuration.inMilliseconds > 0
+          ? (totalDistanceTraveled / 1000.0) /
+              (tripDuration.inMilliseconds / 3600000.0)
+          : 0.0;
 
       final summary = TripSummary(
         duration: tripDuration,
-        distanceMeters: totalDistanceTraveled > 0
-            ? totalDistanceTraveled
-            : (state.currentRoute?.distance ?? 0.0),
+        distanceMeters: totalDistanceTraveled,
         avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
         topSpeedKmh: currentMaxSpeed,
         destinationName: state.destinationName,
@@ -365,31 +361,32 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _locationSubscription = null;
     _requestGeneration++;
 
-    final tripDuration = state.tripStartTime != null
-        ? DateTime.now().difference(state.tripStartTime!)
-        : Duration.zero;
-    final avgSpeed = state.speedSampleCount > 0
-        ? state.speedSampleSum / state.speedSampleCount
-        : (tripDuration.inSeconds > 0
-            ? (state.totalDistanceTraveledMeters / 1000.0) /
-                (tripDuration.inSeconds / 3600.0)
-            : 0.0);
+    if (state.tripStartTime != null) {
+      final tripDuration = DateTime.now().difference(state.tripStartTime!);
+      final avgSpeed = tripDuration.inMilliseconds > 0
+          ? (state.totalDistanceTraveledMeters / 1000.0) /
+              (tripDuration.inMilliseconds / 3600000.0)
+          : 0.0;
 
-    final summary = TripSummary(
-      duration: tripDuration,
-      distanceMeters: state.totalDistanceTraveledMeters > 0
-          ? state.totalDistanceTraveledMeters
-          : (state.currentRoute?.distance ?? 0.0),
-      avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
-      topSpeedKmh: state.maxSpeedKmh,
-      destinationName: state.destinationName,
-      hasArrived: false,
-    );
+      final summary = TripSummary(
+        duration: tripDuration,
+        distanceMeters: state.totalDistanceTraveledMeters,
+        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
+        topSpeedKmh: state.maxSpeedKmh,
+        destinationName: state.destinationName,
+        hasArrived: false,
+      );
 
-    emit(state.copyWith(
-      status: NavigationStatus.stopped,
-      tripSummary: summary,
-    ));
+      emit(state.copyWith(
+        status: NavigationStatus.stopped,
+        tripSummary: summary,
+      ));
+    } else {
+      emit(state.copyWith(
+        status: NavigationStatus.stopped,
+        clearTripSummary: true,
+      ));
+    }
   }
 
   void _onClearNavigation(

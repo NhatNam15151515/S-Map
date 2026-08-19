@@ -165,6 +165,10 @@ abstract class  LocaleKeys {
   static const routing_continue_straight = 'routing.continue_straight';
   static const routing_then_turn = 'routing.then_turn';
   static const routing_remaining = 'routing.remaining';
+  static const routing_unit_second = 'routing.unit_second';
+  static const routing_unit_minute = 'routing.unit_minute';
+  static const routing_unit_hour = 'routing.unit_hour';
+  static const routing_sub_minute = 'routing.sub_minute';
   static const routing = 'routing';
 
 }

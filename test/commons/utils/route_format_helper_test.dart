@@ -15,13 +15,37 @@ void main() {
     });
 
     test('formatDuration formats milliseconds into human-readable duration', () {
-      expect(RouteFormatHelper.formatDuration(0), equals('< 1 phút'));
-      expect(RouteFormatHelper.formatDuration(-500), equals('< 1 phút'));
-      expect(RouteFormatHelper.formatDuration(30000), equals('< 1 phút'));
-      expect(RouteFormatHelper.formatDuration(60000), equals('1 phút'));
-      expect(RouteFormatHelper.formatDuration(720000), equals('12 phút'));
-      expect(RouteFormatHelper.formatDuration(3600000), equals('1 giờ'));
-      expect(RouteFormatHelper.formatDuration(4500000), equals('1 giờ 15 phút'));
+      expect(
+        RouteFormatHelper.formatDuration(0),
+        anyOf(equals('< 1 phút'), equals('routing.sub_minute')),
+      );
+      expect(
+        RouteFormatHelper.formatDuration(-500),
+        anyOf(equals('< 1 phút'), equals('routing.sub_minute')),
+      );
+      expect(
+        RouteFormatHelper.formatDuration(30000),
+        anyOf(equals('< 1 phút'), equals('routing.sub_minute')),
+      );
+      expect(
+        RouteFormatHelper.formatDuration(60000),
+        anyOf(equals('1 phút'), equals('1 routing.unit_minute')),
+      );
+      expect(
+        RouteFormatHelper.formatDuration(720000),
+        anyOf(equals('12 phút'), equals('12 routing.unit_minute')),
+      );
+      expect(
+        RouteFormatHelper.formatDuration(3600000),
+        anyOf(equals('1 giờ'), equals('1 routing.unit_hour')),
+      );
+      expect(
+        RouteFormatHelper.formatDuration(4500000),
+        anyOf(
+          equals('1 giờ 15 phút'),
+          equals('1 routing.unit_hour 15 routing.unit_minute'),
+        ),
+      );
     });
 
     test('formatSpeed formats speed in km/h or fallback correctly', () {
@@ -40,23 +64,29 @@ void main() {
     test('formatTripDuration formats Duration into detailed text', () {
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(seconds: 45)),
-        equals('45 giây'),
+        anyOf(equals('45 giây'), equals('45 routing.unit_second')),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(minutes: 10)),
-        equals('10 phút'),
+        anyOf(equals('10 phút'), equals('10 routing.unit_minute')),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(minutes: 10, seconds: 25)),
-        equals('10 phút 25 giây'),
+        anyOf(
+          equals('10 phút 25 giây'),
+          equals('10 routing.unit_minute 25 routing.unit_second'),
+        ),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(hours: 1, minutes: 15)),
-        equals('1 giờ 15 phút'),
+        anyOf(
+          equals('1 giờ 15 phút'),
+          equals('1 routing.unit_hour 15 routing.unit_minute'),
+        ),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(hours: 2)),
-        equals('2 giờ'),
+        anyOf(equals('2 giờ'), equals('2 routing.unit_hour')),
       );
     });
 

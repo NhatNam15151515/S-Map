@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
@@ -85,7 +86,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
       builder: (modalContext) => TripSummaryBottomSheet(
         summary: summary,
         onDone: () {
-          Navigator.of(modalContext).pop();
+          modalContext.pop();
           routePreviewCubit.clearRoute();
           navigationBloc.add(const ClearNavigation());
         },

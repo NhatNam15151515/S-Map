@@ -21,19 +21,22 @@ class RouteFormatHelper {
 
   /// Định dạng thời gian di chuyển từ mili-giây sang giờ và phút
   static String formatDuration(int timeMillis) {
-    if (timeMillis < 60000) return '< 1 phút';
+    if (timeMillis < 60000) return tr(LocaleKeys.routing_sub_minute);
 
     final totalMinutes = (timeMillis / 60000).round();
+    final minuteUnit = tr(LocaleKeys.routing_unit_minute);
+    final hourUnit = tr(LocaleKeys.routing_unit_hour);
+
     if (totalMinutes < 60) {
-      return '$totalMinutes phút';
+      return '$totalMinutes $minuteUnit';
     }
 
     final hours = totalMinutes ~/ 60;
     final remainingMinutes = totalMinutes % 60;
     if (remainingMinutes == 0) {
-      return '$hours giờ';
+      return '$hours $hourUnit';
     }
-    return '$hours giờ $remainingMinutes phút';
+    return '$hours $hourUnit $remainingMinutes $minuteUnit';
   }
 
   /// Định dạng tốc độ hiển thị trên Speedometer
@@ -55,20 +58,26 @@ class RouteFormatHelper {
 
   /// Định dạng tổng thời gian chuyến đi (Duration)
   static String formatTripDuration(Duration duration) {
+    final secondUnit = tr(LocaleKeys.routing_unit_second);
+    final minuteUnit = tr(LocaleKeys.routing_unit_minute);
+    final hourUnit = tr(LocaleKeys.routing_unit_hour);
+
     final totalSeconds = duration.inSeconds;
     if (totalSeconds < 60) {
-      return '$totalSeconds giây';
+      return '$totalSeconds $secondUnit';
     }
     final minutes = duration.inMinutes;
     final seconds = totalSeconds % 60;
     if (minutes < 60) {
-      return seconds > 0 ? '$minutes phút $seconds giây' : '$minutes phút';
+      return seconds > 0
+          ? '$minutes $minuteUnit $seconds $secondUnit'
+          : '$minutes $minuteUnit';
     }
     final hours = duration.inHours;
     final remainingMinutes = minutes % 60;
     return remainingMinutes > 0
-        ? '$hours giờ $remainingMinutes phút'
-        : '$hours giờ';
+        ? '$hours $hourUnit $remainingMinutes $minuteUnit'
+        : '$hours $hourUnit';
   }
 
   /// Ánh xạ InstructionType sang IconData đồ hoạ trực quan

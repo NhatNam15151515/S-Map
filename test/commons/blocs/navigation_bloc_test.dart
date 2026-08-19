@@ -540,6 +540,33 @@ void main() {
       );
     });
 
+    test('Stopping immediately after start produces TripSummary with 0 distance and 0 avg speed', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      bloc.add(const StopNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.stopped &&
+              s.tripSummary != null &&
+              s.tripSummary!.hasArrived == false &&
+              s.tripSummary!.distanceMeters == 0.0 &&
+              s.tripSummary!.avgSpeedKmh == 0.0;
+        })),
+      );
+    });
+
     test('ClearNavigation resets navigation state back to initial', () async {
       bloc.add(const StartNavigation(
         initialRoute: sampleInitialRoute,

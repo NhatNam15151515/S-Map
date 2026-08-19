@@ -169,6 +169,10 @@
     "prepare_turn": "Prepare to turn",
     "continue_straight": "Continue straight",
     "then_turn": "Then",
-    "remaining": "remaining"
+    "remaining": "remaining",
+    "unit_second": "s",
+    "unit_minute": "min",
+    "unit_hour": "hr",
+    "sub_minute": "< 1 min"
   }
 }
