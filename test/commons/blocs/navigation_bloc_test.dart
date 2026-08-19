@@ -580,31 +580,51 @@ void main() {
         emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
       );
 
-      // Điểm 1: GPS chuẩn (accuracy 5m)
+      // Điểm 1: GPS chuẩn trên lộ trình (accuracy 5m)
       bloc.add(const LocationUpdated(
-        latitude: 10.7700,
-        longitude: 106.6900,
+        latitude: 10.7725,
+        longitude: 106.6980,
         accuracy: 5.0,
       ));
 
       await expectLater(
         bloc.stream,
-        emits(predicate<NavigationState>((s) => s.currentLat == 10.7700)),
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7725)),
       );
 
-      // Điểm 2: GPS nhiễu/kém (accuracy 60m) -> Không cộng dồn distance
+      // Điểm 2: Di chuyển hợp lệ trên lộ trình (~90m)
       bloc.add(const LocationUpdated(
-        latitude: 10.7705,
-        longitude: 106.6905,
+        latitude: 10.7730,
+        longitude: 106.6987,
+        accuracy: 5.0,
+      ));
+
+      double recordedDistance = 0.0;
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          recordedDistance = s.totalDistanceTraveledMeters;
+          return s.currentLat == 10.7730 && s.totalDistanceTraveledMeters > 0;
+        })),
+      );
+
+      // Điểm 3: GPS nhiễu/kém (accuracy 60m > 35m) -> Vẫn cập nhật UI tọa độ nhưng không cộng dồn distance
+      bloc.add(const LocationUpdated(
+        latitude: 10.7734,
+        longitude: 106.6992,
         accuracy: 60.0,
       ));
 
       await expectLater(
         bloc.stream,
         emits(predicate<NavigationState>((s) {
-          return s.totalDistanceTraveledMeters == 0.0;
+          return s.currentLat == 10.7734 &&
+              s.currentAccuracy == 60.0 &&
+              s.totalDistanceTraveledMeters == recordedDistance &&
+              s.isRerouting == false;
         })),
       );
+      expect(mockRoutingRepo.calculateRouteCallCount, equals(0));
     });
 
     test('GPS jumps excessively large (> 200m) are ignored for distance accumulation', () async {
@@ -620,29 +640,46 @@ void main() {
         emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
       );
 
-      // Điểm 1
+      // Điểm 1: GPS chuẩn trên lộ trình (accuracy 5m)
       bloc.add(const LocationUpdated(
-        latitude: 10.7700,
-        longitude: 106.6900,
+        latitude: 10.7725,
+        longitude: 106.6980,
         accuracy: 5.0,
       ));
 
       await expectLater(
         bloc.stream,
-        emits(predicate<NavigationState>((s) => s.currentLat == 10.7700)),
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7725)),
       );
 
-      // Điểm 2: Nhảy đột biến 1km (~1000m > 200m)
+      // Điểm 2: Di chuyển hợp lệ trên lộ trình (~90m)
       bloc.add(const LocationUpdated(
-        latitude: 10.7800,
-        longitude: 106.7000,
+        latitude: 10.7730,
+        longitude: 106.6987,
+        accuracy: 5.0,
+      ));
+
+      double recordedDistance = 0.0;
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          recordedDistance = s.totalDistanceTraveledMeters;
+          return s.currentLat == 10.7730 && s.totalDistanceTraveledMeters > 0;
+        })),
+      );
+
+      // Điểm 3: Nhảy đột biến > 200m (~500m tới gần đích) trong 1 tick
+      bloc.add(const LocationUpdated(
+        latitude: 10.7766,
+        longitude: 106.7032,
         accuracy: 5.0,
       ));
 
       await expectLater(
         bloc.stream,
         emits(predicate<NavigationState>((s) {
-          return s.totalDistanceTraveledMeters == 0.0;
+          return s.currentLat == 10.7766 &&
+              s.totalDistanceTraveledMeters == recordedDistance;
         })),
       );
     });

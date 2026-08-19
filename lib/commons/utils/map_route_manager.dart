@@ -64,7 +64,7 @@ class MapRouteManager {
   }
 
   /// Vẽ Polyline lộ trình và gắn Marker điểm đầu / điểm cuối
-  Future<void> drawRoute({
+  Future<bool> drawRoute({
     required MapLibreMapController? controller,
     required RouteResult routeResult,
     required RoutePoint origin,
@@ -72,23 +72,23 @@ class MapRouteManager {
     String? destinationName,
   }) async {
     if (controller == null || !routeResult.isSuccess || !routeResult.hasPoints) {
-      return;
+      return false;
     }
 
     final generation = ++_renderGeneration;
     final latLngs = parseRoutePoints(routeResult.points);
-    if (latLngs.isEmpty) return;
+    if (latLngs.isEmpty) return false;
 
     _lastPassedSegmentIndex = -1;
     DLog.info('🗺️ [MapRouteManager] Drawing route on map [Gen #$generation]: ${latLngs.length} points | Destination: "$destinationName"');
 
     try {
       await loadMarkerAssets(controller);
-      if (generation != _renderGeneration) return;
+      if (generation != _renderGeneration) return false;
 
       // Xóa đường và marker cũ trước khi vẽ mới
       await _clearLinesAndSymbols(controller);
-      if (generation != _renderGeneration) return;
+      if (generation != _renderGeneration) return false;
 
       // 1. Tạo Casing Line (Viền đậm bên dưới tạo độ nổi khối)
       final casingLine = await controller.addLine(
@@ -134,15 +134,17 @@ class MapRouteManager {
         await _removeOrphan(controller, line: casingLine);
         await _removeOrphan(controller, line: mainLine);
         await _removeOrphan(controller, symbol: destSymbol);
-        return;
+        return false;
       }
 
       _routeCasingLine = casingLine;
       _routeLine = mainLine;
       _destinationSymbol = destSymbol;
       DLog.info('✅ [MapRouteManager] Route line & destination marker drawn successfully on map');
+      return true;
     } catch (e, stack) {
       DLog.error('❌ [MapRouteManager] Error drawing route on map: $e', stack);
+      return false;
     }
   }
 

@@ -33,6 +33,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   final MapCameraController _cameraController = MapCameraController();
   final MapRouteManager _routeManager = MapRouteManager();
   RouteResult? _renderedNavRoute;
+  int _navListenerGeneration = 0;
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
@@ -172,23 +173,27 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               prev.currentSegmentIndex != curr.currentSegmentIndex ||
               prev.currentRoute != curr.currentRoute,
           listener: (context, navState) async {
+            final gen = ++_navListenerGeneration;
             if (navState.isNavigating) {
               // 0. Nếu lộ trình thay đổi (khởi chạy hoặc reroute mới), vẽ lộ trình trước
               if (navState.currentRoute != null &&
                   navState.currentRoute != _renderedNavRoute &&
                   navState.origin != null &&
                   navState.destination != null) {
-                _renderedNavRoute = navState.currentRoute;
-                await _routeManager.drawRoute(
+                final isSuccess = await _routeManager.drawRoute(
                   controller: _mapController,
                   routeResult: navState.currentRoute!,
                   origin: navState.origin!,
                   destination: navState.destination!,
                   destinationName: navState.destinationName,
                 );
+                if (!mounted || gen != _navListenerGeneration) return;
+                if (isSuccess) {
+                  _renderedNavRoute = navState.currentRoute;
+                }
               }
 
-              if (!mounted) return;
+              if (!mounted || gen != _navListenerGeneration) return;
 
               // 1. Cập nhật camera dẫn đường 3D: Heading-up + Dynamic zoom theo tốc độ + Tilt 50
               if (navState.currentLat != null && navState.currentLon != null) {
@@ -202,7 +207,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
                 // 2. Làm mờ đoạn đường đã đi qua (Dimming passed polyline)
                 if (navState.currentRoute != null &&
-                    navState.currentRoute == _renderedNavRoute) {
+                    navState.currentRoute == _renderedNavRoute &&
+                    gen == _navListenerGeneration) {
                   _routeManager.updateNavigationProgress(
                     controller: _mapController,
                     rawPoints: navState.currentRoute!.points,

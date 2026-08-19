@@ -23,6 +23,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
   DateTime? _lastRerouteTime;
+  double? _lastValidDistanceLat;
+  double? _lastValidDistanceLon;
 
   /// Optional global default service resolvers set by the composition root
   static ILocationService? defaultLocationService;
@@ -61,6 +63,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     await _locationSubscription?.cancel();
     _locationSubscription = null;
+    _requestGeneration++;
+    _lastRerouteTime = null;
+    _lastValidDistanceLat = null;
+    _lastValidDistanceLon = null;
 
     final initialProgress = _turnByTurnEngine.initializeProgress(
       event.initialRoute.instructions,
@@ -136,19 +142,24 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     final accuracy = event.accuracy;
     final isAccuracyAcceptable = accuracy == null || accuracy <= 35.0;
 
-    if (isAccuracyAcceptable &&
-        state.currentLat != null &&
-        state.currentLon != null) {
-      final deltaKm = AppUtils.instance.calculateDistance(
-        state.currentLat!,
-        state.currentLon!,
-        currentLat,
-        currentLon,
-      );
-      final deltaMeters = deltaKm * 1000.0;
-      // Bỏ qua rung lắc GPS khi dừng xe (< 1m) và bước nhảy đột biến (> 200m)
-      if (deltaMeters >= 1.0 && deltaMeters <= 200.0) {
-        addedDistance = deltaMeters;
+    if (isAccuracyAcceptable) {
+      if (_lastValidDistanceLat != null && _lastValidDistanceLon != null) {
+        final deltaKm = AppUtils.instance.calculateDistance(
+          _lastValidDistanceLat!,
+          _lastValidDistanceLon!,
+          currentLat,
+          currentLon,
+        );
+        final deltaMeters = deltaKm * 1000.0;
+        // Bỏ qua rung lắc GPS khi dừng xe (< 1m) và bước nhảy đột biến (> 200m)
+        if (deltaMeters >= 1.0 && deltaMeters <= 200.0) {
+          addedDistance = deltaMeters;
+          _lastValidDistanceLat = currentLat;
+          _lastValidDistanceLon = currentLon;
+        }
+      } else {
+        _lastValidDistanceLat = currentLat;
+        _lastValidDistanceLon = currentLon;
       }
     }
     final totalDistanceTraveled =
@@ -398,11 +409,17 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     }
   }
 
-  void _onClearNavigation(
+  Future<void> _onClearNavigation(
     ClearNavigation event,
     Emitter<NavigationState> emit,
-  ) {
+  ) async {
     DLog.info('🧹 [NavigationBloc] Clearing navigation state back to initial');
+    await _locationSubscription?.cancel();
+    _locationSubscription = null;
+    _requestGeneration++;
+    _lastRerouteTime = null;
+    _lastValidDistanceLat = null;
+    _lastValidDistanceLon = null;
     emit(const NavigationState());
   }
 
