@@ -515,15 +515,30 @@ void main() {
         emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
       );
 
+      // Điểm 1: Khởi đầu
       bloc.add(const LocationUpdated(
-        latitude: 10.7740,
-        longitude: 106.7000,
+        latitude: 10.7725,
+        longitude: 106.6980,
         speed: 10.0, // 36 km/h
+        accuracy: 5.0,
       ));
 
       await expectLater(
         bloc.stream,
-        emits(predicate<NavigationState>((s) => s.currentSpeedKmh != null)),
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7725)),
+      );
+
+      // Điểm 2: Di chuyển trên tuyến (~90m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6987,
+        speed: 10.0,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.totalDistanceTraveledMeters > 0)),
       );
 
       bloc.add(const StopNavigation());
@@ -534,6 +549,7 @@ void main() {
           return s.status == NavigationStatus.stopped &&
               s.tripSummary != null &&
               s.tripSummary!.hasArrived == false &&
+              s.tripSummary!.distanceMeters > 0 &&
               s.tripSummary!.destinationName == 'Nhà hát Thành phố' &&
               s.tripSummary!.topSpeedKmh >= 35.0;
         })),
@@ -618,7 +634,9 @@ void main() {
       await expectLater(
         bloc.stream,
         emits(predicate<NavigationState>((s) {
-          return s.currentLat == 10.7734 &&
+          return s.status == NavigationStatus.navigating &&
+              s.tripSummary == null &&
+              s.currentLat == 10.7734 &&
               s.currentAccuracy == 60.0 &&
               s.totalDistanceTraveledMeters == recordedDistance &&
               s.isRerouting == false;
@@ -668,17 +686,19 @@ void main() {
         })),
       );
 
-      // Điểm 3: Nhảy đột biến > 200m (~500m tới gần đích) trong 1 tick
+      // Điểm 3: Nhảy đột biến > 200m (~350m, nhưng chưa tới đích) trong 1 tick
       bloc.add(const LocationUpdated(
-        latitude: 10.7766,
-        longitude: 106.7032,
+        latitude: 10.7755,
+        longitude: 106.7015,
         accuracy: 5.0,
       ));
 
       await expectLater(
         bloc.stream,
         emits(predicate<NavigationState>((s) {
-          return s.currentLat == 10.7766 &&
+          return s.status == NavigationStatus.navigating &&
+              s.tripSummary == null &&
+              s.currentLat == 10.7755 &&
               s.totalDistanceTraveledMeters == recordedDistance;
         })),
       );

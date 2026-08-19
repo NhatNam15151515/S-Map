@@ -13,6 +13,7 @@ class MapRouteManager {
   Line? _passedRouteLine;
   Symbol? _destinationSymbol;
   int _renderGeneration = 0;
+  int _progressGeneration = 0;
   bool _isAssetLoaded = false;
   int _lastPassedSegmentIndex = -1;
 
@@ -76,6 +77,7 @@ class MapRouteManager {
     }
 
     final generation = ++_renderGeneration;
+    final progressGen = ++_progressGeneration;
     final latLngs = parseRoutePoints(routeResult.points);
     if (latLngs.isEmpty) return false;
 
@@ -84,11 +86,11 @@ class MapRouteManager {
 
     try {
       await loadMarkerAssets(controller);
-      if (generation != _renderGeneration) return false;
+      if (generation != _renderGeneration || progressGen != _progressGeneration) return false;
 
       // Xóa đường và marker cũ trước khi vẽ mới
       await _clearLinesAndSymbols(controller);
-      if (generation != _renderGeneration) return false;
+      if (generation != _renderGeneration || progressGen != _progressGeneration) return false;
 
       // 1. Tạo Casing Line (Viền đậm bên dưới tạo độ nổi khối)
       final casingLine = await controller.addLine(
@@ -129,7 +131,7 @@ class MapRouteManager {
         ),
       );
 
-      if (generation != _renderGeneration) {
+      if (generation != _renderGeneration || progressGen != _progressGeneration) {
         DLog.info('⏭️ [MapRouteManager] Discarding stale drawn route objects (Current #$_renderGeneration vs #$generation)');
         await _removeOrphan(controller, line: casingLine);
         await _removeOrphan(controller, line: mainLine);
@@ -168,13 +170,16 @@ class MapRouteManager {
       return;
     }
 
+    final progressGen = ++_progressGeneration;
+    final renderGen = _renderGeneration;
+
     try {
       final passedPoints = allPoints.sublist(0, currentSegmentIndex + 1);
       final remainingPoints = allPoints.sublist(currentSegmentIndex);
 
       // 1. Cập nhật hoặc tạo đường xám mờ cho đoạn đã đi qua
       if (_passedRouteLine == null) {
-        _passedRouteLine = await controller.addLine(
+        final newPassedLine = await controller.addLine(
           LineOptions(
             geometry: passedPoints,
             lineColor: AppColors.routeDimmedColor.toHex,
@@ -183,24 +188,38 @@ class MapRouteManager {
             lineJoin: RoutingConstants.routeLineJoin,
           ),
         );
+        if (progressGen != _progressGeneration || renderGen != _renderGeneration) {
+          await _removeOrphan(controller, line: newPassedLine);
+          return;
+        }
+        _passedRouteLine = newPassedLine;
       } else {
         await controller.updateLine(
           _passedRouteLine!,
           LineOptions(geometry: passedPoints),
         );
+        if (progressGen != _progressGeneration || renderGen != _renderGeneration) {
+          return;
+        }
       }
 
       // 2. Thu gọn đường màu xanh chính và viền ngoài vào phần còn lại phía trước
-      if (remainingPoints.isNotEmpty) {
+      if (remainingPoints.isNotEmpty && _routeLine != null) {
         await controller.updateLine(
           _routeLine!,
           LineOptions(geometry: remainingPoints),
         );
+        if (progressGen != _progressGeneration || renderGen != _renderGeneration) {
+          return;
+        }
         if (_routeCasingLine != null) {
           await controller.updateLine(
             _routeCasingLine!,
             LineOptions(geometry: remainingPoints),
           );
+          if (progressGen != _progressGeneration || renderGen != _renderGeneration) {
+            return;
+          }
         }
       }
 
@@ -261,6 +280,7 @@ class MapRouteManager {
   Future<void> clearRoute(MapLibreMapController? controller) async {
     DLog.info('🧹 [MapRouteManager] Clearing route lines & markers from map');
     _renderGeneration++;
+    _progressGeneration++;
     _lastPassedSegmentIndex = -1;
     await _clearLinesAndSymbols(controller);
   }

@@ -5,6 +5,7 @@ import 'package:s_map/commons/fallbacks/fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -61,9 +62,12 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     DLog.info(
         '🚀 [NavigationBloc] Starting Navigation to "${event.destinationName}" (${event.destination.lat}, ${event.destination.lon})');
 
+    final generation = ++_requestGeneration;
     await _locationSubscription?.cancel();
     _locationSubscription = null;
-    _requestGeneration++;
+
+    if (generation != _requestGeneration || isClosed) return;
+
     _lastRerouteTime = null;
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
@@ -125,7 +129,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     final currentLat = event.latitude;
     final currentLon = event.longitude;
-    final speedKmh = event.speed != null ? event.speed! * 3.6 : null;
+    final speedKmh = event.speed != null
+        ? event.speed! * RoutingConstants.msToKmhFactor
+        : null;
 
     // 0. Cập nhật thống kê vận tốc và quãng đường tích lũy
     final currentMaxSpeed = speedKmh != null && speedKmh > state.maxSpeedKmh
@@ -138,30 +144,46 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         ? state.speedSampleCount + 1
         : state.speedSampleCount;
 
-    double addedDistance = 0.0;
     final accuracy = event.accuracy;
-    final isAccuracyAcceptable = accuracy == null || accuracy <= 35.0;
+    final isAccuracyAcceptable = accuracy == null ||
+        accuracy <= RoutingConstants.maxGpsAccuracyMeters;
 
-    if (isAccuracyAcceptable) {
-      if (_lastValidDistanceLat != null && _lastValidDistanceLon != null) {
-        final deltaKm = AppUtils.instance.calculateDistance(
-          _lastValidDistanceLat!,
-          _lastValidDistanceLon!,
-          currentLat,
-          currentLon,
-        );
-        final deltaMeters = deltaKm * 1000.0;
-        // Bỏ qua rung lắc GPS khi dừng xe (< 1m) và bước nhảy đột biến (> 200m)
-        if (deltaMeters >= 1.0 && deltaMeters <= 200.0) {
-          addedDistance = deltaMeters;
-          _lastValidDistanceLat = currentLat;
-          _lastValidDistanceLon = currentLon;
-        }
-      } else {
+    // Nếu GPS fix kém chính xác (> 35m), chỉ cập nhật tọa độ hiển thị, không chạy engine/reroute
+    if (!isAccuracyAcceptable) {
+      emit(state.copyWith(
+        currentLat: currentLat,
+        currentLon: currentLon,
+        currentSpeedKmh: speedKmh,
+        currentHeading: event.heading,
+        currentAccuracy: event.accuracy,
+        maxSpeedKmh: currentMaxSpeed,
+        speedSampleSum: newSampleSum,
+        speedSampleCount: newSampleCount,
+      ));
+      return;
+    }
+
+    double addedDistance = 0.0;
+    if (_lastValidDistanceLat != null && _lastValidDistanceLon != null) {
+      final deltaKm = AppUtils.instance.calculateDistance(
+        _lastValidDistanceLat!,
+        _lastValidDistanceLon!,
+        currentLat,
+        currentLon,
+      );
+      final deltaMeters = deltaKm * RoutingConstants.metersPerKm;
+      // Bỏ qua rung lắc GPS khi dừng xe (< 1m) và bước nhảy đột biến (> 200m)
+      if (deltaMeters >= RoutingConstants.minGpsMovementDeltaMeters &&
+          deltaMeters <= RoutingConstants.maxGpsJumpDeltaMeters) {
+        addedDistance = deltaMeters;
         _lastValidDistanceLat = currentLat;
         _lastValidDistanceLon = currentLon;
       }
+    } else {
+      _lastValidDistanceLat = currentLat;
+      _lastValidDistanceLon = currentLon;
     }
+
     final totalDistanceTraveled =
         state.totalDistanceTraveledMeters + addedDistance;
 
@@ -182,7 +204,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         state.destination!.lat,
         state.destination!.lon,
       );
-      final distToDestMeters = distToDestKm * 1000.0;
+      final distToDestMeters = distToDestKm * RoutingConstants.metersPerKm;
       if (distToDestMeters <= _turnByTurnEngine.arrivalThresholdMeters) {
         isArrived = true;
       }
@@ -190,6 +212,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     if (isArrived) {
       DLog.info('🏁 [NavigationBloc] User arrived at destination!');
+      _requestGeneration++;
       _locationSubscription?.cancel();
       _locationSubscription = null;
 
@@ -197,8 +220,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
           ? DateTime.now().difference(state.tripStartTime!)
           : Duration.zero;
       final avgSpeed = tripDuration.inMilliseconds > 0
-          ? (totalDistanceTraveled / 1000.0) /
-              (tripDuration.inMilliseconds / 3600000.0)
+          ? (totalDistanceTraveled / RoutingConstants.metersPerKm) /
+              (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
           : 0.0;
 
       final summary = TripSummary(
@@ -377,15 +400,21 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     Emitter<NavigationState> emit,
   ) async {
     DLog.info('🛑 [NavigationBloc] Stopping navigation session');
+    final generation = ++_requestGeneration;
     await _locationSubscription?.cancel();
     _locationSubscription = null;
-    _requestGeneration++;
+
+    if (generation != _requestGeneration || isClosed) return;
+
+    _lastRerouteTime = null;
+    _lastValidDistanceLat = null;
+    _lastValidDistanceLon = null;
 
     if (state.tripStartTime != null) {
       final tripDuration = DateTime.now().difference(state.tripStartTime!);
       final avgSpeed = tripDuration.inMilliseconds > 0
-          ? (state.totalDistanceTraveledMeters / 1000.0) /
-              (tripDuration.inMilliseconds / 3600000.0)
+          ? (state.totalDistanceTraveledMeters / RoutingConstants.metersPerKm) /
+              (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
           : 0.0;
 
       final summary = TripSummary(
@@ -414,9 +443,12 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     Emitter<NavigationState> emit,
   ) async {
     DLog.info('🧹 [NavigationBloc] Clearing navigation state back to initial');
+    final generation = ++_requestGeneration;
     await _locationSubscription?.cancel();
     _locationSubscription = null;
-    _requestGeneration++;
+
+    if (generation != _requestGeneration || isClosed) return;
+
     _lastRerouteTime = null;
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
@@ -426,6 +458,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   @override
   Future<void> close() async {
     DLog.info('🧹 [NavigationBloc] Disposing NavigationBloc and cancelling GPS listeners');
+    _requestGeneration++;
+    _lastRerouteTime = null;
+    _lastValidDistanceLat = null;
+    _lastValidDistanceLon = null;
     await _locationSubscription?.cancel();
     _locationSubscription = null;
     return super.close();
