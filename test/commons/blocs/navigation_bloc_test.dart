@@ -567,6 +567,86 @@ void main() {
       );
     });
 
+    test('GPS fixes with poor accuracy (> 35m) are ignored for distance accumulation', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      // Điểm 1: GPS chuẩn (accuracy 5m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7700,
+        longitude: 106.6900,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7700)),
+      );
+
+      // Điểm 2: GPS nhiễu/kém (accuracy 60m) -> Không cộng dồn distance
+      bloc.add(const LocationUpdated(
+        latitude: 10.7705,
+        longitude: 106.6905,
+        accuracy: 60.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.totalDistanceTraveledMeters == 0.0;
+        })),
+      );
+    });
+
+    test('GPS jumps excessively large (> 200m) are ignored for distance accumulation', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      // Điểm 1
+      bloc.add(const LocationUpdated(
+        latitude: 10.7700,
+        longitude: 106.6900,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7700)),
+      );
+
+      // Điểm 2: Nhảy đột biến 1km (~1000m > 200m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7800,
+        longitude: 106.7000,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.totalDistanceTraveledMeters == 0.0;
+        })),
+      );
+    });
+
     test('ClearNavigation resets navigation state back to initial', () async {
       bloc.add(const StartNavigation(
         initialRoute: sampleInitialRoute,

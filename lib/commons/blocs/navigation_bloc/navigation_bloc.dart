@@ -133,14 +133,23 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         : state.speedSampleCount;
 
     double addedDistance = 0.0;
-    if (state.currentLat != null && state.currentLon != null) {
+    final accuracy = event.accuracy;
+    final isAccuracyAcceptable = accuracy == null || accuracy <= 35.0;
+
+    if (isAccuracyAcceptable &&
+        state.currentLat != null &&
+        state.currentLon != null) {
       final deltaKm = AppUtils.instance.calculateDistance(
         state.currentLat!,
         state.currentLon!,
         currentLat,
         currentLon,
       );
-      addedDistance = deltaKm * 1000.0;
+      final deltaMeters = deltaKm * 1000.0;
+      // Bỏ qua rung lắc GPS khi dừng xe (< 1m) và bước nhảy đột biến (> 200m)
+      if (deltaMeters >= 1.0 && deltaMeters <= 200.0) {
+        addedDistance = deltaMeters;
+      }
     }
     final totalDistanceTraveled =
         state.totalDistanceTraveledMeters + addedDistance;

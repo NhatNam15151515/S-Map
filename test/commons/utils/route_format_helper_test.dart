@@ -1,9 +1,35 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:easy_localization/src/easy_localization_controller.dart';
+import 'package:easy_localization/src/localization.dart';
+import 'package:easy_localization/src/translations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/commons/utils/route_format_helper.dart';
+import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/models/models.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    EasyLocalization.logger.enableLevels = [];
+    final controller = EasyLocalizationController(
+      saveLocale: false,
+      useFallbackTranslations: true,
+      fallbackLocale: const Locale('vi'),
+      startLocale: const Locale('vi'),
+      supportedLocales: const [Locale('vi'), Locale('en')],
+      assetLoader: const CodegenLoader(),
+      path: 'assets/translations',
+      useOnlyLangCode: true,
+      onLoadError: (e) {},
+    );
+    await controller.loadTranslations();
+    Localization.load(const Locale('vi'), translations: controller.translations);
+  });
+
   group('RouteFormatHelper Unit Tests', () {
     test('formatDistance formats meters and kilometers accurately', () {
       expect(RouteFormatHelper.formatDistance(-10), equals('0 m'));
@@ -14,38 +40,14 @@ void main() {
       expect(RouteFormatHelper.formatDistance(2540), equals('2.5 km'));
     });
 
-    test('formatDuration formats milliseconds into human-readable duration', () {
-      expect(
-        RouteFormatHelper.formatDuration(0),
-        anyOf(equals('< 1 phút'), equals('routing.sub_minute')),
-      );
-      expect(
-        RouteFormatHelper.formatDuration(-500),
-        anyOf(equals('< 1 phút'), equals('routing.sub_minute')),
-      );
-      expect(
-        RouteFormatHelper.formatDuration(30000),
-        anyOf(equals('< 1 phút'), equals('routing.sub_minute')),
-      );
-      expect(
-        RouteFormatHelper.formatDuration(60000),
-        anyOf(equals('1 phút'), equals('1 routing.unit_minute')),
-      );
-      expect(
-        RouteFormatHelper.formatDuration(720000),
-        anyOf(equals('12 phút'), equals('12 routing.unit_minute')),
-      );
-      expect(
-        RouteFormatHelper.formatDuration(3600000),
-        anyOf(equals('1 giờ'), equals('1 routing.unit_hour')),
-      );
-      expect(
-        RouteFormatHelper.formatDuration(4500000),
-        anyOf(
-          equals('1 giờ 15 phút'),
-          equals('1 routing.unit_hour 15 routing.unit_minute'),
-        ),
-      );
+    test('formatDuration formats milliseconds into localized Vietnamese duration', () {
+      expect(RouteFormatHelper.formatDuration(0), equals('< 1 phút'));
+      expect(RouteFormatHelper.formatDuration(-500), equals('< 1 phút'));
+      expect(RouteFormatHelper.formatDuration(30000), equals('< 1 phút'));
+      expect(RouteFormatHelper.formatDuration(60000), equals('1 phút'));
+      expect(RouteFormatHelper.formatDuration(720000), equals('12 phút'));
+      expect(RouteFormatHelper.formatDuration(3600000), equals('1 giờ'));
+      expect(RouteFormatHelper.formatDuration(4500000), equals('1 giờ 15 phút'));
     });
 
     test('formatSpeed formats speed in km/h or fallback correctly', () {
@@ -61,32 +63,26 @@ void main() {
       expect(etaStr, matches(r'^\d{2}:\d{2}$'));
     });
 
-    test('formatTripDuration formats Duration into detailed text', () {
+    test('formatTripDuration formats Duration into localized Vietnamese text', () {
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(seconds: 45)),
-        anyOf(equals('45 giây'), equals('45 routing.unit_second')),
+        equals('45 giây'),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(minutes: 10)),
-        anyOf(equals('10 phút'), equals('10 routing.unit_minute')),
+        equals('10 phút'),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(minutes: 10, seconds: 25)),
-        anyOf(
-          equals('10 phút 25 giây'),
-          equals('10 routing.unit_minute 25 routing.unit_second'),
-        ),
+        equals('10 phút 25 giây'),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(hours: 1, minutes: 15)),
-        anyOf(
-          equals('1 giờ 15 phút'),
-          equals('1 routing.unit_hour 15 routing.unit_minute'),
-        ),
+        equals('1 giờ 15 phút'),
       );
       expect(
         RouteFormatHelper.formatTripDuration(const Duration(hours: 2)),
-        anyOf(equals('2 giờ'), equals('2 routing.unit_hour')),
+        equals('2 giờ'),
       );
     });
 
@@ -97,7 +93,7 @@ void main() {
       }
     });
 
-    test('getInstructionTitle returns streetName or text or default', () {
+    test('getInstructionTitle returns streetName or text or localized default', () {
       const withStreet = RouteInstruction(
         text: 'Rẽ phải',
         streetName: 'Đồng Khởi',
@@ -126,10 +122,7 @@ void main() {
 
       expect(
         RouteFormatHelper.getInstructionTitle(null),
-        anyOf(
-          equals('Đi thẳng'),
-          equals('routing.continue_straight'),
-        ),
+        equals('Đi thẳng'),
       );
     });
   });

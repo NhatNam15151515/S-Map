@@ -171,7 +171,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               prev.currentSpeedKmh != curr.currentSpeedKmh ||
               prev.currentSegmentIndex != curr.currentSegmentIndex ||
               prev.currentRoute != curr.currentRoute,
-          listener: (context, navState) {
+          listener: (context, navState) async {
             if (navState.isNavigating) {
               // 0. Nếu lộ trình thay đổi (khởi chạy hoặc reroute mới), vẽ lộ trình trước
               if (navState.currentRoute != null &&
@@ -179,7 +179,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   navState.origin != null &&
                   navState.destination != null) {
                 _renderedNavRoute = navState.currentRoute;
-                _routeManager.drawRoute(
+                await _routeManager.drawRoute(
                   controller: _mapController,
                   routeResult: navState.currentRoute!,
                   origin: navState.origin!,
@@ -187,6 +187,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   destinationName: navState.destinationName,
                 );
               }
+
+              if (!mounted) return;
 
               // 1. Cập nhật camera dẫn đường 3D: Heading-up + Dynamic zoom theo tốc độ + Tilt 50
               if (navState.currentLat != null && navState.currentLon != null) {
@@ -199,7 +201,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 );
 
                 // 2. Làm mờ đoạn đường đã đi qua (Dimming passed polyline)
-                if (navState.currentRoute != null) {
+                if (navState.currentRoute != null &&
+                    navState.currentRoute == _renderedNavRoute) {
                   _routeManager.updateNavigationProgress(
                     controller: _mapController,
                     rawPoints: navState.currentRoute!.points,
