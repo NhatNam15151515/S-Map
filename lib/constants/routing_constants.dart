@@ -50,4 +50,24 @@ class RoutingConstants {
   static const double defaultArrivalThresholdMeters = 20.0;
   static const double defaultOffRouteThresholdMeters = 50.0;
   static const double fallbackSpeedKmh = 30.0;
+
+  // Navigation Camera & Polyline Dimming Constants
+  static const double navCameraTilt = 50.0;
+  static const double navLowSpeedThresholdKmh = 15.0;
+  static const double navHighSpeedThresholdKmh = 40.0;
+  static const double navZoomLowSpeed = 18.0;
+  static const double navZoomMidSpeed = 17.0;
+  static const double navZoomHighSpeed = 16.0;
+  static const double navDimmedPolylineOpacity = 0.4;
+
+  // GPS Tracking & Unit Conversion Constants
+  static const double maxGpsAccuracyMeters = 35.0;
+  static const double minGpsMovementDeltaMeters = 1.0;
+  static const double maxGpsJumpDeltaMeters = 200.0;
+  static const double msToKmhFactor = 3.6;
+  static const double metersPerKm = 1000.0;
+  static const double msPerHour = 3600000.0;
+
+  static const double routeDimmedLineWidth = 4.0;
+  static const double routeDimmedOpacity = 0.55;
 }

@@ -84,3 +84,8 @@ class RerouteRequested extends NavigationEvent {
 class StopNavigation extends NavigationEvent {
   const StopNavigation();
 }
+
+/// Reset trạng thái Navigation về initial (sau khi đóng Trip Summary)
+class ClearNavigation extends NavigationEvent {
+  const ClearNavigation();
+}

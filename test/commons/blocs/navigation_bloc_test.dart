@@ -469,5 +469,271 @@ void main() {
         })),
       );
     });
+
+    test('Arriving at destination generates TripSummary with hasArrived true', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      // Điểm gần đích (< 20m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.77659,
+        longitude: 106.70319,
+        speed: 8.5, // ~30.6 km/h
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.arrived &&
+              s.tripSummary != null &&
+              s.tripSummary!.hasArrived == true &&
+              s.tripSummary!.destinationName == 'Nhà hát Thành phố' &&
+              s.tripSummary!.topSpeedKmh > 0;
+        })),
+      );
+    });
+
+    test('StopNavigation generates TripSummary with hasArrived false and Stop status', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      // Điểm 1: Khởi đầu
+      bloc.add(const LocationUpdated(
+        latitude: 10.7725,
+        longitude: 106.6980,
+        speed: 10.0, // 36 km/h
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7725)),
+      );
+
+      // Điểm 2: Di chuyển trên tuyến (~90m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6987,
+        speed: 10.0,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.totalDistanceTraveledMeters > 0)),
+      );
+
+      bloc.add(const StopNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.stopped &&
+              s.tripSummary != null &&
+              s.tripSummary!.hasArrived == false &&
+              s.tripSummary!.distanceMeters > 0 &&
+              s.tripSummary!.destinationName == 'Nhà hát Thành phố' &&
+              s.tripSummary!.topSpeedKmh >= 35.0;
+        })),
+      );
+    });
+
+    test('Stopping immediately after start produces TripSummary with 0 distance and 0 avg speed', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      bloc.add(const StopNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.stopped &&
+              s.tripSummary != null &&
+              s.tripSummary!.hasArrived == false &&
+              s.tripSummary!.distanceMeters == 0.0 &&
+              s.tripSummary!.avgSpeedKmh == 0.0;
+        })),
+      );
+    });
+
+    test('GPS fixes with poor accuracy (> 35m) are ignored for distance accumulation', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      // Điểm 1: GPS chuẩn trên lộ trình (accuracy 5m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7725,
+        longitude: 106.6980,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7725)),
+      );
+
+      // Điểm 2: Di chuyển hợp lệ trên lộ trình (~90m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6987,
+        accuracy: 5.0,
+      ));
+
+      double recordedDistance = 0.0;
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          recordedDistance = s.totalDistanceTraveledMeters;
+          return s.currentLat == 10.7730 && s.totalDistanceTraveledMeters > 0;
+        })),
+      );
+
+      // Điểm 3: GPS nhiễu/kém (accuracy 60m > 35m) -> Vẫn cập nhật UI tọa độ nhưng không cộng dồn distance
+      bloc.add(const LocationUpdated(
+        latitude: 10.7734,
+        longitude: 106.6992,
+        accuracy: 60.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.navigating &&
+              s.tripSummary == null &&
+              s.currentLat == 10.7734 &&
+              s.currentAccuracy == 60.0 &&
+              s.totalDistanceTraveledMeters == recordedDistance &&
+              s.isRerouting == false;
+        })),
+      );
+      expect(mockRoutingRepo.calculateRouteCallCount, equals(0));
+    });
+
+    test('GPS jumps excessively large (> 200m) are ignored for distance accumulation', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      // Điểm 1: GPS chuẩn trên lộ trình (accuracy 5m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7725,
+        longitude: 106.6980,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.currentLat == 10.7725)),
+      );
+
+      // Điểm 2: Di chuyển hợp lệ trên lộ trình (~90m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6987,
+        accuracy: 5.0,
+      ));
+
+      double recordedDistance = 0.0;
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          recordedDistance = s.totalDistanceTraveledMeters;
+          return s.currentLat == 10.7730 && s.totalDistanceTraveledMeters > 0;
+        })),
+      );
+
+      // Điểm 3: Nhảy đột biến > 200m (~350m, nhưng chưa tới đích) trong 1 tick
+      bloc.add(const LocationUpdated(
+        latitude: 10.7755,
+        longitude: 106.7015,
+        accuracy: 5.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) {
+          return s.status == NavigationStatus.navigating &&
+              s.tripSummary == null &&
+              s.currentLat == 10.7755 &&
+              s.totalDistanceTraveledMeters == recordedDistance;
+        })),
+      );
+    });
+
+    test('ClearNavigation resets navigation state back to initial', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>(
+          (s) => s.status == NavigationStatus.navigating,
+        )),
+      );
+
+      bloc.add(const StopNavigation());
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>(
+          (s) => s.status == NavigationStatus.stopped && s.tripSummary != null,
+        )),
+      );
+
+      bloc.add(const ClearNavigation());
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>(
+          (s) =>
+              s.status == NavigationStatus.initial && s.tripSummary == null,
+        )),
+      );
+    });
   });
 }

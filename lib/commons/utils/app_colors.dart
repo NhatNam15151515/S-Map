@@ -181,6 +181,14 @@ class AppColors {
   static const mapSymbolHalo = Color(0xFFFFFFFF);
   static const routeMainColor = googleBlue;
   static const routeCasingColor = Color(0xFF1557B0);
+  static const routeDimmedColor = Color(0xFF9AA0A6);
+
+  // Navigation Panel UI Colors
+  static const navDarkSurface = Color(0xFF202124);
+  static const navManeuverBg = Color(0xFF137333);
+  static const navAccentGreen = Color(0xFF1E8E3E);
+  static const navAlertRed = Color(0xFFD93025);
+  static const navCardBorder = Color(0xFF3C4043);
 }
 
 extension ColorExtension on Color {

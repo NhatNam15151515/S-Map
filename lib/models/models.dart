@@ -7,5 +7,6 @@ export 'routing/instruction_progress.dart';
 export 'routing/route_instruction.dart';
 export 'routing/route_point.dart';
 export 'routing/route_result.dart';
+export 'routing/trip_summary.dart';
 export 'search_result_payload.dart';
 export 'user.dart';

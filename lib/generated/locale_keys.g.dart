@@ -142,6 +142,7 @@ abstract class  LocaleKeys {
   static const map = 'map';
   static const routing_calculating_moped_route = 'routing.calculating_moped_route';
   static const routing_start_navigation = 'routing.start_navigation';
+  static const routing_end_navigation = 'routing.end_navigation';
   static const routing_destination_fallback = 'routing.destination_fallback';
   static const routing_my_location = 'routing.my_location';
   static const routing_selected_point = 'routing.selected_point';
@@ -150,6 +151,24 @@ abstract class  LocaleKeys {
   static const routing_rerouting = 'routing.rerouting';
   static const routing_reroute_success = 'routing.reroute_success';
   static const routing_off_route_detected = 'routing.off_route_detected';
+  static const routing_arrived_destination = 'routing.arrived_destination';
+  static const routing_trip_summary = 'routing.trip_summary';
+  static const routing_trip_completed_title = 'routing.trip_completed_title';
+  static const routing_trip_stopped_title = 'routing.trip_stopped_title';
+  static const routing_trip_duration = 'routing.trip_duration';
+  static const routing_trip_distance = 'routing.trip_distance';
+  static const routing_avg_speed = 'routing.avg_speed';
+  static const routing_max_speed = 'routing.max_speed';
+  static const routing_done = 'routing.done';
+  static const routing_speed_kmh = 'routing.speed_kmh';
+  static const routing_prepare_turn = 'routing.prepare_turn';
+  static const routing_continue_straight = 'routing.continue_straight';
+  static const routing_then_turn = 'routing.then_turn';
+  static const routing_remaining = 'routing.remaining';
+  static const routing_unit_second = 'routing.unit_second';
+  static const routing_unit_minute = 'routing.unit_minute';
+  static const routing_unit_hour = 'routing.unit_hour';
+  static const routing_sub_minute = 'routing.sub_minute';
   static const routing = 'routing';
 
 }

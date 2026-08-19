@@ -147,6 +147,7 @@
   "routing": {
     "calculating_moped_route": "Calculating motorcycle route...",
     "start_navigation": "Start",
+    "end_navigation": "End",
     "destination_fallback": "Destination",
     "my_location": "Your location",
     "selected_point": "Selected point",
@@ -154,6 +155,24 @@
     "feature_under_development": "Turn-by-turn navigation is coming soon",
     "rerouting": "Rerouting...",
     "reroute_success": "Route updated",
-    "off_route_detected": "Off-route detected"
+    "off_route_detected": "Off-route detected",
+    "arrived_destination": "You have arrived!",
+    "trip_summary": "Trip Summary",
+    "trip_completed_title": "Arrived Safely! 🎉",
+    "trip_stopped_title": "Trip Ended",
+    "trip_duration": "Duration",
+    "trip_distance": "Distance",
+    "avg_speed": "Avg Speed",
+    "max_speed": "Top Speed",
+    "done": "Done",
+    "speed_kmh": "km/h",
+    "prepare_turn": "Prepare to turn",
+    "continue_straight": "Continue straight",
+    "then_turn": "Then",
+    "remaining": "remaining",
+    "unit_second": "s",
+    "unit_minute": "min",
+    "unit_hour": "hr",
+    "sub_minute": "< 1 min"
   }
 }

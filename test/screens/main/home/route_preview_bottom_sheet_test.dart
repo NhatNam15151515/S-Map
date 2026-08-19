@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -139,7 +140,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('7 phút'), findsOneWidget);
+      expect(
+        find.text(RouteFormatHelper.formatDuration(420000)),
+        findsOneWidget,
+      );
       expect(find.text('(3.5 km)'), findsOneWidget);
       expect(find.text('Phở Bát Đàn'), findsOneWidget);
       expect(find.byIcon(Icons.two_wheeler_rounded), findsOneWidget);

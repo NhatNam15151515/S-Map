@@ -32,6 +32,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   final MapSymbolManager _symbolManager = MapSymbolManager();
   final MapCameraController _cameraController = MapCameraController();
   final MapRouteManager _routeManager = MapRouteManager();
+  RouteResult? _renderedNavRoute;
+  int _navListenerGeneration = 0;
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
@@ -158,6 +160,66 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
             } else if (state.isError && state.errorMessageKey != null) {
               _routeManager.clearRoute(_mapController);
               showError(tr(state.errorMessageKey!));
+            }
+          },
+        ),
+        BlocListener<NavigationBloc, NavigationState>(
+          listenWhen: (prev, curr) =>
+              prev.status != curr.status ||
+              prev.currentLat != curr.currentLat ||
+              prev.currentLon != curr.currentLon ||
+              prev.currentHeading != curr.currentHeading ||
+              prev.currentSpeedKmh != curr.currentSpeedKmh ||
+              prev.currentSegmentIndex != curr.currentSegmentIndex ||
+              prev.currentRoute != curr.currentRoute,
+          listener: (context, navState) async {
+            final gen = ++_navListenerGeneration;
+            if (navState.isNavigating) {
+              // 0. Nếu lộ trình thay đổi (khởi chạy hoặc reroute mới), vẽ lộ trình trước
+              if (navState.currentRoute != null &&
+                  navState.currentRoute != _renderedNavRoute &&
+                  navState.origin != null &&
+                  navState.destination != null) {
+                final isSuccess = await _routeManager.drawRoute(
+                  controller: _mapController,
+                  routeResult: navState.currentRoute!,
+                  origin: navState.origin!,
+                  destination: navState.destination!,
+                  destinationName: navState.destinationName,
+                );
+                if (!mounted || gen != _navListenerGeneration) return;
+                if (isSuccess) {
+                  _renderedNavRoute = navState.currentRoute;
+                }
+              }
+
+              if (!mounted || gen != _navListenerGeneration) return;
+
+              // 1. Cập nhật camera dẫn đường 3D: Heading-up + Dynamic zoom theo tốc độ + Tilt 50
+              if (navState.currentLat != null && navState.currentLon != null) {
+                _cameraController.updateNavigationCamera(
+                  controller: _mapController,
+                  lat: navState.currentLat!,
+                  lon: navState.currentLon!,
+                  heading: navState.currentHeading,
+                  speedKmh: navState.currentSpeedKmh,
+                );
+
+                // 2. Làm mờ đoạn đường đã đi qua (Dimming passed polyline)
+                if (navState.currentRoute != null &&
+                    navState.currentRoute == _renderedNavRoute &&
+                    gen == _navListenerGeneration) {
+                  _routeManager.updateNavigationProgress(
+                    controller: _mapController,
+                    rawPoints: navState.currentRoute!.points,
+                    currentSegmentIndex: navState.currentSegmentIndex,
+                  );
+                }
+              }
+            } else if (navState.status == NavigationStatus.stopped ||
+                navState.status == NavigationStatus.initial) {
+              _renderedNavRoute = null;
+              _routeManager.clearRoute(_mapController);
             }
           },
         ),

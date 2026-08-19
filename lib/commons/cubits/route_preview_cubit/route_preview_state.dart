@@ -33,6 +33,8 @@ class RoutePreviewState extends Equatable {
       routeResult!.isSuccess;
   bool get isError => status == RoutePreviewStatus.error;
   bool get hasRoute => routeResult != null && routeResult!.isSuccess;
+  RouteResult? get currentRoute => routeResult;
+  String get currentProfile => profile;
 
   RoutePreviewState copyWith({
     RoutePreviewStatus? status,

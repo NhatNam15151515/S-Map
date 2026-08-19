@@ -43,6 +43,14 @@ class NavigationState extends Equatable {
   final int remainingDurationMs;
   final bool isPreAnnounced;
 
+  // Trip statistics properties
+  final TripSummary? tripSummary;
+  final DateTime? tripStartTime;
+  final double maxSpeedKmh;
+  final double totalDistanceTraveledMeters;
+  final double speedSampleSum;
+  final int speedSampleCount;
+
   // Notifications & errors
   final String? messageKey;
   final String? errorMessageKey;
@@ -72,6 +80,12 @@ class NavigationState extends Equatable {
     this.remainingDistance = 0.0,
     this.remainingDurationMs = 0,
     this.isPreAnnounced = false,
+    this.tripSummary,
+    this.tripStartTime,
+    this.maxSpeedKmh = 0.0,
+    this.totalDistanceTraveledMeters = 0.0,
+    this.speedSampleSum = 0.0,
+    this.speedSampleCount = 0,
     this.messageKey,
     this.errorMessageKey,
   });
@@ -102,6 +116,7 @@ class NavigationState extends Equatable {
     double? currentSpeedKmh,
     double? currentHeading,
     double? currentAccuracy,
+    bool clearCurrentPosition = false,
     int? currentSegmentIndex,
     double? distanceToRoute,
     bool? isOffRoute,
@@ -117,6 +132,14 @@ class NavigationState extends Equatable {
     double? remainingDistance,
     int? remainingDurationMs,
     bool? isPreAnnounced,
+    TripSummary? tripSummary,
+    bool clearTripSummary = false,
+    DateTime? tripStartTime,
+    bool clearTripStartTime = false,
+    double? maxSpeedKmh,
+    double? totalDistanceTraveledMeters,
+    double? speedSampleSum,
+    int? speedSampleCount,
     String? messageKey,
     bool clearMessage = false,
     String? errorMessageKey,
@@ -131,11 +154,11 @@ class NavigationState extends Equatable {
           ? null
           : (destinationName ?? this.destinationName),
       profile: profile ?? this.profile,
-      currentLat: currentLat ?? this.currentLat,
-      currentLon: currentLon ?? this.currentLon,
-      currentSpeedKmh: currentSpeedKmh ?? this.currentSpeedKmh,
-      currentHeading: currentHeading ?? this.currentHeading,
-      currentAccuracy: currentAccuracy ?? this.currentAccuracy,
+      currentLat: clearCurrentPosition ? null : (currentLat ?? this.currentLat),
+      currentLon: clearCurrentPosition ? null : (currentLon ?? this.currentLon),
+      currentSpeedKmh: clearCurrentPosition ? null : (currentSpeedKmh ?? this.currentSpeedKmh),
+      currentHeading: clearCurrentPosition ? null : (currentHeading ?? this.currentHeading),
+      currentAccuracy: clearCurrentPosition ? null : (currentAccuracy ?? this.currentAccuracy),
       currentSegmentIndex: currentSegmentIndex ?? this.currentSegmentIndex,
       distanceToRoute: distanceToRoute ?? this.distanceToRoute,
       isOffRoute: isOffRoute ?? this.isOffRoute,
@@ -155,6 +178,15 @@ class NavigationState extends Equatable {
       remainingDistance: remainingDistance ?? this.remainingDistance,
       remainingDurationMs: remainingDurationMs ?? this.remainingDurationMs,
       isPreAnnounced: isPreAnnounced ?? this.isPreAnnounced,
+      tripSummary:
+          clearTripSummary ? null : (tripSummary ?? this.tripSummary),
+      tripStartTime:
+          clearTripStartTime ? null : (tripStartTime ?? this.tripStartTime),
+      maxSpeedKmh: maxSpeedKmh ?? this.maxSpeedKmh,
+      totalDistanceTraveledMeters:
+          totalDistanceTraveledMeters ?? this.totalDistanceTraveledMeters,
+      speedSampleSum: speedSampleSum ?? this.speedSampleSum,
+      speedSampleCount: speedSampleCount ?? this.speedSampleCount,
       messageKey: clearMessage ? null : (messageKey ?? this.messageKey),
       errorMessageKey:
           clearError ? null : (errorMessageKey ?? this.errorMessageKey),
@@ -187,6 +219,12 @@ class NavigationState extends Equatable {
         remainingDistance,
         remainingDurationMs,
         isPreAnnounced,
+        tripSummary,
+        tripStartTime,
+        maxSpeedKmh,
+        totalDistanceTraveledMeters,
+        speedSampleSum,
+        speedSampleCount,
         messageKey,
         errorMessageKey,
       ];

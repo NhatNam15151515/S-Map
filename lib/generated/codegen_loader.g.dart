@@ -163,6 +163,7 @@ class CodegenLoader extends AssetLoader{
   "routing": {
     "calculating_moped_route": "Calculating motorcycle route...",
     "start_navigation": "Start",
+    "end_navigation": "End",
     "destination_fallback": "Destination",
     "my_location": "Your location",
     "selected_point": "Selected point",
@@ -170,7 +171,25 @@ class CodegenLoader extends AssetLoader{
     "feature_under_development": "Turn-by-turn navigation is coming soon",
     "rerouting": "Rerouting...",
     "reroute_success": "Route updated",
-    "off_route_detected": "Off-route detected"
+    "off_route_detected": "Off-route detected",
+    "arrived_destination": "You have arrived!",
+    "trip_summary": "Trip Summary",
+    "trip_completed_title": "Arrived Safely! 🎉",
+    "trip_stopped_title": "Trip Ended",
+    "trip_duration": "Duration",
+    "trip_distance": "Distance",
+    "avg_speed": "Avg Speed",
+    "max_speed": "Top Speed",
+    "done": "Done",
+    "speed_kmh": "km/h",
+    "prepare_turn": "Prepare to turn",
+    "continue_straight": "Continue straight",
+    "then_turn": "Then",
+    "remaining": "remaining",
+    "unit_second": "s",
+    "unit_minute": "min",
+    "unit_hour": "hr",
+    "sub_minute": "< 1 min"
   }
 };
 static const Map<String,dynamic> _vi = {
@@ -322,6 +341,7 @@ static const Map<String,dynamic> _vi = {
   "routing": {
     "calculating_moped_route": "Đang tính toán lộ trình xe máy...",
     "start_navigation": "Bắt đầu",
+    "end_navigation": "Kết thúc",
     "destination_fallback": "Điểm đến",
     "my_location": "Vị trí của bạn",
     "selected_point": "Điểm đã chọn",
@@ -329,7 +349,25 @@ static const Map<String,dynamic> _vi = {
     "feature_under_development": "Tính năng điều hướng đang được cập nhật",
     "rerouting": "Đang tính lại đường...",
     "reroute_success": "Đã cập nhật lộ trình mới",
-    "off_route_detected": "Phát hiện lệch đường"
+    "off_route_detected": "Phát hiện lệch đường",
+    "arrived_destination": "Bạn đã đến nơi!",
+    "trip_summary": "Tóm tắt chuyến đi",
+    "trip_completed_title": "Đã đến nơi an toàn! 🎉",
+    "trip_stopped_title": "Chuyến đi đã kết thúc",
+    "trip_duration": "Thời gian",
+    "trip_distance": "Quãng đường",
+    "avg_speed": "Tốc độ TB",
+    "max_speed": "Tốc độ tối đa",
+    "done": "Xong",
+    "speed_kmh": "km/h",
+    "prepare_turn": "Chuẩn bị rẽ",
+    "continue_straight": "Đi thẳng",
+    "then_turn": "Sau đó",
+    "remaining": "còn lại",
+    "unit_second": "giây",
+    "unit_minute": "phút",
+    "unit_hour": "giờ",
+    "sub_minute": "< 1 phút"
   }
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};
