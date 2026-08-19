@@ -73,7 +73,7 @@ class NavigationTopPanel extends StatelessWidget {
                         child: CircularProgressIndicator(
                           strokeWidth: 2.0,
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                              AlwaysStoppedAnimation<Color>(AppColors.white),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -126,7 +126,7 @@ class NavigationTopPanel extends StatelessWidget {
                             ),
                             child: Icon(
                               icon,
-                              color: Colors.white,
+                              color: AppColors.white,
                               size: 36,
                             ),
                           ),
@@ -180,7 +180,7 @@ class NavigationTopPanel extends StatelessWidget {
                                       .mediumStyle
                                       .copyWith(
                                     fontSize: 15,
-                                    color: Colors.white.withAlpha(230),
+                                    color: AppColors.white.withAlpha(230),
                                   ),
                                 ),
                               ],
@@ -211,14 +211,14 @@ class NavigationTopPanel extends StatelessWidget {
                               style: style.whiteTextColor.textTheme.regularStyle
                                   .copyWith(
                                 fontSize: 12,
-                                color: Colors.white70,
+                                color: AppColors.white.withAlpha(180),
                               ),
                             ),
                             Icon(
                               RouteFormatHelper.getInstructionIcon(
                                 nextInstruction.type,
                               ),
-                              color: Colors.white70,
+                              color: AppColors.white.withAlpha(180),
                               size: 16,
                             ),
                             const SizedBox(width: 6),
@@ -233,7 +233,7 @@ class NavigationTopPanel extends StatelessWidget {
                                     .semiBoldStyle
                                     .copyWith(
                                   fontSize: 12,
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                 ),
                               ),
                             ),

@@ -133,7 +133,7 @@ class NavigationBottomPanel extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '$remainingDistStr còn lại',
+                          '$remainingDistStr ${tr(LocaleKeys.routing_remaining)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: style.blackTextColor.textTheme.regularStyle

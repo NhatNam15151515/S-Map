@@ -168,6 +168,7 @@
     "speed_kmh": "km/h",
     "prepare_turn": "Prepare to turn",
     "continue_straight": "Continue straight",
-    "then_turn": "Then"
+    "then_turn": "Then",
+    "remaining": "remaining"
   }
 }

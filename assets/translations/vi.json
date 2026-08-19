@@ -168,6 +168,7 @@
     "speed_kmh": "km/h",
     "prepare_turn": "Chuẩn bị rẽ",
     "continue_straight": "Đi thẳng",
-    "then_turn": "Sau đó"
+    "then_turn": "Sau đó",
+    "remaining": "còn lại"
   }
 }

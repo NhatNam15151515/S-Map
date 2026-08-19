@@ -1,4 +1,6 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
 /// Pure static helper for motorcycle route formatting and UI mapping
@@ -109,13 +111,13 @@ class RouteFormatHelper {
 
   /// Lấy tên đường hoặc mô tả vắn tắt của bước rẽ
   static String getInstructionTitle(RouteInstruction? instruction) {
-    if (instruction == null) return 'Tiếp tục đi theo lộ trình';
+    if (instruction == null) return tr(LocaleKeys.routing_continue_straight);
     if (instruction.streetName.isNotEmpty) {
       return instruction.streetName;
     }
     if (instruction.text.isNotEmpty) {
       return instruction.text;
     }
-    return 'Đi thẳng';
+    return tr(LocaleKeys.routing_continue_straight);
   }
 }

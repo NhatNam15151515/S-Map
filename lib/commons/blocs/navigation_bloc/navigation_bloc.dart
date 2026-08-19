@@ -88,6 +88,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       remainingDistance: initialProgress.remainingDistance,
       remainingDurationMs: initialProgress.remainingDurationMs,
       isPreAnnounced: initialProgress.isPreAnnounced,
+      clearCurrentPosition: true,
       tripStartTime: DateTime.now(),
       maxSpeedKmh: 0.0,
       totalDistanceTraveledMeters: 0.0,

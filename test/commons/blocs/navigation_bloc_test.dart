@@ -541,16 +541,34 @@ void main() {
     });
 
     test('ClearNavigation resets navigation state back to initial', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành phố',
+      ));
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>(
+          (s) => s.status == NavigationStatus.navigating,
+        )),
+      );
+
       bloc.add(const StopNavigation());
       await expectLater(
         bloc.stream,
-        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.stopped)),
+        emits(predicate<NavigationState>(
+          (s) => s.status == NavigationStatus.stopped && s.tripSummary != null,
+        )),
       );
 
       bloc.add(const ClearNavigation());
       await expectLater(
         bloc.stream,
-        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.initial && s.tripSummary == null)),
+        emits(predicate<NavigationState>(
+          (s) =>
+              s.status == NavigationStatus.initial && s.tripSummary == null,
+        )),
       );
     });
   });

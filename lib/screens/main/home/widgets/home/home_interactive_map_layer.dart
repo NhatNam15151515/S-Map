@@ -162,6 +162,14 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           },
         ),
         BlocListener<NavigationBloc, NavigationState>(
+          listenWhen: (prev, curr) =>
+              prev.status != curr.status ||
+              prev.currentLat != curr.currentLat ||
+              prev.currentLon != curr.currentLon ||
+              prev.currentHeading != curr.currentHeading ||
+              prev.currentSpeedKmh != curr.currentSpeedKmh ||
+              prev.currentSegmentIndex != curr.currentSegmentIndex ||
+              prev.currentRoute != curr.currentRoute,
           listener: (context, navState) {
             if (navState.isNavigating &&
                 navState.currentLat != null &&

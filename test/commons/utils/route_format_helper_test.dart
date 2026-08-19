@@ -96,7 +96,10 @@ void main() {
 
       expect(
         RouteFormatHelper.getInstructionTitle(null),
-        equals('Tiếp tục đi theo lộ trình'),
+        anyOf(
+          equals('Đi thẳng'),
+          equals('routing.continue_straight'),
+        ),
       );
     });
   });

@@ -164,6 +164,7 @@ abstract class  LocaleKeys {
   static const routing_prepare_turn = 'routing.prepare_turn';
   static const routing_continue_straight = 'routing.continue_straight';
   static const routing_then_turn = 'routing.then_turn';
+  static const routing_remaining = 'routing.remaining';
   static const routing = 'routing';
 
 }

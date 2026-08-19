@@ -20,8 +20,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
       DraggableScrollableController();
 
   bool _showSearchThisArea = false;
-  PoiModel? _selectedMarkerPoi;
   String? _currentSearchQuery;
+  PoiModel? _selectedMarkerPoi;
+  bool _isTripSummaryShown = false;
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   MapExploreCubit get exploreCubit => context.read<MapExploreCubit>();
@@ -85,10 +86,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
         summary: summary,
         onDone: () {
           Navigator.of(modalContext).pop();
+          routePreviewCubit.clearRoute();
           navigationBloc.add(const ClearNavigation());
         },
       ),
-    );
+    ).whenComplete(() {
+      _isTripSummaryShown = false;
+    });
   }
 
   @override
@@ -98,16 +102,21 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     return Scaffold(
       body: BlocListener<NavigationBloc, NavigationState>(
         listenWhen: (prev, curr) =>
+            !_isTripSummaryShown &&
             prev.status != curr.status &&
             curr.tripSummary != null &&
             (curr.status == NavigationStatus.arrived ||
                 curr.status == NavigationStatus.stopped),
         listener: (context, navState) {
-          if (navState.tripSummary != null) {
+          if (navState.tripSummary != null && !_isTripSummaryShown) {
+            _isTripSummaryShown = true;
             _showTripSummaryModal(navState.tripSummary!);
           }
         },
         child: BlocBuilder<NavigationBloc, NavigationState>(
+          buildWhen: (prev, curr) =>
+              prev.status != curr.status ||
+              prev.isNavigating != curr.isNavigating,
           builder: (context, navState) {
             final isNavigating = navState.isNavigating;
 
@@ -200,13 +209,13 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                                   routeState.destination != null) {
                                 DLog.info(
                                     '🚀 [HomeScreen] Starting Turn-by-Turn Navigation');
+                                _isTripSummaryShown = false;
                                 final route = routeState.currentRoute!;
                                 final origin = routeState.origin!;
                                 final destination = routeState.destination!;
                                 final destName = routeState.destinationName;
                                 final profile = routeState.currentProfile;
 
-                                routePreviewCubit.clearRoute();
                                 navigationBloc.add(StartNavigation(
                                   initialRoute: route,
                                   origin: origin,

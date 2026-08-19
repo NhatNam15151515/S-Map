@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/fallbacks/fallbacks.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
@@ -17,7 +16,8 @@ class MockRoutingRepo implements IRoutingRepository {
     required double toLon,
     String? vehicleProfile,
   }) async =>
-      const RouteResult(isSuccess: true, distance: 1000, time: 60000, points: []);
+      const RouteResult(
+          isSuccess: true, distance: 1000, time: 60000, points: []);
 
   @override
   Future<bool> initializeEngine(String graphPath) async => true;
@@ -53,7 +53,8 @@ Widget createTestApp({
 
 void main() {
   group('Navigation UI Widgets Tests', () {
-    testWidgets('NavigationTopPanel renders turn instruction, distance, and street name',
+    testWidgets(
+        'NavigationTopPanel renders turn instruction, distance, and street name',
         (tester) async {
       final navBloc = NavigationBloc(
         routingRepository: MockRoutingRepo(),
@@ -78,7 +79,7 @@ void main() {
         points: [],
       );
 
-      navBloc.emit(NavigationState(
+      navBloc.emit(const NavigationState(
         status: NavigationStatus.navigating,
         currentInstruction: instruction,
         nextInstruction: nextInstruction,
@@ -100,7 +101,8 @@ void main() {
       expect(find.byIcon(Icons.turn_right_rounded), findsOneWidget);
     });
 
-    testWidgets('NavigationBottomPanel renders speedometer, remaining distance, ETA and triggers stop callback',
+    testWidgets(
+        'NavigationBottomPanel renders speedometer, remaining distance, ETA and triggers stop callback',
         (tester) async {
       final navBloc = NavigationBloc(
         routingRepository: MockRoutingRepo(),
@@ -136,7 +138,8 @@ void main() {
       expect(stopped, isTrue);
     });
 
-    testWidgets('TripSummaryBottomSheet renders trip metrics and handles Done button tap',
+    testWidgets(
+        'TripSummaryBottomSheet renders trip metrics and handles Done button tap',
         (tester) async {
       bool doneTapped = false;
 
@@ -164,8 +167,8 @@ void main() {
       expect(find.text('Nhà hát Thành phố'), findsOneWidget);
       expect(find.text('14 phút 20 giây'), findsOneWidget);
       expect(find.text('4.5 km'), findsOneWidget);
-      expect(find.text('28.5 km/h'), findsOneWidget);
-      expect(find.text('42.0 km/h'), findsOneWidget);
+      expect(find.textContaining('28.5'), findsOneWidget);
+      expect(find.textContaining('42.0'), findsOneWidget);
 
       await tester.tap(find.byType(ElevatedButton));
       await tester.pump();

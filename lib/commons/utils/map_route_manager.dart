@@ -159,41 +159,50 @@ class MapRouteManager {
       return;
     }
 
-    _lastPassedSegmentIndex = currentSegmentIndex;
     final allPoints = parseRoutePoints(rawPoints);
-    if (allPoints.isEmpty) return;
+    if (allPoints.isEmpty ||
+        currentSegmentIndex <= 0 ||
+        currentSegmentIndex >= allPoints.length) {
+      return;
+    }
 
     try {
-      if (currentSegmentIndex > 0 && currentSegmentIndex < allPoints.length) {
-        final passedPoints = allPoints.sublist(0, currentSegmentIndex + 1);
-        final remainingPoints = allPoints.sublist(currentSegmentIndex);
+      final passedPoints = allPoints.sublist(0, currentSegmentIndex + 1);
+      final remainingPoints = allPoints.sublist(currentSegmentIndex);
 
-        // 1. Cập nhật hoặc tạo đường xám mờ cho đoạn đã đi qua
-        if (_passedRouteLine == null) {
-          _passedRouteLine = await controller.addLine(
-            LineOptions(
-              geometry: passedPoints,
-              lineColor: AppColors.routeDimmedColor.toHex,
-              lineWidth: RoutingConstants.routeDimmedLineWidth,
-              lineOpacity: RoutingConstants.routeDimmedOpacity,
-              lineJoin: RoutingConstants.routeLineJoin,
-            ),
-          );
-        } else {
-          await controller.updateLine(
-            _passedRouteLine!,
-            LineOptions(geometry: passedPoints),
-          );
-        }
+      // 1. Cập nhật hoặc tạo đường xám mờ cho đoạn đã đi qua
+      if (_passedRouteLine == null) {
+        _passedRouteLine = await controller.addLine(
+          LineOptions(
+            geometry: passedPoints,
+            lineColor: AppColors.routeDimmedColor.toHex,
+            lineWidth: RoutingConstants.routeDimmedLineWidth,
+            lineOpacity: RoutingConstants.routeDimmedOpacity,
+            lineJoin: RoutingConstants.routeLineJoin,
+          ),
+        );
+      } else {
+        await controller.updateLine(
+          _passedRouteLine!,
+          LineOptions(geometry: passedPoints),
+        );
+      }
 
-        // 2. Thu gọn đường màu xanh chính vào phần còn lại phía trước
-        if (remainingPoints.isNotEmpty) {
+      // 2. Thu gọn đường màu xanh chính và viền ngoài vào phần còn lại phía trước
+      if (remainingPoints.isNotEmpty) {
+        await controller.updateLine(
+          _routeLine!,
+          LineOptions(geometry: remainingPoints),
+        );
+        if (_routeCasingLine != null) {
           await controller.updateLine(
-            _routeLine!,
+            _routeCasingLine!,
             LineOptions(geometry: remainingPoints),
           );
         }
       }
+
+      _lastPassedSegmentIndex = currentSegmentIndex;
     } catch (e) {
       DLog.warning('⚠️ [MapRouteManager] Error updating navigation progress polyline: $e');
     }

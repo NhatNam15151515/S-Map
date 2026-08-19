@@ -29,8 +29,10 @@ class TripSummaryBottomSheet extends StatelessWidget {
 
     final durationStr = RouteFormatHelper.formatTripDuration(summary.duration);
     final distanceStr = RouteFormatHelper.formatDistance(summary.distanceMeters);
-    final avgSpeedStr = '${summary.avgSpeedKmh.toStringAsFixed(1)} km/h';
-    final topSpeedStr = '${summary.topSpeedKmh.toStringAsFixed(1)} km/h';
+    final avgSpeedStr =
+        '${summary.avgSpeedKmh.toStringAsFixed(1)} ${tr(LocaleKeys.routing_speed_kmh)}';
+    final topSpeedStr =
+        '${summary.topSpeedKmh.toStringAsFixed(1)} ${tr(LocaleKeys.routing_speed_kmh)}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -161,7 +163,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
               onPressed: onDone,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.bleuDeFrance,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
