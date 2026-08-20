@@ -105,5 +105,42 @@ void main() {
 
       expect(find.textContaining('cho phép ứng dụng chạy ngầm không hạn chế pin'), findsOneWidget);
     });
+
+    testWidgets('PopScope triggers onSkip and closes dialog on system back button',
+        (tester) async {
+      bool skipped = false;
+
+      await tester.pumpWidget(createTestApp(
+        Builder(
+          builder: (ctx) => ElevatedButton(
+            onPressed: () {
+              BatteryOptimizationDialog.show(
+                ctx,
+                oemType: DeviceOemType.samsung,
+                onAllow: () {},
+                onSkip: () {
+                  skipped = true;
+                },
+              );
+            },
+            child: const Text('Open Dialog'),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tối ưu hóa Pin khi Chạy ngầm'), findsOneWidget);
+
+      // Simulate back button via PopScope
+      final dynamic widgetsAppState = tester.state(find.byType(WidgetsApp));
+      await widgetsAppState.didPopRoute();
+      await tester.pumpAndSettle();
+
+      expect(skipped, isTrue);
+      expect(find.text('Tối ưu hóa Pin khi Chạy ngầm'), findsNothing);
+    });
   });
 }

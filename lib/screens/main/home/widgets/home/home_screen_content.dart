@@ -123,10 +123,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                 prev.promptBatteryOptimizationOem !=
                     curr.promptBatteryOptimizationOem &&
                 curr.promptBatteryOptimizationOem != null,
-            listener: (context, navState) {
+            listener: (context, navState) async {
               final oemType = navState.promptBatteryOptimizationOem;
               if (oemType != null) {
-                BatteryOptimizationDialog.show(
+                final result = await BatteryOptimizationDialog.show(
                   context,
                   oemType: oemType,
                   onAllow: () {
@@ -136,6 +136,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                     navigationBloc.add(const SkipBatteryOptimization());
                   },
                 );
+                if (result == null && context.mounted) {
+                  navigationBloc.add(const DismissBatteryOptimizationPrompt());
+                }
               }
             },
           ),

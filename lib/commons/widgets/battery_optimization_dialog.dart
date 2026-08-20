@@ -1,6 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -30,11 +29,11 @@ class BatteryOptimizationDialog extends StatelessWidget {
       builder: (ctx) => BatteryOptimizationDialog(
         oemType: oemType,
         onAllow: () {
-          ctx.pop(true);
+          Navigator.of(ctx).pop(true);
           onAllow();
         },
         onSkip: () {
-          ctx.pop(false);
+          Navigator.of(ctx).pop(false);
           onSkip();
         },
       ),
@@ -62,98 +61,107 @@ class BatteryOptimizationDialog extends StatelessWidget {
     final secondaryTextColor =
         isDark ? AppColors.tangledWeb : AppColors.googleGreyText;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      backgroundColor: backgroundColor,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.sMapTeal.withAlpha(30),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.battery_charging_full_rounded,
-                    color: AppColors.sMapTeal,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    LocaleKeys.routing_battery_dialog_title.tr(),
-                    style: primaryTextColor.textTheme.textTitleStyle.copyWith(
-                      fontSize: 16,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          onSkip();
+          Navigator.of(context).pop(false);
+        }
+      },
+      child: Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        backgroundColor: backgroundColor,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.sMapTeal.withAlpha(30),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.battery_charging_full_rounded,
+                      color: AppColors.sMapTeal,
+                      size: 24,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text(
-              _getDescription(),
-              style: secondaryTextColor.textTheme.regularStyle.copyWith(
-                fontSize: 13,
-                height: 1.45,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      LocaleKeys.routing_battery_dialog_title.tr(),
+                      style: primaryTextColor.textTheme.textTitleStyle.copyWith(
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onSkip,
-                    style: style.outlineButtonStyle.copyWith(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      LocaleKeys.routing_battery_dialog_btn_skip.tr(),
-                      style: secondaryTextColor.textTheme.mediumStyle,
-                    ),
-                  ),
+              const SizedBox(height: 14),
+              Text(
+                _getDescription(),
+                style: secondaryTextColor.textTheme.regularStyle.copyWith(
+                  fontSize: 13,
+                  height: 1.45,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onAllow,
-                    style: style.buttonStyle.copyWith(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onSkip,
+                      style: style.outlineButtonStyle.copyWith(
+                        padding: WidgetStateProperty.all(
+                          const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
-                    ),
-                    child: Text(
-                      LocaleKeys.routing_battery_dialog_btn_allow.tr(),
-                      style: AppColors.white.textTheme.textTitleStyle.copyWith(
-                        fontSize: 14,
+                      child: Text(
+                        LocaleKeys.routing_battery_dialog_btn_skip.tr(),
+                        style: secondaryTextColor.textTheme.mediumStyle,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onAllow,
+                      style: style.buttonStyle.copyWith(
+                        padding: WidgetStateProperty.all(
+                          const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        LocaleKeys.routing_battery_dialog_btn_allow.tr(),
+                        style: AppColors.white.textTheme.textTitleStyle.copyWith(
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
