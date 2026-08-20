@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -29,11 +30,11 @@ class BatteryOptimizationDialog extends StatelessWidget {
       builder: (ctx) => BatteryOptimizationDialog(
         oemType: oemType,
         onAllow: () {
-          Navigator.of(ctx).pop(true);
+          ctx.pop(true);
           onAllow();
         },
         onSkip: () {
-          Navigator.of(ctx).pop(false);
+          ctx.pop(false);
           onSkip();
         },
       ),

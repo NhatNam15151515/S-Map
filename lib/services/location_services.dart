@@ -62,7 +62,6 @@ class LocationService implements ILocationService {
       locationSettings = LocationSettings(
         accuracy: accuracy,
         distanceFilter: distanceFilter,
-        timeLimit: intervalDuration,
       );
     }
 
