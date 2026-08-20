@@ -66,7 +66,6 @@ class BatteryOptimizationDialog extends StatelessWidget {
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
           onSkip();
-          Navigator.of(context).pop(false);
         }
       },
       child: Dialog(

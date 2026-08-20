@@ -141,6 +141,7 @@ void main() {
 
       expect(skipped, isTrue);
       expect(find.text('Tối ưu hóa Pin khi Chạy ngầm'), findsNothing);
+      expect(find.text('Open Dialog'), findsOneWidget);
     });
   });
 }
