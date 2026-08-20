@@ -89,3 +89,18 @@ class StopNavigation extends NavigationEvent {
 class ClearNavigation extends NavigationEvent {
   const ClearNavigation();
 }
+
+/// Người dùng bấm Cho phép chạy ngầm trong BatteryOptimizationDialog
+class AllowBatteryOptimization extends NavigationEvent {
+  const AllowBatteryOptimization();
+}
+
+/// Người dùng bấm Bỏ qua trong BatteryOptimizationDialog
+class SkipBatteryOptimization extends NavigationEvent {
+  const SkipBatteryOptimization();
+}
+
+/// Đóng prompt tối ưu pin
+class DismissBatteryOptimizationPrompt extends NavigationEvent {
+  const DismissBatteryOptimizationPrompt();
+}

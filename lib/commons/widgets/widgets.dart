@@ -1,5 +1,6 @@
 export 'app_bar.dart';
 export 'app_text_field.dart';
+export 'battery_optimization_dialog.dart';
 export 'empty_widget.dart';
 export 'explore_bottom_sheet.dart';
 export 'feature_placeholder_widget.dart';

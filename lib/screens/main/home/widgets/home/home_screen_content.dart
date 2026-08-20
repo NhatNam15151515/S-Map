@@ -5,6 +5,7 @@ import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
@@ -101,19 +102,47 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      body: BlocListener<NavigationBloc, NavigationState>(
-        listenWhen: (prev, curr) =>
-            !_isTripSummaryShown &&
-            prev.status != curr.status &&
-            curr.tripSummary != null &&
-            (curr.status == NavigationStatus.arrived ||
-                curr.status == NavigationStatus.stopped),
-        listener: (context, navState) {
-          if (navState.tripSummary != null && !_isTripSummaryShown) {
-            _isTripSummaryShown = true;
-            _showTripSummaryModal(navState.tripSummary!);
-          }
-        },
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<NavigationBloc, NavigationState>(
+            listenWhen: (prev, curr) =>
+                !_isTripSummaryShown &&
+                prev.status != curr.status &&
+                curr.tripSummary != null &&
+                (curr.status == NavigationStatus.arrived ||
+                    curr.status == NavigationStatus.stopped),
+            listener: (context, navState) {
+              if (navState.tripSummary != null && !_isTripSummaryShown) {
+                _isTripSummaryShown = true;
+                _showTripSummaryModal(navState.tripSummary!);
+              }
+            },
+          ),
+          BlocListener<NavigationBloc, NavigationState>(
+            listenWhen: (prev, curr) =>
+                prev.promptBatteryOptimizationOem !=
+                    curr.promptBatteryOptimizationOem &&
+                curr.promptBatteryOptimizationOem != null,
+            listener: (context, navState) async {
+              final oemType = navState.promptBatteryOptimizationOem;
+              if (oemType != null) {
+                final result = await BatteryOptimizationDialog.show(
+                  context,
+                  oemType: oemType,
+                  onAllow: () {
+                    navigationBloc.add(const AllowBatteryOptimization());
+                  },
+                  onSkip: () {
+                    navigationBloc.add(const SkipBatteryOptimization());
+                  },
+                );
+                if (result == null && context.mounted) {
+                  navigationBloc.add(const DismissBatteryOptimizationPrompt());
+                }
+              }
+            },
+          ),
+        ],
         child: BlocBuilder<NavigationBloc, NavigationState>(
           buildWhen: (prev, curr) =>
               prev.status != curr.status ||
@@ -211,18 +240,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                                 DLog.info(
                                     '🚀 [HomeScreen] Starting Turn-by-Turn Navigation');
                                 _isTripSummaryShown = false;
-                                final route = routeState.currentRoute!;
-                                final origin = routeState.origin!;
-                                final destination = routeState.destination!;
-                                final destName = routeState.destinationName;
-                                final profile = routeState.currentProfile;
-
                                 navigationBloc.add(StartNavigation(
-                                  initialRoute: route,
-                                  origin: origin,
-                                  destination: destination,
-                                  destinationName: destName,
-                                  profile: profile,
+                                  initialRoute: routeState.currentRoute!,
+                                  origin: routeState.origin!,
+                                  destination: routeState.destination!,
+                                  destinationName: routeState.destinationName,
+                                  profile: routeState.currentProfile,
                                 ));
                               }
                             },

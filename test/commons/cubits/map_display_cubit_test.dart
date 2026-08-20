@@ -42,6 +42,27 @@ class MockSuccessLocationService implements ILocationService {
 
   @override
   Future<bool> openAppSettings() async => true;
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) =>
+      Stream.value(mockPosition);
+
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => true;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async => true;
+
+  @override
+  Future<bool> requestNotificationPermission() async => true;
 }
 
 class MockDisabledLocationService implements ILocationService {
@@ -76,6 +97,27 @@ class MockDisabledLocationService implements ILocationService {
 
   @override
   Future<bool> openAppSettings() async => true;
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) =>
+      const Stream.empty();
+
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => false;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async => false;
+
+  @override
+  Future<bool> requestNotificationPermission() async => false;
 }
 
 class MockDeniedLocationService implements ILocationService {
@@ -110,6 +152,27 @@ class MockDeniedLocationService implements ILocationService {
 
   @override
   Future<bool> openAppSettings() async => true;
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) =>
+      const Stream.empty();
+
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => false;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async => false;
+
+  @override
+  Future<bool> requestNotificationPermission() async => false;
 }
 
 class MockDeniedForeverLocationService implements ILocationService {
@@ -144,6 +207,27 @@ class MockDeniedForeverLocationService implements ILocationService {
 
   @override
   Future<bool> openAppSettings() async => true;
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) =>
+      const Stream.empty();
+
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => false;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async => false;
+
+  @override
+  Future<bool> requestNotificationPermission() async => false;
 }
 
 class MockCompassService implements ICompassService {

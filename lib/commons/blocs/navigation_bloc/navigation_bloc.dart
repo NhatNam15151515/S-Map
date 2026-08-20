@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:s_map/commons/fallbacks/fallbacks.dart';
@@ -20,6 +21,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final ILocationService _locationService;
   final IOffRouteDetector _offRouteDetector;
   final ITurnByTurnEngine _turnByTurnEngine;
+  final IDeviceInfoService _deviceInfoService;
 
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
@@ -30,6 +32,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   /// Optional global default service resolvers set by the composition root
   static ILocationService? defaultLocationService;
   static ITurnByTurnEngine? defaultTurnByTurnEngine;
+  static IDeviceInfoService? defaultDeviceInfoService;
 
   /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
   static const Duration _rerouteCooldown = Duration(seconds: 2);
@@ -39,6 +42,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     ILocationService? locationService,
     IOffRouteDetector? offRouteDetector,
     ITurnByTurnEngine? turnByTurnEngine,
+    IDeviceInfoService? deviceInfoService,
   })  : _routingRepository = routingRepository,
         _locationService = locationService ??
             defaultLocationService ??
@@ -47,12 +51,18 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         _turnByTurnEngine = turnByTurnEngine ??
             defaultTurnByTurnEngine ??
             const TurnByTurnEngine(),
+        _deviceInfoService = deviceInfoService ??
+            defaultDeviceInfoService ??
+            const NoOpDeviceInfoService(),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
     on<RerouteRequested>(_onRerouteRequested, transformer: restartable());
     on<StopNavigation>(_onStopNavigation);
     on<ClearNavigation>(_onClearNavigation);
+    on<AllowBatteryOptimization>(_onAllowBatteryOptimization);
+    on<SkipBatteryOptimization>(_onSkipBatteryOptimization);
+    on<DismissBatteryOptimizationPrompt>(_onDismissBatteryOptimizationPrompt);
   }
 
   Future<void> _onStartNavigation(
@@ -71,6 +81,21 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _lastRerouteTime = null;
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
+
+    DeviceOemType? promptOem;
+    try {
+      final isIgnored = await _locationService.isBatteryOptimizationIgnored();
+      if (!isIgnored) {
+        final oemType = await _deviceInfoService.getDeviceOemType();
+        if (oemType.isAggressiveOem) {
+          promptOem = oemType;
+        }
+      }
+    } catch (e) {
+      DLog.error('Lỗi kiểm tra battery optimization khi bắt đầu: $e');
+    }
+
+    if (generation != _requestGeneration || isClosed) return;
 
     final initialProgress = _turnByTurnEngine.initializeProgress(
       event.initialRoute.instructions,
@@ -107,9 +132,27 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       clearTripSummary: true,
       clearError: true,
       clearMessage: true,
+      promptBatteryOptimizationOem: promptOem,
     ));
 
-    _locationSubscription = _locationService.positionStream.listen(
+    await _locationService.requestNotificationPermission();
+
+    if (generation != _requestGeneration || isClosed) return;
+
+    final destName =
+        event.destinationName ?? LocaleKeys.routing_destination_fallback.tr();
+    final stream = _locationService.getPositionStream(
+      enableBackground: true,
+      notificationTitle:
+          LocaleKeys.routing_foreground_notification_title.tr(),
+      notificationText: LocaleKeys.routing_foreground_notification_text.tr(
+        args: [destName],
+      ),
+      intervalDuration: const Duration(seconds: 1),
+      enableWakeLock: true,
+    );
+
+    _locationSubscription = stream.listen(
       (position) {
         if (!isClosed) {
           add(LocationUpdated.fromPosition(position));
@@ -119,6 +162,32 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         DLog.error('❌ [NavigationBloc] GPS Position Stream error: $error');
       },
     );
+  }
+
+  Future<void> _onAllowBatteryOptimization(
+    AllowBatteryOptimization event,
+    Emitter<NavigationState> emit,
+  ) async {
+    try {
+      await _locationService.requestIgnoreBatteryOptimization();
+    } catch (e) {
+      DLog.error('Lỗi khi request ignore battery optimization: $e');
+    }
+    emit(state.copyWith(clearPromptBatteryOptimization: true));
+  }
+
+  void _onSkipBatteryOptimization(
+    SkipBatteryOptimization event,
+    Emitter<NavigationState> emit,
+  ) {
+    emit(state.copyWith(clearPromptBatteryOptimization: true));
+  }
+
+  void _onDismissBatteryOptimizationPrompt(
+    DismissBatteryOptimizationPrompt event,
+    Emitter<NavigationState> emit,
+  ) {
+    emit(state.copyWith(clearPromptBatteryOptimization: true));
   }
 
   void _onLocationUpdated(

@@ -82,8 +82,35 @@ class MockLocationService implements ILocationService {
   @override
   (double, double) get latLng => (10.7725, 106.6980);
 
+  bool lastEnableBackground = false;
+  String? lastNotificationTitle;
+  String? lastNotificationText;
+  Duration? lastIntervalDuration;
+  bool? lastEnableWakeLock;
+  int requestNotificationPermissionCount = 0;
+  bool isBatteryIgnored = true;
+  int requestIgnoreBatteryCount = 0;
+
   @override
   Stream<Position> get positionStream => _controller.stream;
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) {
+    lastEnableBackground = enableBackground;
+    lastNotificationTitle = notificationTitle;
+    lastNotificationText = notificationText;
+    lastIntervalDuration = intervalDuration;
+    lastEnableWakeLock = enableWakeLock;
+    return _controller.stream;
+  }
 
   @override
   Future<Position> getCurrentPosition() async => position;
@@ -108,9 +135,40 @@ class MockLocationService implements ILocationService {
   @override
   Future<bool> openAppSettings() async => true;
 
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => isBatteryIgnored;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async {
+    requestIgnoreBatteryCount++;
+    return true;
+  }
+
+  @override
+  Future<bool> requestNotificationPermission() async {
+    requestNotificationPermissionCount++;
+    return true;
+  }
+
   void dispose() {
     _controller.close();
   }
+}
+
+class MockDeviceInfoService implements IDeviceInfoService {
+  DeviceOemType nextOemType = DeviceOemType.genericAndroid;
+  @override
+  Future<String> getModel() async => 'Test Device';
+  @override
+  Future<String> getManufacturer() async => 'Test';
+  @override
+  Future<int> getAndroidSdkInt() async => 34;
+  @override
+  Future<DeviceOemType> getDeviceOemType() async => nextOemType;
+  @override
+  Future<bool> isAndroid() async => true;
+  @override
+  Future<bool> isIOS() async => false;
 }
 
 void main() {
@@ -119,6 +177,7 @@ void main() {
   group('NavigationBloc Unit & Concurrency Tests', () {
     late MockRoutingRepository mockRoutingRepo;
     late MockLocationService mockLocationService;
+    late MockDeviceInfoService mockDeviceInfoService;
     late NavigationBloc bloc;
 
     const sampleInitialRoute = RouteResult(
@@ -151,9 +210,11 @@ void main() {
     setUp(() {
       mockRoutingRepo = MockRoutingRepository();
       mockLocationService = MockLocationService();
+      mockDeviceInfoService = MockDeviceInfoService();
       bloc = NavigationBloc(
         routingRepository: mockRoutingRepo,
         locationService: mockLocationService,
+        deviceInfoService: mockDeviceInfoService,
       );
     });
 
@@ -734,6 +795,82 @@ void main() {
               s.status == NavigationStatus.initial && s.tripSummary == null,
         )),
       );
+    });
+
+    test('StartNavigation requests notification permission and configures background location stream', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      expect(mockLocationService.requestNotificationPermissionCount, equals(1));
+      expect(mockLocationService.lastEnableBackground, isTrue);
+      expect(mockLocationService.lastIntervalDuration, equals(const Duration(seconds: 1)));
+      expect(mockLocationService.lastEnableWakeLock, isTrue);
+      expect(mockLocationService.lastNotificationTitle, isNotNull);
+      expect(mockLocationService.lastNotificationText, isNotNull);
+    });
+
+    test('StartNavigation detects aggressive OEM and prompts battery optimization, handling Allow', () async {
+      mockLocationService.isBatteryIgnored = false;
+      mockDeviceInfoService.nextOemType = DeviceOemType.samsung;
+
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) =>
+            s.status == NavigationStatus.navigating &&
+            s.promptBatteryOptimizationOem == DeviceOemType.samsung)),
+      );
+
+      expect(bloc.state.promptBatteryOptimizationOem, equals(DeviceOemType.samsung));
+
+      // Dispatch Allow
+      bloc.add(const AllowBatteryOptimization());
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.promptBatteryOptimizationOem == null)),
+      );
+      expect(mockLocationService.requestIgnoreBatteryCount, equals(1));
+    });
+
+    test('SkipBatteryOptimization clears promptBatteryOptimizationOem without requesting exemption', () async {
+      mockLocationService.isBatteryIgnored = false;
+      mockDeviceInfoService.nextOemType = DeviceOemType.xiaomi;
+
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) =>
+            s.status == NavigationStatus.navigating &&
+            s.promptBatteryOptimizationOem == DeviceOemType.xiaomi)),
+      );
+
+      bloc.add(const SkipBatteryOptimization());
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.promptBatteryOptimizationOem == null)),
+      );
+      expect(mockLocationService.requestIgnoreBatteryCount, equals(0));
     });
   });
 }

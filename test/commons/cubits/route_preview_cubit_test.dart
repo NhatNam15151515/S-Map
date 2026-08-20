@@ -100,6 +100,27 @@ class FakeLocationService implements ILocationService {
 
   @override
   Future<bool> openAppSettings() async => true;
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) =>
+      Stream.value(mockPosition);
+
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => true;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async => true;
+
+  @override
+  Future<bool> requestNotificationPermission() async => true;
 }
 
 void main() {
