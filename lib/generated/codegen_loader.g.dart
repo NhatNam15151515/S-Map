@@ -189,7 +189,15 @@ class CodegenLoader extends AssetLoader{
     "unit_second": "s",
     "unit_minute": "min",
     "unit_hour": "hr",
-    "sub_minute": "< 1 min"
+    "sub_minute": "< 1 min",
+    "foreground_notification_title": "S-Map Navigation",
+    "foreground_notification_text": "Navigating to {} (Background GPS active)",
+    "battery_dialog_title": "Background Battery Optimization",
+    "battery_dialog_desc_samsung": "Samsung devices may freeze GPS when the screen is turned off. Please allow S-Map unrestricted background activity to ensure continuous navigation.",
+    "battery_dialog_desc_xiaomi": "Xiaomi/Redmi devices may restrict background GPS. Please set Battery Saver to 'No restrictions' and enable 'Autostart' for S-Map.",
+    "battery_dialog_desc_general": "To receive background navigation while the screen is off, please allow unrestricted background battery usage.",
+    "battery_dialog_btn_allow": "Allow Background",
+    "battery_dialog_btn_skip": "Skip"
   }
 };
 static const Map<String,dynamic> _vi = {
@@ -367,7 +375,15 @@ static const Map<String,dynamic> _vi = {
     "unit_second": "giây",
     "unit_minute": "phút",
     "unit_hour": "giờ",
-    "sub_minute": "< 1 phút"
+    "sub_minute": "< 1 phút",
+    "foreground_notification_title": "S-Map Điều hướng",
+    "foreground_notification_text": "Đang điều hướng đến {} (GPS nền đang hoạt động)",
+    "battery_dialog_title": "Tối ưu hóa Pin khi Chạy ngầm",
+    "battery_dialog_desc_samsung": "Thiết bị Samsung có thể tự động ngắt GPS khi tắt màn hình. Vui lòng cho phép S-Map chạy ngầm không hạn chế để đảm bảo dẫn đường liên tục.",
+    "battery_dialog_desc_xiaomi": "Thiết bị Xiaomi/Redmi có thể ngắt GPS nền. Vui lòng chọn 'Không hạn chế' trong Tiết kiệm pin và bật 'Tự khởi chạy' cho S-Map.",
+    "battery_dialog_desc_general": "Để đảm bảo nhận chỉ dẫn và định vị liên tục khi tắt màn hình, vui lòng cho phép ứng dụng chạy ngầm không hạn chế pin.",
+    "battery_dialog_btn_allow": "Cho phép chạy ngầm",
+    "battery_dialog_btn_skip": "Bỏ qua"
   }
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};

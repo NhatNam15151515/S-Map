@@ -5,6 +5,7 @@ import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
@@ -204,7 +205,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                               DLog.info('❌ [HomeScreen] Close Route Preview tapped');
                               routePreviewCubit.clearRoute();
                             },
-                            onStartNavigation: () {
+                            onStartNavigation: () async {
                               if (routeState.currentRoute != null &&
                                   routeState.origin != null &&
                                   routeState.destination != null) {
@@ -217,6 +218,24 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                                 final destName = routeState.destinationName;
                                 final profile = routeState.currentProfile;
 
+                                final isIgnored =
+                                    await navigationBloc.isBatteryOptimizationIgnored();
+                                if (!isIgnored && context.mounted) {
+                                  final oemType = await navigationBloc.getDeviceOemType();
+                                  if (oemType.isAggressiveOem && context.mounted) {
+                                    await BatteryOptimizationDialog.show(
+                                      context,
+                                      oemType: oemType,
+                                      onAllow: () async {
+                                        await navigationBloc
+                                            .requestIgnoreBatteryOptimization();
+                                      },
+                                      onSkip: () {},
+                                    );
+                                  }
+                                }
+
+                                if (!context.mounted) return;
                                 navigationBloc.add(StartNavigation(
                                   initialRoute: route,
                                   origin: origin,

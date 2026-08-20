@@ -82,8 +82,29 @@ class MockLocationService implements ILocationService {
   @override
   (double, double) get latLng => (10.7725, 106.6980);
 
+  bool lastEnableBackground = false;
+  String? lastNotificationTitle;
+  String? lastNotificationText;
+  int requestNotificationPermissionCount = 0;
+
   @override
   Stream<Position> get positionStream => _controller.stream;
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) {
+    lastEnableBackground = enableBackground;
+    lastNotificationTitle = notificationTitle;
+    lastNotificationText = notificationText;
+    return _controller.stream;
+  }
 
   @override
   Future<Position> getCurrentPosition() async => position;
@@ -107,6 +128,18 @@ class MockLocationService implements ILocationService {
 
   @override
   Future<bool> openAppSettings() async => true;
+
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => true;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async => true;
+
+  @override
+  Future<bool> requestNotificationPermission() async {
+    requestNotificationPermissionCount++;
+    return true;
+  }
 
   void dispose() {
     _controller.close();
@@ -734,6 +767,25 @@ void main() {
               s.status == NavigationStatus.initial && s.tripSummary == null,
         )),
       );
+    });
+
+    test('StartNavigation requests notification permission and configures background location stream', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
+      );
+
+      expect(mockLocationService.requestNotificationPermissionCount, equals(1));
+      expect(mockLocationService.lastEnableBackground, isTrue);
+      expect(mockLocationService.lastNotificationTitle, equals('S-Map Điều hướng'));
+      expect(mockLocationService.lastNotificationText, contains('Nhà hát Thành Phố'));
     });
   });
 }

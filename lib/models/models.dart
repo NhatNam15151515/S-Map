@@ -1,4 +1,5 @@
 export 'app_error.dart';
+export 'device_oem_type.dart';
 export 'help_center_question.dart';
 export 'notification_model.dart';
 export 'place_model.dart';

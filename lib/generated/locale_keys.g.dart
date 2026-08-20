@@ -169,6 +169,14 @@ abstract class  LocaleKeys {
   static const routing_unit_minute = 'routing.unit_minute';
   static const routing_unit_hour = 'routing.unit_hour';
   static const routing_sub_minute = 'routing.sub_minute';
+  static const routing_foreground_notification_title = 'routing.foreground_notification_title';
+  static const routing_foreground_notification_text = 'routing.foreground_notification_text';
+  static const routing_battery_dialog_title = 'routing.battery_dialog_title';
+  static const routing_battery_dialog_desc_samsung = 'routing.battery_dialog_desc_samsung';
+  static const routing_battery_dialog_desc_xiaomi = 'routing.battery_dialog_desc_xiaomi';
+  static const routing_battery_dialog_desc_general = 'routing.battery_dialog_desc_general';
+  static const routing_battery_dialog_btn_allow = 'routing.battery_dialog_btn_allow';
+  static const routing_battery_dialog_btn_skip = 'routing.battery_dialog_btn_skip';
   static const routing = 'routing';
 
 }

@@ -20,6 +20,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final ILocationService _locationService;
   final IOffRouteDetector _offRouteDetector;
   final ITurnByTurnEngine _turnByTurnEngine;
+  final IDeviceInfoService _deviceInfoService;
 
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
@@ -30,6 +31,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   /// Optional global default service resolvers set by the composition root
   static ILocationService? defaultLocationService;
   static ITurnByTurnEngine? defaultTurnByTurnEngine;
+  static IDeviceInfoService? defaultDeviceInfoService;
 
   /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
   static const Duration _rerouteCooldown = Duration(seconds: 2);
@@ -39,6 +41,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     ILocationService? locationService,
     IOffRouteDetector? offRouteDetector,
     ITurnByTurnEngine? turnByTurnEngine,
+    IDeviceInfoService? deviceInfoService,
   })  : _routingRepository = routingRepository,
         _locationService = locationService ??
             defaultLocationService ??
@@ -47,6 +50,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         _turnByTurnEngine = turnByTurnEngine ??
             defaultTurnByTurnEngine ??
             const TurnByTurnEngine(),
+        _deviceInfoService = deviceInfoService ??
+            defaultDeviceInfoService ??
+            const NoOpDeviceInfoService(),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
@@ -54,6 +60,15 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     on<StopNavigation>(_onStopNavigation);
     on<ClearNavigation>(_onClearNavigation);
   }
+
+  Future<bool> isBatteryOptimizationIgnored() =>
+      _locationService.isBatteryOptimizationIgnored();
+
+  Future<bool> requestIgnoreBatteryOptimization() =>
+      _locationService.requestIgnoreBatteryOptimization();
+
+  Future<DeviceOemType> getDeviceOemType() =>
+      _deviceInfoService.getDeviceOemType();
 
   Future<void> _onStartNavigation(
     StartNavigation event,
@@ -109,7 +124,20 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       clearMessage: true,
     ));
 
-    _locationSubscription = _locationService.positionStream.listen(
+    await _locationService.requestNotificationPermission();
+
+    if (generation != _requestGeneration || isClosed) return;
+
+    final destName = event.destinationName ?? 'Điểm đã chọn';
+    final stream = _locationService.getPositionStream(
+      enableBackground: true,
+      notificationTitle: 'S-Map Điều hướng',
+      notificationText: 'Đang điều hướng đến $destName',
+      intervalDuration: const Duration(seconds: 1),
+      enableWakeLock: true,
+    );
+
+    _locationSubscription = stream.listen(
       (position) {
         if (!isClosed) {
           add(LocationUpdated.fromPosition(position));
