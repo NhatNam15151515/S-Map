@@ -8,6 +8,7 @@ import 'package:s_map/repos/repos.dart';
 class MockRoutingService implements IRoutingService {
   bool initCalled = false;
   int initCallCount = 0;
+  Completer<void>? initStartedCompleter;
   Completer<bool>? initCompleter;
   String? lastGraphPath;
   bool routeCalled = false;
@@ -69,6 +70,9 @@ class MockRoutingService implements IRoutingService {
     initCalled = true;
     initCallCount++;
     lastGraphPath = graphPath;
+    if (initStartedCompleter != null && !initStartedCompleter!.isCompleted) {
+      initStartedCompleter!.complete();
+    }
     if (initCompleter != null) {
       final res = await initCompleter!.future;
       readyState = res;
@@ -415,14 +419,19 @@ void main() {
     });
 
     test('dispose called during pending auto-init prevents engine from staying active', () async {
+      final initStarted = Completer<void>();
       final initCompleter = Completer<bool>();
       final service = MockRoutingService()
         ..readyState = false
+        ..initStartedCompleter = initStarted
         ..initCompleter = initCompleter;
       final repo = RoutingRepositoryImpl(routingService: service);
 
       // Trigger auto-init
       final pendingSnap = repo.snapToRoad(lat: 21.0285, lon: 105.8542);
+
+      // Wait until initGraphHopper has actually started
+      await initStarted.future;
 
       // Dispose while init is in-flight
       await repo.dispose();
@@ -433,6 +442,36 @@ void main() {
 
       // isEngineReady should remain false
       expect(await repo.isEngineReady(), isFalse);
+    });
+
+    test('new session initialization remains active even if previous session init finishes later', () async {
+      final oldInitStarted = Completer<void>();
+      final oldInitCompleter = Completer<bool>();
+      final service = MockRoutingService()
+        ..readyState = false
+        ..initStartedCompleter = oldInitStarted
+        ..initCompleter = oldInitCompleter;
+      final repo = RoutingRepositoryImpl(routingService: service);
+
+      // 1. Start old session auto-init
+      final pendingOldSnap = repo.snapToRoad(lat: 21.0285, lon: 105.8542);
+      await oldInitStarted.future;
+
+      // 2. Dispose old session
+      await repo.dispose();
+
+      // 3. New session explicitly initializes successfully before old init completes
+      service.initCompleter = null; // Next init completes immediately
+      final initNewSuccess = await repo.initializeEngine('assets/map/new_graph.ghz');
+      expect(initNewSuccess, isTrue);
+      expect(await repo.isEngineReady(), isTrue);
+
+      // 4. Old session in-flight init now completes
+      oldInitCompleter.complete(true);
+      await pendingOldSnap;
+
+      // 5. Engine must remain READY in the new session, not destroyed by old session cleanup
+      expect(await repo.isEngineReady(), isTrue);
     });
   });
 }

@@ -11,15 +11,26 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   final IRoutingService _routingService;
   Future<void>? _autoInitFuture;
   int _lifecycleSession = 0;
+  int _activeInitSession = 0;
 
   RoutingRepositoryImpl({required IRoutingService routingService})
       : _routingService = routingService;
 
   @override
-  Future<bool> initializeEngine(String graphPath) {
+  Future<bool> initializeEngine(String graphPath) async {
     DLog.info(
         '🏛️ [RoutingRepository] Explicit initializeEngine called with: "$graphPath"');
-    return _routingService.initGraphHopper(graphPath);
+    final targetSession = ++_lifecycleSession;
+    _activeInitSession = targetSession;
+    _autoInitFuture = null;
+    final success = await _routingService.initGraphHopper(graphPath);
+    if (targetSession != _lifecycleSession) {
+      if (_activeInitSession == 0) {
+        await _routingService.dispose();
+      }
+      return false;
+    }
+    return success;
   }
 
   /// Tự động tìm và nạp file đồ thị đường đi (.ghz hoặc thư mục giải nén) nếu có trên thiết bị
@@ -36,6 +47,21 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       DLog.info(
           '🔍 [RoutingRepository] Current GraphHopper engine ready state: $isReady');
       if (isReady) return;
+
+      Future<bool> tryInit(String path) async {
+        if (currentSession != _lifecycleSession) return false;
+        final success = await _routingService.initGraphHopper(path);
+        if (currentSession != _lifecycleSession) {
+          if (_activeInitSession == 0) {
+            await _routingService.dispose();
+          }
+          return false;
+        }
+        if (success) {
+          _activeInitSession = currentSession;
+        }
+        return success;
+      }
 
       final candidateDirs = <String>[];
       try {
@@ -61,21 +87,19 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       candidateDirs.addAll([
         '/sdcard/Android/data/com.vnsmap.app/files',
         '/storage/emulated/0/Android/data/com.vnsmap.app/files',
-        '/sdcard/Download',
-        '/storage/emulated/0/Download',
-        '/sdcard/S-Map',
       ]);
 
-      final candidateDirNames = [
-        'metro_hcm_extracted',
-        'vietnam_extracted',
-        'graph-cache',
-        'metro_hcm'
+      const candidateDirNames = [
+        'vietnam-latest-gh',
+        'hcm-latest-gh',
+        'graphhopper',
       ];
-      final candidateFileNames = [
-        'metro_hcm.ghz',
+
+      const candidateFileNames = [
         'vietnam.ghz',
-        'metro_hn.ghz'
+        'vietnam_sample.ghz',
+        'hcm.ghz',
+        'map.ghz',
       ];
 
       DLog.info(
@@ -91,15 +115,9 @@ class RoutingRepositoryImpl implements IRoutingRepository {
             DLog.info(
                 '📁 [RoutingRepository] Found candidate folder: "${targetDir.path}" (has nodes file: $hasNodes)');
             if (hasNodes) {
-              if (currentSession != _lifecycleSession) return;
               DLog.info(
                   '🚀 [RoutingRepository] Initializing GraphHopper with extracted folder: "${targetDir.path}"');
-              final success =
-                  await _routingService.initGraphHopper(targetDir.path);
-              if (currentSession != _lifecycleSession) {
-                await _routingService.dispose();
-                return;
-              }
+              final success = await tryInit(targetDir.path);
               DLog.info(
                   '🏁 [RoutingRepository] Folder init outcome: success=$success');
               if (success) {
@@ -115,14 +133,9 @@ class RoutingRepositoryImpl implements IRoutingRepository {
           final exists = await file.exists();
           if (exists) {
             final size = await file.length();
-            if (currentSession != _lifecycleSession) return;
             DLog.info(
                 '📦 [RoutingRepository] Found candidate .ghz file: "${file.path}" (size: ${(size / (1024 * 1024)).toStringAsFixed(2)} MB)');
-            final success = await _routingService.initGraphHopper(file.path);
-            if (currentSession != _lifecycleSession) {
-              await _routingService.dispose();
-              return;
-            }
+            final success = await tryInit(file.path);
             DLog.info(
                 '🏁 [RoutingRepository] .ghz file init outcome: success=$success');
             if (success) {
@@ -133,15 +146,9 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       }
 
       // 3. Nếu không tìm thấy ở bất kỳ đâu trên bộ nhớ thiết bị, tự nạp từ Bundled Asset trong APK
-      if (currentSession != _lifecycleSession) return;
       DLog.info(
           '📦 [RoutingRepository] Attempting auto-init from bundled APK asset: "assets/map/metro_hcm.ghz"');
-      final assetSuccess =
-          await _routingService.initGraphHopper('assets/map/metro_hcm.ghz');
-      if (currentSession != _lifecycleSession) {
-        await _routingService.dispose();
-        return;
-      }
+      final assetSuccess = await tryInit('assets/map/metro_hcm.ghz');
       DLog.info(
           '🏁 [RoutingRepository] Bundled asset init outcome: success=$assetSuccess');
       if (assetSuccess) {
@@ -271,6 +278,7 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   Future<bool> dispose() {
     DLog.info('🧹 [RoutingRepository] dispose called');
     _lifecycleSession++;
+    _activeInitSession = 0;
     _autoInitFuture = null;
     return _routingService.dispose();
   }
