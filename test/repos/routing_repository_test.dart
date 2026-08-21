@@ -473,5 +473,35 @@ void main() {
       // 5. Engine must remain READY in the new session, not destroyed by old session cleanup
       expect(await repo.isEngineReady(), isTrue);
     });
+
+    test('pending stale auto-init followed by dispose and failed explicit init keeps engine inactive', () async {
+      final oldInitStarted = Completer<void>();
+      final oldInitCompleter = Completer<bool>();
+      final service = MockRoutingService()
+        ..readyState = false
+        ..initStartedCompleter = oldInitStarted
+        ..initCompleter = oldInitCompleter;
+      final repo = RoutingRepositoryImpl(routingService: service);
+
+      // 1. Start old session auto-init
+      final pendingOldSnap = repo.snapToRoad(lat: 21.0285, lon: 105.8542);
+      await oldInitStarted.future;
+
+      // 2. Dispose old session
+      await repo.dispose();
+
+      // 3. New explicit init fails
+      service.initCompleter = null;
+      service.initSuccess = false;
+      final failedInit = await repo.initializeEngine('assets/map/invalid_path.ghz');
+      expect(failedInit, isFalse);
+
+      // 4. Old session in-flight init now completes with true on mock
+      oldInitCompleter.complete(true);
+      await pendingOldSnap;
+
+      // 5. Engine must NOT be resurrected; isEngineReady() remains false
+      expect(await repo.isEngineReady(), isFalse);
+    });
   });
 }

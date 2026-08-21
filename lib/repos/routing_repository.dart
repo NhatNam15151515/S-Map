@@ -21,7 +21,6 @@ class RoutingRepositoryImpl implements IRoutingRepository {
     DLog.info(
         '🏛️ [RoutingRepository] Explicit initializeEngine called with: "$graphPath"');
     final targetSession = ++_lifecycleSession;
-    _activeInitSession = targetSession;
     _autoInitFuture = null;
     final success = await _routingService.initGraphHopper(graphPath);
     if (targetSession != _lifecycleSession) {
@@ -29,6 +28,9 @@ class RoutingRepositoryImpl implements IRoutingRepository {
         await _routingService.dispose();
       }
       return false;
+    }
+    if (success) {
+      _activeInitSession = targetSession;
     }
     return success;
   }
