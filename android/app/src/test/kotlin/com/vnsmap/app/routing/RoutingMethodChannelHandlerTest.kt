@@ -11,8 +11,10 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 class RoutingMethodChannelHandlerTest {
@@ -409,5 +411,35 @@ class RoutingMethodChannelHandlerTest {
         handler.onMethodCall(MethodCall(RoutingConstants.METHOD_SNAP_TO_ROAD, args), result)
         assertTrue(result.await())
         assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
+    }
+
+    @Test
+    fun testHandleSnapToRoadWhenExecutorThrowsRejectedExecution() {
+        val rejectingExecutor = object : AbstractExecutorService() {
+            override fun shutdown() {}
+            override fun shutdownNow(): List<Runnable> = emptyList()
+            override fun isShutdown(): Boolean = false
+            override fun isTerminated(): Boolean = false
+            override fun awaitTermination(timeout: Long, unit: TimeUnit): Boolean = true
+            override fun execute(command: Runnable) {
+                throw RejectedExecutionException("Executor rejected execution intentionally")
+            }
+        }
+
+        val rejectingHandler = RoutingMethodChannelHandler(
+            routingService = mockService,
+            backgroundExecutor = rejectingExecutor,
+            resultPoster = { it.run() }
+        )
+
+        val result = TestResult()
+        val args = mapOf(
+            RoutingConstants.ARG_LAT to 21.0285,
+            RoutingConstants.ARG_LON to 105.8542
+        )
+        rejectingHandler.onMethodCall(MethodCall(RoutingConstants.METHOD_SNAP_TO_ROAD, args), result)
+        assertTrue(result.await())
+        assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
+        assertEquals("Routing executor has been shut down", result.errorMessage)
     }
 }

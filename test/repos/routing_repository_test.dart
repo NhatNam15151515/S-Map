@@ -1,12 +1,14 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
 
-
 class MockRoutingService implements IRoutingService {
   bool initCalled = false;
+  int initCallCount = 0;
+  Completer<bool>? initCompleter;
   String? lastGraphPath;
   bool routeCalled = false;
   String? lastProfile;
@@ -65,7 +67,13 @@ class MockRoutingService implements IRoutingService {
   @override
   Future<bool> initGraphHopper(String graphPath) async {
     initCalled = true;
+    initCallCount++;
     lastGraphPath = graphPath;
+    if (initCompleter != null) {
+      final res = await initCompleter!.future;
+      readyState = res;
+      return res;
+    }
     readyState = initSuccess;
     return initSuccess;
   }
@@ -381,17 +389,25 @@ void main() {
       expect(result.errorMessage, equals(RoutingConstants.errServiceNotInitialized));
     });
 
-    test('concurrent snapToRoad requests share the same auto-init Future and succeed together', () async {
-      final sharedService = MockRoutingService()..readyState = true;
+    test('concurrent snapToRoad requests share the same auto-init Future and execute init exactly once', () async {
+      final initCompleter = Completer<bool>();
+      final sharedService = MockRoutingService()
+        ..readyState = false
+        ..initCompleter = initCompleter;
       final repo = RoutingRepositoryImpl(routingService: sharedService);
 
-      final results = await Future.wait([
-        repo.snapToRoad(lat: 21.0285, lon: 105.8542),
-        repo.snapToRoad(lat: 21.0300, lon: 105.8550),
-        repo.snapToRoad(lat: 21.0350, lon: 105.8600),
-      ]);
+      // Gửi đồng thời 3 request snapToRoad khi chưa init
+      final future1 = repo.snapToRoad(lat: 21.0285, lon: 105.8542);
+      final future2 = repo.snapToRoad(lat: 21.0300, lon: 105.8550);
+      final future3 = repo.snapToRoad(lat: 21.0350, lon: 105.8600);
+
+      // Giải phóng Completer để init hoàn tất thành công
+      initCompleter.complete(true);
+
+      final results = await Future.wait([future1, future2, future3]);
 
       expect(results.length, equals(3));
+      expect(sharedService.initCallCount, equals(1));
       for (final res in results) {
         expect(res.isSnapped, isTrue);
         expect(res.streetName, equals('Tràng Thi'));
