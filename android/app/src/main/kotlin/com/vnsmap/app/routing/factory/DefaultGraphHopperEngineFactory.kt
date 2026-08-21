@@ -9,6 +9,8 @@ import com.graphhopper.ResponsePath
 import com.graphhopper.config.CHProfile
 import com.graphhopper.config.Profile
 import com.graphhopper.jackson.Jackson
+import com.graphhopper.routing.util.EdgeFilter
+import com.graphhopper.storage.index.Snap
 import com.graphhopper.util.CustomModel
 import com.graphhopper.util.Instruction
 import com.graphhopper.util.Translation
@@ -17,6 +19,7 @@ import com.vnsmap.app.routing.RoutingConstants
 import com.vnsmap.app.routing.engine.IGraphHopperEngine
 import com.vnsmap.app.routing.models.RouteInstruction
 import com.vnsmap.app.routing.models.RouteResult
+import com.vnsmap.app.routing.models.SnappedRoadPoint
 import java.io.File
 
 class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
@@ -321,6 +324,45 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             } catch (e: Exception) {
                 val elapsed = System.currentTimeMillis() - startTime
                 RouteResult.failure("${RoutingConstants.ERR_ROUTING_EXCEPTION}${e.message}", elapsed)
+            }
+        }
+
+        override fun snapToRoad(lat: Double, lon: Double): SnappedRoadPoint {
+            val startTime = System.currentTimeMillis()
+            return try {
+                val locationIndex = hopper.locationIndex
+                if (locationIndex == null) {
+                    val elapsed = System.currentTimeMillis() - startTime
+                    return SnappedRoadPoint.notSnapped(lat, lon, "LocationIndex is null or not loaded", elapsed)
+                }
+
+                val snap: Snap = locationIndex.findClosest(lat, lon, EdgeFilter.ALL_EDGES)
+                val elapsed = System.currentTimeMillis() - startTime
+
+                if (!snap.isValid) {
+                    return SnappedRoadPoint.notSnapped(lat, lon, RoutingConstants.ERR_NO_ROAD_FOUND, elapsed)
+                }
+
+                val snappedPoint = snap.snappedPoint
+                val edge = snap.closestEdge
+                val streetName = edge?.name ?: ""
+                val distance = snap.queryDistance
+                val edgeId = edge?.edge ?: -1
+
+                SnappedRoadPoint(
+                    isSnapped = true,
+                    originalLat = lat,
+                    originalLon = lon,
+                    snappedLat = snappedPoint.lat,
+                    snappedLon = snappedPoint.lon,
+                    streetName = streetName,
+                    distanceToRoad = distance,
+                    edgeId = edgeId,
+                    calculationTimeMs = elapsed
+                )
+            } catch (e: Exception) {
+                val elapsed = System.currentTimeMillis() - startTime
+                SnappedRoadPoint.notSnapped(lat, lon, "${RoutingConstants.ERR_SNAP_EXCEPTION}${e.message}", elapsed)
             }
         }
 

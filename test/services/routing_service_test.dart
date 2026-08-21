@@ -73,6 +73,41 @@ void main() {
               'calculationTimeMs': 25,
             };
 
+          case RoutingConstants.methodSnapToRoad:
+            final lat = methodCall.arguments[RoutingConstants.argLat] as double?;
+            final lon = methodCall.arguments[RoutingConstants.argLon] as double?;
+            if (lat == -999.0) {
+              throw PlatformException(
+                code: 'ROUTING_FAILED',
+                message: 'Native snap exception occurred',
+              );
+            }
+            if (lat == 0.0) {
+              return {
+                'isSnapped': false,
+                'originalLat': 0.0,
+                'originalLon': lon ?? 0.0,
+                'snappedLat': 0.0,
+                'snappedLon': lon ?? 0.0,
+                'streetName': '',
+                'distanceToRoad': 0.0,
+                'edgeId': -1,
+                'calculationTimeMs': 1,
+                'errorMessage': RoutingConstants.errNoRoadFound,
+              };
+            }
+            return {
+              'isSnapped': true,
+              'originalLat': lat ?? 21.0285,
+              'originalLon': lon ?? 105.8542,
+              'snappedLat': 21.02855,
+              'snappedLon': 105.85425,
+              'streetName': 'Kim Mã',
+              'distanceToRoad': 4.5,
+              'edgeId': 1234,
+              'calculationTimeMs': 2,
+            };
+
           case RoutingConstants.methodIsInitialized:
             return true;
 
@@ -197,6 +232,51 @@ void main() {
       final disposed = await service.dispose();
       expect(disposed, isTrue);
       expect(log.last.method, equals(RoutingConstants.methodDisposeGraphHopper));
+    });
+
+    test('snapToRoad should invoke methodSnapToRoad and return parsed SnappedRoadPoint', () async {
+      final result = await service.snapToRoad(
+        lat: 21.0285,
+        lon: 105.8542,
+      );
+
+      expect(result.isSnapped, isTrue);
+      expect(result.originalLat, equals(21.0285));
+      expect(result.originalLon, equals(105.8542));
+      expect(result.snappedLat, equals(21.02855));
+      expect(result.snappedLon, equals(105.85425));
+      expect(result.streetName, equals('Kim Mã'));
+      expect(result.distanceToRoad, equals(4.5));
+      expect(result.edgeId, equals(1234));
+      expect(result.calculationTimeMs, equals(2));
+      expect(result.errorMessage, isNull);
+
+      expect(log.last.method, equals(RoutingConstants.methodSnapToRoad));
+      expect(log.last.arguments[RoutingConstants.argLat], equals(21.0285));
+      expect(log.last.arguments[RoutingConstants.argLon], equals(105.8542));
+    });
+
+    test('snapToRoad should handle not snapped when no road nearby', () async {
+      final result = await service.snapToRoad(
+        lat: 0.0,
+        lon: 105.8542,
+      );
+
+      expect(result.isSnapped, isFalse);
+      expect(result.snappedLat, equals(0.0));
+      expect(result.snappedLon, equals(105.8542));
+      expect(result.errorMessage, equals(RoutingConstants.errNoRoadFound));
+    });
+
+    test('snapToRoad should handle PlatformException gracefully', () async {
+      final result = await service.snapToRoad(
+        lat: -999.0,
+        lon: 105.8542,
+      );
+
+      expect(result.isSnapped, isFalse);
+      expect(result.originalLat, equals(-999.0));
+      expect(result.errorMessage, contains('Native snap exception occurred'));
     });
   });
 }

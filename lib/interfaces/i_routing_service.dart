@@ -11,6 +11,11 @@ abstract class IRoutingService {
     String? vehicleProfile,
   });
 
+  Future<SnappedRoadPoint> snapToRoad({
+    required double lat,
+    required double lon,
+  });
+
   Future<bool> isInitialized();
 
   Future<bool> dispose();

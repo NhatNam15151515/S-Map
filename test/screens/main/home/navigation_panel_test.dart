@@ -21,6 +21,19 @@ class MockRoutingRepo implements IRoutingRepository {
           isSuccess: true, distance: 1000, time: 60000, points: []);
 
   @override
+  Future<SnappedRoadPoint> snapToRoad({
+    required double lat,
+    required double lon,
+  }) async =>
+      SnappedRoadPoint(
+        isSnapped: true,
+        originalLat: lat,
+        originalLon: lon,
+        snappedLat: lat,
+        snappedLon: lon,
+      );
+
+  @override
   Future<bool> initializeEngine(String graphPath) async => true;
 
   @override

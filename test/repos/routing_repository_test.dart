@@ -10,14 +10,21 @@ class MockRoutingService implements IRoutingService {
   String? lastGraphPath;
   bool routeCalled = false;
   String? lastProfile;
+  bool snapCalled = false;
+  double? lastSnapLat;
+  double? lastSnapLon;
   bool disposeCalled = false;
   bool readyState = false;
   bool initSuccess;
 
   final RouteResult mockResult;
+  final SnappedRoadPoint? customSnapResult;
 
-  MockRoutingService({RouteResult? customResult, this.initSuccess = true})
-      : mockResult = customResult ??
+  MockRoutingService({
+    RouteResult? customResult,
+    this.customSnapResult,
+    this.initSuccess = true,
+  }) : mockResult = customResult ??
             const RouteResult(
               isSuccess: true,
               distance: 3500.0,
@@ -76,6 +83,28 @@ class MockRoutingService implements IRoutingService {
     // Simulate real-world invocation delay
     await Future.delayed(const Duration(milliseconds: 2));
     return mockResult;
+  }
+
+  @override
+  Future<SnappedRoadPoint> snapToRoad({
+    required double lat,
+    required double lon,
+  }) async {
+    snapCalled = true;
+    lastSnapLat = lat;
+    lastSnapLon = lon;
+    return customSnapResult ??
+        SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: lat,
+          originalLon: lon,
+          snappedLat: lat + 0.0001,
+          snappedLon: lon + 0.0001,
+          streetName: 'Tràng Thi',
+          distanceToRoad: 3.2,
+          edgeId: 999,
+          calculationTimeMs: 1,
+        );
   }
 
   @override
@@ -291,6 +320,65 @@ void main() {
       final map = success.toMap();
       final deserialized = RouteResult.fromMap(map);
       expect(deserialized, equals(success));
+    });
+
+    test('SnappedRoadPoint equality, serialization and notSnapped factory', () {
+      final point = SnappedRoadPoint.notSnapped(
+        originalLat: 21.0285,
+        originalLon: 105.8542,
+        errorMessage: 'Not ready',
+        calculationTimeMs: 3,
+      );
+
+      expect(point.isSnapped, isFalse);
+      expect(point.originalLat, equals(21.0285));
+      expect(point.originalLon, equals(105.8542));
+      expect(point.snappedLat, equals(21.0285));
+      expect(point.snappedLon, equals(105.8542));
+      expect(point.errorMessage, equals('Not ready'));
+      expect(point.calculationTimeMs, equals(3));
+
+      const snapped = SnappedRoadPoint(
+        isSnapped: true,
+        originalLat: 21.0285,
+        originalLon: 105.8542,
+        snappedLat: 21.02855,
+        snappedLon: 105.85425,
+        streetName: 'Tràng Thi',
+        distanceToRoad: 4.2,
+        edgeId: 456,
+        calculationTimeMs: 2,
+      );
+
+      final map = snapped.toMap();
+      final deserialized = SnappedRoadPoint.fromMap(map);
+      expect(deserialized, equals(snapped));
+      expect(deserialized.props, equals(snapped.props));
+    });
+  });
+
+  group('RoutingRepository snapToRoad Tests', () {
+    test('snapToRoad forwards to service when engine is ready', () async {
+      final result = await repository.snapToRoad(lat: 21.0285, lon: 105.8542);
+
+      expect(mockService.snapCalled, isTrue);
+      expect(mockService.lastSnapLat, equals(21.0285));
+      expect(mockService.lastSnapLon, equals(105.8542));
+      expect(result.isSnapped, isTrue);
+      expect(result.streetName, equals('Tràng Thi'));
+      expect(result.distanceToRoad, equals(3.2));
+    });
+
+    test('snapToRoad returns notSnapped when engine fails auto-init', () async {
+      final unreadyService = MockRoutingService(initSuccess: false)..readyState = false;
+      final repo = RoutingRepositoryImpl(routingService: unreadyService);
+
+      final result = await repo.snapToRoad(lat: 10.78, lon: 106.65);
+
+      expect(result.isSnapped, isFalse);
+      expect(result.originalLat, equals(10.78));
+      expect(result.originalLon, equals(106.65));
+      expect(result.errorMessage, equals(RoutingConstants.errServiceNotInitialized));
     });
   });
 }

@@ -3,6 +3,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
@@ -212,6 +213,34 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       points: points,
       instructions: const [],
       calculationTimeMs: 1,
+    );
+  }
+
+  @override
+  Future<SnappedRoadPoint> snapToRoad({
+    required double lat,
+    required double lon,
+  }) async {
+    DLog.info('📍 [RoutingRepository] snapToRoad requested: ($lat, $lon)');
+    await _ensureAutoInitialized();
+
+    final isReady = await _routingService.isInitialized();
+    if (isReady) {
+      final snapResult = await _routingService.snapToRoad(
+        lat: lat,
+        lon: lon,
+      );
+      DLog.info(
+          '📍 [RoutingRepository] Native snap result: isSnapped=${snapResult.isSnapped}, snapped=(${snapResult.snappedLat}, ${snapResult.snappedLon}), street="${snapResult.streetName}", dist=${snapResult.distanceToRoad}m');
+      return snapResult;
+    }
+
+    DLog.warning(
+        '💡 [RoutingRepository] Native GraphHopper not ready -> returning notSnapped fallback');
+    return SnappedRoadPoint.notSnapped(
+      originalLat: lat,
+      originalLon: lon,
+      errorMessage: RoutingConstants.errServiceNotInitialized,
     );
   }
 
