@@ -96,7 +96,10 @@ class RoutingRepositoryImpl implements IRoutingRepository {
                   '🚀 [RoutingRepository] Initializing GraphHopper with extracted folder: "${targetDir.path}"');
               final success =
                   await _routingService.initGraphHopper(targetDir.path);
-              if (currentSession != _lifecycleSession) return;
+              if (currentSession != _lifecycleSession) {
+                await _routingService.dispose();
+                return;
+              }
               DLog.info(
                   '🏁 [RoutingRepository] Folder init outcome: success=$success');
               if (success) {
@@ -116,7 +119,10 @@ class RoutingRepositoryImpl implements IRoutingRepository {
             DLog.info(
                 '📦 [RoutingRepository] Found candidate .ghz file: "${file.path}" (size: ${(size / (1024 * 1024)).toStringAsFixed(2)} MB)');
             final success = await _routingService.initGraphHopper(file.path);
-            if (currentSession != _lifecycleSession) return;
+            if (currentSession != _lifecycleSession) {
+              await _routingService.dispose();
+              return;
+            }
             DLog.info(
                 '🏁 [RoutingRepository] .ghz file init outcome: success=$success');
             if (success) {
@@ -132,7 +138,10 @@ class RoutingRepositoryImpl implements IRoutingRepository {
           '📦 [RoutingRepository] Attempting auto-init from bundled APK asset: "assets/map/metro_hcm.ghz"');
       final assetSuccess =
           await _routingService.initGraphHopper('assets/map/metro_hcm.ghz');
-      if (currentSession != _lifecycleSession) return;
+      if (currentSession != _lifecycleSession) {
+        await _routingService.dispose();
+        return;
+      }
       DLog.info(
           '🏁 [RoutingRepository] Bundled asset init outcome: success=$assetSuccess');
       if (assetSuccess) {

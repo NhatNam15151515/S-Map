@@ -413,5 +413,26 @@ void main() {
         expect(res.streetName, equals('Tràng Thi'));
       }
     });
+
+    test('dispose called during pending auto-init prevents engine from staying active', () async {
+      final initCompleter = Completer<bool>();
+      final service = MockRoutingService()
+        ..readyState = false
+        ..initCompleter = initCompleter;
+      final repo = RoutingRepositoryImpl(routingService: service);
+
+      // Trigger auto-init
+      final pendingSnap = repo.snapToRoad(lat: 21.0285, lon: 105.8542);
+
+      // Dispose while init is in-flight
+      await repo.dispose();
+
+      // Complete init afterwards
+      initCompleter.complete(true);
+      await pendingSnap;
+
+      // isEngineReady should remain false
+      expect(await repo.isEngineReady(), isFalse);
+    });
   });
 }

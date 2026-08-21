@@ -370,8 +370,13 @@ class RoutingMethodChannelHandlerTest {
 
         val snapMap = result.successResult as Map<*, *>
         assertEquals(true, snapMap["isSnapped"])
+        assertEquals(21.0285, snapMap["originalLat"] as Double, 0.0001)
+        assertEquals(105.8542, snapMap["originalLon"] as Double, 0.0001)
+        assertEquals(21.0286, snapMap["snappedLat"] as Double, 0.0001)
+        assertEquals(105.8543, snapMap["snappedLon"] as Double, 0.0001)
+        assertEquals(1L, snapMap["calculationTimeMs"])
         assertEquals("Nguyễn Trãi", snapMap["streetName"])
-        assertEquals(3.5, snapMap["distanceToRoad"])
+        assertEquals(3.5, snapMap["distanceToRoad"] as Double, 0.0001)
         assertEquals(789, snapMap["edgeId"])
     }
 
