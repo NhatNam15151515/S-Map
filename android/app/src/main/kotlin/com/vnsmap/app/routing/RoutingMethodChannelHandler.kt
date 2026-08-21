@@ -11,6 +11,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 class RoutingMethodChannelHandler(
     private val context: Context? = null,
@@ -33,6 +34,7 @@ class RoutingMethodChannelHandler(
         when (call.method) {
             RoutingConstants.METHOD_INIT_GRAPH_HOPPER -> handleInitGraphHopper(call, result)
             RoutingConstants.METHOD_GET_ROUTE -> handleGetRoute(call, result)
+            RoutingConstants.METHOD_SNAP_TO_ROAD -> handleSnapToRoad(call, result)
             RoutingConstants.METHOD_IS_INITIALIZED -> handleIsInitialized(result)
             RoutingConstants.METHOD_DISPOSE_GRAPH_HOPPER -> handleDisposeGraphHopper(result)
             else -> result.notImplemented()
@@ -138,18 +140,75 @@ class RoutingMethodChannelHandler(
             return
         }
 
-        backgroundExecutor.execute {
-            try {
-                val routeResult = routingService.route(fromLat!!, fromLon!!, toLat!!, toLon!!, vehicleProfile)
-                postSuccess(result, routeResult.toMap())
-            } catch (e: Exception) {
-                postError(
-                    result,
-                    RoutingConstants.ERR_CODE_ROUTING_FAILED,
-                    "Error calculating route: ${e.message}",
-                    null
-                )
+        try {
+            backgroundExecutor.execute {
+                try {
+                    val routeResult = routingService.route(fromLat!!, fromLon!!, toLat!!, toLon!!, vehicleProfile)
+                    postSuccess(result, routeResult.toMap())
+                } catch (e: Exception) {
+                    postError(
+                        result,
+                        RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                        "Error calculating route: ${e.message}",
+                        null
+                    )
+                }
             }
+        } catch (e: RejectedExecutionException) {
+            postError(
+                result,
+                RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                "Routing executor has been shut down",
+                null
+            )
+        }
+    }
+
+    private fun handleSnapToRoad(call: MethodCall, result: MethodChannel.Result) {
+        val lat = call.argument<Number>(RoutingConstants.ARG_LAT)?.toDouble()
+        val lon = call.argument<Number>(RoutingConstants.ARG_LON)?.toDouble()
+
+        if (!isValidCoordinate(lat, lon)) {
+            postError(
+                result,
+                RoutingConstants.ERR_CODE_INVALID_ARGUMENTS,
+                "Coordinates (lat, lon) must be finite numbers within valid GPS ranges (lat: [-90, 90], lon: [-180, 180])",
+                null
+            )
+            return
+        }
+
+        if (backgroundExecutor.isShutdown) {
+            postError(
+                result,
+                RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                "Routing executor has been shut down",
+                null
+            )
+            return
+        }
+
+        try {
+            backgroundExecutor.execute {
+                try {
+                    val snappedPoint = routingService.snapToRoad(lat!!, lon!!)
+                    postSuccess(result, snappedPoint.toMap())
+                } catch (e: Exception) {
+                    postError(
+                        result,
+                        RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                        "Error snapping to road: ${e.message}",
+                        null
+                    )
+                }
+            }
+        } catch (e: RejectedExecutionException) {
+            postError(
+                result,
+                RoutingConstants.ERR_CODE_ROUTING_FAILED,
+                "Routing executor has been shut down",
+                null
+            )
         }
     }
 

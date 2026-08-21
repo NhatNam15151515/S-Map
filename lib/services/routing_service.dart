@@ -67,6 +67,49 @@ class RoutingServiceImpl implements IRoutingService {
   }
 
   @override
+  Future<SnappedRoadPoint> snapToRoad({
+    required double lat,
+    required double lon,
+  }) async {
+    DLog.info('⚡ [RoutingService] Invoking MethodChannel "${RoutingConstants.methodSnapToRoad}" ($lat, $lon)');
+    try {
+      final rawResult = await _channel.invokeMethod<dynamic>(
+        RoutingConstants.methodSnapToRoad,
+        {
+          RoutingConstants.argLat: lat,
+          RoutingConstants.argLon: lon,
+        },
+      );
+
+      if (rawResult is Map) {
+        final parsed = SnappedRoadPoint.fromMap(Map<String, dynamic>.from(rawResult));
+        DLog.info('⚡ [RoutingService] MethodChannel snapToRoad SUCCESS: isSnapped=${parsed.isSnapped}, snapped=(${parsed.snappedLat}, ${parsed.snappedLon}), street="${parsed.streetName}", dist=${parsed.distanceToRoad}m, time=${parsed.calculationTimeMs}ms');
+        return parsed;
+      }
+      DLog.warning('⚠️ [RoutingService] MethodChannel snapToRoad returned non-map result: $rawResult');
+      return SnappedRoadPoint.notSnapped(
+        originalLat: lat,
+        originalLon: lon,
+        errorMessage: RoutingConstants.errNoRoadFound,
+      );
+    } on PlatformException catch (e, stack) {
+      DLog.error('❌ [RoutingService] snapToRoad PlatformException: [${e.code}] ${e.message}', e, stack);
+      return SnappedRoadPoint.notSnapped(
+        originalLat: lat,
+        originalLon: lon,
+        errorMessage: e.message ?? RoutingConstants.errPlatformChannel,
+      );
+    } catch (e, stack) {
+      DLog.error('❌ [RoutingService] snapToRoad error: $e', e, stack);
+      return SnappedRoadPoint.notSnapped(
+        originalLat: lat,
+        originalLon: lon,
+        errorMessage: '${RoutingConstants.errPlatformChannel}: $e',
+      );
+    }
+  }
+
+  @override
   Future<bool> isInitialized() async {
     try {
       final result = await _channel.invokeMethod<bool>(

@@ -5,6 +5,7 @@ object RoutingConstants {
     const val CHANNEL_NAME = "com.smap/routing"
     const val METHOD_INIT_GRAPH_HOPPER = "initGraphHopper"
     const val METHOD_GET_ROUTE = "getRoute"
+    const val METHOD_SNAP_TO_ROAD = "snapToRoad"
     const val METHOD_IS_INITIALIZED = "isInitialized"
     const val METHOD_DISPOSE_GRAPH_HOPPER = "disposeGraphHopper"
 
@@ -14,6 +15,8 @@ object RoutingConstants {
     const val ARG_FROM_LON = "fromLon"
     const val ARG_TO_LAT = "toLat"
     const val ARG_TO_LON = "toLon"
+    const val ARG_LAT = "lat"
+    const val ARG_LON = "lon"
     const val ARG_VEHICLE_PROFILE = "vehicleProfile"
 
     // GraphHopper Engine Configurations
@@ -52,8 +55,10 @@ object RoutingConstants {
     const val ERR_CODE_UNKNOWN_METHOD = "NOT_IMPLEMENTED"
     const val ERR_SERVICE_NOT_INITIALIZED = "Routing service has not been initialized"
     const val ERR_NO_ROUTE_FOUND = "No valid route found between given coordinates"
+    const val ERR_NO_ROAD_FOUND = "No valid road found near the given coordinate"
     const val ERR_ROUTING_PREFIX = "Routing error: "
     const val ERR_ROUTING_EXCEPTION = "Routing calculation failed: "
+    const val ERR_SNAP_EXCEPTION = "Snap calculation failed: "
     const val ERR_ZIP_SLIP_ATTEMPT = "Security Exception: Zip Slip detected for entry "
     const val ERR_GRAPH_DATA_INCOMPLETE = "Graph data is missing or incomplete"
 }

@@ -5,6 +5,7 @@ import com.vnsmap.app.routing.engine.IGraphHopperEngine
 import com.vnsmap.app.routing.factory.DefaultGraphHopperEngineFactory
 import com.vnsmap.app.routing.factory.IGraphHopperEngineFactory
 import com.vnsmap.app.routing.models.RouteResult
+import com.vnsmap.app.routing.models.SnappedRoadPoint
 import com.vnsmap.app.routing.utils.GhzExtractor
 import com.vnsmap.app.routing.utils.IGhzExtractor
 import java.io.File
@@ -88,6 +89,22 @@ class GraphHopperService(
             engine.route(fromLat, fromLon, toLat, toLon, vehicleProfile)
         } catch (e: Exception) {
             RouteResult.failure("${RoutingConstants.ERR_ROUTING_EXCEPTION}${e.message}")
+        }
+    })
+
+    override fun snapToRoad(
+        lat: Double,
+        lon: Double
+    ): SnappedRoadPoint = rwLock.read(action = {
+        val engine = engineInstance
+        if (!initialized || engine == null) {
+            return SnappedRoadPoint.notSnapped(lat, lon, RoutingConstants.ERR_SERVICE_NOT_INITIALIZED)
+        }
+
+        return try {
+            engine.snapToRoad(lat, lon)
+        } catch (e: Exception) {
+            SnappedRoadPoint.notSnapped(lat, lon, "${RoutingConstants.ERR_SNAP_EXCEPTION}${e.message}")
         }
     })
 

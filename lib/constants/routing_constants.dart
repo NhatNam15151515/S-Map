@@ -5,6 +5,7 @@ class RoutingConstants {
   static const String channelName = 'com.smap/routing';
   static const String methodInitGraphHopper = 'initGraphHopper';
   static const String methodGetRoute = 'getRoute';
+  static const String methodSnapToRoad = 'snapToRoad';
   static const String methodIsInitialized = 'isInitialized';
   static const String methodDisposeGraphHopper = 'disposeGraphHopper';
 
@@ -14,6 +15,8 @@ class RoutingConstants {
   static const String argFromLon = 'fromLon';
   static const String argToLat = 'toLat';
   static const String argToLon = 'toLon';
+  static const String argLat = 'lat';
+  static const String argLon = 'lon';
   static const String argVehicleProfile = 'vehicleProfile';
 
   // Vehicle Profiles
@@ -26,6 +29,7 @@ class RoutingConstants {
   // Error Messages
   static const String errServiceNotInitialized = 'Routing service has not been initialized';
   static const String errNoRouteFound = 'No valid route found between given coordinates';
+  static const String errNoRoadFound = 'No valid road found near the given coordinate';
   static const String errInvalidCoordinates = 'Invalid coordinates provided';
   static const String errPlatformChannel = 'Platform channel communication error';
 

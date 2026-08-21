@@ -116,3 +116,38 @@ class NoOpMapStyleService implements IMapStyleService {
   @override
   Future<void> init() async {}
 }
+
+/// Fallback / No-Op implementation for IRoutingService
+class NoOpRoutingService implements IRoutingService {
+  const NoOpRoutingService();
+
+  @override
+  Future<bool> initGraphHopper(String graphPath) async => false;
+
+  @override
+  Future<RouteResult> getRoute({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async =>
+      const RouteResult(isSuccess: false, errorMessage: 'NoOp');
+
+  @override
+  Future<SnappedRoadPoint> snapToRoad({
+    required double lat,
+    required double lon,
+  }) async =>
+      SnappedRoadPoint.notSnapped(
+        originalLat: lat,
+        originalLon: lon,
+        errorMessage: 'NoOp',
+      );
+
+  @override
+  Future<bool> isInitialized() async => false;
+
+  @override
+  Future<bool> dispose() async => true;
+}

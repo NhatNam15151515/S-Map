@@ -2,6 +2,7 @@ package com.vnsmap.app.routing
 
 import com.vnsmap.app.routing.models.RouteInstruction
 import com.vnsmap.app.routing.models.RouteResult
+import com.vnsmap.app.routing.models.SnappedRoadPoint
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import org.junit.After
@@ -10,8 +11,10 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 class RoutingMethodChannelHandlerTest {
@@ -24,6 +27,9 @@ class RoutingMethodChannelHandlerTest {
         var initPath: String? = null
         var routeCalled = false
         var lastProfile: String? = null
+        var snapCalled = false
+        var lastSnapLat: Double? = null
+        var lastSnapLon: Double? = null
         var disposeCalled = false
         var initializedState = false
         var shouldThrow = false
@@ -56,6 +62,24 @@ class RoutingMethodChannelHandlerTest {
                     RouteInstruction("Đi thẳng trên đường Nguyễn Trãi", "Nguyễn Trãi", 1500.0, 180000L, 0, listOf(listOf(fromLat, fromLon), listOf(toLat, toLon)))
                 ),
                 calculationTimeMs = 12L
+            )
+        }
+
+        override fun snapToRoad(lat: Double, lon: Double): SnappedRoadPoint {
+            if (shouldThrow) throw RuntimeException("Snap computation failed intentionally")
+            snapCalled = true
+            lastSnapLat = lat
+            lastSnapLon = lon
+            return SnappedRoadPoint(
+                isSnapped = true,
+                originalLat = lat,
+                originalLon = lon,
+                snappedLat = lat + 0.0001,
+                snappedLon = lon + 0.0001,
+                streetName = "Nguyễn Trãi",
+                distanceToRoad = 3.5,
+                edgeId = 789,
+                calculationTimeMs = 1L
             )
         }
 
@@ -329,5 +353,98 @@ class RoutingMethodChannelHandlerTest {
         handler.onMethodCall(MethodCall("unknownMethodName", null), result)
         assertTrue(result.await())
         assertTrue(result.notImplementedCalled)
+    }
+
+    @Test
+    fun testHandleSnapToRoadSuccess() {
+        val result = TestResult()
+        val args = mapOf(
+            RoutingConstants.ARG_LAT to 21.0285,
+            RoutingConstants.ARG_LON to 105.8542
+        )
+        handler.onMethodCall(MethodCall(RoutingConstants.METHOD_SNAP_TO_ROAD, args), result)
+        assertTrue(result.await())
+        assertTrue(mockService.snapCalled)
+        assertEquals(21.0285, mockService.lastSnapLat!!, 0.0001)
+        assertEquals(105.8542, mockService.lastSnapLon!!, 0.0001)
+
+        val snapMap = result.successResult as Map<*, *>
+        assertEquals(true, snapMap["isSnapped"])
+        assertEquals(21.0285, snapMap["originalLat"] as Double, 0.0001)
+        assertEquals(105.8542, snapMap["originalLon"] as Double, 0.0001)
+        assertEquals(21.0286, snapMap["snappedLat"] as Double, 0.0001)
+        assertEquals(105.8543, snapMap["snappedLon"] as Double, 0.0001)
+        assertEquals(1L, snapMap["calculationTimeMs"])
+        assertEquals("Nguyễn Trãi", snapMap["streetName"])
+        assertEquals(3.5, snapMap["distanceToRoad"] as Double, 0.0001)
+        assertEquals(789, snapMap["edgeId"])
+    }
+
+    @Test
+    fun testHandleSnapToRoadInvalidCoordinates() {
+        val result = TestResult()
+        val args = mapOf(
+            RoutingConstants.ARG_LAT to 999.0, // Invalid latitude
+            RoutingConstants.ARG_LON to 105.8542
+        )
+        handler.onMethodCall(MethodCall(RoutingConstants.METHOD_SNAP_TO_ROAD, args), result)
+        assertTrue(result.await())
+        assertEquals(RoutingConstants.ERR_CODE_INVALID_ARGUMENTS, result.errorCode)
+    }
+
+    @Test
+    fun testHandleSnapToRoadWhenServiceThrows() {
+        mockService.shouldThrow = true
+        val result = TestResult()
+        val args = mapOf(
+            RoutingConstants.ARG_LAT to 21.0285,
+            RoutingConstants.ARG_LON to 105.8542
+        )
+        handler.onMethodCall(MethodCall(RoutingConstants.METHOD_SNAP_TO_ROAD, args), result)
+        assertTrue(result.await())
+        assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
+    }
+
+    @Test
+    fun testHandleSnapToRoadWhenExecutorShutdown() {
+        handler.close()
+        val result = TestResult()
+        val args = mapOf(
+            RoutingConstants.ARG_LAT to 21.0285,
+            RoutingConstants.ARG_LON to 105.8542
+        )
+        handler.onMethodCall(MethodCall(RoutingConstants.METHOD_SNAP_TO_ROAD, args), result)
+        assertTrue(result.await())
+        assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
+    }
+
+    @Test
+    fun testHandleSnapToRoadWhenExecutorThrowsRejectedExecution() {
+        val rejectingExecutor = object : AbstractExecutorService() {
+            override fun shutdown() {}
+            override fun shutdownNow(): List<Runnable> = emptyList()
+            override fun isShutdown(): Boolean = false
+            override fun isTerminated(): Boolean = false
+            override fun awaitTermination(timeout: Long, unit: TimeUnit): Boolean = true
+            override fun execute(command: Runnable) {
+                throw RejectedExecutionException("Executor rejected execution intentionally")
+            }
+        }
+
+        val rejectingHandler = RoutingMethodChannelHandler(
+            routingService = mockService,
+            backgroundExecutor = rejectingExecutor,
+            resultPoster = { it.run() }
+        )
+
+        val result = TestResult()
+        val args = mapOf(
+            RoutingConstants.ARG_LAT to 21.0285,
+            RoutingConstants.ARG_LON to 105.8542
+        )
+        rejectingHandler.onMethodCall(MethodCall(RoutingConstants.METHOD_SNAP_TO_ROAD, args), result)
+        assertTrue(result.await())
+        assertEquals(RoutingConstants.ERR_CODE_ROUTING_FAILED, result.errorCode)
+        assertEquals("Routing executor has been shut down", result.errorMessage)
     }
 }
