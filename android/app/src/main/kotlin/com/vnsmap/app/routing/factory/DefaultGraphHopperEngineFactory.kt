@@ -328,19 +328,19 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
         }
 
         override fun snapToRoad(lat: Double, lon: Double): SnappedRoadPoint {
-            val startTime = System.currentTimeMillis()
+            val startNano = System.nanoTime()
             return try {
                 val locationIndex = hopper.locationIndex
                 if (locationIndex == null) {
-                    val elapsed = System.currentTimeMillis() - startTime
-                    return SnappedRoadPoint.notSnapped(lat, lon, "LocationIndex is null or not loaded", elapsed)
+                    val elapsedMs = (System.nanoTime() - startNano) / 1_000_000L
+                    return SnappedRoadPoint.notSnapped(lat, lon, "LocationIndex is null or not loaded", elapsedMs)
                 }
 
                 val snap: Snap = locationIndex.findClosest(lat, lon, EdgeFilter.ALL_EDGES)
-                val elapsed = System.currentTimeMillis() - startTime
+                val elapsedMs = (System.nanoTime() - startNano) / 1_000_000L
 
                 if (!snap.isValid) {
-                    return SnappedRoadPoint.notSnapped(lat, lon, RoutingConstants.ERR_NO_ROAD_FOUND, elapsed)
+                    return SnappedRoadPoint.notSnapped(lat, lon, RoutingConstants.ERR_NO_ROAD_FOUND, elapsedMs)
                 }
 
                 val snappedPoint = snap.snappedPoint
@@ -358,11 +358,11 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                     streetName = streetName,
                     distanceToRoad = distance,
                     edgeId = edgeId,
-                    calculationTimeMs = elapsed
+                    calculationTimeMs = elapsedMs
                 )
             } catch (e: Exception) {
-                val elapsed = System.currentTimeMillis() - startTime
-                SnappedRoadPoint.notSnapped(lat, lon, "${RoutingConstants.ERR_SNAP_EXCEPTION}${e.message}", elapsed)
+                val elapsedMs = (System.nanoTime() - startNano) / 1_000_000L
+                SnappedRoadPoint.notSnapped(lat, lon, "${RoutingConstants.ERR_SNAP_EXCEPTION}${e.message}", elapsedMs)
             }
         }
 

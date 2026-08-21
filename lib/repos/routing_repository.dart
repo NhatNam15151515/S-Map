@@ -9,7 +9,7 @@ import 'package:s_map/models/models.dart';
 
 class RoutingRepositoryImpl implements IRoutingRepository {
   final IRoutingService _routingService;
-  bool _hasAttemptedAutoInit = false;
+  Future<void>? _autoInitFuture;
 
   RoutingRepositoryImpl({required IRoutingService routingService})
       : _routingService = routingService;
@@ -22,12 +22,12 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   }
 
   /// Tự động tìm và nạp file đồ thị đường đi (.ghz hoặc thư mục giải nén) nếu có trên thiết bị
-  Future<void> _ensureAutoInitialized() async {
-    DLog.info(
-        '🔍 [RoutingRepository] _ensureAutoInitialized check: already attempted = $_hasAttemptedAutoInit');
-    if (_hasAttemptedAutoInit) return;
-    _hasAttemptedAutoInit = true;
+  Future<void> _ensureAutoInitialized() {
+    return _autoInitFuture ??= _ensureAutoInitializedImpl();
+  }
 
+  Future<void> _ensureAutoInitializedImpl() async {
+    DLog.info('🔍 [RoutingRepository] Executing _ensureAutoInitializedImpl');
     try {
       final isReady = await _routingService.isInitialized();
       DLog.info(
@@ -252,6 +252,7 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   @override
   Future<bool> dispose() {
     DLog.info('🧹 [RoutingRepository] dispose called');
+    _autoInitFuture = null;
     return _routingService.dispose();
   }
 }

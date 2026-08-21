@@ -380,5 +380,22 @@ void main() {
       expect(result.originalLon, equals(106.65));
       expect(result.errorMessage, equals(RoutingConstants.errServiceNotInitialized));
     });
+
+    test('concurrent snapToRoad requests share the same auto-init Future and succeed together', () async {
+      final sharedService = MockRoutingService()..readyState = true;
+      final repo = RoutingRepositoryImpl(routingService: sharedService);
+
+      final results = await Future.wait([
+        repo.snapToRoad(lat: 21.0285, lon: 105.8542),
+        repo.snapToRoad(lat: 21.0300, lon: 105.8550),
+        repo.snapToRoad(lat: 21.0350, lon: 105.8600),
+      ]);
+
+      expect(results.length, equals(3));
+      for (final res in results) {
+        expect(res.isSnapped, isTrue);
+        expect(res.streetName, equals('Tràng Thi'));
+      }
+    });
   });
 }

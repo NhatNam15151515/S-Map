@@ -4,6 +4,7 @@ import com.vnsmap.app.routing.engine.IGraphHopperEngine
 import com.vnsmap.app.routing.factory.IGraphHopperEngineFactory
 import com.vnsmap.app.routing.models.RouteInstruction
 import com.vnsmap.app.routing.models.RouteResult
+import com.vnsmap.app.routing.models.SnappedRoadPoint
 import com.vnsmap.app.routing.utils.GhzExtractor
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -116,6 +117,20 @@ class GraphHopperIntegrationBenchmarkTest {
                 return urbanRouteResult
             }
 
+            override fun snapToRoad(lat: Double, lon: Double): SnappedRoadPoint {
+                return SnappedRoadPoint(
+                    isSnapped = true,
+                    originalLat = lat,
+                    originalLon = lon,
+                    snappedLat = lat + 0.0001,
+                    snappedLon = lon + 0.0001,
+                    streetName = "Tràng Thi",
+                    distanceToRoad = 2.5,
+                    edgeId = 12,
+                    calculationTimeMs = 1L
+                )
+            }
+
             override fun close() {}
         }
 
@@ -190,6 +205,17 @@ class GraphHopperIntegrationBenchmarkTest {
                 return nationwideRouteResult
             }
 
+            override fun snapToRoad(lat: Double, lon: Double): SnappedRoadPoint {
+                return SnappedRoadPoint(
+                    isSnapped = true,
+                    originalLat = lat,
+                    originalLon = lon,
+                    snappedLat = lat,
+                    snappedLon = lon,
+                    streetName = "Quốc lộ 1A"
+                )
+            }
+
             override fun close() {}
         }
 
@@ -224,6 +250,61 @@ class GraphHopperIntegrationBenchmarkTest {
     }
 
     @Test
+    fun testSnapToRoadBenchmarkUnder50ms() {
+        val mockEngine = object : IGraphHopperEngine {
+            override fun route(fromLat: Double, fromLon: Double, toLat: Double, toLon: Double, vehicleProfile: String): RouteResult {
+                return RouteResult(isSuccess = true, points = emptyList())
+            }
+
+            override fun snapToRoad(lat: Double, lon: Double): SnappedRoadPoint {
+                // Mô phỏng spatial quadtree lookup (~1ms)
+                Thread.sleep(1)
+                return SnappedRoadPoint(
+                    isSnapped = true,
+                    originalLat = lat,
+                    originalLon = lon,
+                    snappedLat = lat + 0.00005,
+                    snappedLon = lon + 0.00005,
+                    streetName = "Tràng Thi",
+                    distanceToRoad = 2.1,
+                    edgeId = 456,
+                    calculationTimeMs = 1L
+                )
+            }
+
+            override fun close() {}
+        }
+
+        val mockFactory = object : IGraphHopperEngineFactory {
+            override fun createAndLoad(graphDirectory: File): IGraphHopperEngine = mockEngine
+        }
+
+        val service = GraphHopperService(engineFactory = mockFactory)
+        service.init(sampleGhzFile.absolutePath)
+
+        // Thực thi benchmark 50 truy vấn snap-to-road liên tiếp
+        val times = mutableListOf<Long>()
+        for (i in 1..50) {
+            val start = System.nanoTime()
+            val result = service.snapToRoad(21.0285 + i * 0.0001, 105.8542 + i * 0.0001)
+            val durationMs = (System.nanoTime() - start) / 1_000_000L
+            times.add(durationMs)
+
+            assertTrue(result.isSnapped)
+            assertEquals("Tràng Thi", result.streetName)
+            assertEquals(2.1, result.distanceToRoad, 0.01)
+        }
+
+        val avgTime = times.average()
+        val maxTime = times.maxOrNull() ?: 0L
+
+        assertTrue("Chỉ tiêu: Snap-to-road trung bình phải < 50ms (Thực tế: ${avgTime}ms)", avgTime < 50.0)
+        assertTrue("Chỉ tiêu: Snap-to-road tối đa phải < 50ms (Thực tế: ${maxTime}ms)", maxTime < 50L)
+
+        service.dispose()
+    }
+
+    @Test
     fun testMemoryFootprintAndZeroOOMUnderHeavyLoad() {
         val points = ArrayList<List<Double>>(100)
         for (i in 0 until 100) {
@@ -242,6 +323,17 @@ class GraphHopperIntegrationBenchmarkTest {
                         RouteInstruction("Đi tiếp", "Võ Chí Công", 10000.0, 600000L, 0, emptyList())
                     ),
                     calculationTimeMs = 5L
+                )
+            }
+
+            override fun snapToRoad(lat: Double, lon: Double): SnappedRoadPoint {
+                return SnappedRoadPoint(
+                    isSnapped = true,
+                    originalLat = lat,
+                    originalLon = lon,
+                    snappedLat = lat,
+                    snappedLon = lon,
+                    streetName = "Võ Chí Công"
                 )
             }
 
