@@ -165,12 +165,82 @@ void main() {
 
       expect(
         () => TripRecordModel.fromMap({
-          'id': 'trip_null_point_type',
+          'id': 'trip_bad_coords_range',
           'startTime': startTime.toIso8601String(),
           'endTime': endTime.toIso8601String(),
           'polyline': const [
-            [null, 106.69], // Invalid coordinate element type (null instead of num)
+            [95.0, 106.69], // Lat > 90
           ],
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_duration',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'durationMs': -100, // Negative duration
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_fractional_duration',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'durationMs': 123.45, // Fractional duration (double instead of int)
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_distance',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'distanceMeters': -5.0, // Negative distance
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_speed',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'avgSpeedKmh': double.nan, // NaN speed
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_destination',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'destinationName': 12345, // Non-string destination
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_has_arrived',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'hasArrived': 'true', // String instead of bool
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_created_at',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'createdAt': 'not_a_valid_date',
         }),
         throwsA(isA<FormatException>()),
       );

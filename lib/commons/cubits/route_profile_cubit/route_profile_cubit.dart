@@ -10,6 +10,10 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
   final ITripRepository _repository;
   StreamSubscription<List<TripRecordModel>>? _watchSubscription;
 
+  int _loadGeneration = 0;
+  int _watchGeneration = 0;
+  bool _isClosing = false;
+
   /// Optional global default repository resolver set during bootstrap
   static ITripRepository? defaultTripRepository;
 
@@ -24,7 +28,7 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
 
   @override
   void emit(RouteProfileState state) {
-    if (isClosed) return;
+    if (_isClosing || isClosed) return;
     super.emit(state);
   }
 
@@ -34,7 +38,7 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
     String? initialProfileFilter,
   }) async {
     await loadStats(profileFilter: initialProfileFilter);
-    if (isClosed) return;
+    if (_isClosing || isClosed) return;
     if (autoWatch) {
       await startWatching();
     }
@@ -42,6 +46,7 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
 
   /// Nạp danh sách chuyến đi và tính toán các chỉ số thống kê tổng hợp
   Future<void> loadStats({String? profileFilter, bool clearFilter = false}) async {
+    final generation = ++_loadGeneration;
     final activeFilter = clearFilter ? null : (profileFilter ?? state.profileFilter);
     emit(state.copyWith(
       status: RouteProfileStatus.loading,
@@ -52,6 +57,8 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
 
     try {
       final trips = await _repository.getTrips();
+      if (_isClosing || isClosed || generation != _loadGeneration) return;
+
       final filtered = activeFilter != null && activeFilter.isNotEmpty
           ? trips.where((t) => t.vehicleProfile == activeFilter).toList()
           : trips;
@@ -69,6 +76,7 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
       ));
     } catch (e) {
       DLog.error('❌ [RouteProfileCubit] Error calculating stats: $e');
+      if (_isClosing || isClosed || generation != _loadGeneration) return;
       emit(state.copyWith(
         status: RouteProfileStatus.error,
         errorMessage: e.toString(),
@@ -78,6 +86,7 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
 
   /// Thay đổi bộ lọc theo vehicle profile (ví dụ: 'motorcycle', 'car', hoặc null/rỗng cho tất cả)
   void setProfileFilter(String? profileFilter) {
+    _loadGeneration++;
     final filter = profileFilter?.trim().isNotEmpty == true
         ? profileFilter!.trim()
         : null;
@@ -100,14 +109,16 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
 
   /// Lắng nghe stream thay đổi từ Hive Box để cập nhật thống kê realtime
   Future<void> startWatching() async {
+    final token = ++_watchGeneration;
     await _watchSubscription?.cancel();
     _watchSubscription = null;
-    if (isClosed) return;
+    if (_isClosing || isClosed || token != _watchGeneration) return;
 
     try {
-      _watchSubscription = _repository.watchTrips().listen(
+      final sub = _repository.watchTrips().listen(
         (trips) {
-          if (isClosed) return;
+          if (_isClosing || isClosed || token != _watchGeneration) return;
+          _loadGeneration++;
           final filter = state.profileFilter;
           final filtered = filter != null && filter.isNotEmpty
               ? trips.where((t) => t.vehicleProfile == filter).toList()
@@ -124,16 +135,22 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
         },
         onError: (e) {
           DLog.error('❌ [RouteProfileCubit] Error in watch stream: $e');
-          if (isClosed) return;
+          if (_isClosing || isClosed || token != _watchGeneration) return;
           emit(state.copyWith(
             status: RouteProfileStatus.error,
             errorMessage: e.toString(),
           ));
         },
       );
+
+      if (_isClosing || isClosed || token != _watchGeneration) {
+        await sub.cancel();
+      } else {
+        _watchSubscription = sub;
+      }
     } catch (e) {
       DLog.error('❌ [RouteProfileCubit] Error starting watch stream: $e');
-      if (isClosed) return;
+      if (_isClosing || isClosed || token != _watchGeneration) return;
       emit(state.copyWith(
         status: RouteProfileStatus.error,
         errorMessage: e.toString(),
@@ -143,6 +160,9 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
 
   @override
   Future<void> close() async {
+    _isClosing = true;
+    _loadGeneration++;
+    _watchGeneration++;
     await _watchSubscription?.cancel();
     _watchSubscription = null;
     return super.close();

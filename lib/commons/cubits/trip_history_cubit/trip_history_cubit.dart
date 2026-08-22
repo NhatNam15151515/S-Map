@@ -10,6 +10,9 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
   final ITripRepository _repository;
   StreamSubscription<List<TripRecordModel>>? _watchSubscription;
 
+  int _watchGeneration = 0;
+  bool _isClosing = false;
+
   /// Optional global default repository resolver set during bootstrap
   static ITripRepository? defaultTripRepository;
 
@@ -24,14 +27,14 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
 
   @override
   void emit(TripHistoryState state) {
-    if (isClosed) return;
+    if (_isClosing || isClosed) return;
     super.emit(state);
   }
 
   /// Khởi tạo cubit: tải danh sách ban đầu và đăng ký lắng nghe realtime
   Future<void> init({bool autoWatch = true}) async {
     await loadTrips();
-    if (isClosed) return;
+    if (_isClosing || isClosed) return;
     if (autoWatch) {
       await startWatching();
     }
@@ -42,6 +45,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
     emit(state.copyWith(status: TripHistoryStatus.loading, clearError: true));
     try {
       final trips = await _repository.getTrips();
+      if (_isClosing || isClosed) return;
       emit(state.copyWith(
         status: TripHistoryStatus.success,
         trips: trips,
@@ -49,6 +53,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
       ));
     } catch (e) {
       DLog.error('❌ [TripHistoryCubit] Error loading trips: $e');
+      if (_isClosing || isClosed) return;
       emit(state.copyWith(
         status: TripHistoryStatus.error,
         errorMessage: e.toString(),
@@ -58,13 +63,15 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
 
   /// Lắng nghe stream thay đổi của Hive Box
   Future<void> startWatching() async {
+    final token = ++_watchGeneration;
     await _watchSubscription?.cancel();
     _watchSubscription = null;
-    if (isClosed) return;
+    if (_isClosing || isClosed || token != _watchGeneration) return;
+
     try {
-      _watchSubscription = _repository.watchTrips().listen(
+      final sub = _repository.watchTrips().listen(
         (trips) {
-          if (isClosed) return;
+          if (_isClosing || isClosed || token != _watchGeneration) return;
           emit(state.copyWith(
             status: TripHistoryStatus.success,
             trips: trips,
@@ -73,16 +80,22 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
         },
         onError: (e) {
           DLog.error('❌ [TripHistoryCubit] Error in watch stream: $e');
-          if (isClosed) return;
+          if (_isClosing || isClosed || token != _watchGeneration) return;
           emit(state.copyWith(
             status: TripHistoryStatus.error,
             errorMessage: e.toString(),
           ));
         },
       );
+
+      if (_isClosing || isClosed || token != _watchGeneration) {
+        await sub.cancel();
+      } else {
+        _watchSubscription = sub;
+      }
     } catch (e) {
       DLog.error('❌ [TripHistoryCubit] Error starting watch stream: $e');
-      if (isClosed) return;
+      if (_isClosing || isClosed || token != _watchGeneration) return;
       emit(state.copyWith(
         status: TripHistoryStatus.error,
         errorMessage: e.toString(),
@@ -94,6 +107,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
   Future<void> deleteTrip(String id) async {
     try {
       await _repository.deleteTrip(id);
+      if (_isClosing || isClosed) return;
       final updatedList = state.trips.where((t) => t.id != id).toList();
       emit(state.copyWith(
         status: TripHistoryStatus.success,
@@ -102,6 +116,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
       ));
     } catch (e) {
       DLog.error('❌ [TripHistoryCubit] Error deleting trip $id: $e');
+      if (_isClosing || isClosed) return;
       emit(state.copyWith(
         status: TripHistoryStatus.error,
         errorMessage: e.toString(),
@@ -113,6 +128,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
   Future<void> clearAllTrips() async {
     try {
       await _repository.clearAllTrips();
+      if (_isClosing || isClosed) return;
       emit(state.copyWith(
         status: TripHistoryStatus.success,
         trips: const [],
@@ -120,6 +136,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
       ));
     } catch (e) {
       DLog.error('❌ [TripHistoryCubit] Error clearing trips: $e');
+      if (_isClosing || isClosed) return;
       emit(state.copyWith(
         status: TripHistoryStatus.error,
         errorMessage: e.toString(),
@@ -129,6 +146,8 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
 
   @override
   Future<void> close() async {
+    _isClosing = true;
+    _watchGeneration++;
     await _watchSubscription?.cancel();
     _watchSubscription = null;
     return super.close();

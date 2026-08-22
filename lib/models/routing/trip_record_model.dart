@@ -130,29 +130,118 @@ class TripRecordModel extends Equatable {
             item[1] is! num) {
           throw FormatException('Invalid coordinate in polyline: $item');
         }
-        parsedPolyline.add([
-          (item[0] as num).toDouble(),
-          (item[1] as num).toDouble(),
-        ]);
+        final lat = (item[0] as num).toDouble();
+        final lon = (item[1] as num).toDouble();
+        if (!lat.isFinite ||
+            !lon.isFinite ||
+            lat < -90.0 ||
+            lat > 90.0 ||
+            lon < -180.0 ||
+            lon > 180.0) {
+          throw FormatException(
+              'Coordinate out of valid geographic range: [$lat, $lon]');
+        }
+        parsedPolyline.add([lat, lon]);
       }
+    }
+
+    final rawDuration = map['durationMs'];
+    final int durationMs;
+    if (rawDuration != null) {
+      if (rawDuration is! int || rawDuration < 0) {
+        throw const FormatException(
+            'Field "durationMs" must be a non-negative int');
+      }
+      durationMs = rawDuration;
+    } else {
+      durationMs = 0;
+    }
+
+    final rawDist = map['distanceMeters'];
+    final double distanceMeters;
+    if (rawDist != null) {
+      if (rawDist is! num || !rawDist.isFinite || rawDist < 0) {
+        throw const FormatException(
+            'Field "distanceMeters" must be a non-negative finite num');
+      }
+      distanceMeters = rawDist.toDouble();
+    } else {
+      distanceMeters = 0.0;
+    }
+
+    final rawAvgSpeed = map['avgSpeedKmh'];
+    final double avgSpeedKmh;
+    if (rawAvgSpeed != null) {
+      if (rawAvgSpeed is! num || !rawAvgSpeed.isFinite || rawAvgSpeed < 0) {
+        throw const FormatException(
+            'Field "avgSpeedKmh" must be a non-negative finite num');
+      }
+      avgSpeedKmh = rawAvgSpeed.toDouble();
+    } else {
+      avgSpeedKmh = 0.0;
+    }
+
+    final rawTopSpeed = map['topSpeedKmh'];
+    final double topSpeedKmh;
+    if (rawTopSpeed != null) {
+      if (rawTopSpeed is! num || !rawTopSpeed.isFinite || rawTopSpeed < 0) {
+        throw const FormatException(
+            'Field "topSpeedKmh" must be a non-negative finite num');
+      }
+      topSpeedKmh = rawTopSpeed.toDouble();
+    } else {
+      topSpeedKmh = 0.0;
+    }
+
+    final rawDest = map['destinationName'];
+    if (rawDest != null && rawDest is! String) {
+      throw const FormatException('Field "destinationName" must be a String');
+    }
+
+    final rawOrigin = map['originName'];
+    if (rawOrigin != null && rawOrigin is! String) {
+      throw const FormatException('Field "originName" must be a String');
+    }
+
+    final rawProfile = map['vehicleProfile'];
+    if (rawProfile != null && rawProfile is! String) {
+      throw const FormatException('Field "vehicleProfile" must be a String');
+    }
+
+    final rawHasArrived = map['hasArrived'];
+    if (rawHasArrived != null && rawHasArrived is! bool) {
+      throw const FormatException('Field "hasArrived" must be a bool');
+    }
+
+    final rawCreatedAt = map['createdAt'];
+    DateTime createdAt = DateTime.now();
+    if (rawCreatedAt != null) {
+      if (rawCreatedAt is! String) {
+        throw const FormatException(
+            'Field "createdAt" must be a valid ISO8601 String');
+      }
+      final parsed = DateTime.tryParse(rawCreatedAt);
+      if (parsed == null) {
+        throw const FormatException(
+            'Field "createdAt" could not be parsed to DateTime');
+      }
+      createdAt = parsed;
     }
 
     return TripRecordModel(
       id: rawId,
       startTime: startTime,
       endTime: endTime,
-      durationMs: (map['durationMs'] as num?)?.toInt() ?? 0,
-      distanceMeters: (map['distanceMeters'] as num?)?.toDouble() ?? 0.0,
-      avgSpeedKmh: (map['avgSpeedKmh'] as num?)?.toDouble() ?? 0.0,
-      topSpeedKmh: (map['topSpeedKmh'] as num?)?.toDouble() ?? 0.0,
-      destinationName: map['destinationName'] as String?,
-      originName: map['originName'] as String?,
-      hasArrived: map['hasArrived'] as bool? ?? false,
-      vehicleProfile: map['vehicleProfile'] as String? ?? 'motorcycle',
+      durationMs: durationMs,
+      distanceMeters: distanceMeters,
+      avgSpeedKmh: avgSpeedKmh,
+      topSpeedKmh: topSpeedKmh,
+      destinationName: rawDest as String?,
+      originName: rawOrigin as String?,
+      hasArrived: rawHasArrived as bool? ?? false,
+      vehicleProfile: (rawProfile as String?) ?? 'motorcycle',
       polyline: parsedPolyline,
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: createdAt,
     );
   }
 

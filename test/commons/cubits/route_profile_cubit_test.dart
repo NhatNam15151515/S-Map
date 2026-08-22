@@ -10,10 +10,14 @@ class MockTripRepository implements ITripRepository {
       StreamController<List<TripRecordModel>>.broadcast();
   bool shouldThrow = false;
   bool throwOnWatch = false;
+  Completer<void>? getTripsCompleter;
   int watchCallCount = 0;
 
   @override
   Future<List<TripRecordModel>> getTrips() async {
+    if (getTripsCompleter != null) {
+      await getTripsCompleter!.future;
+    }
     if (shouldThrow) throw Exception('Database read error');
     return List.unmodifiable(storage);
   }
@@ -216,6 +220,25 @@ void main() {
 
       expect(cubit.state.status, equals(RouteProfileStatus.error));
       expect(cubit.state.errorMessage, contains('Synchronous watch initialization failed'));
+    });
+
+    test('loadStats race condition: slower previous loadStats does not overwrite newer state', () async {
+      mockRepo.storage.addAll([tripMotorcycle, tripCar]);
+      mockRepo.getTripsCompleter = Completer<void>();
+
+      // Bắt đầu loadStats lần 1 (bị nghẽn bởi completer)
+      final pendingLoad1 = cubit.loadStats(profileFilter: 'motorcycle');
+
+      // Đổi filter sang 'car'
+      cubit.setProfileFilter('car');
+      expect(cubit.state.profileFilter, equals('car'));
+
+      // Hoàn tất loadStats lần 1
+      mockRepo.getTripsCompleter!.complete();
+      await pendingLoad1;
+
+      // Filter vẫn phải giữ nguyên là 'car', không bị lần 1 ghi đè thành 'motorcycle'
+      expect(cubit.state.profileFilter, equals('car'));
     });
   });
 }

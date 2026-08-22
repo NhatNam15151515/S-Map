@@ -182,6 +182,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     } catch (e) {
       DLog.error('Lỗi khi request ignore battery optimization: $e');
     }
+    if (isClosed || emit.isDone) return;
     emit(state.copyWith(clearPromptBatteryOptimization: true));
   }
 
@@ -436,7 +437,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         vehicleProfile: state.profile,
       );
 
-      if (emit.isDone || generation != _requestGeneration) {
+      if (isClosed || emit.isDone || generation != _requestGeneration) {
         DLog.info('⏭️ [NavigationBloc] Stale reroute response discarded (#$generation vs #$_requestGeneration)');
         return;
       }
@@ -479,7 +480,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         ));
       }
     } catch (e, stack) {
-      if (emit.isDone || generation != _requestGeneration) return;
+      if (isClosed || emit.isDone || generation != _requestGeneration) return;
       DLog.error('❌ [NavigationBloc] Exception in reroute calculation: $e', e, stack);
       emit(state.copyWith(
         status: NavigationStatus.navigating,
@@ -494,14 +495,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     StopNavigation event,
     Emitter<NavigationState> emit,
   ) async {
-    DLog.info('🛑 [NavigationBloc] Stopping navigation session');
     final generation = ++_requestGeneration;
+    DLog.info('🛑 [NavigationBloc] Stopping navigation [Gen #$generation]');
+
     await _locationSubscription?.cancel();
     _locationSubscription = null;
-
-    if (generation != _requestGeneration || isClosed) return;
-
-    _lastRerouteTime = null;
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
 
@@ -547,7 +545,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       );
       await _saveTripSafely(tripRecord);
 
-      if (generation != _requestGeneration || isClosed) return;
+      if (isClosed || emit.isDone || generation != _requestGeneration) return;
 
       emit(state.copyWith(
         status: NavigationStatus.stopped,

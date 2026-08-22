@@ -85,8 +85,14 @@ void main() {
       expect(list.length, equals(1));
       expect(list.first.id, equals('repo_trip_1'));
 
+      final updatedTrip = sampleTrip.copyWith(distanceMeters: 13000.0);
+      await repository.saveTrip(updatedTrip);
+      final updatedList = await repository.getTrips();
+      expect(updatedList.length, equals(1));
+      expect(updatedList.first.distanceMeters, equals(13000.0));
+
       final retrieved = await repository.getTripById('repo_trip_1');
-      expect(retrieved, equals(sampleTrip));
+      expect(retrieved, equals(updatedTrip));
 
       await repository.deleteTrip('repo_trip_1');
       expect(await repository.getTrips(), isEmpty);
