@@ -871,6 +871,54 @@ void main() {
 
       expect(bloc.state.savedRoute?.name, equals('Tên gốc cố định'));
     });
+
+    test('Closing bloc while saveRoute is pending suppresses emissions cleanly without throwing', () async {
+      final initialRoute = CustomRouteModel(
+        id: 'load_close_1',
+        name: 'Tuyến thử đóng bloc',
+        waypoints: const [
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.773,
+            originalLon: 106.699,
+            snappedLat: 10.77305,
+            snappedLon: 106.69905,
+          ),
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.778,
+            originalLon: 106.702,
+            snappedLat: 10.77805,
+            snappedLon: 106.70205,
+          ),
+        ],
+        fullPolyline: const [
+          [10.77305, 106.69905],
+          [10.77805, 106.70205],
+        ],
+        totalDistance: 1200.0,
+        totalTime: 150000,
+        createdAt: DateTime(2026, 8, 22, 8, 0),
+      );
+
+      bloc.add(RouteDrawingLoadRoute(initialRoute));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      mockCustomRouteRepo.saveDelay = const Duration(milliseconds: 100);
+      final saveStarted = Completer<void>();
+      mockCustomRouteRepo.onSaveStarted = () {
+        if (!saveStarted.isCompleted) saveStarted.complete();
+      };
+
+      bloc.add(const RouteDrawingSaveRoute(name: 'Tuyến đóng'));
+      await saveStarted.future;
+
+      // Đóng bloc khi save đang chờ
+      await bloc.close();
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      expect(bloc.isClosed, isTrue);
+    });
   });
 
   group('RouteDrawingBloc Concurrency & restartable()', () {

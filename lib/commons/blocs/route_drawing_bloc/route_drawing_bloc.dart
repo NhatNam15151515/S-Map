@@ -43,10 +43,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   static List<RoutePoint> _buildFullPolyline(List<RouteResult> segments) {
     final List<RoutePoint> fullList = [];
     for (final segment in segments) {
-      for (int i = 0; i < segment.points.length; i++) {
-        final pt = segment.points[i];
-        if (pt.length >= 2) {
-          final routePoint = RoutePoint(lat: pt[0], lon: pt[1]);
+      if (segment.points.isNotEmpty) {
+        for (final coord in segment.points) {
+          final routePoint = RoutePoint(lat: coord[0], lon: coord[1]);
           // Tránh trùng lặp tọa độ tại điểm giao nhau giữa 2 segments liên tiếp
           if (fullList.isNotEmpty &&
               fullList.last.lat == routePoint.lat &&
@@ -82,7 +81,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       );
 
       // Guard: kiểm tra emitter hoặc generation có bị thay đổi (bởi tap mới, undo, clear)
-      if (emit.isDone || generation != _currentGeneration) {
+      if (isClosed || emit.isDone || generation != _currentGeneration) {
         DLog.info(
             '⏭️ [RouteDrawingBloc] Stale snap response ignored (Current gen #$_currentGeneration vs #$generation)');
         return;
@@ -120,7 +119,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         vehicleProfile: state.profile,
       );
 
-      if (emit.isDone || generation != _currentGeneration) {
+      if (isClosed || emit.isDone || generation != _currentGeneration) {
         DLog.info(
             '⏭️ [RouteDrawingBloc] Stale route response ignored (Current gen #$_currentGeneration vs #$generation)');
         return;
@@ -169,7 +168,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         ));
       }
     } catch (e, stack) {
-      if (emit.isDone || generation != _currentGeneration) return;
+      if (isClosed || emit.isDone || generation != _currentGeneration) return;
       DLog.error('❌ [RouteDrawingBloc] Error handling point tap: $e', e, stack);
       emit(state.copyWith(
         status: RouteDrawingStatus.error,
