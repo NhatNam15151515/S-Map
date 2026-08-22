@@ -124,7 +124,10 @@ class TripRecordModel extends Equatable {
       }
       parsedPolyline = [];
       for (final item in rawPolyline) {
-        if (item is! List || item.length < 2) {
+        if (item is! List ||
+            item.length < 2 ||
+            item[0] is! num ||
+            item[1] is! num) {
           throw FormatException('Invalid coordinate in polyline: $item');
         }
         parsedPolyline.add([

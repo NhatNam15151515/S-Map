@@ -122,7 +122,7 @@ void main() {
       await noOpRepo.clearAllTrips();
 
       final stream = noOpRepo.watchTrips();
-      expectLater(stream, emits(isEmpty));
+      await expectLater(stream, emits(isEmpty));
     });
   });
 }

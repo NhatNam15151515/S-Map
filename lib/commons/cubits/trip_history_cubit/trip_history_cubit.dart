@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/cubits/trip_history_cubit/trip_history_state.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
-import 'trip_history_state.dart';
 
 class TripHistoryCubit extends Cubit<TripHistoryState> {
   final ITripRepository _repository;
@@ -33,7 +33,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
     await loadTrips();
     if (isClosed) return;
     if (autoWatch) {
-      startWatching();
+      await startWatching();
     }
   }
 
@@ -57,8 +57,10 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
   }
 
   /// Lắng nghe stream thay đổi của Hive Box
-  void startWatching() {
-    _watchSubscription?.cancel();
+  Future<void> startWatching() async {
+    await _watchSubscription?.cancel();
+    _watchSubscription = null;
+    if (isClosed) return;
     try {
       _watchSubscription = _repository.watchTrips().listen(
         (trips) {

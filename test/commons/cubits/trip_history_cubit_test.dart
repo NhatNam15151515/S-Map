@@ -65,6 +65,14 @@ class MockTripRepository implements ITripRepository {
     return _controller.stream;
   }
 
+  void emitTrips(List<TripRecordModel> trips) {
+    _controller.add(trips);
+  }
+
+  void emitError(Object error) {
+    _controller.addError(error);
+  }
+
   Future<void> dispose() async => await _controller.close();
 }
 
@@ -149,7 +157,7 @@ void main() {
 
       // Thêm trip mới -> cubit cập nhật qua watch stream
       mockRepo.storage.add(sampleTrip2);
-      mockRepo._controller.add(List.unmodifiable(mockRepo.storage));
+      mockRepo.emitTrips(List.unmodifiable(mockRepo.storage));
 
       await cubit.stream.firstWhere((s) => s.trips.length == 2);
       expect(cubit.state.trips.length, equals(2));
@@ -183,7 +191,7 @@ void main() {
     });
 
     test('watch stream error emits error status', () async {
-      cubit.startWatching();
+      await cubit.startWatching();
       final errorExpectation = expectLater(
         cubit.stream,
         emitsThrough(
@@ -194,14 +202,14 @@ void main() {
         ),
       );
 
-      mockRepo._controller.addError(Exception('Stream failure'));
+      mockRepo.emitError(Exception('Stream failure'));
       await errorExpectation;
     });
 
     test('synchronous watch exception emits error status', () async {
       mockRepo.throwOnWatch = true;
 
-      cubit.startWatching();
+      await cubit.startWatching();
 
       expect(cubit.state.status, equals(TripHistoryStatus.error));
       expect(cubit.state.errorMessage, contains('Synchronous watch initialization failed'));

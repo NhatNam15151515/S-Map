@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -947,7 +948,7 @@ void main() {
       final savedTrip = mockTripRepo.savedTrips.first;
       expect(savedTrip.destinationName, equals('Nhà hát Thành Phố'));
       expect(savedTrip.hasArrived, isTrue);
-      expect(savedTrip.vehicleProfile, equals('moped_vn'));
+      expect(savedTrip.vehicleProfile, equals(RoutingConstants.defaultProfile));
     });
 
     test('StopNavigation triggers auto-save of TripRecordModel with hasArrived=false', () async {
@@ -972,6 +973,45 @@ void main() {
       final savedTrip = mockTripRepo.savedTrips.first;
       expect(savedTrip.destinationName, equals('Nhà hát Thành Phố'));
       expect(savedTrip.hasArrived, isFalse);
+    });
+
+    test('StopNavigation after arrival does not save a duplicate TripRecordModel', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Đến đích
+      bloc.add(const LocationUpdated(
+        latitude: 10.7766,
+        longitude: 106.7032,
+        speed: 5.0,
+        heading: 90.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.arrived)),
+      );
+      await pumpEventQueue();
+
+      expect(mockTripRepo.savedTrips.length, equals(1));
+
+      // Dừng phiên dẫn đường sau khi đã arrived
+      bloc.add(const StopNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.stopped)),
+      );
+      await pumpEventQueue();
+
+      // Không lưu thêm bản ghi chuyến đi thứ hai
+      expect(mockTripRepo.savedTrips.length, equals(1));
+      expect(mockTripRepo.savedTrips.first.hasArrived, isTrue);
     });
   });
 }

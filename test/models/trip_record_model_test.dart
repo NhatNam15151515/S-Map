@@ -150,6 +150,30 @@ void main() {
         }),
         throwsA(isA<FormatException>()),
       );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_point_type',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'polyline': const [
+            ['10.77', '106.69'], // Invalid coordinate element type (String instead of num)
+          ],
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_null_point_type',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'polyline': const [
+            [null, 106.69], // Invalid coordinate element type (null instead of num)
+          ],
+        }),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

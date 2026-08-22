@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/cubits/route_profile_cubit/route_profile_state.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
-import 'route_profile_state.dart';
 
 class RouteProfileCubit extends Cubit<RouteProfileState> {
   final ITripRepository _repository;
@@ -36,21 +36,22 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
     await loadStats(profileFilter: initialProfileFilter);
     if (isClosed) return;
     if (autoWatch) {
-      startWatching();
+      await startWatching();
     }
   }
 
   /// Nạp danh sách chuyến đi và tính toán các chỉ số thống kê tổng hợp
-  Future<void> loadStats({String? profileFilter}) async {
+  Future<void> loadStats({String? profileFilter, bool clearFilter = false}) async {
+    final activeFilter = clearFilter ? null : (profileFilter ?? state.profileFilter);
     emit(state.copyWith(
       status: RouteProfileStatus.loading,
-      profileFilter: profileFilter,
+      profileFilter: activeFilter,
+      clearProfileFilter: clearFilter,
       clearError: true,
     ));
 
     try {
       final trips = await _repository.getTrips();
-      final activeFilter = profileFilter ?? state.profileFilter;
       final filtered = activeFilter != null && activeFilter.isNotEmpty
           ? trips.where((t) => t.vehicleProfile == activeFilter).toList()
           : trips;
@@ -63,6 +64,7 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
         allTrips: trips,
         filteredTrips: filtered,
         profileFilter: activeFilter,
+        clearProfileFilter: activeFilter == null,
         clearError: true,
       ));
     } catch (e) {
@@ -97,8 +99,11 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
   }
 
   /// Lắng nghe stream thay đổi từ Hive Box để cập nhật thống kê realtime
-  void startWatching() {
-    _watchSubscription?.cancel();
+  Future<void> startWatching() async {
+    await _watchSubscription?.cancel();
+    _watchSubscription = null;
+    if (isClosed) return;
+
     try {
       _watchSubscription = _repository.watchTrips().listen(
         (trips) {

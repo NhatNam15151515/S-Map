@@ -46,6 +46,14 @@ class MockTripRepository implements ITripRepository {
     return _controller.stream;
   }
 
+  void emitTrips(List<TripRecordModel> trips) {
+    _controller.add(trips);
+  }
+
+  void emitError(Object error) {
+    _controller.addError(error);
+  }
+
   Future<void> dispose() async => await _controller.close();
 }
 
@@ -158,9 +166,21 @@ void main() {
 
       // Thêm tripCar vào storage và phát stream
       mockRepo.storage.add(tripCar);
-      mockRepo._controller.add(List.unmodifiable(mockRepo.storage));
+      mockRepo.emitTrips(List.unmodifiable(mockRepo.storage));
 
       await cubit.stream.firstWhere((s) => s.stats.totalTrips == 2);
+      expect(cubit.state.stats.totalTrips, equals(2));
+      expect(cubit.state.stats.totalDistanceKm, equals(45.0));
+    });
+
+    test('loadStats with clearFilter=true removes existing profileFilter and calculates all trips', () async {
+      mockRepo.storage.addAll([tripMotorcycle, tripCar]);
+      await cubit.loadStats(profileFilter: 'motorcycle');
+      expect(cubit.state.profileFilter, equals('motorcycle'));
+      expect(cubit.state.stats.totalTrips, equals(1));
+
+      await cubit.loadStats(clearFilter: true);
+      expect(cubit.state.profileFilter, isNull);
       expect(cubit.state.stats.totalTrips, equals(2));
       expect(cubit.state.stats.totalDistanceKm, equals(45.0));
     });
@@ -174,7 +194,7 @@ void main() {
     });
 
     test('watch stream error emits error status', () async {
-      cubit.startWatching();
+      await cubit.startWatching();
       final errorExpectation = expectLater(
         cubit.stream,
         emitsThrough(
@@ -185,14 +205,14 @@ void main() {
         ),
       );
 
-      mockRepo._controller.addError(Exception('Stream failure'));
+      mockRepo.emitError(Exception('Stream failure'));
       await errorExpectation;
     });
 
     test('synchronous watch exception emits error status', () async {
       mockRepo.throwOnWatch = true;
 
-      cubit.startWatching();
+      await cubit.startWatching();
 
       expect(cubit.state.status, equals(RouteProfileStatus.error));
       expect(cubit.state.errorMessage, contains('Synchronous watch initialization failed'));

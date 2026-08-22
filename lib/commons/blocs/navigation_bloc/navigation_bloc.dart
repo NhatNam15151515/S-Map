@@ -312,7 +312,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       );
 
       final tripRecord = TripRecordModel(
-        id: 'trip_${now.millisecondsSinceEpoch}',
+        id: 'trip_${now.microsecondsSinceEpoch}_${now.hashCode.abs()}',
         startTime: startTime,
         endTime: now,
         durationMs: tripDuration.inMilliseconds,
@@ -326,7 +326,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         polyline: state.currentRoute?.points,
         createdAt: now,
       );
-      _saveTripSafely(tripRecord);
+      unawaited(_saveTripSafely(tripRecord));
 
       emit(state.copyWith(
         status: NavigationStatus.arrived,
@@ -505,6 +505,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
 
+    if (state.status == NavigationStatus.arrived) {
+      emit(state.copyWith(
+        status: NavigationStatus.stopped,
+      ));
+      return;
+    }
+
     if (state.tripStartTime != null) {
       final now = DateTime.now();
       final startTime = state.tripStartTime!;
@@ -524,7 +531,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       );
 
       final tripRecord = TripRecordModel(
-        id: 'trip_${now.millisecondsSinceEpoch}',
+        id: 'trip_${now.microsecondsSinceEpoch}_${now.hashCode.abs()}',
         startTime: startTime,
         endTime: now,
         durationMs: tripDuration.inMilliseconds,
@@ -538,7 +545,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         polyline: state.currentRoute?.points,
         createdAt: now,
       );
-      _saveTripSafely(tripRecord);
+      await _saveTripSafely(tripRecord);
+
+      if (generation != _requestGeneration || isClosed) return;
 
       emit(state.copyWith(
         status: NavigationStatus.stopped,
@@ -552,10 +561,12 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     }
   }
 
-  void _saveTripSafely(TripRecordModel trip) {
-    _tripRepository.saveTrip(trip).catchError((e, stack) {
+  Future<void> _saveTripSafely(TripRecordModel trip) async {
+    try {
+      await _tripRepository.saveTrip(trip);
+    } catch (e, stack) {
       DLog.error('❌ [NavigationBloc] Failed to auto-save trip: $e', e, stack);
-    });
+    }
   }
 
   Future<void> _onClearNavigation(
