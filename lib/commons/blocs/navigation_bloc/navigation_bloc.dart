@@ -22,6 +22,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final IOffRouteDetector _offRouteDetector;
   final ITurnByTurnEngine _turnByTurnEngine;
   final IDeviceInfoService _deviceInfoService;
+  final ITripRepository _tripRepository;
 
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
@@ -39,11 +40,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
   NavigationBloc({
     required IRoutingRepository routingRepository,
+    required ITripRepository tripRepository,
     ILocationService? locationService,
     IOffRouteDetector? offRouteDetector,
     ITurnByTurnEngine? turnByTurnEngine,
     IDeviceInfoService? deviceInfoService,
   })  : _routingRepository = routingRepository,
+        _tripRepository = tripRepository,
         _locationService = locationService ??
             defaultLocationService ??
             const NoOpLocationService(),
@@ -173,6 +176,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     } catch (e) {
       DLog.error('Lỗi khi request ignore battery optimization: $e');
     }
+    if (isClosed || emit.isDone) return;
     emit(state.copyWith(clearPromptBatteryOptimization: true));
   }
 
@@ -285,9 +289,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       _locationSubscription?.cancel();
       _locationSubscription = null;
 
-      final tripDuration = state.tripStartTime != null
-          ? DateTime.now().difference(state.tripStartTime!)
-          : Duration.zero;
+      final now = DateTime.now();
+      final startTime = state.tripStartTime ?? now;
+      final tripDuration = now.difference(startTime);
       final avgSpeed = tripDuration.inMilliseconds > 0
           ? (totalDistanceTraveled / RoutingConstants.metersPerKm) /
               (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
@@ -301,6 +305,23 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         destinationName: state.destinationName,
         hasArrived: true,
       );
+
+      final tripRecord = TripRecordModel(
+        id: 'trip_${now.microsecondsSinceEpoch}_${now.hashCode.abs()}',
+        startTime: startTime,
+        endTime: now,
+        durationMs: tripDuration.inMilliseconds,
+        distanceMeters: totalDistanceTraveled,
+        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
+        topSpeedKmh: currentMaxSpeed,
+        destinationName: state.destinationName,
+        originName: null,
+        hasArrived: true,
+        vehicleProfile: state.profile,
+        polyline: state.currentRoute?.points,
+        createdAt: now,
+      );
+      unawaited(_saveTripSafely(tripRecord));
 
       emit(state.copyWith(
         status: NavigationStatus.arrived,
@@ -410,7 +431,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         vehicleProfile: state.profile,
       );
 
-      if (emit.isDone || generation != _requestGeneration) {
+      if (isClosed || emit.isDone || generation != _requestGeneration) {
         DLog.info('⏭️ [NavigationBloc] Stale reroute response discarded (#$generation vs #$_requestGeneration)');
         return;
       }
@@ -453,7 +474,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         ));
       }
     } catch (e, stack) {
-      if (emit.isDone || generation != _requestGeneration) return;
+      if (isClosed || emit.isDone || generation != _requestGeneration) return;
       DLog.error('❌ [NavigationBloc] Exception in reroute calculation: $e', e, stack);
       emit(state.copyWith(
         status: NavigationStatus.navigating,
@@ -468,19 +489,30 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     StopNavigation event,
     Emitter<NavigationState> emit,
   ) async {
-    DLog.info('🛑 [NavigationBloc] Stopping navigation session');
     final generation = ++_requestGeneration;
+    DLog.info('🛑 [NavigationBloc] Stopping navigation [Gen #$generation]');
+
     await _locationSubscription?.cancel();
     _locationSubscription = null;
-
-    if (generation != _requestGeneration || isClosed) return;
-
-    _lastRerouteTime = null;
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
 
+    if (isClosed || emit.isDone || generation != _requestGeneration) return;
+
+    if (state.status == NavigationStatus.arrived ||
+        state.status == NavigationStatus.stopped) {
+      if (state.status != NavigationStatus.stopped) {
+        emit(state.copyWith(
+          status: NavigationStatus.stopped,
+        ));
+      }
+      return;
+    }
+
     if (state.tripStartTime != null) {
-      final tripDuration = DateTime.now().difference(state.tripStartTime!);
+      final now = DateTime.now();
+      final startTime = state.tripStartTime!;
+      final tripDuration = now.difference(startTime);
       final avgSpeed = tripDuration.inMilliseconds > 0
           ? (state.totalDistanceTraveledMeters / RoutingConstants.metersPerKm) /
               (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
@@ -495,15 +527,41 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         hasArrived: false,
       );
 
+      final tripRecord = TripRecordModel(
+        id: 'trip_${now.microsecondsSinceEpoch}_${now.hashCode.abs()}',
+        startTime: startTime,
+        endTime: now,
+        durationMs: tripDuration.inMilliseconds,
+        distanceMeters: state.totalDistanceTraveledMeters,
+        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
+        topSpeedKmh: state.maxSpeedKmh,
+        destinationName: state.destinationName,
+        originName: null,
+        hasArrived: false,
+        vehicleProfile: state.profile,
+        polyline: state.currentRoute?.points,
+        createdAt: now,
+      );
+
       emit(state.copyWith(
         status: NavigationStatus.stopped,
         tripSummary: summary,
       ));
+
+      unawaited(_saveTripSafely(tripRecord));
     } else {
       emit(state.copyWith(
         status: NavigationStatus.stopped,
         clearTripSummary: true,
       ));
+    }
+  }
+
+  Future<void> _saveTripSafely(TripRecordModel trip) async {
+    try {
+      await _tripRepository.saveTrip(trip);
+    } catch (e, stack) {
+      DLog.error('❌ [NavigationBloc] Failed to auto-save trip: $e', e, stack);
     }
   }
 

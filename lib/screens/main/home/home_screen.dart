@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     _navigationBloc = NavigationBloc(
       routingRepository: AppReposProvider.instance.routingRepos,
+      tripRepository: AppReposProvider.instance.tripRepos,
     );
   }
 

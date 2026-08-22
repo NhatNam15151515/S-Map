@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -184,6 +185,40 @@ class MockDeviceInfoService implements IDeviceInfoService {
   Future<bool> isIOS() async => false;
 }
 
+class MockTripRepository implements ITripRepository {
+  final List<TripRecordModel> savedTrips = [];
+  Completer<void>? saveTripCompleter;
+
+  @override
+  Future<List<TripRecordModel>> getTrips() async => List.unmodifiable(savedTrips);
+
+  @override
+  Future<TripRecordModel?> getTripById(String id) async =>
+      savedTrips.where((t) => t.id == id).firstOrNull;
+
+  @override
+  Future<void> saveTrip(TripRecordModel trip) async {
+    if (saveTripCompleter != null) {
+      await saveTripCompleter!.future;
+    }
+    savedTrips.add(trip);
+  }
+
+  @override
+  Future<void> deleteTrip(String id) async {
+    savedTrips.removeWhere((t) => t.id == id);
+  }
+
+  @override
+  Future<void> clearAllTrips() async {
+    savedTrips.clear();
+  }
+
+  @override
+  Stream<List<TripRecordModel>> watchTrips() =>
+      Stream.value(List.unmodifiable(savedTrips));
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -191,6 +226,7 @@ void main() {
     late MockRoutingRepository mockRoutingRepo;
     late MockLocationService mockLocationService;
     late MockDeviceInfoService mockDeviceInfoService;
+    late MockTripRepository mockTripRepo;
     late NavigationBloc bloc;
 
     const sampleInitialRoute = RouteResult(
@@ -224,10 +260,12 @@ void main() {
       mockRoutingRepo = MockRoutingRepository();
       mockLocationService = MockLocationService();
       mockDeviceInfoService = MockDeviceInfoService();
+      mockTripRepo = MockTripRepository();
       bloc = NavigationBloc(
         routingRepository: mockRoutingRepo,
         locationService: mockLocationService,
         deviceInfoService: mockDeviceInfoService,
+        tripRepository: mockTripRepo,
       );
     });
 
@@ -884,6 +922,155 @@ void main() {
         emits(predicate<NavigationState>((s) => s.promptBatteryOptimizationOem == null)),
       );
       expect(mockLocationService.requestIgnoreBatteryCount, equals(0));
+    });
+
+    test('User arrival triggers auto-save of TripRecordModel with hasArrived=true', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Gửi tọa độ GPS tại đích (Nhà hát TP: 10.7766, 106.7032)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7766,
+        longitude: 106.7032,
+        speed: 5.0,
+        heading: 90.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.arrived)),
+      );
+
+      await pumpEventQueue();
+
+      expect(mockTripRepo.savedTrips.length, equals(1));
+      final savedTrip = mockTripRepo.savedTrips.first;
+      expect(savedTrip.destinationName, equals('Nhà hát Thành Phố'));
+      expect(savedTrip.hasArrived, isTrue);
+      expect(savedTrip.vehicleProfile, equals(RoutingConstants.defaultProfile));
+    });
+
+    test('StopNavigation triggers auto-save of TripRecordModel with hasArrived=false', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const StopNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.stopped)),
+      );
+
+      await pumpEventQueue();
+
+      expect(mockTripRepo.savedTrips.length, equals(1));
+      final savedTrip = mockTripRepo.savedTrips.first;
+      expect(savedTrip.destinationName, equals('Nhà hát Thành Phố'));
+      expect(savedTrip.hasArrived, isFalse);
+    });
+
+    test('StopNavigation after arrival does not save a duplicate TripRecordModel', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Đến đích
+      bloc.add(const LocationUpdated(
+        latitude: 10.7766,
+        longitude: 106.7032,
+        speed: 5.0,
+        heading: 90.0,
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.arrived)),
+      );
+      await pumpEventQueue();
+
+      expect(mockTripRepo.savedTrips.length, equals(1));
+
+      // Dừng phiên dẫn đường sau khi đã arrived
+      bloc.add(const StopNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.stopped)),
+      );
+      await pumpEventQueue();
+
+      // Không lưu thêm bản ghi chuyến đi thứ hai
+      expect(mockTripRepo.savedTrips.length, equals(1));
+      expect(mockTripRepo.savedTrips.first.hasArrived, isTrue);
+    });
+
+    test('StopNavigation does not emit stopped if generation was superseded by ClearNavigation', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const StopNavigation());
+      // Lập tức gọi ClearNavigation làm tăng generation
+      bloc.add(const ClearNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emitsThrough(predicate<NavigationState>((s) => s.status == NavigationStatus.initial)),
+      );
+    });
+
+    test('StopNavigation does not block UI if saveTrip is slow and prevents duplicate save', () async {
+      mockTripRepo.saveTripCompleter = Completer<void>();
+
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const StopNavigation());
+
+      // Phải phát state stopped ngay lập tức mà không bị nghẽn bởi saveTripCompleter
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.stopped)),
+      );
+
+      // Tại thời điểm này saveTrip vẫn đang bị giữ bởi completer
+      expect(mockTripRepo.savedTrips, isEmpty);
+
+      // Gọi StopNavigation lần 2 trong cùng phiên
+      bloc.add(const StopNavigation());
+      await pumpEventQueue();
+
+      // Giải phóng saveTrip
+      mockTripRepo.saveTripCompleter!.complete();
+      await pumpEventQueue();
+
+      // Chỉ lưu duy nhất 1 bản ghi
+      expect(mockTripRepo.savedTrips.length, equals(1));
+      expect(mockTripRepo.savedTrips.first.destinationName, equals('Nhà hát Thành Phố'));
+      expect(mockTripRepo.savedTrips.first.hasArrived, isFalse);
     });
   });
 }

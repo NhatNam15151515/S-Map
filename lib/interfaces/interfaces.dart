@@ -23,4 +23,6 @@ export 'i_routing_repository.dart';
 export 'i_routing_service.dart';
 export 'i_secure_storage.dart';
 export 'i_shared_preferences.dart';
+export 'i_trip_repository.dart';
+export 'i_trip_service.dart';
 export 'i_turn_by_turn_engine.dart';
