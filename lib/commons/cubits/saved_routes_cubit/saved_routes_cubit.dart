@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'saved_routes_fallbacks.dart';
 import 'saved_routes_state.dart';
 
@@ -19,7 +20,9 @@ class SavedRoutesCubit extends Cubit<SavedRoutesState> {
     bool autoWatch = true,
   })  : _repository = customRouteRepository ??
             defaultCustomRouteRepository ??
-            const NoOpCustomRouteRepository(),
+            (AppReposProvider.isInitialized
+                ? AppReposProvider.instance.customRouteRepos
+                : const NoOpCustomRouteRepository()),
         super(const SavedRoutesState()) {
     if (autoInit) {
       init(autoWatch: autoWatch);
@@ -29,6 +32,7 @@ class SavedRoutesCubit extends Cubit<SavedRoutesState> {
   /// Khởi tạo tải danh sách lộ trình và đăng ký stream watcher
   Future<void> init({bool autoWatch = true}) async {
     await loadSavedRoutes();
+    if (isClosed) return;
     if (autoWatch) {
       startWatching();
     }

@@ -5,6 +5,7 @@ import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'route_drawing_event.dart';
 import 'route_drawing_state.dart';
 
@@ -13,12 +14,18 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   final ICustomRouteRepository _customRouteRepository;
   int _currentGeneration = 0;
 
+  /// Optional global default repository resolver set during bootstrap
+  static ICustomRouteRepository? defaultCustomRouteRepository;
+
   RouteDrawingBloc({
     required IRoutingRepository routingRepository,
     ICustomRouteRepository? customRouteRepository,
   })  : _routingRepository = routingRepository,
-        _customRouteRepository =
-            customRouteRepository ?? const NoOpCustomRouteRepository(),
+        _customRouteRepository = customRouteRepository ??
+            defaultCustomRouteRepository ??
+            (AppReposProvider.isInitialized
+                ? AppReposProvider.instance.customRouteRepos
+                : const NoOpCustomRouteRepository()),
         super(const RouteDrawingState()) {
     on<RouteDrawingPointTapped>(
       _onPointTapped,

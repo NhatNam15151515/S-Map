@@ -229,6 +229,23 @@ void main() {
       expect(bloc.currentCategory, equals(CategoryConstants.all));
     });
 
+    test('ClearViewportSearch after debounced query has started cancels stale result and remains in initial state', () async {
+      fakeRepo.mockPois = samplePois;
+      fakeRepo.delay = const Duration(milliseconds: 300);
+
+      bloc.add(SearchInViewportRequested(sampleBounds));
+      // Đợi 270ms để debounce 250ms trôi qua và query bắt đầu chạy (delay 300ms)
+      await Future.delayed(const Duration(milliseconds: 270));
+
+      bloc.add(const ClearViewportSearch());
+      // Đợi query trong fakeRepo hoàn tất (300ms)
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      expect(bloc.state.status, equals(ViewportSearchStatus.initial));
+      expect(bloc.state.pois, isEmpty);
+      expect(bloc.currentCategory, equals(CategoryConstants.all));
+    });
+
     test('ViewportCategoryFilterChanged updates currentCategory and queries with bounds', () async {
       fakeRepo.mockPois = samplePois;
 

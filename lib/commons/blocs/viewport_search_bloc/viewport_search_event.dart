@@ -25,7 +25,7 @@ class SearchInViewportRequested extends ViewportSearchEvent {
   }) : createdAt = createdAt ?? DateTime.now();
 
   @override
-  List<Object?> get props => [bounds, category, query, limit];
+  List<Object?> get props => [bounds, category, query, limit, createdAt];
 }
 
 /// Event phát ra khi người dùng chủ động nhấn nút "Tìm trong khu vực này"

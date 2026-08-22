@@ -35,6 +35,8 @@ class AppReposProvider {
   }
 
   static AppReposProvider? _instance;
+  static bool get isInitialized => _instance != null;
+
   static AppReposProvider get instance =>
       _instance ??
       (() {
