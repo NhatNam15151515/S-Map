@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:s_map/commons/cubits/saved_routes_cubit/saved_routes_fallbacks.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -359,7 +359,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           : 'route_${now.millisecondsSinceEpoch}';
 
       final defaultName =
-          'Lộ trình ${now.hour}:${now.minute.toString().padLeft(2, '0')} - ${now.day}/${now.month}';
+          'Route ${now.hour}:${now.minute.toString().padLeft(2, '0')} - ${now.day}/${now.month}';
       final routeName = (event.name != null && event.name!.trim().isNotEmpty)
           ? event.name!.trim()
           : (state.savedRoute?.name ?? defaultName);

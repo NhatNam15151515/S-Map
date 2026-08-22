@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/routing/snapped_road_point.dart';
 
 /// Entity biểu diễn một lộ trình tùy biến do người dùng tự vẽ và lưu trữ
@@ -22,7 +21,7 @@ class CustomRouteModel extends Equatable {
     required this.fullPolyline,
     required this.totalDistance,
     required this.totalTime,
-    this.profile = RoutingConstants.profileMotorcycle,
+    this.profile = 'motorcycle',
     required this.createdAt,
     this.updatedAt,
     this.description,
@@ -114,7 +113,7 @@ class CustomRouteModel extends Equatable {
       fullPolyline: parsedPolyline,
       totalDistance: (map['totalDistance'] as num?)?.toDouble() ?? 0.0,
       totalTime: (map['totalTime'] as num?)?.toInt() ?? 0,
-      profile: map['profile'] as String? ?? RoutingConstants.profileMotorcycle,
+      profile: map['profile'] as String? ?? 'motorcycle',
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),

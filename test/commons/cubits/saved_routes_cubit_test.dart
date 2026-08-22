@@ -11,8 +11,15 @@ class MockCustomRouteRepository implements ICustomRouteRepository {
       StreamController<List<CustomRouteModel>>.broadcast();
   bool shouldThrow = false;
 
+  bool throwOnWatch = false;
+  Completer<void>? getSavedRoutesCompleter;
+  int watchCallCount = 0;
+
   @override
   Future<List<CustomRouteModel>> getSavedRoutes() async {
+    if (getSavedRoutesCompleter != null) {
+      await getSavedRoutesCompleter!.future;
+    }
     if (shouldThrow) throw Exception('Database read error');
     return List.unmodifiable(storage);
   }
@@ -53,10 +60,9 @@ class MockCustomRouteRepository implements ICustomRouteRepository {
     _controller.add(List.unmodifiable(storage));
   }
 
-  bool throwOnWatch = false;
-
   @override
   Stream<List<CustomRouteModel>> watchSavedRoutes() {
+    watchCallCount++;
     if (throwOnWatch) throw Exception('Synchronous watch initialization failed');
     return _controller.stream;
   }
@@ -206,6 +212,21 @@ void main() {
 
       expect(cubit.state.status, equals(SavedRoutesStatus.error));
       expect(cubit.state.errorMessage, contains('Synchronous watch initialization failed'));
+    });
+
+    test('closing cubit while loadSavedRoutes is pending prevents starting watch stream', () async {
+      mockRepo.getSavedRoutesCompleter = Completer<void>();
+
+      final pendingInit = cubit.init(autoWatch: true);
+      // Đóng cubit trước khi getSavedRoutes hoàn tất
+      await cubit.close();
+
+      // Giải phóng thao tác getSavedRoutes
+      mockRepo.getSavedRoutesCompleter!.complete();
+      await pendingInit;
+
+      // Xác nhận watchSavedRoutes không hề bị gọi do cubit đã closed
+      expect(mockRepo.watchCallCount, equals(0));
     });
   });
 
