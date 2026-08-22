@@ -112,15 +112,49 @@ class MockRoutingRepository implements IRoutingRepository {
   Future<bool> dispose() async => true;
 }
 
+class MockCustomRouteRepo implements ICustomRouteRepository {
+  final List<CustomRouteModel> savedRoutes = [];
+
+  @override
+  Future<List<CustomRouteModel>> getSavedRoutes() async => savedRoutes;
+
+  @override
+  Future<CustomRouteModel?> getRouteById(String id) async =>
+      savedRoutes.where((r) => r.id == id).firstOrNull;
+
+  @override
+  Future<void> saveRoute(CustomRouteModel route) async {
+    savedRoutes.add(route);
+  }
+
+  @override
+  Future<void> deleteRoute(String id) async {
+    savedRoutes.removeWhere((r) => r.id == id);
+  }
+
+  @override
+  Future<void> clearAllRoutes() async {
+    savedRoutes.clear();
+  }
+
+  @override
+  Stream<List<CustomRouteModel>> watchSavedRoutes() => Stream.value(savedRoutes);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockRoutingRepository mockRepository;
+  late MockCustomRouteRepo mockCustomRouteRepo;
   late RouteDrawingBloc bloc;
 
   setUp(() {
     mockRepository = MockRoutingRepository();
-    bloc = RouteDrawingBloc(routingRepository: mockRepository);
+    mockCustomRouteRepo = MockCustomRouteRepo();
+    bloc = RouteDrawingBloc(
+      routingRepository: mockRepository,
+      customRouteRepository: mockCustomRouteRepo,
+    );
   });
 
   tearDown(() async {
@@ -479,7 +513,7 @@ void main() {
       await streamExpectation;
     });
 
-    test('Save route with valid route emits saved status', () async {
+    test('Save route with valid route saves to repository and emits saved status', () async {
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
@@ -491,10 +525,65 @@ void main() {
       final streamExpectation = expectLater(
         bloc.stream,
         emits(predicate<RouteDrawingState>(
-            (s) => s.status == RouteDrawingStatus.saved)),
+            (s) => s.status == RouteDrawingStatus.saved && s.savedRoute != null && s.savedRoute!.name == 'Phượt Tây Bắc')),
       );
 
-      bloc.add(const RouteDrawingSaveRoute(name: 'Phượt Tây Bắc'));
+      bloc.add(const RouteDrawingSaveRoute(name: 'Phượt Tây Bắc', description: 'Cung đường đẹp'));
+      await streamExpectation;
+
+      expect(mockCustomRouteRepo.savedRoutes.length, equals(1));
+      expect(mockCustomRouteRepo.savedRoutes.first.name, equals('Phượt Tây Bắc'));
+      expect(mockCustomRouteRepo.savedRoutes.first.description, equals('Cung đường đẹp'));
+      expect(mockCustomRouteRepo.savedRoutes.first.waypoints.length, equals(2));
+      expect(mockCustomRouteRepo.savedRoutes.first.totalDistance, equals(1200.0));
+    });
+
+    test('Load saved route into RouteDrawingBloc sets routeUpdated status and restores points/polyline', () async {
+      final customRoute = CustomRouteModel(
+        id: 'saved_trip_1',
+        name: 'Đà Lạt Săn Mây',
+        waypoints: const [
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 11.9404,
+            originalLon: 108.4583,
+            snappedLat: 11.94045,
+            snappedLon: 108.45835,
+          ),
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 11.9500,
+            originalLon: 108.4700,
+            snappedLat: 11.95005,
+            snappedLon: 108.47005,
+          ),
+        ],
+        fullPolyline: const [
+          [11.94045, 108.45835],
+          [11.94500, 108.46000],
+          [11.95005, 108.47005],
+        ],
+        totalDistance: 3500.0,
+        totalTime: 420000,
+        profile: RoutingConstants.profileMotorcycle,
+        createdAt: DateTime(2026, 8, 22, 14, 0),
+        description: 'Tuyến đường đèo',
+      );
+
+      final streamExpectation = expectLater(
+        bloc.stream,
+        emits(predicate<RouteDrawingState>((s) =>
+            s.status == RouteDrawingStatus.routeUpdated &&
+            s.points.length == 2 &&
+            s.fullPolyline.length == 3 &&
+            s.totalDistance == 3500.0 &&
+            s.totalTime == 420000 &&
+            s.savedRoute == customRoute &&
+            s.canUndo == true &&
+            s.canRedo == false)),
+      );
+
+      bloc.add(RouteDrawingLoadRoute(customRoute));
       await streamExpectation;
     });
   });

@@ -1,4 +1,5 @@
 export 'compass_service.dart';
+export 'custom_route_service.dart';
 export 'device_info_service.dart';
 export 'favorites_service.dart';
 export 'firebase_analytics_service.dart';

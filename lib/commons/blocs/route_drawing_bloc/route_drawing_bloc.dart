@@ -4,15 +4,21 @@ import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'route_drawing_event.dart';
 import 'route_drawing_state.dart';
 
 class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   final IRoutingRepository _routingRepository;
+  final ICustomRouteRepository _customRouteRepository;
   int _currentGeneration = 0;
 
-  RouteDrawingBloc({required IRoutingRepository routingRepository})
-      : _routingRepository = routingRepository,
+  RouteDrawingBloc({
+    required IRoutingRepository routingRepository,
+    ICustomRouteRepository? customRouteRepository,
+  })  : _routingRepository = routingRepository,
+        _customRouteRepository =
+            customRouteRepository ?? CustomRouteRepositoryImpl(),
         super(const RouteDrawingState()) {
     on<RouteDrawingPointTapped>(
       _onPointTapped,
@@ -23,6 +29,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     on<RouteDrawingRedoPoint>(_onRedoPoint);
     on<RouteDrawingClearRoute>(_onClearRoute);
     on<RouteDrawingSaveRoute>(_onSaveRoute);
+    on<RouteDrawingLoadRoute>(_onLoadRoute);
   }
 
   /// Nối tất cả các điểm tọa độ từ các segment lại thành một chuỗi Polyline duy nhất
@@ -324,10 +331,10 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     ));
   }
 
-  void _onSaveRoute(
+  Future<void> _onSaveRoute(
     RouteDrawingSaveRoute event,
     Emitter<RouteDrawingState> emit,
-  ) {
+  ) async {
     DLog.info('💾 [RouteDrawingBloc] Save route: "${event.name}"');
     if (state.points.length < 2 || !state.hasRoute) {
       emit(state.copyWith(
@@ -337,10 +344,75 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       return;
     }
 
-    emit(state.copyWith(
-      status: RouteDrawingStatus.saved,
-      clearWarning: true,
-      clearError: true,
+    try {
+      final now = DateTime.now();
+      final routeId = state.savedRoute?.id.isNotEmpty == true
+          ? state.savedRoute!.id
+          : 'route_${now.millisecondsSinceEpoch}';
+
+      final defaultName =
+          'Lộ trình ${now.hour}:${now.minute.toString().padLeft(2, '0')} - ${now.day}/${now.month}';
+      final routeName = (event.name != null && event.name!.trim().isNotEmpty)
+          ? event.name!.trim()
+          : (state.savedRoute?.name ?? defaultName);
+
+      final customRoute = CustomRouteModel(
+        id: routeId,
+        name: routeName,
+        waypoints: state.points,
+        fullPolyline: state.fullPolyline.map((p) => [p.lat, p.lon]).toList(),
+        totalDistance: state.totalDistance,
+        totalTime: state.totalTime,
+        profile: state.profile,
+        createdAt: state.savedRoute?.createdAt ?? now,
+        updatedAt: now,
+        description: event.description ?? state.savedRoute?.description,
+      );
+
+      await _customRouteRepository.saveRoute(customRoute);
+
+      DLog.info(
+          '💾 [RouteDrawingBloc] Route saved to Hive: "${customRoute.name}" (${customRoute.id})');
+      emit(state.copyWith(
+        status: RouteDrawingStatus.saved,
+        savedRoute: customRoute,
+        clearWarning: true,
+        clearError: true,
+      ));
+    } catch (e, stack) {
+      DLog.error('❌ [RouteDrawingBloc] Error saving route: $e', e, stack);
+      emit(state.copyWith(
+        status: RouteDrawingStatus.error,
+        errorMessageKey: LocaleKeys.routing_error_generic,
+      ));
+    }
+  }
+
+  void _onLoadRoute(
+    RouteDrawingLoadRoute event,
+    Emitter<RouteDrawingState> emit,
+  ) {
+    _currentGeneration++;
+    final route = event.route;
+    DLog.info(
+        '📂 [RouteDrawingBloc] Loading route "${route.name}" (${route.waypoints.length} waypoints) [Gen #$_currentGeneration]');
+
+    final polylinePoints = route.fullPolyline
+        .map((coord) => RoutePoint(lat: coord[0], lon: coord[1]))
+        .toList();
+
+    emit(RouteDrawingState(
+      status: RouteDrawingStatus.routeUpdated,
+      points: route.waypoints,
+      segments: const [],
+      fullPolyline: polylinePoints,
+      totalDistance: route.totalDistance,
+      totalTime: route.totalTime,
+      profile: route.profile,
+      redoPoints: const [],
+      redoSegments: const [],
+      savedRoute: route,
+      requestGeneration: _currentGeneration,
     ));
   }
 }
