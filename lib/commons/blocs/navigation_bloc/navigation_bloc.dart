@@ -10,6 +10,7 @@ import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'navigation_event.dart';
 import 'navigation_state.dart';
 
@@ -22,6 +23,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final IOffRouteDetector _offRouteDetector;
   final ITurnByTurnEngine _turnByTurnEngine;
   final IDeviceInfoService _deviceInfoService;
+  final ITripRepository _tripRepository;
 
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
@@ -33,6 +35,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   static ILocationService? defaultLocationService;
   static ITurnByTurnEngine? defaultTurnByTurnEngine;
   static IDeviceInfoService? defaultDeviceInfoService;
+  static ITripRepository? defaultTripRepository;
 
   /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
   static const Duration _rerouteCooldown = Duration(seconds: 2);
@@ -43,6 +46,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     IOffRouteDetector? offRouteDetector,
     ITurnByTurnEngine? turnByTurnEngine,
     IDeviceInfoService? deviceInfoService,
+    ITripRepository? tripRepository,
   })  : _routingRepository = routingRepository,
         _locationService = locationService ??
             defaultLocationService ??
@@ -54,6 +58,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         _deviceInfoService = deviceInfoService ??
             defaultDeviceInfoService ??
             const NoOpDeviceInfoService(),
+        _tripRepository = tripRepository ??
+            defaultTripRepository ??
+            (AppReposProvider.isInitialized
+                ? AppReposProvider.instance.tripRepos
+                : const NoOpTripRepository()),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
@@ -285,9 +294,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       _locationSubscription?.cancel();
       _locationSubscription = null;
 
-      final tripDuration = state.tripStartTime != null
-          ? DateTime.now().difference(state.tripStartTime!)
-          : Duration.zero;
+      final now = DateTime.now();
+      final startTime = state.tripStartTime ?? now;
+      final tripDuration = now.difference(startTime);
       final avgSpeed = tripDuration.inMilliseconds > 0
           ? (totalDistanceTraveled / RoutingConstants.metersPerKm) /
               (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
@@ -301,6 +310,23 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         destinationName: state.destinationName,
         hasArrived: true,
       );
+
+      final tripRecord = TripRecordModel(
+        id: 'trip_${now.millisecondsSinceEpoch}',
+        startTime: startTime,
+        endTime: now,
+        durationMs: tripDuration.inMilliseconds,
+        distanceMeters: totalDistanceTraveled,
+        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
+        topSpeedKmh: currentMaxSpeed,
+        destinationName: state.destinationName,
+        originName: null,
+        hasArrived: true,
+        vehicleProfile: state.profile,
+        polyline: state.currentRoute?.points,
+        createdAt: now,
+      );
+      _saveTripSafely(tripRecord);
 
       emit(state.copyWith(
         status: NavigationStatus.arrived,
@@ -480,7 +506,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _lastValidDistanceLon = null;
 
     if (state.tripStartTime != null) {
-      final tripDuration = DateTime.now().difference(state.tripStartTime!);
+      final now = DateTime.now();
+      final startTime = state.tripStartTime!;
+      final tripDuration = now.difference(startTime);
       final avgSpeed = tripDuration.inMilliseconds > 0
           ? (state.totalDistanceTraveledMeters / RoutingConstants.metersPerKm) /
               (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
@@ -495,6 +523,23 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         hasArrived: false,
       );
 
+      final tripRecord = TripRecordModel(
+        id: 'trip_${now.millisecondsSinceEpoch}',
+        startTime: startTime,
+        endTime: now,
+        durationMs: tripDuration.inMilliseconds,
+        distanceMeters: state.totalDistanceTraveledMeters,
+        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
+        topSpeedKmh: state.maxSpeedKmh,
+        destinationName: state.destinationName,
+        originName: null,
+        hasArrived: false,
+        vehicleProfile: state.profile,
+        polyline: state.currentRoute?.points,
+        createdAt: now,
+      );
+      _saveTripSafely(tripRecord);
+
       emit(state.copyWith(
         status: NavigationStatus.stopped,
         tripSummary: summary,
@@ -505,6 +550,12 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         clearTripSummary: true,
       ));
     }
+  }
+
+  void _saveTripSafely(TripRecordModel trip) {
+    _tripRepository.saveTrip(trip).catchError((e, stack) {
+      DLog.error('❌ [NavigationBloc] Failed to auto-save trip: $e', e, stack);
+    });
   }
 
   Future<void> _onClearNavigation(

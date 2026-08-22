@@ -8,6 +8,7 @@ class AppReposProvider {
   final IPoiRepository poiRepos;
   final IRoutingRepository routingRepos;
   final ICustomRouteRepository customRouteRepos;
+  final ITripRepository tripRepos;
 
   AppReposProvider({
     IAuthRepos? authRepos,
@@ -15,6 +16,7 @@ class AppReposProvider {
     IPoiRepository? poiRepos,
     IRoutingRepository? routingRepos,
     ICustomRouteRepository? customRouteRepos,
+    ITripRepository? tripRepos,
     IRoutingService? routingService,
   })  : authRepos = authRepos ?? AuthReposImpl(),
         notiRepos = notiRepos ?? NotificationReposImpl(),
@@ -22,6 +24,10 @@ class AppReposProvider {
         customRouteRepos = customRouteRepos ??
             CustomRouteRepositoryImpl(
               customRouteService: CustomRouteServiceImpl.instance,
+            ),
+        tripRepos = tripRepos ??
+            TripRepositoryImpl(
+              tripService: TripServiceImpl.instance,
             ),
         routingRepos = routingRepos ?? _resolveRoutingRepos(routingService);
 
@@ -56,6 +62,7 @@ class AppReposProvider {
     IPoiRepository? poiRepos,
     IRoutingRepository? routingRepos,
     ICustomRouteRepository? customRouteRepos,
+    ITripRepository? tripRepos,
   }) {
     _instance = AppReposProvider(
       routingService: routingService,
@@ -64,6 +71,7 @@ class AppReposProvider {
       poiRepos: poiRepos,
       routingRepos: routingRepos,
       customRouteRepos: customRouteRepos,
+      tripRepos: tripRepos,
     );
   }
 }
