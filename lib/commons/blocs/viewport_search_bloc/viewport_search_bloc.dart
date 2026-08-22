@@ -20,7 +20,7 @@ class ViewportSearchBloc
         super(const ViewportSearchState()) {
     on<SearchInViewportRequested>(
       _onSearchInViewport,
-      transformer: restartable(),
+      transformer: debounceRestartable(const Duration(milliseconds: 250)),
     );
 
     on<SearchThisAreaPressed>(

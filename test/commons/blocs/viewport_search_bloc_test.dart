@@ -181,7 +181,7 @@ void main() {
       bloc.add(SearchInViewportRequested(sampleBounds, category: 'coffee'));
     });
 
-    test('restartable() transformer cancels prior in-flight query on rapid events', () async {
+    test('debounceRestartable() transformer debounces rapid viewport panning and cancels prior in-flight query', () async {
       fakeRepo.mockPois = samplePois;
       fakeRepo.delay = const Duration(milliseconds: 100);
 
