@@ -9,6 +9,7 @@ import 'route_drawing_state.dart';
 
 class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   final IRoutingRepository _routingRepository;
+  int _currentGeneration = 0;
 
   RouteDrawingBloc({required IRoutingRepository routingRepository})
       : _routingRepository = routingRepository,
@@ -49,13 +50,13 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     RouteDrawingPointTapped event,
     Emitter<RouteDrawingState> emit,
   ) async {
-    final gen = state.requestGeneration + 1;
+    final generation = ++_currentGeneration;
     DLog.info(
-        '📍 [RouteDrawingBloc] Point tapped: (${event.lat}, ${event.lon}) [Gen #$gen]');
+        '📍 [RouteDrawingBloc] Point tapped: (${event.lat}, ${event.lon}) [Gen #$generation]');
 
     emit(state.copyWith(
       status: RouteDrawingStatus.loading,
-      requestGeneration: gen,
+      requestGeneration: generation,
       clearWarning: true,
       clearError: true,
     ));
@@ -66,8 +67,12 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         lon: event.lon,
       );
 
-      // Guard: kiểm tra emitter có bị hủy bởi restartable() trước khi tiếp tục
-      if (emit.isDone) return;
+      // Guard: kiểm tra emitter hoặc generation có bị thay đổi (bởi tap mới, undo, clear)
+      if (emit.isDone || generation != _currentGeneration) {
+        DLog.info(
+            '⏭️ [RouteDrawingBloc] Stale snap response ignored (Current gen #$_currentGeneration vs #$generation)');
+        return;
+      }
 
       if (state.points.isEmpty) {
         // Điểm đầu tiên (Origin Waypoint)
@@ -101,7 +106,11 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         vehicleProfile: state.profile,
       );
 
-      if (emit.isDone) return;
+      if (emit.isDone || generation != _currentGeneration) {
+        DLog.info(
+            '⏭️ [RouteDrawingBloc] Stale route response ignored (Current gen #$_currentGeneration vs #$generation)');
+        return;
+      }
 
       // 🛡️ Guard: Xác minh state.points không bị thay đổi (bởi Undo / Clear) trong lúc tính toán route
       if (state.points.isEmpty || state.points.last != prevPoint) {
@@ -146,7 +155,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         ));
       }
     } catch (e, stack) {
-      if (emit.isDone) return;
+      if (emit.isDone || generation != _currentGeneration) return;
       DLog.error('❌ [RouteDrawingBloc] Error handling point tap: $e', e, stack);
       emit(state.copyWith(
         status: RouteDrawingStatus.error,
@@ -161,7 +170,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   ) {
     if (state.points.isEmpty) return;
 
-    DLog.info('↩️ [RouteDrawingBloc] Undo last point');
+    _currentGeneration++;
+    DLog.info(
+        '↩️ [RouteDrawingBloc] Undo last point [Gen #$_currentGeneration]');
 
     if (state.points.length == 1) {
       final poppedPoint = state.points.last;
@@ -174,6 +185,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         totalTime: 0,
         redoPoints: [...state.redoPoints, poppedPoint],
         redoSegments: [...state.redoSegments, null],
+        requestGeneration: _currentGeneration,
         clearWarning: true,
         clearError: true,
       ));
@@ -213,6 +225,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       totalTime: newTime,
       redoPoints: newRedoPoints,
       redoSegments: newRedoSegments,
+      requestGeneration: _currentGeneration,
       clearWarning: true,
       clearError: true,
     ));
@@ -224,7 +237,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   ) {
     if (state.redoPoints.isEmpty) return;
 
-    DLog.info('↪️ [RouteDrawingBloc] Redo point');
+    _currentGeneration++;
+    DLog.info(
+        '↪️ [RouteDrawingBloc] Redo point [Gen #$_currentGeneration]');
 
     final pointToRestore = state.redoPoints.last;
     final newRedoPoints =
@@ -254,6 +269,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         totalTime: newTime,
         redoPoints: newRedoPoints,
         redoSegments: newRedoSegments,
+        requestGeneration: _currentGeneration,
         clearWarning: true,
         clearError: true,
       ));
@@ -265,6 +281,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         points: newPoints,
         redoPoints: newRedoPoints,
         redoSegments: newRedoSegments,
+        requestGeneration: _currentGeneration,
         clearWarning: true,
         clearError: true,
       ));
@@ -275,8 +292,12 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     RouteDrawingClearRoute event,
     Emitter<RouteDrawingState> emit,
   ) {
-    DLog.info('🧹 [RouteDrawingBloc] Clear route');
-    emit(RouteDrawingState(profile: state.profile));
+    _currentGeneration++;
+    DLog.info('🧹 [RouteDrawingBloc] Clear route [Gen #$_currentGeneration]');
+    emit(RouteDrawingState(
+      profile: state.profile,
+      requestGeneration: _currentGeneration,
+    ));
   }
 
   void _onSaveRoute(
