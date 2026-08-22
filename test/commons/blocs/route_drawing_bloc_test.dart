@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/constants/constants.dart';
@@ -35,6 +37,10 @@ class MockRoutingRepository implements IRoutingRepository {
   double? lastToLon;
   Duration snapDelay = Duration.zero;
   Duration routeDelay = Duration.zero;
+  Completer<void>? snapStartedCompleter;
+  Completer<void>? snapReleaseCompleter;
+  Completer<void>? routeStartedCompleter;
+  Completer<void>? routeReleaseCompleter;
   Exception? snapException;
   Exception? routeException;
 
@@ -52,6 +58,12 @@ class MockRoutingRepository implements IRoutingRepository {
     lastToLat = toLat;
     lastToLon = toLon;
 
+    if (routeStartedCompleter != null && !routeStartedCompleter!.isCompleted) {
+      routeStartedCompleter!.complete();
+    }
+    if (routeReleaseCompleter != null) {
+      await routeReleaseCompleter!.future;
+    }
     if (routeDelay > Duration.zero) {
       await Future.delayed(routeDelay);
     }
@@ -67,6 +79,12 @@ class MockRoutingRepository implements IRoutingRepository {
     required double lon,
   }) async {
     snapToRoadCallCount++;
+    if (snapStartedCompleter != null && !snapStartedCompleter!.isCompleted) {
+      snapStartedCompleter!.complete();
+    }
+    if (snapReleaseCompleter != null) {
+      await snapReleaseCompleter!.future;
+    }
     if (snapDelay > Duration.zero) {
       await Future.delayed(snapDelay);
     }
@@ -503,26 +521,30 @@ void main() {
     test(
         'Undo or clear during route calculation ignores stale route calculation result',
         () async {
-      mockRepository.routeDelay = const Duration(milliseconds: 60);
-
       // Add P1
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
 
-      // Add P2 (will delay 60ms during calculateRoute)
+      final routeStarted = Completer<void>();
+      final routeRelease = Completer<void>();
+      mockRepository.routeStartedCompleter = routeStarted;
+      mockRepository.routeReleaseCompleter = routeRelease;
+
+      // Add P2 (will pause in calculateRoute)
       bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
 
-      // Wait 10ms for calculateRoute to start
-      await Future.delayed(const Duration(milliseconds: 10));
+      // Wait until calculateRoute has started
+      await routeStarted.future;
 
       // User clears route while calculateRoute is in progress
       bloc.add(const RouteDrawingClearRoute());
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.initial);
 
-      // Wait for calculateRoute delay to finish
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Release calculateRoute to complete
+      routeRelease.complete();
+      await pumpEventQueue();
 
       // Assert that state remains initial and clean, stale P2 was discarded
       expect(bloc.state.status, RouteDrawingStatus.initial);
@@ -534,21 +556,25 @@ void main() {
     test(
         'Undo during snapToRoad of first point invalidates snap result and returns to initial state',
         () async {
-      mockRepository.snapDelay = const Duration(milliseconds: 60);
+      final snapStarted = Completer<void>();
+      final snapRelease = Completer<void>();
+      mockRepository.snapStartedCompleter = snapStarted;
+      mockRepository.snapReleaseCompleter = snapRelease;
 
-      // Tap P1 (will delay 60ms in snapToRoad)
+      // Tap P1 (will pause in snapToRoad)
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
 
-      // Wait 10ms for snapToRoad to start
-      await Future.delayed(const Duration(milliseconds: 10));
+      // Wait until snapToRoad has started
+      await snapStarted.future;
 
       // User hits Undo while P1 is still in flight (points is still empty)
       bloc.add(const RouteDrawingUndoLastPoint());
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.initial);
 
-      // Wait for snapToRoad delay to finish
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Release snapToRoad
+      snapRelease.complete();
+      await pumpEventQueue();
 
       // Assert that state remains initial and clean, stale P1 was discarded
       expect(bloc.state.status, RouteDrawingStatus.initial);
@@ -560,21 +586,25 @@ void main() {
     test(
         'Clear during snapToRoad ignores stale snap result and prevents adding point',
         () async {
-      mockRepository.snapDelay = const Duration(milliseconds: 60);
+      final snapStarted = Completer<void>();
+      final snapRelease = Completer<void>();
+      mockRepository.snapStartedCompleter = snapStarted;
+      mockRepository.snapReleaseCompleter = snapRelease;
 
-      // Tap P1 (will delay 60ms in snapToRoad)
+      // Tap P1 (will pause in snapToRoad)
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
 
-      // Wait 10ms for snapToRoad to start
-      await Future.delayed(const Duration(milliseconds: 10));
+      // Wait until snapToRoad has started
+      await snapStarted.future;
 
       // User clears route while snapToRoad is in progress
       bloc.add(const RouteDrawingClearRoute());
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.initial);
 
-      // Wait for snapToRoad delay to finish
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Release snapToRoad
+      snapRelease.complete();
+      await pumpEventQueue();
 
       // Assert that state remains initial and clean, stale P1 was discarded
       expect(bloc.state.status, RouteDrawingStatus.initial);
@@ -586,21 +616,25 @@ void main() {
     test(
         'Redo during initial snapToRoad when redoPoints is empty invalidates snap result and returns to initial state',
         () async {
-      mockRepository.snapDelay = const Duration(milliseconds: 60);
+      final snapStarted = Completer<void>();
+      final snapRelease = Completer<void>();
+      mockRepository.snapStartedCompleter = snapStarted;
+      mockRepository.snapReleaseCompleter = snapRelease;
 
-      // Tap P1 (will delay 60ms in snapToRoad)
+      // Tap P1 (will pause in snapToRoad)
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
 
-      // Wait 10ms for snapToRoad to start
-      await Future.delayed(const Duration(milliseconds: 10));
+      // Wait until snapToRoad has started
+      await snapStarted.future;
 
       // User hits Redo while P1 is still in flight (redoPoints is empty)
       bloc.add(const RouteDrawingRedoPoint());
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.initial);
 
-      // Wait for snapToRoad delay to finish
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Release snapToRoad
+      snapRelease.complete();
+      await pumpEventQueue();
 
       // Assert that state remains initial and clean, stale P1 was discarded
       expect(bloc.state.status, RouteDrawingStatus.initial);
@@ -612,26 +646,30 @@ void main() {
     test(
         'Redo during route calculation of second point when redoPoints is empty invalidates route calculation and restores pointAdded state',
         () async {
-      mockRepository.routeDelay = const Duration(milliseconds: 60);
-
       // Add P1
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
 
-      // Add P2 (will delay 60ms during calculateRoute)
+      final routeStarted = Completer<void>();
+      final routeRelease = Completer<void>();
+      mockRepository.routeStartedCompleter = routeStarted;
+      mockRepository.routeReleaseCompleter = routeRelease;
+
+      // Add P2 (will pause in calculateRoute)
       bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
 
-      // Wait 10ms for calculateRoute to start
-      await Future.delayed(const Duration(milliseconds: 10));
+      // Wait until calculateRoute has started
+      await routeStarted.future;
 
       // User hits Redo while calculateRoute is in progress (redoPoints is empty)
       bloc.add(const RouteDrawingRedoPoint());
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
 
-      // Wait for calculateRoute delay to finish
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Release calculateRoute
+      routeRelease.complete();
+      await pumpEventQueue();
 
       // Assert that state remains pointAdded with 1 point, stale P2 was discarded
       expect(bloc.state.status, RouteDrawingStatus.pointAdded);
