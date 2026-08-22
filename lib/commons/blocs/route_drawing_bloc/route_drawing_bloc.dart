@@ -246,7 +246,21 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     Emitter<RouteDrawingState> emit,
   ) {
     _currentGeneration++;
-    if (state.redoPoints.isEmpty) return;
+    if (state.redoPoints.isEmpty) {
+      if (state.isLoading) {
+        emit(state.copyWith(
+          status: state.segments.isNotEmpty
+              ? RouteDrawingStatus.routeUpdated
+              : (state.points.isNotEmpty
+                  ? RouteDrawingStatus.pointAdded
+                  : RouteDrawingStatus.initial),
+          requestGeneration: _currentGeneration,
+          clearWarning: true,
+          clearError: true,
+        ));
+      }
+      return;
+    }
 
     DLog.info(
         '↪️ [RouteDrawingBloc] Redo point [Gen #$_currentGeneration]');
