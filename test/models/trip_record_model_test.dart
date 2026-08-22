@@ -52,6 +52,41 @@ void main() {
       expect(sampleTrip.duration, equals(const Duration(minutes: 30)));
     });
 
+    test('polyline is deeply unmodifiable and mutating source list does not affect model', () {
+      final mutablePoints = [
+        [10.7725, 106.6980],
+        [10.7950, 106.7215],
+      ];
+      final trip = TripRecordModel(
+        id: 'trip_unmodifiable',
+        startTime: startTime,
+        endTime: endTime,
+        durationMs: 1800000,
+        distanceMeters: 15400.0,
+        avgSpeedKmh: 30.8,
+        topSpeedKmh: 55.2,
+        polyline: mutablePoints,
+        createdAt: createdAt,
+      );
+
+      final initialHashCode = trip.hashCode;
+      final initialToMap = trip.toMap();
+
+      // Sửa đổi list nguồn ban đầu
+      mutablePoints[0][0] = 99.9999;
+      mutablePoints.add([11.0, 107.0]);
+
+      // Kiểm tra dữ liệu trong model, hashCode và toMap() không bị ảnh hưởng
+      expect(trip.polyline?.first, equals([10.7725, 106.6980]));
+      expect(trip.polyline?.length, equals(2));
+      expect(trip.hashCode, equals(initialHashCode));
+      expect(trip.toMap(), equals(initialToMap));
+
+      // Kiểm tra thao tác can thiệp trực tiếp vào polyline của model sẽ ném UnsupportedError
+      expect(() => trip.polyline?.add([12.0, 108.0]), throwsUnsupportedError);
+      expect(() => trip.polyline?[0][0] = 50.0, throwsUnsupportedError);
+    });
+
     test('toMap and fromMap serialization round-trip retains all fields', () {
       final map = sampleTrip.toMap();
       final reconstructed = TripRecordModel.fromMap(map);

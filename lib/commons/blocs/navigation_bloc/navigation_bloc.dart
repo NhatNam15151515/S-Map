@@ -503,6 +503,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
 
+    if (isClosed || emit.isDone || generation != _requestGeneration) return;
+
     if (state.status == NavigationStatus.arrived) {
       emit(state.copyWith(
         status: NavigationStatus.stopped,
@@ -552,6 +554,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         tripSummary: summary,
       ));
     } else {
+      if (isClosed || emit.isDone || generation != _requestGeneration) return;
       emit(state.copyWith(
         status: NavigationStatus.stopped,
         clearTripSummary: true,

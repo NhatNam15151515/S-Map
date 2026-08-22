@@ -16,7 +16,7 @@ class TripRecordModel extends Equatable {
   final List<List<double>>? polyline;
   final DateTime createdAt;
 
-  const TripRecordModel({
+  TripRecordModel({
     required this.id,
     required this.startTime,
     required this.endTime,
@@ -28,9 +28,13 @@ class TripRecordModel extends Equatable {
     this.originName,
     this.hasArrived = false,
     this.vehicleProfile = 'motorcycle',
-    this.polyline,
+    List<List<double>>? polyline,
     required this.createdAt,
-  });
+  }) : polyline = polyline == null
+            ? null
+            : List<List<double>>.unmodifiable(
+                polyline.map((point) => List<double>.unmodifiable(point)),
+              );
 
   /// Thời gian di chuyển dạng Duration
   Duration get duration => Duration(milliseconds: durationMs);

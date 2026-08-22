@@ -10,6 +10,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
   final ITripRepository _repository;
   StreamSubscription<List<TripRecordModel>>? _watchSubscription;
 
+  int _loadGeneration = 0;
   int _watchGeneration = 0;
   bool _isClosing = false;
 
@@ -42,10 +43,11 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
 
   /// Nạp toàn bộ lịch sử chuyến đi từ Local Storage
   Future<void> loadTrips() async {
+    final generation = ++_loadGeneration;
     emit(state.copyWith(status: TripHistoryStatus.loading, clearError: true));
     try {
       final trips = await _repository.getTrips();
-      if (_isClosing || isClosed) return;
+      if (_isClosing || isClosed || generation != _loadGeneration) return;
       emit(state.copyWith(
         status: TripHistoryStatus.success,
         trips: trips,
@@ -53,7 +55,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
       ));
     } catch (e) {
       DLog.error('❌ [TripHistoryCubit] Error loading trips: $e');
-      if (_isClosing || isClosed) return;
+      if (_isClosing || isClosed || generation != _loadGeneration) return;
       emit(state.copyWith(
         status: TripHistoryStatus.error,
         errorMessage: e.toString(),
@@ -72,6 +74,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
       final sub = _repository.watchTrips().listen(
         (trips) {
           if (_isClosing || isClosed || token != _watchGeneration) return;
+          _loadGeneration++;
           emit(state.copyWith(
             status: TripHistoryStatus.success,
             trips: trips,
@@ -105,6 +108,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
 
   /// Xóa một chuyến đi
   Future<void> deleteTrip(String id) async {
+    _loadGeneration++;
     try {
       await _repository.deleteTrip(id);
       if (_isClosing || isClosed) return;
@@ -126,6 +130,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
 
   /// Xóa toàn bộ lịch sử chuyến đi
   Future<void> clearAllTrips() async {
+    _loadGeneration++;
     try {
       await _repository.clearAllTrips();
       if (_isClosing || isClosed) return;
@@ -147,6 +152,7 @@ class TripHistoryCubit extends Cubit<TripHistoryState> {
   @override
   Future<void> close() async {
     _isClosing = true;
+    _loadGeneration++;
     _watchGeneration++;
     await _watchSubscription?.cancel();
     _watchSubscription = null;

@@ -228,5 +228,24 @@ void main() {
 
       expect(mockRepo.watchCallCount, equals(0));
     });
+
+    test('loadTrips race condition: slower previous loadTrips does not overwrite newer state from clearAllTrips', () async {
+      mockRepo.storage.addAll([sampleTrip1, sampleTrip2]);
+      mockRepo.getTripsCompleter = Completer<void>();
+
+      // Bắt đầu loadTrips lần 1 (bị nghẽn bởi completer)
+      final pendingLoad = cubit.loadTrips();
+
+      // Clear all trips
+      await cubit.clearAllTrips();
+      expect(cubit.state.trips, isEmpty);
+
+      // Giải phóng getTrips lần 1
+      mockRepo.getTripsCompleter!.complete();
+      await pendingLoad;
+
+      // Danh sách trips vẫn phải rỗng, không bị ghi đè bởi loadTrips cũ
+      expect(cubit.state.trips, isEmpty);
+    });
   });
 }

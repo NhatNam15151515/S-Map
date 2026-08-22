@@ -1013,5 +1013,24 @@ void main() {
       expect(mockTripRepo.savedTrips.length, equals(1));
       expect(mockTripRepo.savedTrips.first.hasArrived, isTrue);
     });
+
+    test('StopNavigation does not emit stopped if generation was superseded by ClearNavigation', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const StopNavigation());
+      // Lập tức gọi ClearNavigation làm tăng generation
+      bloc.add(const ClearNavigation());
+
+      await expectLater(
+        bloc.stream,
+        emitsThrough(predicate<NavigationState>((s) => s.status == NavigationStatus.initial)),
+      );
+    });
   });
 }
