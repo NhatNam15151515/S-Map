@@ -44,6 +44,7 @@ class RouteDrawingState extends Equatable {
   bool get canUndo => points.isNotEmpty;
   bool get canRedo => redoPoints.isNotEmpty;
   bool get hasRoute => segments.isNotEmpty && fullPolyline.isNotEmpty;
+  bool get isLoading => status == RouteDrawingStatus.loading;
   int get pointCount => points.length;
 
   RouteDrawingState copyWith({

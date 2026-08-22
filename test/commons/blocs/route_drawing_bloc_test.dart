@@ -532,7 +532,33 @@ void main() {
     });
 
     test(
-        'Undo or clear during snapToRoad ignores stale snap result and prevents adding point',
+        'Undo during snapToRoad of first point invalidates snap result and returns to initial state',
+        () async {
+      mockRepository.snapDelay = const Duration(milliseconds: 60);
+
+      // Tap P1 (will delay 60ms in snapToRoad)
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
+
+      // Wait 10ms for snapToRoad to start
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // User hits Undo while P1 is still in flight (points is still empty)
+      bloc.add(const RouteDrawingUndoLastPoint());
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.initial);
+
+      // Wait for snapToRoad delay to finish
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Assert that state remains initial and clean, stale P1 was discarded
+      expect(bloc.state.status, RouteDrawingStatus.initial);
+      expect(bloc.state.points, isEmpty);
+      expect(bloc.state.segments, isEmpty);
+      expect(bloc.state.totalDistance, 0.0);
+    });
+
+    test(
+        'Clear during snapToRoad ignores stale snap result and prevents adding point',
         () async {
       mockRepository.snapDelay = const Duration(milliseconds: 60);
 

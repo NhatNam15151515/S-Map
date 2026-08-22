@@ -168,11 +168,21 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     RouteDrawingUndoLastPoint event,
     Emitter<RouteDrawingState> emit,
   ) {
-    if (state.points.isEmpty) return;
-
     _currentGeneration++;
     DLog.info(
         '↩️ [RouteDrawingBloc] Undo last point [Gen #$_currentGeneration]');
+
+    if (state.points.isEmpty) {
+      if (state.isLoading) {
+        emit(state.copyWith(
+          status: RouteDrawingStatus.initial,
+          requestGeneration: _currentGeneration,
+          clearWarning: true,
+          clearError: true,
+        ));
+      }
+      return;
+    }
 
     if (state.points.length == 1) {
       final poppedPoint = state.points.last;
@@ -235,9 +245,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     RouteDrawingRedoPoint event,
     Emitter<RouteDrawingState> emit,
   ) {
+    _currentGeneration++;
     if (state.redoPoints.isEmpty) return;
 
-    _currentGeneration++;
     DLog.info(
         '↪️ [RouteDrawingBloc] Redo point [Gen #$_currentGeneration]');
 
