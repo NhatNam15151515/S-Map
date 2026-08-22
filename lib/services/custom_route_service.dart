@@ -46,18 +46,23 @@ class CustomRouteServiceImpl implements ICustomRouteService {
       final List<CustomRouteModel> list = [];
 
       for (final key in box.keys) {
-        final val = box.get(key);
-        if (val is Map) {
-          final map = Map<String, dynamic>.from(val);
-          list.add(CustomRouteModel.fromMap(map));
+        try {
+          final val = box.get(key);
+          if (val is Map) {
+            final map = Map<String, dynamic>.from(val);
+            list.add(CustomRouteModel.fromMap(map));
+          }
+        } catch (recordError) {
+          DLog.warning(
+              '⚠️ [CustomRouteService] Skipping corrupted route record at key "$key": $recordError');
         }
       }
       // Sắp xếp lộ trình mới nhất lên trước
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     } catch (e) {
-      DLog.error('Lỗi lấy danh sách custom routes từ Hive: $e');
-      return [];
+      DLog.error('❌ [CustomRouteService] Failed to access Hive box for custom routes: $e');
+      rethrow;
     }
   }
 
@@ -72,8 +77,8 @@ class CustomRouteServiceImpl implements ICustomRouteService {
       }
       return null;
     } catch (e) {
-      DLog.error('Lỗi lấy custom route theo id $id từ Hive: $e');
-      return null;
+      DLog.error('❌ [CustomRouteService] Error getting custom route $id: $e');
+      rethrow;
     }
   }
 
@@ -83,7 +88,8 @@ class CustomRouteServiceImpl implements ICustomRouteService {
       final box = await _getBox();
       await box.put(route.id, route.toMap());
     } catch (e) {
-      DLog.error('Lỗi lưu custom route vào Hive: $e');
+      DLog.error('❌ [CustomRouteService] Error saving custom route: $e');
+      rethrow;
     }
   }
 
@@ -93,7 +99,8 @@ class CustomRouteServiceImpl implements ICustomRouteService {
       final box = await _getBox();
       await box.delete(id);
     } catch (e) {
-      DLog.error('Lỗi xóa custom route khỏi Hive: $e');
+      DLog.error('❌ [CustomRouteService] Error deleting custom route: $e');
+      rethrow;
     }
   }
 
@@ -103,7 +110,8 @@ class CustomRouteServiceImpl implements ICustomRouteService {
       final box = await _getBox();
       await box.clear();
     } catch (e) {
-      DLog.error('Lỗi xóa toàn bộ custom routes khỏi Hive: $e');
+      DLog.error('❌ [CustomRouteService] Error clearing custom routes: $e');
+      rethrow;
     }
   }
 

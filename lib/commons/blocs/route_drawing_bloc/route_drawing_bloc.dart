@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/cubits/saved_routes_cubit/saved_routes_fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/repos/repos.dart';
 import 'route_drawing_event.dart';
 import 'route_drawing_state.dart';
 
@@ -18,7 +18,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     ICustomRouteRepository? customRouteRepository,
   })  : _routingRepository = routingRepository,
         _customRouteRepository =
-            customRouteRepository ?? CustomRouteRepositoryImpl(),
+            customRouteRepository ?? const NoOpCustomRouteRepository(),
         super(const RouteDrawingState()) {
     on<RouteDrawingPointTapped>(
       _onPointTapped,
@@ -213,10 +213,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     // Điểm cuối có segment nối kèm nếu số lượng segments đúng bằng (số points - 1)
     final hasSegmentForLastPoint =
         state.segments.length == state.points.length - 1;
-    final poppedSegment =
-        hasSegmentForLastPoint && state.segments.isNotEmpty
-            ? state.segments.last
-            : null;
+    final poppedSegment = hasSegmentForLastPoint && state.segments.isNotEmpty
+        ? state.segments.last
+        : null;
 
     final newPoints = state.points.sublist(0, state.points.length - 1);
     final newSegments = (hasSegmentForLastPoint && state.segments.isNotEmpty)
@@ -269,8 +268,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       return;
     }
 
-    DLog.info(
-        '↪️ [RouteDrawingBloc] Redo point [Gen #$_currentGeneration]');
+    DLog.info('↪️ [RouteDrawingBloc] Redo point [Gen #$_currentGeneration]');
 
     final pointToRestore = state.redoPoints.last;
     final newRedoPoints =
@@ -371,6 +369,8 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
 
       await _customRouteRepository.saveRoute(customRoute);
 
+      if (emit.isDone) return;
+
       DLog.info(
           '💾 [RouteDrawingBloc] Route saved to Hive: "${customRoute.name}" (${customRoute.id})');
       emit(state.copyWith(
@@ -380,6 +380,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         clearError: true,
       ));
     } catch (e, stack) {
+      if (emit.isDone) return;
       DLog.error('❌ [RouteDrawingBloc] Error saving route: $e', e, stack);
       emit(state.copyWith(
         status: RouteDrawingStatus.error,

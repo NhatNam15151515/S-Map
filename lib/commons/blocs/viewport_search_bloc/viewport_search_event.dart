@@ -14,13 +14,15 @@ class SearchInViewportRequested extends ViewportSearchEvent {
   final String? category;
   final String? query;
   final int limit;
+  final DateTime createdAt;
 
-  const SearchInViewportRequested(
+  SearchInViewportRequested(
     this.bounds, {
     this.category,
     this.query,
     this.limit = 50,
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   @override
   List<Object?> get props => [bounds, category, query, limit];

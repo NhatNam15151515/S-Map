@@ -183,7 +183,7 @@ void main() {
 
     test('debounceRestartable() transformer debounces rapid viewport panning and cancels prior in-flight query', () async {
       fakeRepo.mockPois = samplePois;
-      fakeRepo.delay = const Duration(milliseconds: 100);
+      fakeRepo.delay = const Duration(milliseconds: 300);
 
       final bounds1 = LatLngBounds(
         southwest: const LatLng(10.70, 106.60),
@@ -194,9 +194,11 @@ void main() {
         northeast: const LatLng(10.85, 106.75),
       );
 
-      // Phát event 1, sau 20ms phát event 2 đè lên event 1
+      // Phát event 1, đợi debounce 250ms trôi qua để event 1 bắt đầu query DB
       bloc.add(SearchInViewportRequested(bounds1));
-      await Future.delayed(const Duration(milliseconds: 20));
+      await Future.delayed(const Duration(milliseconds: 270));
+
+      // Trong lúc event 1 đang query (delay 300ms), phát tiếp event 2
       bloc.add(SearchInViewportRequested(bounds2));
 
       // Event 1 bị cancel -> state cuối cùng nhận được là của bounds2
@@ -211,6 +213,20 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('ClearViewportSearch during debounce window cancels pending query and remains in initial state', () async {
+      fakeRepo.mockPois = samplePois;
+
+      bloc.add(SearchInViewportRequested(sampleBounds));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      bloc.add(const ClearViewportSearch());
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      expect(bloc.state.status, equals(ViewportSearchStatus.initial));
+      expect(bloc.state.pois, isEmpty);
+      expect(bloc.currentCategory, equals(CategoryConstants.all));
     });
 
     test('ViewportCategoryFilterChanged updates currentCategory and queries with bounds', () async {

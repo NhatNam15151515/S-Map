@@ -1,5 +1,6 @@
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/repos.dart';
+import 'package:s_map/services/services.dart';
 
 class AppReposProvider {
   final IAuthRepos authRepos;
@@ -18,7 +19,10 @@ class AppReposProvider {
   })  : authRepos = authRepos ?? AuthReposImpl(),
         notiRepos = notiRepos ?? NotificationReposImpl(),
         poiRepos = poiRepos ?? PoiRepositoryImpl(),
-        customRouteRepos = customRouteRepos ?? CustomRouteRepositoryImpl(),
+        customRouteRepos = customRouteRepos ??
+            CustomRouteRepositoryImpl(
+              customRouteService: CustomRouteServiceImpl.instance,
+            ),
         routingRepos = routingRepos ?? _resolveRoutingRepos(routingService);
 
   static IRoutingRepository _resolveRoutingRepos(IRoutingService? routingService) {

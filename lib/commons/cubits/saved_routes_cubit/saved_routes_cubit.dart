@@ -15,12 +15,20 @@ class SavedRoutesCubit extends Cubit<SavedRoutesState> {
 
   SavedRoutesCubit({
     ICustomRouteRepository? customRouteRepository,
+    bool autoInit = true,
     bool autoWatch = true,
   })  : _repository = customRouteRepository ??
             defaultCustomRouteRepository ??
             const NoOpCustomRouteRepository(),
         super(const SavedRoutesState()) {
-    loadSavedRoutes();
+    if (autoInit) {
+      init(autoWatch: autoWatch);
+    }
+  }
+
+  /// Khởi tạo tải danh sách lộ trình và đăng ký stream watcher
+  Future<void> init({bool autoWatch = true}) async {
+    await loadSavedRoutes();
     if (autoWatch) {
       startWatching();
     }
@@ -66,6 +74,11 @@ class SavedRoutesCubit extends Cubit<SavedRoutesState> {
         },
         onError: (e) {
           DLog.error('❌ [SavedRoutesCubit] Error in watch stream: $e');
+          if (isClosed) return;
+          emit(state.copyWith(
+            status: SavedRoutesStatus.error,
+            errorMessage: e.toString(),
+          ));
         },
       );
     } catch (e) {

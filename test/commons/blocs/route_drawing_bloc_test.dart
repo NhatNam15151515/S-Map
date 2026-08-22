@@ -124,7 +124,12 @@ class MockCustomRouteRepo implements ICustomRouteRepository {
 
   @override
   Future<void> saveRoute(CustomRouteModel route) async {
-    savedRoutes.add(route);
+    final index = savedRoutes.indexWhere((r) => r.id == route.id);
+    if (index >= 0) {
+      savedRoutes[index] = route;
+    } else {
+      savedRoutes.add(route);
+    }
   }
 
   @override
@@ -585,6 +590,68 @@ void main() {
 
       bloc.add(RouteDrawingLoadRoute(customRoute));
       await streamExpectation;
+    });
+
+    test('Saving an already loaded route updates existing record via upsert without creating duplicates', () async {
+      final initialRoute = CustomRouteModel(
+        id: 'persisted_1',
+        name: 'Tuyến gốc',
+        waypoints: const [
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.773,
+            originalLon: 106.699,
+            snappedLat: 10.77305,
+            snappedLon: 106.69905,
+          ),
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.778,
+            originalLon: 106.702,
+            snappedLat: 10.77805,
+            snappedLon: 106.70205,
+          ),
+        ],
+        fullPolyline: const [
+          [10.77305, 106.69905],
+          [10.77805, 106.70205],
+        ],
+        totalDistance: 1200.0,
+        totalTime: 150000,
+        profile: RoutingConstants.profileMotorcycle,
+        createdAt: DateTime(2026, 8, 22, 8, 0),
+        description: 'Mô tả ban đầu',
+      );
+
+      mockCustomRouteRepo.savedRoutes.add(initialRoute);
+
+      // Load route
+      bloc.add(RouteDrawingLoadRoute(initialRoute));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      // Save again with new name & description
+      final saveExpectation = expectLater(
+        bloc.stream,
+        emits(predicate<RouteDrawingState>((s) =>
+            s.status == RouteDrawingStatus.saved &&
+            s.savedRoute?.name == 'Tuyến đã cập nhật' &&
+            s.savedRoute?.description == 'Mô tả mới')),
+      );
+
+      bloc.add(const RouteDrawingSaveRoute(
+        name: 'Tuyến đã cập nhật',
+        description: 'Mô tả mới',
+      ));
+      await saveExpectation;
+
+      // Verify upsert: only 1 record remains in repository
+      expect(mockCustomRouteRepo.savedRoutes.length, equals(1));
+      final savedInRepo = mockCustomRouteRepo.savedRoutes.first;
+      expect(savedInRepo.id, equals('persisted_1'));
+      expect(savedInRepo.name, equals('Tuyến đã cập nhật'));
+      expect(savedInRepo.description, equals('Mô tả mới'));
+      expect(savedInRepo.createdAt, equals(initialRoute.createdAt));
+      expect(savedInRepo.totalDistance, equals(1200.0));
     });
   });
 

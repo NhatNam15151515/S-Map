@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:s_map/constants/constants.dart';
-import 'snapped_road_point.dart';
+import 'package:s_map/models/routing/snapped_road_point.dart';
 
 /// Entity biểu diễn một lộ trình tùy biến do người dùng tự vẽ và lưu trữ
 class CustomRouteModel extends Equatable {
@@ -74,20 +74,38 @@ class CustomRouteModel extends Equatable {
   }
 
   factory CustomRouteModel.fromMap(Map<String, dynamic> map) {
-    final rawWaypoints = map['waypoints'] as List<dynamic>? ?? [];
-    final parsedWaypoints = rawWaypoints
-        .map((item) =>
-            SnappedRoadPoint.fromMap(Map<String, dynamic>.from(item as Map)))
-        .toList();
+    final rawWaypoints = map['waypoints'];
+    final List<SnappedRoadPoint> parsedWaypoints = [];
+    if (rawWaypoints != null) {
+      if (rawWaypoints is! List) {
+        throw const FormatException('Field "waypoints" must be a List');
+      }
+      for (final item in rawWaypoints) {
+        if (item is! Map) {
+          throw FormatException('Invalid waypoint element: $item');
+        }
+        parsedWaypoints.add(
+          SnappedRoadPoint.fromMap(Map<String, dynamic>.from(item)),
+        );
+      }
+    }
 
-    final rawPolyline = map['fullPolyline'] as List<dynamic>? ?? [];
-    final parsedPolyline = rawPolyline.map((item) {
-      final list = item as List<dynamic>;
-      return [
-        (list[0] as num).toDouble(),
-        (list[1] as num).toDouble(),
-      ];
-    }).toList();
+    final rawPolyline = map['fullPolyline'];
+    final List<List<double>> parsedPolyline = [];
+    if (rawPolyline != null) {
+      if (rawPolyline is! List) {
+        throw const FormatException('Field "fullPolyline" must be a List');
+      }
+      for (final item in rawPolyline) {
+        if (item is! List || item.length < 2) {
+          throw FormatException('Invalid polyline point format: $item');
+        }
+        parsedPolyline.add([
+          (item[0] as num).toDouble(),
+          (item[1] as num).toDouble(),
+        ]);
+      }
+    }
 
     return CustomRouteModel(
       id: map['id'] as String? ?? '',

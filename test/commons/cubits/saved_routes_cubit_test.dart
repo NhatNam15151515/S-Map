@@ -55,44 +55,50 @@ class MockCustomRouteRepository implements ICustomRouteRepository {
 
   @override
   Stream<List<CustomRouteModel>> watchSavedRoutes() => _controller.stream;
+
+  Future<void> dispose() async => await _controller.close();
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  const sampleSnappedPoint1 = SnappedRoadPoint(
+    isSnapped: true,
+    originalLat: 10.773,
+    originalLon: 106.699,
+    snappedLat: 10.77305,
+    snappedLon: 106.69905,
+    streetName: 'Nguyễn Du',
+    distanceToRoad: 4.2,
+  );
+
+  const sampleSnappedPoint2 = SnappedRoadPoint(
+    isSnapped: true,
+    originalLat: 10.778,
+    originalLon: 106.702,
+    snappedLat: 10.77805,
+    snappedLon: 106.70205,
+    streetName: 'Lê Thánh Tôn',
+    distanceToRoad: 3.1,
+  );
+
   final sampleRoute1 = CustomRouteModel(
     id: 'saved_1',
-    name: 'Tuyến số 1',
-    waypoints: const [
-      SnappedRoadPoint(
-        isSnapped: true,
-        originalLat: 10.773,
-        originalLon: 106.699,
-        snappedLat: 10.77305,
-        snappedLon: 106.69905,
-      ),
-    ],
+    name: 'Tuyến 1',
+    waypoints: const [sampleSnappedPoint1],
     fullPolyline: const [
       [10.77305, 106.69905],
     ],
-    totalDistance: 600.0,
-    totalTime: 80000,
+    totalDistance: 1000.0,
+    totalTime: 120000,
     profile: RoutingConstants.profileMotorcycle,
     createdAt: DateTime(2026, 8, 22, 12, 0),
   );
 
   final sampleRoute2 = CustomRouteModel(
     id: 'saved_2',
-    name: 'Tuyến số 2',
-    waypoints: const [
-      SnappedRoadPoint(
-        isSnapped: true,
-        originalLat: 10.778,
-        originalLon: 106.702,
-        snappedLat: 10.77805,
-        snappedLon: 106.70205,
-      ),
-    ],
+    name: 'Tuyến 2',
+    waypoints: const [sampleSnappedPoint2],
     fullPolyline: const [
       [10.77805, 106.70205],
     ],
@@ -108,15 +114,27 @@ void main() {
 
     setUp(() {
       mockRepo = MockCustomRouteRepository();
-      cubit = SavedRoutesCubit(customRouteRepository: mockRepo);
+      cubit = SavedRoutesCubit(customRouteRepository: mockRepo, autoInit: false);
     });
 
-    tearDown(() {
-      cubit.close();
+    tearDown(() async {
+      await cubit.close();
+      await mockRepo.dispose();
     });
 
-    test('initial state loads routes automatically and emits success', () async {
-      await Future.delayed(const Duration(milliseconds: 10));
+    test('initial state is initial before init and loads routes upon init', () async {
+      expect(cubit.state.status, equals(SavedRoutesStatus.initial));
+
+      final streamExpectation = expectLater(
+        cubit.stream,
+        emitsInOrder([
+          predicate<SavedRoutesState>((s) => s.isLoading),
+          predicate<SavedRoutesState>((s) => s.isSuccess && s.isEmpty),
+        ]),
+      );
+
+      await cubit.init();
+      await streamExpectation;
       expect(cubit.state.status, equals(SavedRoutesStatus.success));
       expect(cubit.state.routes, isEmpty);
       expect(cubit.state.isEmpty, isTrue);
@@ -158,6 +176,22 @@ void main() {
       await cubit.loadSavedRoutes();
       expect(cubit.state.status, equals(SavedRoutesStatus.error));
       expect(cubit.state.errorMessage, contains('Database read error'));
+    });
+
+    test('watch stream error emits error status', () async {
+      cubit.startWatching();
+      final errorExpectation = expectLater(
+        cubit.stream,
+        emitsThrough(
+          predicate<SavedRoutesState>(
+            (s) => s.status == SavedRoutesStatus.error &&
+                s.errorMessage == 'Exception: Stream failure',
+          ),
+        ),
+      );
+
+      mockRepo._controller.addError(Exception('Stream failure'));
+      await errorExpectation;
     });
   });
 

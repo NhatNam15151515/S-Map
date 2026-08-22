@@ -12,6 +12,8 @@ class ViewportSearchBloc
     extends Bloc<ViewportSearchEvent, ViewportSearchState> {
   final IPoiRepository _poiRepository;
   String _currentCategory = CategoryConstants.all;
+  int _queryGeneration = 0;
+  DateTime? _lastClearedAt;
 
   String get currentCategory => _currentCategory;
 
@@ -40,6 +42,10 @@ class ViewportSearchBloc
     SearchInViewportRequested event,
     Emitter<ViewportSearchState> emit,
   ) async {
+    if (_lastClearedAt != null && !event.createdAt.isAfter(_lastClearedAt!)) {
+      return;
+    }
+
     await _executeViewportQuery(
       emit: emit,
       bounds: event.bounds,
@@ -83,6 +89,8 @@ class ViewportSearchBloc
     ClearViewportSearch event,
     Emitter<ViewportSearchState> emit,
   ) {
+    _queryGeneration++;
+    _lastClearedAt = DateTime.now();
     _currentCategory = CategoryConstants.all;
     emit(const ViewportSearchState());
   }
@@ -94,6 +102,7 @@ class ViewportSearchBloc
     String? query,
     required int limit,
   }) async {
+    final gen = ++_queryGeneration;
     emit(state.copyWith(
       status: ViewportSearchStatus.loading,
       bounds: bounds,
@@ -124,8 +133,8 @@ class ViewportSearchBloc
         limit: limit,
       );
 
-      // Guard: kiểm tra emitter có bị hủy bởi restartable() trước khi emit
-      if (emit.isDone) return;
+      // Guard: kiểm tra emitter hoặc generation có bị hủy trước khi emit
+      if (emit.isDone || gen != _queryGeneration) return;
 
       // Lọc theo category nếu người dùng chỉ định danh mục cụ thể
       if (category.isNotEmpty && category != CategoryConstants.all) {
@@ -135,6 +144,8 @@ class ViewportSearchBloc
                 p.subCategory?.toLowerCase() == category.toLowerCase())
             .toList();
       }
+
+      if (emit.isDone || gen != _queryGeneration) return;
 
       if (pois.isEmpty) {
         emit(state.copyWith(
@@ -154,7 +165,7 @@ class ViewportSearchBloc
         ));
       }
     } catch (_) {
-      if (emit.isDone) return;
+      if (emit.isDone || gen != _queryGeneration) return;
       emit(state.copyWith(
         status: ViewportSearchStatus.error,
         errorMessageKey: LocaleKeys.no_pois_in_viewport,

@@ -9,35 +9,49 @@ class FakeHiveBox implements Box<dynamic> {
   final Map<dynamic, dynamic> _storage = {};
   final StreamController<BoxEvent> _eventController =
       StreamController<BoxEvent>.broadcast();
+  bool shouldThrow = false;
 
   @override
   bool get isOpen => true;
 
   @override
-  Iterable<dynamic> get keys => _storage.keys;
+  Iterable<dynamic> get keys {
+    if (shouldThrow) throw Exception('Hive keys read failed');
+    return _storage.keys;
+  }
 
   @override
-  dynamic get(dynamic key, {dynamic defaultValue}) =>
-      _storage.containsKey(key) ? _storage[key] : defaultValue;
+  dynamic get(dynamic key, {dynamic defaultValue}) {
+    if (shouldThrow) throw Exception('Hive get failed');
+    return _storage.containsKey(key) ? _storage[key] : defaultValue;
+  }
 
   @override
   Future<void> put(dynamic key, dynamic value) async {
+    if (shouldThrow) throw Exception('Hive put failed');
     _storage[key] = value;
     _eventController.add(BoxEvent(key, value, false));
   }
 
   @override
   Future<void> delete(dynamic key) async {
+    if (shouldThrow) throw Exception('Hive delete failed');
     final prev = _storage.remove(key);
     _eventController.add(BoxEvent(key, prev, true));
   }
 
   @override
   Future<int> clear() async {
+    if (shouldThrow) throw Exception('Hive clear failed');
     final count = _storage.length;
     _storage.clear();
     _eventController.add(BoxEvent(null, null, false));
     return count;
+  }
+
+  @override
+  Future<void> close() async {
+    await _eventController.close();
   }
 
   @override
@@ -97,6 +111,10 @@ void main() {
       service = CustomRouteServiceImpl(customBox: fakeBox);
     });
 
+    tearDown(() async {
+      await fakeBox.close();
+    });
+
     test('getSavedRoutes returns empty list initially', () async {
       final routes = await service.getSavedRoutes();
       expect(routes, isEmpty);
@@ -110,6 +128,15 @@ void main() {
       expect(routes.length, equals(2));
       expect(routes.first.id, equals('route_2')); // Newest first
       expect(routes.last.id, equals('route_1'));
+    });
+
+    test('getSavedRoutes skips corrupted route records and retains valid ones', () async {
+      await service.saveRoute(sampleRoute1);
+      fakeBox._storage['corrupted_route'] = {'waypoints': 'invalid_format'};
+
+      final routes = await service.getSavedRoutes();
+      expect(routes.length, equals(1));
+      expect(routes.first.id, equals('route_1'));
     });
 
     test('getRouteById returns correct route or null if not found', () async {
@@ -144,6 +171,16 @@ void main() {
 
       final routes = await service.getSavedRoutes();
       expect(routes, isEmpty);
+    });
+
+    test('operations propagate Hive exceptions', () async {
+      fakeBox.shouldThrow = true;
+
+      expect(() => service.getSavedRoutes(), throwsA(isA<Exception>()));
+      expect(() => service.getRouteById('route_1'), throwsA(isA<Exception>()));
+      expect(() => service.saveRoute(sampleRoute1), throwsA(isA<Exception>()));
+      expect(() => service.deleteRoute('route_1'), throwsA(isA<Exception>()));
+      expect(() => service.clearAllRoutes(), throwsA(isA<Exception>()));
     });
 
     test('watchSavedRoutes stream emits updated list when storage changes', () async {

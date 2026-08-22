@@ -81,8 +81,30 @@ void main() {
       expect(restoredModel.id, equals(sampleModel.id));
       expect(restoredModel.name, equals(sampleModel.name));
       expect(restoredModel.waypoints.length, equals(2));
+      
+      // Deep assert on each waypoint
+      expect(restoredModel.waypoints[0].isSnapped, equals(sampleSnappedPoint1.isSnapped));
+      expect(restoredModel.waypoints[0].originalLat, equals(sampleSnappedPoint1.originalLat));
+      expect(restoredModel.waypoints[0].originalLon, equals(sampleSnappedPoint1.originalLon));
       expect(restoredModel.waypoints[0].snappedLat, equals(sampleSnappedPoint1.snappedLat));
+      expect(restoredModel.waypoints[0].snappedLon, equals(sampleSnappedPoint1.snappedLon));
+      expect(restoredModel.waypoints[0].streetName, equals(sampleSnappedPoint1.streetName));
+      expect(restoredModel.waypoints[0].distanceToRoad, equals(sampleSnappedPoint1.distanceToRoad));
+
+      expect(restoredModel.waypoints[1].isSnapped, equals(sampleSnappedPoint2.isSnapped));
+      expect(restoredModel.waypoints[1].originalLat, equals(sampleSnappedPoint2.originalLat));
+      expect(restoredModel.waypoints[1].originalLon, equals(sampleSnappedPoint2.originalLon));
+      expect(restoredModel.waypoints[1].snappedLat, equals(sampleSnappedPoint2.snappedLat));
+      expect(restoredModel.waypoints[1].snappedLon, equals(sampleSnappedPoint2.snappedLon));
+      expect(restoredModel.waypoints[1].streetName, equals(sampleSnappedPoint2.streetName));
+      expect(restoredModel.waypoints[1].distanceToRoad, equals(sampleSnappedPoint2.distanceToRoad));
+
+      // Deep assert on each point in fullPolyline
       expect(restoredModel.fullPolyline.length, equals(3));
+      expect(restoredModel.fullPolyline[0], equals([10.77305, 106.69905]));
+      expect(restoredModel.fullPolyline[1], equals([10.77500, 106.70000]));
+      expect(restoredModel.fullPolyline[2], equals([10.77805, 106.70205]));
+
       expect(restoredModel.totalDistance, equals(sampleModel.totalDistance));
       expect(restoredModel.totalTime, equals(sampleModel.totalTime));
       expect(restoredModel.createdAt, equals(sampleModel.createdAt));
@@ -119,6 +141,31 @@ void main() {
       expect(model.totalTime, equals(0));
       expect(model.profile, equals(RoutingConstants.profileMotorcycle));
       expect(model.description, isNull);
+    });
+
+    test('fromMap throws FormatException when schema is invalid', () {
+      expect(
+        () => CustomRouteModel.fromMap(const {'waypoints': 'not_a_list'}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => CustomRouteModel.fromMap(const {
+          'waypoints': ['not_a_map']
+        }),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => CustomRouteModel.fromMap(const {'fullPolyline': 'not_a_list'}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => CustomRouteModel.fromMap(const {
+          'fullPolyline': [
+            [10.0] // length < 2
+          ]
+        }),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

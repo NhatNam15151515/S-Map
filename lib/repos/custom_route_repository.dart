@@ -1,13 +1,11 @@
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 
 class CustomRouteRepositoryImpl implements ICustomRouteRepository {
   final ICustomRouteService _customRouteService;
 
-  CustomRouteRepositoryImpl({ICustomRouteService? customRouteService})
-      : _customRouteService =
-            customRouteService ?? CustomRouteServiceImpl.instance;
+  CustomRouteRepositoryImpl({required ICustomRouteService customRouteService})
+      : _customRouteService = customRouteService;
 
   @override
   Future<List<CustomRouteModel>> getSavedRoutes() =>
