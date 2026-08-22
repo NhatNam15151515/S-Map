@@ -499,5 +499,36 @@ void main() {
       expect(bloc.state.points.first.originalLat, 10.3);
       expect(mockRepository.snapToRoadCallCount, 3);
     });
+
+    test(
+        'Undo or clear during route calculation ignores stale route calculation result',
+        () async {
+      mockRepository.routeDelay = const Duration(milliseconds: 60);
+
+      // Add P1
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
+
+      // Add P2 (will delay 60ms during calculateRoute)
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
+
+      // Wait 10ms for calculateRoute to start
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // User clears route while calculateRoute is in progress
+      bloc.add(const RouteDrawingClearRoute());
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.initial);
+
+      // Wait for calculateRoute delay to finish
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Assert that state remains initial and clean, stale P2 was discarded
+      expect(bloc.state.status, RouteDrawingStatus.initial);
+      expect(bloc.state.points, isEmpty);
+      expect(bloc.state.segments, isEmpty);
+      expect(bloc.state.totalDistance, 0.0);
+    });
   });
 }

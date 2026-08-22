@@ -103,6 +103,13 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
 
       if (emit.isDone) return;
 
+      // 🛡️ Guard: Xác minh state.points không bị thay đổi (bởi Undo / Clear) trong lúc tính toán route
+      if (state.points.isEmpty || state.points.last != prevPoint) {
+        DLog.warning(
+            '⚠️ [RouteDrawingBloc] State points changed during route calculation, ignoring stale result.');
+        return;
+      }
+
       final newPoints = [...state.points, snapped];
 
       if (routeResult.isSuccess) {
