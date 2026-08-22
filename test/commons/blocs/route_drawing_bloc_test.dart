@@ -712,6 +712,165 @@ void main() {
       expect(bloc.state.status, equals(RouteDrawingStatus.initial));
       expect(bloc.state.points, isEmpty);
     });
+
+    test('Loaded route can have new waypoint added with connected polyline and distance', () async {
+      final initialRoute = CustomRouteModel(
+        id: 'load_add_1',
+        name: 'Tuyến thử nghiệm',
+        waypoints: const [
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.773,
+            originalLon: 106.699,
+            snappedLat: 10.77305,
+            snappedLon: 106.69905,
+          ),
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.778,
+            originalLon: 106.702,
+            snappedLat: 10.77805,
+            snappedLon: 106.70205,
+          ),
+        ],
+        fullPolyline: const [
+          [10.77305, 106.69905],
+          [10.77805, 106.70205],
+        ],
+        totalDistance: 1200.0,
+        totalTime: 150000,
+        createdAt: DateTime(2026, 8, 22, 8, 0),
+      );
+
+      bloc.add(RouteDrawingLoadRoute(initialRoute));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      expect(bloc.state.points.length, equals(2));
+      expect(bloc.state.segments.length, equals(1));
+      expect(bloc.state.totalDistance, equals(1200.0));
+
+      // Thêm waypoint thứ 3 sau khi nạp route
+      mockRepository.nextCalculateResult = const RouteResult(
+        isSuccess: true,
+        distance: 500.0,
+        time: 60000,
+        points: [
+          [10.77805, 106.70205],
+          [10.78000, 106.70500],
+        ],
+      );
+
+      bloc.add(const RouteDrawingPointTapped(lat: 10.780, lon: 106.705));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated && s.points.length == 3);
+
+      expect(bloc.state.points.length, equals(3));
+      expect(bloc.state.segments.length, equals(2));
+      expect(bloc.state.totalDistance, equals(1700.0));
+      expect(bloc.state.totalTime, equals(210000));
+      expect(bloc.state.fullPolyline.length, equals(3)); // [P1, P2, P3] deduplicated
+    });
+
+    test('Loaded route with added waypoint supports undo back to loaded state and redo', () async {
+      final initialRoute = CustomRouteModel(
+        id: 'load_undo_1',
+        name: 'Tuyến kiểm thử undo',
+        waypoints: const [
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.773,
+            originalLon: 106.699,
+            snappedLat: 10.77305,
+            snappedLon: 106.69905,
+          ),
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.778,
+            originalLon: 106.702,
+            snappedLat: 10.77805,
+            snappedLon: 106.70205,
+          ),
+        ],
+        fullPolyline: const [
+          [10.77305, 106.69905],
+          [10.77805, 106.70205],
+        ],
+        totalDistance: 1200.0,
+        totalTime: 150000,
+        createdAt: DateTime(2026, 8, 22, 8, 0),
+      );
+
+      bloc.add(RouteDrawingLoadRoute(initialRoute));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      // Thêm waypoint thứ 3
+      mockRepository.nextCalculateResult = const RouteResult(
+        isSuccess: true,
+        distance: 500.0,
+        time: 60000,
+        points: [
+          [10.77805, 106.70205],
+          [10.78000, 106.70500],
+        ],
+      );
+      bloc.add(const RouteDrawingPointTapped(lat: 10.780, lon: 106.705));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated && s.points.length == 3);
+
+      // Undo waypoint 3 -> quay lại đúng trạng thái đã load
+      bloc.add(const RouteDrawingUndoLastPoint());
+      await bloc.stream.firstWhere((s) => s.points.length == 2);
+
+      expect(bloc.state.points.length, equals(2));
+      expect(bloc.state.segments.length, equals(1));
+      expect(bloc.state.totalDistance, equals(1200.0));
+      expect(bloc.state.canRedo, isTrue);
+
+      // Redo waypoint 3 -> phục hồi lại
+      bloc.add(const RouteDrawingRedoPoint());
+      await bloc.stream.firstWhere((s) => s.points.length == 3);
+
+      expect(bloc.state.points.length, equals(3));
+      expect(bloc.state.segments.length, equals(2));
+      expect(bloc.state.totalDistance, equals(1700.0));
+    });
+
+    test('Save route without passing name falls back to state.savedRoute name', () async {
+      final initialRoute = CustomRouteModel(
+        id: 'load_save_fallback',
+        name: 'Tên gốc cố định',
+        waypoints: const [
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.773,
+            originalLon: 106.699,
+            snappedLat: 10.77305,
+            snappedLon: 106.69905,
+          ),
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.778,
+            originalLon: 106.702,
+            snappedLat: 10.77805,
+            snappedLon: 106.70205,
+          ),
+        ],
+        fullPolyline: const [
+          [10.77305, 106.69905],
+          [10.77805, 106.70205],
+        ],
+        totalDistance: 1200.0,
+        totalTime: 150000,
+        createdAt: DateTime(2026, 8, 22, 8, 0),
+      );
+
+      bloc.add(RouteDrawingLoadRoute(initialRoute));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      // Save without passing name
+      bloc.add(const RouteDrawingSaveRoute());
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.saved);
+
+      expect(bloc.state.savedRoute?.name, equals('Tên gốc cố định'));
+    });
   });
 
   group('RouteDrawingBloc Concurrency & restartable()', () {

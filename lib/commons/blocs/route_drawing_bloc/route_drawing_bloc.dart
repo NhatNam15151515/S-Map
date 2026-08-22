@@ -344,7 +344,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     DLog.info(
         '💾 [RouteDrawingBloc] Save route: "${event.name}" [Gen #$saveGeneration]');
     if (state.points.length < 2 || !state.hasRoute) {
-      if (emit.isDone || saveGeneration != _currentGeneration) return;
+      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) return;
       emit(state.copyWith(
         status: RouteDrawingStatus.warning,
         warningMessageKey: LocaleKeys.routing_error_generic,
@@ -358,11 +358,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           ? state.savedRoute!.id
           : 'route_${now.millisecondsSinceEpoch}';
 
-      final defaultName =
-          'Route ${now.hour}:${now.minute.toString().padLeft(2, '0')} - ${now.day}/${now.month}';
       final routeName = (event.name != null && event.name!.trim().isNotEmpty)
           ? event.name!.trim()
-          : (state.savedRoute?.name ?? defaultName);
+          : (state.savedRoute?.name ?? 'Route_${now.millisecondsSinceEpoch}');
 
       final customRoute = CustomRouteModel(
         id: routeId,
@@ -379,7 +377,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
 
       await _customRouteRepository.saveRoute(customRoute);
 
-      if (emit.isDone || saveGeneration != _currentGeneration) return;
+      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) return;
 
       DLog.info(
           '💾 [RouteDrawingBloc] Route saved to Hive: "${customRoute.name}" (${customRoute.id})');
@@ -390,7 +388,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         clearError: true,
       ));
     } catch (e, stack) {
-      if (emit.isDone || saveGeneration != _currentGeneration) return;
+      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) return;
       DLog.error('❌ [RouteDrawingBloc] Error saving route: $e', e, stack);
       emit(state.copyWith(
         status: RouteDrawingStatus.error,
@@ -412,10 +410,21 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         .map((coord) => RoutePoint(lat: coord[0], lon: coord[1]))
         .toList();
 
+    final initialSegments = route.fullPolyline.isNotEmpty
+        ? [
+            RouteResult(
+              isSuccess: true,
+              distance: route.totalDistance,
+              time: route.totalTime,
+              points: route.fullPolyline,
+            ),
+          ]
+        : const <RouteResult>[];
+
     emit(RouteDrawingState(
       status: RouteDrawingStatus.routeUpdated,
       points: route.waypoints,
-      segments: const [],
+      segments: initialSegments,
       fullPolyline: polylinePoints,
       totalDistance: route.totalDistance,
       totalTime: route.totalTime,
