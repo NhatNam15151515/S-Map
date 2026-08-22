@@ -10,7 +10,6 @@ import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/repos/repos.dart';
 import 'navigation_event.dart';
 import 'navigation_state.dart';
 
@@ -35,19 +34,19 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   static ILocationService? defaultLocationService;
   static ITurnByTurnEngine? defaultTurnByTurnEngine;
   static IDeviceInfoService? defaultDeviceInfoService;
-  static ITripRepository? defaultTripRepository;
 
   /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
   static const Duration _rerouteCooldown = Duration(seconds: 2);
 
   NavigationBloc({
     required IRoutingRepository routingRepository,
+    required ITripRepository tripRepository,
     ILocationService? locationService,
     IOffRouteDetector? offRouteDetector,
     ITurnByTurnEngine? turnByTurnEngine,
     IDeviceInfoService? deviceInfoService,
-    ITripRepository? tripRepository,
   })  : _routingRepository = routingRepository,
+        _tripRepository = tripRepository,
         _locationService = locationService ??
             defaultLocationService ??
             const NoOpLocationService(),
@@ -58,11 +57,6 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         _deviceInfoService = deviceInfoService ??
             defaultDeviceInfoService ??
             const NoOpDeviceInfoService(),
-        _tripRepository = tripRepository ??
-            defaultTripRepository ??
-            (AppReposProvider.isInitialized
-                ? AppReposProvider.instance.tripRepos
-                : const NoOpTripRepository()),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);

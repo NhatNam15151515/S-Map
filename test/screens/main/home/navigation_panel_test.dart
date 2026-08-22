@@ -6,6 +6,7 @@ import 'package:s_map/commons/fallbacks/fallbacks.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class MockRoutingRepo implements IRoutingRepository {
@@ -50,6 +51,7 @@ Widget createTestApp({
   final bloc = navigationBloc ??
       NavigationBloc(
         routingRepository: MockRoutingRepo(),
+        tripRepository: const NoOpTripRepository(),
         locationService: const NoOpLocationService(),
       );
 
@@ -72,6 +74,7 @@ void main() {
         (tester) async {
       final navBloc = NavigationBloc(
         routingRepository: MockRoutingRepo(),
+        tripRepository: const NoOpTripRepository(),
         locationService: const NoOpLocationService(),
       );
 
@@ -120,6 +123,7 @@ void main() {
         (tester) async {
       final navBloc = NavigationBloc(
         routingRepository: MockRoutingRepo(),
+        tripRepository: const NoOpTripRepository(),
         locationService: const NoOpLocationService(),
       );
 
