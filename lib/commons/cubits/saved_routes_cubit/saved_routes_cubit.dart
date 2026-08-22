@@ -123,8 +123,8 @@ class SavedRoutesCubit extends Cubit<SavedRoutesState> {
   }
 
   @override
-  Future<void> close() {
-    _watchSubscription?.cancel();
+  Future<void> close() async {
+    await _watchSubscription?.cancel();
     return super.close();
   }
 }

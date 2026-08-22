@@ -340,8 +340,11 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     RouteDrawingSaveRoute event,
     Emitter<RouteDrawingState> emit,
   ) async {
-    DLog.info('💾 [RouteDrawingBloc] Save route: "${event.name}"');
+    final saveGeneration = ++_currentGeneration;
+    DLog.info(
+        '💾 [RouteDrawingBloc] Save route: "${event.name}" [Gen #$saveGeneration]');
     if (state.points.length < 2 || !state.hasRoute) {
+      if (emit.isDone || saveGeneration != _currentGeneration) return;
       emit(state.copyWith(
         status: RouteDrawingStatus.warning,
         warningMessageKey: LocaleKeys.routing_error_generic,
@@ -376,7 +379,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
 
       await _customRouteRepository.saveRoute(customRoute);
 
-      if (emit.isDone) return;
+      if (emit.isDone || saveGeneration != _currentGeneration) return;
 
       DLog.info(
           '💾 [RouteDrawingBloc] Route saved to Hive: "${customRoute.name}" (${customRoute.id})');
@@ -387,7 +390,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         clearError: true,
       ));
     } catch (e, stack) {
-      if (emit.isDone) return;
+      if (emit.isDone || saveGeneration != _currentGeneration) return;
       DLog.error('❌ [RouteDrawingBloc] Error saving route: $e', e, stack);
       emit(state.copyWith(
         status: RouteDrawingStatus.error,

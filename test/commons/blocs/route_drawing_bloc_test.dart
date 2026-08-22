@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/constants/constants.dart';
@@ -118,12 +119,19 @@ class MockCustomRouteRepo implements ICustomRouteRepository {
   @override
   Future<List<CustomRouteModel>> getSavedRoutes() async => savedRoutes;
 
+  Duration? saveDelay;
+  VoidCallback? onSaveStarted;
+
   @override
   Future<CustomRouteModel?> getRouteById(String id) async =>
       savedRoutes.where((r) => r.id == id).firstOrNull;
 
   @override
   Future<void> saveRoute(CustomRouteModel route) async {
+    onSaveStarted?.call();
+    if (saveDelay != null) {
+      await Future.delayed(saveDelay!);
+    }
     final index = savedRoutes.indexWhere((r) => r.id == route.id);
     if (index >= 0) {
       savedRoutes[index] = route;
@@ -652,6 +660,57 @@ void main() {
       expect(savedInRepo.description, equals('Mô tả mới'));
       expect(savedInRepo.createdAt, equals(initialRoute.createdAt));
       expect(savedInRepo.totalDistance, equals(1200.0));
+    });
+
+    test('Interleaving clear while saving suppresses stale saved status emission', () async {
+      final initialRoute = CustomRouteModel(
+        id: 'interleaved_1',
+        name: 'Tuyến chuẩn bị lưu',
+        waypoints: const [
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.773,
+            originalLon: 106.699,
+            snappedLat: 10.77305,
+            snappedLon: 106.69905,
+          ),
+          SnappedRoadPoint(
+            isSnapped: true,
+            originalLat: 10.778,
+            originalLon: 106.702,
+            snappedLat: 10.77805,
+            snappedLon: 106.70205,
+          ),
+        ],
+        fullPolyline: const [
+          [10.77305, 106.69905],
+          [10.77805, 106.70205],
+        ],
+        totalDistance: 1200.0,
+        totalTime: 150000,
+        profile: RoutingConstants.profileMotorcycle,
+        createdAt: DateTime(2026, 8, 22, 8, 0),
+      );
+
+      bloc.add(RouteDrawingLoadRoute(initialRoute));
+      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      mockCustomRouteRepo.saveDelay = const Duration(milliseconds: 100);
+      final saveStarted = Completer<void>();
+      mockCustomRouteRepo.onSaveStarted = () {
+        if (!saveStarted.isCompleted) saveStarted.complete();
+      };
+
+      bloc.add(const RouteDrawingSaveRoute(name: 'Tuyến thử'));
+      await saveStarted.future;
+
+      // Trong lúc save đang chạy, người dùng ấn Clear
+      bloc.add(const RouteDrawingClearRoute());
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      // State hiện tại phải là initial do Clear, không bị đè bởi Saved status
+      expect(bloc.state.status, equals(RouteDrawingStatus.initial));
+      expect(bloc.state.points, isEmpty);
     });
   });
 
