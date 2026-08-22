@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
-import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -134,7 +133,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           status: RouteDrawingStatus.warning,
           points: newPoints,
           warningMessageKey:
-              routeResult.errorMessage ?? RoutingConstants.errNoRouteFound,
+              routeResult.errorMessage ?? LocaleKeys.routing_error_generic,
           redoPoints: const [],
           redoSegments: const [],
         ));
@@ -167,7 +166,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         totalDistance: 0.0,
         totalTime: 0,
         redoPoints: [...state.redoPoints, poppedPoint],
-        redoSegments: state.redoSegments,
+        redoSegments: [...state.redoSegments, null],
         clearWarning: true,
         clearError: true,
       ));
@@ -175,13 +174,18 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     }
 
     final poppedPoint = state.points.last;
+    // Điểm cuối có segment nối kèm nếu số lượng segments đúng bằng (số points - 1)
+    final hasSegmentForLastPoint =
+        state.segments.length == state.points.length - 1;
     final poppedSegment =
-        state.segments.isNotEmpty ? state.segments.last : null;
+        hasSegmentForLastPoint && state.segments.isNotEmpty
+            ? state.segments.last
+            : null;
 
     final newPoints = state.points.sublist(0, state.points.length - 1);
-    final newSegments = state.segments.isNotEmpty
+    final newSegments = (hasSegmentForLastPoint && state.segments.isNotEmpty)
         ? state.segments.sublist(0, state.segments.length - 1)
-        : const <RouteResult>[];
+        : state.segments;
 
     final newPolyline = _buildFullPolyline(newSegments);
     final newDistance =
@@ -189,9 +193,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     final newTime = newSegments.fold<int>(0, (sum, seg) => sum + seg.time);
 
     final newRedoPoints = [...state.redoPoints, poppedPoint];
-    final newRedoSegments = poppedSegment != null
-        ? [...state.redoSegments, poppedSegment]
-        : state.redoSegments;
+    final newRedoSegments = [...state.redoSegments, poppedSegment];
 
     emit(state.copyWith(
       status: newSegments.isNotEmpty
@@ -221,12 +223,15 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     final newRedoPoints =
         state.redoPoints.sublist(0, state.redoPoints.length - 1);
 
-    if (state.redoSegments.isNotEmpty) {
-      final segmentToRestore = state.redoSegments.last;
-      final newRedoSegments =
-          state.redoSegments.sublist(0, state.redoSegments.length - 1);
+    final segmentToRestore =
+        state.redoSegments.isNotEmpty ? state.redoSegments.last : null;
+    final newRedoSegments = state.redoSegments.isNotEmpty
+        ? state.redoSegments.sublist(0, state.redoSegments.length - 1)
+        : const <RouteResult?>[];
 
-      final newPoints = [...state.points, pointToRestore];
+    final newPoints = [...state.points, pointToRestore];
+
+    if (segmentToRestore != null) {
       final newSegments = [...state.segments, segmentToRestore];
       final newPolyline = _buildFullPolyline(newSegments);
       final newDistance =
@@ -246,11 +251,13 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         clearError: true,
       ));
     } else {
-      final newPoints = [...state.points, pointToRestore];
       emit(state.copyWith(
-        status: RouteDrawingStatus.pointAdded,
+        status: state.segments.isNotEmpty
+            ? RouteDrawingStatus.routeUpdated
+            : RouteDrawingStatus.pointAdded,
         points: newPoints,
         redoPoints: newRedoPoints,
+        redoSegments: newRedoSegments,
         clearWarning: true,
         clearError: true,
       ));

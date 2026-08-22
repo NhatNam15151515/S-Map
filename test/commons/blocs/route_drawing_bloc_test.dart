@@ -360,6 +360,67 @@ void main() {
       await streamExpectation;
     });
 
+    test(
+        'Undo and Redo when latest point failed auto-connect preserves existing segments',
+        () async {
+      // P1
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
+
+      // P2 (success -> 1 segment, 1200m)
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      // P3 fails to connect -> warning, 3 points, still 1 segment
+      mockRepository.nextCalculateResult =
+          RouteResult.failure(RoutingConstants.errNoRouteFound);
+
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7800, lon: 106.7080));
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.warning);
+
+      expect(bloc.state.points.length, 3);
+      expect(bloc.state.segments.length, 1);
+      expect(bloc.state.totalDistance, 1200.0);
+
+      // Undo P3: Should NOT pop segment 1
+      final streamExpectationUndo = expectLater(
+        bloc.stream,
+        emits(predicate<RouteDrawingState>((s) =>
+            s.status == RouteDrawingStatus.routeUpdated &&
+            s.points.length == 2 &&
+            s.segments.length == 1 &&
+            s.totalDistance == 1200.0 &&
+            s.totalTime == 150000 &&
+            s.canUndo == true &&
+            s.canRedo == true &&
+            s.redoPoints.length == 1 &&
+            s.redoSegments.length == 1 &&
+            s.redoSegments.first == null)),
+      );
+
+      bloc.add(const RouteDrawingUndoLastPoint());
+      await streamExpectationUndo;
+
+      // Redo P3: Should restore P3 without adding a segment
+      final streamExpectationRedo = expectLater(
+        bloc.stream,
+        emits(predicate<RouteDrawingState>((s) =>
+            s.status == RouteDrawingStatus.routeUpdated &&
+            s.points.length == 3 &&
+            s.segments.length == 1 &&
+            s.totalDistance == 1200.0 &&
+            s.totalTime == 150000 &&
+            s.canUndo == true &&
+            s.canRedo == false)),
+      );
+
+      bloc.add(const RouteDrawingRedoPoint());
+      await streamExpectationRedo;
+    });
+
     test('Clear route resets all state and undo/redo stacks', () async {
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
       await bloc.stream
@@ -429,12 +490,14 @@ void main() {
       bloc.add(const RouteDrawingPointTapped(lat: 10.2, lon: 106.2));
       bloc.add(const RouteDrawingPointTapped(lat: 10.3, lon: 106.3));
 
-      // Chờ hoàn tất tác vụ cuối cùng
-      await Future.delayed(const Duration(milliseconds: 180));
+      // Chờ state cuối cùng thay vì chờ theo thời gian cố định
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
 
       expect(bloc.state.status, RouteDrawingStatus.pointAdded);
       expect(bloc.state.points.length, 1);
       expect(bloc.state.points.first.originalLat, 10.3);
+      expect(mockRepository.snapToRoadCallCount, 3);
     });
   });
 }

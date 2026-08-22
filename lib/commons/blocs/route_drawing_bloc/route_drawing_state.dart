@@ -20,7 +20,7 @@ class RouteDrawingState extends Equatable {
   final double totalDistance;
   final int totalTime;
   final List<SnappedRoadPoint> redoPoints;
-  final List<RouteResult> redoSegments;
+  final List<RouteResult?> redoSegments;
   final String? warningMessageKey;
   final String? errorMessageKey;
   final String profile;
@@ -54,7 +54,7 @@ class RouteDrawingState extends Equatable {
     double? totalDistance,
     int? totalTime,
     List<SnappedRoadPoint>? redoPoints,
-    List<RouteResult>? redoSegments,
+    List<RouteResult?>? redoSegments,
     String? warningMessageKey,
     String? errorMessageKey,
     String? profile,
