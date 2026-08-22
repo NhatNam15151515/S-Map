@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:s_map/models/models.dart';
 
 abstract class RouteDrawingEvent extends Equatable {
   const RouteDrawingEvent();
@@ -36,12 +37,23 @@ class RouteDrawingClearRoute extends RouteDrawingEvent {
   const RouteDrawingClearRoute();
 }
 
-/// Lưu lộ trình tùy biến (chuẩn bị tích hợp Hive Storage ở Issue 27)
+/// Lưu lộ trình tùy biến vào Hive Storage
 class RouteDrawingSaveRoute extends RouteDrawingEvent {
   final String? name;
+  final String? description;
 
-  const RouteDrawingSaveRoute({this.name});
+  const RouteDrawingSaveRoute({this.name, this.description});
 
   @override
-  List<Object?> get props => [name];
+  List<Object?> get props => [name, description];
+}
+
+/// Nạp lại lộ trình tùy biến đã lưu
+class RouteDrawingLoadRoute extends RouteDrawingEvent {
+  final CustomRouteModel route;
+
+  const RouteDrawingLoadRoute(this.route);
+
+  @override
+  List<Object?> get props => [route];
 }

@@ -1,21 +1,28 @@
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/repos.dart';
+import 'package:s_map/services/services.dart';
 
 class AppReposProvider {
   final IAuthRepos authRepos;
   final INotificationRepos notiRepos;
   final IPoiRepository poiRepos;
   final IRoutingRepository routingRepos;
+  final ICustomRouteRepository customRouteRepos;
 
   AppReposProvider({
     IAuthRepos? authRepos,
     INotificationRepos? notiRepos,
     IPoiRepository? poiRepos,
     IRoutingRepository? routingRepos,
+    ICustomRouteRepository? customRouteRepos,
     IRoutingService? routingService,
   })  : authRepos = authRepos ?? AuthReposImpl(),
         notiRepos = notiRepos ?? NotificationReposImpl(),
         poiRepos = poiRepos ?? PoiRepositoryImpl(),
+        customRouteRepos = customRouteRepos ??
+            CustomRouteRepositoryImpl(
+              customRouteService: CustomRouteServiceImpl.instance,
+            ),
         routingRepos = routingRepos ?? _resolveRoutingRepos(routingService);
 
   static IRoutingRepository _resolveRoutingRepos(IRoutingService? routingService) {
@@ -28,6 +35,8 @@ class AppReposProvider {
   }
 
   static AppReposProvider? _instance;
+  static bool get isInitialized => _instance != null;
+
   static AppReposProvider get instance =>
       _instance ??
       (() {
@@ -46,6 +55,7 @@ class AppReposProvider {
     INotificationRepos? notiRepos,
     IPoiRepository? poiRepos,
     IRoutingRepository? routingRepos,
+    ICustomRouteRepository? customRouteRepos,
   }) {
     _instance = AppReposProvider(
       routingService: routingService,
@@ -53,6 +63,7 @@ class AppReposProvider {
       notiRepos: notiRepos,
       poiRepos: poiRepos,
       routingRepos: routingRepos,
+      customRouteRepos: customRouteRepos,
     );
   }
 }

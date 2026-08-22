@@ -25,6 +25,7 @@ class RouteDrawingState extends Equatable {
   final String? errorMessageKey;
   final String profile;
   final int requestGeneration;
+  final CustomRouteModel? savedRoute;
 
   const RouteDrawingState({
     this.status = RouteDrawingStatus.initial,
@@ -39,11 +40,12 @@ class RouteDrawingState extends Equatable {
     this.errorMessageKey,
     this.profile = RoutingConstants.defaultProfile,
     this.requestGeneration = 0,
+    this.savedRoute,
   });
 
   bool get canUndo => points.isNotEmpty;
   bool get canRedo => redoPoints.isNotEmpty;
-  bool get hasRoute => segments.isNotEmpty && fullPolyline.isNotEmpty;
+  bool get hasRoute => fullPolyline.isNotEmpty;
   bool get isLoading => status == RouteDrawingStatus.loading;
   int get pointCount => points.length;
 
@@ -60,8 +62,10 @@ class RouteDrawingState extends Equatable {
     String? errorMessageKey,
     String? profile,
     int? requestGeneration,
+    CustomRouteModel? savedRoute,
     bool clearWarning = false,
     bool clearError = false,
+    bool clearSavedRoute = false,
   }) {
     return RouteDrawingState(
       status: status ?? this.status,
@@ -78,6 +82,7 @@ class RouteDrawingState extends Equatable {
           clearError ? null : (errorMessageKey ?? this.errorMessageKey),
       profile: profile ?? this.profile,
       requestGeneration: requestGeneration ?? this.requestGeneration,
+      savedRoute: clearSavedRoute ? null : (savedRoute ?? this.savedRoute),
     );
   }
 
@@ -95,5 +100,6 @@ class RouteDrawingState extends Equatable {
         errorMessageKey,
         profile,
         requestGeneration,
+        savedRoute,
       ];
 }

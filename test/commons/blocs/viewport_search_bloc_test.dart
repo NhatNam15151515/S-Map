@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
@@ -10,6 +12,7 @@ class FakePoiRepository implements IPoiRepository {
   List<PoiModel> mockPois = [];
   Duration delay = Duration.zero;
   bool shouldThrow = false;
+  VoidCallback? onSearchStarted;
 
   @override
   Future<List<PoiModel>> searchInBounds({
@@ -20,6 +23,7 @@ class FakePoiRepository implements IPoiRepository {
     String? query,
     int limit = 50,
   }) async {
+    onSearchStarted?.call();
     if (delay > Duration.zero) {
       await Future.delayed(delay);
     }
@@ -181,9 +185,9 @@ void main() {
       bloc.add(SearchInViewportRequested(sampleBounds, category: 'coffee'));
     });
 
-    test('restartable() transformer cancels prior in-flight query on rapid events', () async {
+    test('debounceRestartable() transformer debounces rapid viewport panning and cancels prior in-flight query', () async {
       fakeRepo.mockPois = samplePois;
-      fakeRepo.delay = const Duration(milliseconds: 100);
+      fakeRepo.delay = const Duration(milliseconds: 300);
 
       final bounds1 = LatLngBounds(
         southwest: const LatLng(10.70, 106.60),
@@ -194,9 +198,16 @@ void main() {
         northeast: const LatLng(10.85, 106.75),
       );
 
-      // Phát event 1, sau 20ms phát event 2 đè lên event 1
+      final query1Started = Completer<void>();
+      fakeRepo.onSearchStarted = () {
+        if (!query1Started.isCompleted) query1Started.complete();
+      };
+
+      // Phát event 1, đợi query 1 bắt đầu chạy trong repo sau khi debounce xong
       bloc.add(SearchInViewportRequested(bounds1));
-      await Future.delayed(const Duration(milliseconds: 20));
+      await query1Started.future;
+
+      // Trong lúc event 1 đang query (delay 300ms), phát tiếp event 2
       bloc.add(SearchInViewportRequested(bounds2));
 
       // Event 1 bị cancel -> state cuối cùng nhận được là của bounds2
@@ -211,6 +222,42 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('ClearViewportSearch during debounce window cancels pending query and remains in initial state', () async {
+      fakeRepo.mockPois = samplePois;
+
+      bloc.add(SearchInViewportRequested(sampleBounds));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      bloc.add(const ClearViewportSearch());
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      expect(bloc.state.status, equals(ViewportSearchStatus.initial));
+      expect(bloc.state.pois, isEmpty);
+      expect(bloc.currentCategory, equals(CategoryConstants.all));
+    });
+
+    test('ClearViewportSearch after debounced query has started cancels stale result and remains in initial state', () async {
+      fakeRepo.mockPois = samplePois;
+      fakeRepo.delay = const Duration(milliseconds: 300);
+
+      final queryStarted = Completer<void>();
+      fakeRepo.onSearchStarted = () {
+        if (!queryStarted.isCompleted) queryStarted.complete();
+      };
+
+      bloc.add(SearchInViewportRequested(sampleBounds));
+      // Chờ query thực sự bắt đầu trong fakeRepo
+      await queryStarted.future;
+
+      bloc.add(const ClearViewportSearch());
+      // Đợi query hoàn tất và xác nhận không có state phát sinh
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      expect(bloc.state.status, equals(ViewportSearchStatus.initial));
+      expect(bloc.state.pois, isEmpty);
+      expect(bloc.currentCategory, equals(CategoryConstants.all));
     });
 
     test('ViewportCategoryFilterChanged updates currentCategory and queries with bounds', () async {
