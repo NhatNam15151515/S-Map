@@ -87,6 +87,11 @@ class SavedRoutesCubit extends Cubit<SavedRoutesState> {
       );
     } catch (e) {
       DLog.error('❌ [SavedRoutesCubit] Error starting watch stream: $e');
+      if (isClosed) return;
+      emit(state.copyWith(
+        status: SavedRoutesStatus.error,
+        errorMessage: e.toString(),
+      ));
     }
   }
 

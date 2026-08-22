@@ -53,8 +53,13 @@ class MockCustomRouteRepository implements ICustomRouteRepository {
     _controller.add(List.unmodifiable(storage));
   }
 
+  bool throwOnWatch = false;
+
   @override
-  Stream<List<CustomRouteModel>> watchSavedRoutes() => _controller.stream;
+  Stream<List<CustomRouteModel>> watchSavedRoutes() {
+    if (throwOnWatch) throw Exception('Synchronous watch initialization failed');
+    return _controller.stream;
+  }
 
   Future<void> dispose() async => await _controller.close();
 }
@@ -192,6 +197,15 @@ void main() {
 
       mockRepo._controller.addError(Exception('Stream failure'));
       await errorExpectation;
+    });
+
+    test('synchronous watch exception emits error status', () async {
+      mockRepo.throwOnWatch = true;
+
+      cubit.startWatching();
+
+      expect(cubit.state.status, equals(SavedRoutesStatus.error));
+      expect(cubit.state.errorMessage, contains('Synchronous watch initialization failed'));
     });
   });
 
