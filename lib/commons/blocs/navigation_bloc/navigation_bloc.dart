@@ -505,10 +505,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     if (isClosed || emit.isDone || generation != _requestGeneration) return;
 
-    if (state.status == NavigationStatus.arrived) {
-      emit(state.copyWith(
-        status: NavigationStatus.stopped,
-      ));
+    if (state.status == NavigationStatus.arrived ||
+        state.status == NavigationStatus.stopped) {
+      if (state.status != NavigationStatus.stopped) {
+        emit(state.copyWith(
+          status: NavigationStatus.stopped,
+        ));
+      }
       return;
     }
 
@@ -545,16 +548,14 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         polyline: state.currentRoute?.points,
         createdAt: now,
       );
-      await _saveTripSafely(tripRecord);
-
-      if (isClosed || emit.isDone || generation != _requestGeneration) return;
 
       emit(state.copyWith(
         status: NavigationStatus.stopped,
         tripSummary: summary,
       ));
+
+      unawaited(_saveTripSafely(tripRecord));
     } else {
-      if (isClosed || emit.isDone || generation != _requestGeneration) return;
       emit(state.copyWith(
         status: NavigationStatus.stopped,
         clearTripSummary: true,

@@ -113,13 +113,16 @@ void main() {
         distanceMeters: 20000.0,
         hasArrived: false,
         clearDestination: true,
+        clearOrigin: true,
+        clearPolyline: true,
       );
 
       expect(modified.id, equals('trip_1001'));
       expect(modified.distanceMeters, equals(20000.0));
       expect(modified.hasArrived, isFalse);
       expect(modified.destinationName, isNull);
-      expect(modified.originName, equals('Chợ Bến Thành'));
+      expect(modified.originName, isNull);
+      expect(modified.polyline, isNull);
     });
 
     test('fromMap handles missing optional values gracefully', () {
@@ -256,6 +259,26 @@ void main() {
           'startTime': startTime.toIso8601String(),
           'endTime': endTime.toIso8601String(),
           'destinationName': 12345, // Non-string destination
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_origin',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'originName': 12345, // Non-string origin
+        }),
+        throwsA(isA<FormatException>()),
+      );
+
+      expect(
+        () => TripRecordModel.fromMap({
+          'id': 'trip_bad_profile',
+          'startTime': startTime.toIso8601String(),
+          'endTime': endTime.toIso8601String(),
+          'vehicleProfile': 999, // Non-string profile
         }),
         throwsA(isA<FormatException>()),
       );

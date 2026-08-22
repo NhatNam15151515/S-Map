@@ -187,6 +187,7 @@ class MockDeviceInfoService implements IDeviceInfoService {
 
 class MockTripRepository implements ITripRepository {
   final List<TripRecordModel> savedTrips = [];
+  Completer<void>? saveTripCompleter;
 
   @override
   Future<List<TripRecordModel>> getTrips() async => List.unmodifiable(savedTrips);
@@ -197,6 +198,9 @@ class MockTripRepository implements ITripRepository {
 
   @override
   Future<void> saveTrip(TripRecordModel trip) async {
+    if (saveTripCompleter != null) {
+      await saveTripCompleter!.future;
+    }
     savedTrips.add(trip);
   }
 
@@ -1031,6 +1035,42 @@ void main() {
         bloc.stream,
         emitsThrough(predicate<NavigationState>((s) => s.status == NavigationStatus.initial)),
       );
+    });
+
+    test('StopNavigation does not block UI if saveTrip is slow and prevents duplicate save', () async {
+      mockTripRepo.saveTripCompleter = Completer<void>();
+
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const StopNavigation());
+
+      // Phải phát state stopped ngay lập tức mà không bị nghẽn bởi saveTripCompleter
+      await expectLater(
+        bloc.stream,
+        emits(predicate<NavigationState>((s) => s.status == NavigationStatus.stopped)),
+      );
+
+      // Tại thời điểm này saveTrip vẫn đang bị giữ bởi completer
+      expect(mockTripRepo.savedTrips, isEmpty);
+
+      // Gọi StopNavigation lần 2 trong cùng phiên
+      bloc.add(const StopNavigation());
+      await pumpEventQueue();
+
+      // Giải phóng saveTrip
+      mockTripRepo.saveTripCompleter!.complete();
+      await pumpEventQueue();
+
+      // Chỉ lưu duy nhất 1 bản ghi
+      expect(mockTripRepo.savedTrips.length, equals(1));
+      expect(mockTripRepo.savedTrips.first.destinationName, equals('Nhà hát Thành Phố'));
+      expect(mockTripRepo.savedTrips.first.hasArrived, isFalse);
     });
   });
 }

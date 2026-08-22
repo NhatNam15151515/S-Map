@@ -15,11 +15,12 @@ class MockTripRepository implements ITripRepository {
 
   @override
   Future<List<TripRecordModel>> getTrips() async {
+    final snapshot = List<TripRecordModel>.unmodifiable(storage);
     if (getTripsCompleter != null) {
       await getTripsCompleter!.future;
     }
     if (shouldThrow) throw Exception('Database read error');
-    return List.unmodifiable(storage);
+    return snapshot;
   }
 
   @override
