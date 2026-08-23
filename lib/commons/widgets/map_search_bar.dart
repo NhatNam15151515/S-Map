@@ -12,6 +12,8 @@ class MapSearchBar extends StatelessWidget {
   final VoidCallback? onBackPressed;
   final ValueChanged<PoiModel>? onPoiSelected;
   final VoidCallback? onTap;
+  final String? activeSearchText;
+  final VoidCallback? onClearSearch;
 
   const MapSearchBar({
     super.key,
@@ -19,7 +21,12 @@ class MapSearchBar extends StatelessWidget {
     this.onBackPressed,
     this.onPoiSelected,
     this.onTap,
+    this.activeSearchText,
+    this.onClearSearch,
   });
+
+  bool get _hasActiveSearch =>
+      activeSearchText != null && activeSearchText!.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -80,27 +87,48 @@ class MapSearchBar extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      tr(LocaleKeys.search_bar_placeholder),
-                      style: AppColors.onSurfaceVariant.textTheme.textStyle
-                          .copyWith(
-                        fontSize: 15,
-                        fontWeight: AppFontWeight.regular.weight,
-                      ),
+                      _hasActiveSearch
+                          ? activeSearchText!
+                          : tr(LocaleKeys.search_bar_placeholder),
+                      style: _hasActiveSearch
+                          ? AppColors.googleDarkText.textTheme.textStyle
+                              .copyWith(
+                              fontSize: 15,
+                              fontWeight: AppFontWeight.medium.weight,
+                            )
+                          : AppColors.onSurfaceVariant.textTheme.textStyle
+                              .copyWith(
+                              fontSize: 15,
+                              fontWeight: AppFontWeight.regular.weight,
+                            ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.mic_none_rounded,
-                      color: AppColors.googleDarkText,
-                      size: 22,
+                  if (_hasActiveSearch)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AppColors.googleDarkText,
+                        size: 20,
+                      ),
+                      onPressed: onClearSearch,
+                      tooltip: tr(LocaleKeys.cancel),
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(
+                        Icons.mic_none_rounded,
+                        color: AppColors.googleDarkText,
+                        size: 22,
+                      ),
+                      onPressed: () {},
+                      tooltip: tr(LocaleKeys.search_bar_voice),
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(),
                     ),
-                    onPressed: () {},
-                    tooltip: tr(LocaleKeys.search_bar_voice),
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(),
-                  ),
                   const SizedBox(width: 4),
                   const Padding(
                     padding: EdgeInsets.only(right: 6),

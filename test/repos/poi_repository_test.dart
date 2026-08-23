@@ -294,6 +294,34 @@ void main() {
       expect(hnCafe.length, 1);
       expect(hnCafe.first.name, 'Highlands Coffee Nhà Thờ');
     });
+
+    test('searchInBounds with category filter should return matching category POIs only',
+        () async {
+      // Category "hotel" in TP.HCM bbox -> returns only 'Khách sạn Rex Sài Gòn'
+      final hcmHotel = await poiRepo.searchInBounds(
+        minLat: 10.70,
+        maxLat: 10.85,
+        minLon: 106.60,
+        maxLon: 106.75,
+        category: 'hotel',
+      );
+
+      expect(hcmHotel.length, 1);
+      expect(hcmHotel.first.name, 'Khách sạn Rex Sài Gòn');
+      expect(hcmHotel.first.category, 'hotel');
+
+      // Category "food" in TP.HCM bbox -> returns 'Phở Hòa Pasteur'
+      final hcmFood = await poiRepo.searchInBounds(
+        minLat: 10.70,
+        maxLat: 10.85,
+        minLon: 106.60,
+        maxLon: 106.75,
+        category: 'food',
+      );
+
+      expect(hcmFood.any((e) => e.name == 'Phở Hòa Pasteur'), isTrue);
+      expect(hcmFood.every((e) => e.category == 'food'), isTrue);
+    });
   });
 
   group('PoiRepository - ID & Benchmark Tests', () {

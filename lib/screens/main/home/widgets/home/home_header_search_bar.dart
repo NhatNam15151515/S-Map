@@ -12,6 +12,8 @@ class HomeHeaderSearchBar extends StatelessWidget {
   final ValueChanged<PoiModel> onPoiSelected;
   final void Function(List<PoiModel> pois, String? query) onSearchResults;
   final ValueChanged<String?> onCategorySelected;
+  final String? activeSearchText;
+  final VoidCallback? onClearSearch;
 
   const HomeHeaderSearchBar({
     super.key,
@@ -19,6 +21,8 @@ class HomeHeaderSearchBar extends StatelessWidget {
     required this.onPoiSelected,
     required this.onSearchResults,
     required this.onCategorySelected,
+    this.activeSearchText,
+    this.onClearSearch,
   });
 
   @override
@@ -31,6 +35,8 @@ class HomeHeaderSearchBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           MapSearchBar(
+            activeSearchText: activeSearchText,
+            onClearSearch: onClearSearch,
             onPoiSelected: onPoiSelected,
             onTap: () {
               final userLocation =
@@ -69,3 +75,4 @@ class HomeHeaderSearchBar extends StatelessWidget {
     );
   }
 }
+

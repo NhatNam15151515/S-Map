@@ -89,6 +89,7 @@ class FakePoiRepository implements IPoiRepository {
     required double minLon,
     required double maxLon,
     String? query,
+    String? category,
     int limit = 50,
   }) async =>
       mockPois;

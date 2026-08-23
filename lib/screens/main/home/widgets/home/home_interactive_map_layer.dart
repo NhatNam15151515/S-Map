@@ -91,6 +91,11 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     _symbolManager.clearSelectedPoiMarker(_mapController);
   }
 
+  /// Xóa sạch toàn bộ ghim trên bản đồ
+  void clearAll() {
+    _symbolManager.clearAll(_mapController);
+  }
+
   /// Hiển thị danh sách kết quả tìm kiếm và fit camera bao quanh
   void showSearchResults(List<PoiModel> pois) {
     _symbolManager.showSearchResults(_mapController, pois);
@@ -116,7 +121,11 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               handleCameraAction(state.cameraAction!);
             }
             if (state.selectedPoi != null) {
-              setSelectedPoiMarker(state.selectedPoi!);
+              if (_symbolManager.selectedPoi?.id != state.selectedPoi!.id) {
+                setSelectedPoiMarker(state.selectedPoi!);
+              }
+            } else if (state.selectedPoi == null && _symbolManager.selectedPoi != null) {
+              clearSelectedPoiMarker();
             }
             if (state.status == MapDisplayStatus.error &&
                 state.errorMessageKey != null) {
@@ -130,6 +139,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           listener: (context, state) {
             if (state.status == ViewportSearchStatus.success) {
               _symbolManager.renderPoiList(_mapController, state.pois);
+            } else if (state.status == ViewportSearchStatus.empty) {
+              _symbolManager.renderPoiList(_mapController, const []);
             } else if (state.status == ViewportSearchStatus.error &&
                 state.errorMessageKey != null) {
               showError(tr(state.errorMessageKey!));

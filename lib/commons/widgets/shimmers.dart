@@ -21,6 +21,8 @@ class DefaultListingShimmer extends StatelessWidget with AppMixin {
         baseColor: Colors.grey.withAlpha(179),
         highlightColor: Colors.grey[100]!.withAlpha(128),
         child: ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           padding: padding,
           itemCount: 20,
           separatorBuilder: (context, index) {

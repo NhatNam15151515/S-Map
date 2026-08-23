@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "495182969568-fvs19etk25pk47i3gqgatpmhipc9a8ed.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vnsmap.app",
+            "certificate_hash": "002e3a046583204540de845b3bbe317fafd17c7f"
+          }
+        },
+        {
           "client_id": "495182969568-86n8vjbstj6tunmrt1nqi2e9sddl0m5e.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -124,27 +124,19 @@ class ViewportSearchBloc
           ? bounds.southwest.longitude
           : bounds.northeast.longitude;
 
-      var pois = await _poiRepository.searchInBounds(
+      final pois = await _poiRepository.searchInBounds(
         minLat: minLat,
         maxLat: maxLat,
         minLon: minLon,
         maxLon: maxLon,
         query: query,
+        category: category.isNotEmpty && category != CategoryConstants.all
+            ? category
+            : null,
         limit: limit,
       );
 
       // Guard: kiểm tra emitter hoặc generation có bị hủy trước khi emit
-      if (emit.isDone || gen != _queryGeneration) return;
-
-      // Lọc theo category nếu người dùng chỉ định danh mục cụ thể
-      if (category.isNotEmpty && category != CategoryConstants.all) {
-        pois = pois
-            .where((p) =>
-                p.category?.toLowerCase() == category.toLowerCase() ||
-                p.subCategory?.toLowerCase() == category.toLowerCase())
-            .toList();
-      }
-
       if (emit.isDone || gen != _queryGeneration) return;
 
       if (pois.isEmpty) {

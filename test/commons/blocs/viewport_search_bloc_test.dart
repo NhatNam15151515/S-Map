@@ -21,6 +21,7 @@ class FakePoiRepository implements IPoiRepository {
     required double minLon,
     required double maxLon,
     String? query,
+    String? category,
     int limit = 50,
   }) async {
     onSearchStarted?.call();
@@ -43,6 +44,13 @@ class FakePoiRepository implements IPoiRepository {
           p.nameAscii.toLowerCase().contains(q) ||
           (p.category != null && p.category!.toLowerCase().contains(q)) ||
           (p.subCategory != null && p.subCategory!.toLowerCase().contains(q)));
+    }
+
+    if (category != null && category.trim().isNotEmpty && category.toLowerCase() != 'all') {
+      final cat = category.trim().toLowerCase();
+      filtered = filtered.where((p) =>
+          (p.category != null && p.category!.toLowerCase() == cat) ||
+          (p.subCategory != null && p.subCategory!.toLowerCase() == cat));
     }
 
     return filtered.take(limit).toList();
