@@ -10,6 +10,8 @@ class FakeMapController extends Fake implements MapLibreMapController {
   final List<SymbolOptions> addedSymbols = [];
   final List<Line> removedLines = [];
   final List<Symbol> removedSymbols = [];
+  final Set<Line> activeLines = {};
+  final Set<Symbol> activeSymbols = {};
   int _nextId = 1;
 
   @override
@@ -18,22 +20,28 @@ class FakeMapController extends Fake implements MapLibreMapController {
   @override
   Future<Line> addLine(LineOptions options, [Map<String, dynamic>? data]) async {
     addedLines.add(options);
-    return Line('line_${_nextId++}', options);
+    final line = Line('line_${_nextId++}', options);
+    activeLines.add(line);
+    return line;
   }
 
   @override
   Future<Symbol> addSymbol(SymbolOptions options, [Map<String, dynamic>? data]) async {
     addedSymbols.add(options);
-    return Symbol('symbol_${_nextId++}', options);
+    final symbol = Symbol('symbol_${_nextId++}', options);
+    activeSymbols.add(symbol);
+    return symbol;
   }
 
   @override
   Future<void> removeLine(Line line) async {
+    activeLines.remove(line);
     removedLines.add(line);
   }
 
   @override
   Future<void> removeSymbol(Symbol symbol) async {
+    activeSymbols.remove(symbol);
     removedSymbols.add(symbol);
   }
 
@@ -175,7 +183,7 @@ void main() {
       final delayedController = DelayedFakeMapController();
       delayedController.lineGate = Completer<void>();
 
-      final waypoints = [
+      final waypoints1 = [
         const SnappedRoadPoint(
           isSnapped: true,
           originalLat: 10.7,
@@ -191,26 +199,47 @@ void main() {
           snappedLon: 106.8,
         ),
       ];
-      final polyline = [
+      final polyline1 = [
         const RoutePoint(lat: 10.7, lon: 106.7),
         const RoutePoint(lat: 10.8, lon: 106.8),
+      ];
+
+      final waypoints2 = [
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.1,
+          originalLon: 106.1,
+          snappedLat: 10.1,
+          snappedLon: 106.1,
+        ),
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.2,
+          originalLon: 106.2,
+          snappedLat: 10.2,
+          snappedLon: 106.2,
+        ),
+      ];
+      final polyline2 = [
+        const RoutePoint(lat: 10.1, lon: 106.1),
+        const RoutePoint(lat: 10.2, lon: 106.2),
       ];
 
       // Start first render (will be paused at addLine)
       final firstRenderFuture = manager.drawCustomRoute(
         controller: delayedController,
-        points: waypoints,
-        fullPolyline: polyline,
+        points: waypoints1,
+        fullPolyline: polyline1,
       );
 
       // Wait until first render reaches addLine
       await delayedController.lineReached.future;
 
-      // Start second render (bumps generation)
+      // Start second render with distinct geometry (bumps generation)
       final secondRenderFuture = manager.drawCustomRoute(
         controller: delayedController,
-        points: waypoints,
-        fullPolyline: polyline,
+        points: waypoints2,
+        fullPolyline: polyline2,
       );
 
       // Now release first line gate
@@ -221,8 +250,19 @@ void main() {
 
       expect(firstResult, isFalse);
       expect(secondResult, isTrue);
-      // Orphaned casing line created by first render was removed
-      expect(delayedController.removedLines, isNotEmpty);
+
+      // Assert first render's casing line was removed exactly once
+      expect(delayedController.removedLines.length, 1);
+      expect(
+        delayedController.removedLines.first.options.geometry?.first.latitude,
+        closeTo(10.7, 0.0001),
+      );
+
+      // Assert only the two lines from the second render remain active
+      expect(delayedController.activeLines.length, 2);
+      for (final activeLine in delayedController.activeLines) {
+        expect(activeLine.options.geometry?.first.latitude, closeTo(10.1, 0.0001));
+      }
     });
 
     test('fitRouteBounds handles null controller and empty points gracefully', () async {
