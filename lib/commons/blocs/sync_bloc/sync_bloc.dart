@@ -105,11 +105,11 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       final syncedIds = await _syncRepository.syncPendingTrips(userId);
       if (isClosed || emit.isDone) return;
 
-      int remainingCount = 0;
+      int remainingCount = state.pendingCount;
       try {
         remainingCount = await _syncRepository.getPendingSyncCount();
-      } catch (_) {
-        remainingCount = 0;
+      } catch (e) {
+        DLog.warning('⚠️ [SyncBloc] Không thể đọc queue sau đồng bộ: $e');
       }
       if (isClosed || emit.isDone) return;
 

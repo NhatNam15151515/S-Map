@@ -183,20 +183,28 @@ class FireStoreService implements IFireStoreService {
     }
     try {
       final fs = _fs!;
-      final batch = fs.batch();
       final userTrips = fs.collection('users').doc(userId).collection('trips');
+      const int chunkSize = 500;
 
-      for (final trip in trips) {
-        final tripMap = trip.toMap();
-        tripMap['isSynced'] = true;
-        tripMap['syncedAt'] = FieldValue.serverTimestamp();
-        batch.set(userTrips.doc(trip.id), tripMap, SetOptions(merge: true));
-      }
+      for (int i = 0; i < trips.length; i += chunkSize) {
+        final chunk = trips.sublist(
+          i,
+          (i + chunkSize > trips.length) ? trips.length : i + chunkSize,
+        );
 
-      await batch.commit();
+        final batch = fs.batch();
+        for (final trip in chunk) {
+          final tripMap = trip.toMap();
+          tripMap['isSynced'] = true;
+          tripMap['syncedAt'] = FieldValue.serverTimestamp();
+          batch.set(userTrips.doc(trip.id), tripMap, SetOptions(merge: true));
+        }
 
-      for (final trip in trips) {
-        await updateDailyStats(userId, trip.startTime, trip);
+        await batch.commit();
+
+        for (final trip in chunk) {
+          await updateDailyStats(userId, trip.startTime, trip);
+        }
       }
     } catch (e) {
       DLog.error("Firestore syncTripsBatch error: $e");
