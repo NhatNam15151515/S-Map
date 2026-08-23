@@ -90,7 +90,14 @@ class Routes extends NavigatorObserver {
         GoRoute(
           path: AppRoutes.tripDetail,
           builder: (context, state) {
-            final trip = state.extra as TripRecordModel;
+            final trip = state.extra;
+            if (trip is! TripRecordModel) {
+              return const Scaffold(
+                body: Center(
+                  child: Text('Invalid trip data'),
+                ),
+              );
+            }
             return TripDetailScreen(trip: trip);
           },
         ),

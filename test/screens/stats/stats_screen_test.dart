@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/stats/stats_screen.dart';
@@ -66,8 +68,22 @@ void main() {
   });
 
   Widget buildTestableWidget() {
-    return MaterialApp(
-      home: StatsScreen(cubit: cubit),
+    return EasyLocalization(
+      supportedLocales: const [Locale('vi'), Locale('en')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('vi'),
+      startLocale: const Locale('vi'),
+      assetLoader: const CodegenLoader(),
+      child: Builder(
+        builder: (context) {
+          return MaterialApp(
+            localizationsDelegates: context.localizationDelegates,
+            supportedLocales: context.supportedLocales,
+            locale: context.locale,
+            home: StatsScreen(cubit: cubit),
+          );
+        },
+      ),
     );
   }
 
@@ -90,7 +106,7 @@ void main() {
       );
 
       mockRepo.storage.add(sampleTrip);
-      await cubit.init(autoWatch: true);
+      await cubit.init(autoWatch: true, initialTimeRange: StatsTimeRange.allTime);
 
       await tester.pumpWidget(buildTestableWidget());
       await tester.pumpAndSettle();
@@ -121,25 +137,23 @@ void main() {
       );
 
       mockRepo.storage.add(sampleTrip);
-      await cubit.init(autoWatch: true);
+      await cubit.init(autoWatch: true, initialTimeRange: StatsTimeRange.allTime);
 
       await tester.pumpWidget(buildTestableWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('Địa điểm B'), findsOneWidget);
+      expect(find.byKey(const Key('trip_item_stats_screen_trip_1')), findsOneWidget);
 
-      // Tap clear all
+      // Tap clear all -> opens dialog -> confirm
       await tester.tap(find.byKey(const Key('stats_clear_all_btn')));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('confirm_clear_all_btn')), findsOneWidget);
-
-      // Confirm clear
       await tester.tap(find.byKey(const Key('confirm_clear_all_btn')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Địa điểm B'), findsNothing);
-      expect(find.byIcon(Icons.explore_off_rounded), findsOneWidget);
+      expect(find.byKey(const Key('trip_item_stats_screen_trip_1')), findsNothing);
+      expect(find.byKey(const Key('stats_trip_history_empty')), findsOneWidget);
     });
   });
 }

@@ -15,6 +15,26 @@ class StatsVehicleFilterChips extends StatelessWidget {
     this.profileCounts = const {},
   });
 
+  int _getCountForProfile(String? profile) {
+    if (profile == null) {
+      final motorcycle = (profileCounts['motorcycle'] ?? 0) +
+          (profileCounts['moped_vn'] ?? 0) +
+          (profileCounts['moped'] ?? 0);
+      final car = profileCounts['car'] ?? 0;
+      final walking = (profileCounts['walking'] ?? 0) + (profileCounts['foot'] ?? 0);
+      return motorcycle + car + walking;
+    }
+    if (profile == 'motorcycle') {
+      return (profileCounts['motorcycle'] ?? 0) +
+          (profileCounts['moped_vn'] ?? 0) +
+          (profileCounts['moped'] ?? 0);
+    }
+    if (profile == 'walking') {
+      return (profileCounts['walking'] ?? 0) + (profileCounts['foot'] ?? 0);
+    }
+    return profileCounts[profile] ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final filters = [
@@ -33,9 +53,7 @@ class StatsVehicleFilterChips extends StatelessWidget {
           final label = item.$2;
           final icon = item.$3;
           final isSelected = profile == selectedProfile;
-          final count = profile == null
-              ? profileCounts.values.fold(0, (a, b) => a + b)
-              : (profileCounts[profile] ?? 0);
+          final count = _getCountForProfile(profile);
 
           return Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -44,7 +62,7 @@ class StatsVehicleFilterChips extends StatelessWidget {
               avatar: Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : AppColors.sMapDarkTeal,
+                color: isSelected ? AppColors.white : AppColors.sMapDarkTeal,
               ),
               label: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -55,7 +73,7 @@ class StatsVehicleFilterChips extends StatelessWidget {
                       fontFamily: 'Montserrat',
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.onSurface,
+                      color: isSelected ? AppColors.white : AppColors.onSurface,
                     ),
                   ),
                   if (count > 0) ...[
@@ -64,7 +82,7 @@ class StatsVehicleFilterChips extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? Colors.white.withValues(alpha: 0.25)
+                            ? AppColors.white.withValues(alpha: 0.25)
                             : AppColors.sMapDarkTeal.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -74,7 +92,7 @@ class StatsVehicleFilterChips extends StatelessWidget {
                           fontFamily: 'Montserrat',
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : AppColors.sMapDarkTeal,
+                          color: isSelected ? AppColors.white : AppColors.sMapDarkTeal,
                         ),
                       ),
                     ),

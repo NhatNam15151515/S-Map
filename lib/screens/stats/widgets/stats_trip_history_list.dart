@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/route_format_helper.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -26,6 +27,7 @@ class StatsTripHistoryList extends StatelessWidget {
         return Icons.directions_walk_rounded;
       case 'motorcycle':
       case 'moped':
+      case 'moped_vn':
       default:
         return Icons.two_wheeler_rounded;
     }
@@ -40,6 +42,7 @@ class StatsTripHistoryList extends StatelessWidget {
         return const Color(0xFFE65100);
       case 'motorcycle':
       case 'moped':
+      case 'moped_vn':
       default:
         return AppColors.sMapDarkTeal;
     }
@@ -56,6 +59,7 @@ class StatsTripHistoryList extends StatelessWidget {
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.w700,
             fontSize: 16,
+            color: AppColors.onSurface,
           ),
         ),
         content: Text(
@@ -78,12 +82,12 @@ class StatsTripHistoryList extends StatelessWidget {
             key: const Key('confirm_delete_trip_btn'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
-              tr(LocaleKeys.clearAll),
+              tr(LocaleKeys.stats_dashboard_delete_trip_btn),
               style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w600),
             ),
           ),
@@ -177,6 +181,7 @@ class StatsTripHistoryList extends StatelessWidget {
 
   Widget _buildEmptyState() {
     return Container(
+      key: const Key('stats_trip_history_empty'),
       padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
       alignment: Alignment.center,
       decoration: BoxDecoration(

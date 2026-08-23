@@ -67,6 +67,11 @@ class TripStatsModel extends Equatable {
       }
       tripsByProfile[trip.vehicleProfile] =
           (tripsByProfile[trip.vehicleProfile] ?? 0) + 1;
+      final normalized = _normalizeProfile(trip.vehicleProfile);
+      if (normalized != trip.vehicleProfile) {
+        tripsByProfile[normalized] =
+            (tripsByProfile[normalized] ?? 0) + 1;
+      }
     }
 
     final double avgSpeedKmh;
@@ -140,6 +145,20 @@ class TripStatsModel extends Equatable {
       topSpeedKmh: (map['topSpeedKmh'] as num?)?.toDouble() ?? 0.0,
       tripsByProfile: Map.unmodifiable(parsedProfiles),
     );
+  }
+
+  static String _normalizeProfile(String profile) {
+    final lower = profile.toLowerCase().trim();
+    if (lower == 'moped_vn' || lower == 'moped' || lower == 'motorcycle') {
+      return 'motorcycle';
+    }
+    if (lower == 'walking' || lower == 'foot') {
+      return 'walking';
+    }
+    if (lower == 'car') {
+      return 'car';
+    }
+    return lower;
   }
 
   @override

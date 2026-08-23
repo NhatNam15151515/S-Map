@@ -76,7 +76,7 @@ class StatsSummaryCards extends StatelessWidget {
                   title: tr(LocaleKeys.stats_dashboard_kpi_avg_speed),
                   value: '${stats.avgSpeedKmh.round()}',
                   unit: 'km/h',
-                  subtitle: 'Top: ${stats.topSpeedKmh.round()} km/h',
+                  subtitle: '${tr(LocaleKeys.stats_dashboard_kpi_top_speed)}: ${stats.topSpeedKmh.round()} km/h',
                 ),
               ),
             ],

@@ -318,12 +318,20 @@ class TripChartData extends Equatable {
   }
 
   static TripChartData _buildAllTimeChart(List<TripRecordModel> trips, DateTime current) {
-    // Last 6 months up to current month
     final bars = <TripChartBarData>[];
     var totalDistance = 0.0;
     var maxDistance = 0.0;
 
-    for (var i = 5; i >= 0; i--) {
+    var oldest = current;
+    for (final trip in trips) {
+      if (trip.startTime.isBefore(oldest)) {
+        oldest = trip.startTime;
+      }
+    }
+    final monthSpan = (current.year - oldest.year) * 12 + (current.month - oldest.month);
+    final bucketCount = monthSpan < 5 ? 6 : monthSpan + 1;
+
+    for (var i = bucketCount - 1; i >= 0; i--) {
       final targetDate = DateTime(current.year, current.month - i, 1);
       final daysInMonth = DateTime(targetDate.year, targetDate.month + 1, 0).day;
       final start = DateTime(targetDate.year, targetDate.month, 1, 0, 0, 0);
@@ -343,7 +351,7 @@ class TripChartData extends Equatable {
       if (distance > maxDistance) maxDistance = distance;
 
       bars.add(TripChartBarData(
-        x: 5 - i,
+        x: (bucketCount - 1) - i,
         label: 'T${targetDate.month}/${targetDate.year.toString().substring(2)}',
         distanceKm: double.parse(distance.toStringAsFixed(2)),
         tripCount: count,

@@ -1,14 +1,17 @@
 import 'dart:math';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/map_drawing_route_manager.dart';
 import 'package:s_map/commons/utils/route_format_helper.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/routers/app_routes.dart';
 
 class TripDetailScreen extends StatefulWidget {
+  static const String path = AppRoutes.tripDetail;
   final TripRecordModel trip;
   final Widget Function(BuildContext context, MapLibreMapController? controller)? mapLayerBuilder;
 
@@ -35,11 +38,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   void _onMapCreated(MapLibreMapController controller) {
     _mapController = controller;
-    _isMapReady = true;
-    _drawTripPolyline();
   }
 
   void _onStyleLoaded() {
+    _isMapReady = true;
     _drawTripPolyline();
   }
 
@@ -48,6 +50,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     final rawPolyline = widget.trip.polyline;
     if (rawPolyline == null || rawPolyline.length < 2) return;
+
+    await _routeManager.clear(_mapController);
 
     final latLngs = rawPolyline.map((p) => LatLng(p[0], p[1])).toList();
     final waypoints = [
@@ -90,6 +94,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         return Icons.directions_walk_rounded;
       case 'motorcycle':
       case 'moped':
+      case 'moped_vn':
       default:
         return Icons.two_wheeler_rounded;
     }
@@ -104,6 +109,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         return tr(LocaleKeys.stats_dashboard_filter_walking);
       case 'motorcycle':
       case 'moped':
+      case 'moped_vn':
       default:
         return tr(LocaleKeys.stats_dashboard_filter_motorcycle);
     }
@@ -151,7 +157,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             left: 16,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -164,7 +170,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               child: IconButton(
                 key: const Key('trip_detail_back_btn'),
                 icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => context.pop(),
               ),
             ),
           ),
@@ -175,6 +181,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             left: 0,
             right: 0,
             child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.58,
+              ),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -189,152 +198,154 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               ),
               child: SafeArea(
                 top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Bar
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.sMapDarkTeal.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header Bar
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.sMapDarkTeal.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _getVehicleIcon(trip.vehicleProfile),
+                              size: 22,
+                              color: AppColors.sMapDarkTeal,
+                            ),
                           ),
-                          child: Icon(
-                            _getVehicleIcon(trip.vehicleProfile),
-                            size: 22,
-                            color: AppColors.sMapDarkTeal,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tr(LocaleKeys.stats_dashboard_detail_title),
+                                  style: const TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  _getVehicleName(trip.vehicleProfile),
+                                  style: const TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                tr(LocaleKeys.stats_dashboard_detail_title),
+                          if (trip.hasArrived)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F5E9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                tr(LocaleKeys.stats_dashboard_status_completed),
                                 style: const TextStyle(
                                   fontFamily: 'Montserrat',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurface,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2E7D32),
                                 ),
                               ),
-                              Text(
-                                _getVehicleName(trip.vehicleProfile),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                tr(LocaleKeys.stats_dashboard_status_stopped),
                                 style: const TextStyle(
                                   fontFamily: 'Montserrat',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.onSurfaceVariant,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        if (trip.hasArrived)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(
-                              tr(LocaleKeys.stats_dashboard_status_completed),
-                              style: const TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF2E7D32),
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              tr(LocaleKeys.stats_dashboard_status_stopped),
-                              style: const TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.onSurfaceVariant,
-                              ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+
+                      // Stats Grid Row (Distance, Duration, Avg Speed, Top Speed)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _DetailStatBox(
+                              icon: Icons.route_rounded,
+                              label: tr(LocaleKeys.stats_dashboard_detail_distance),
+                              value: distanceStr,
+                              color: AppColors.sMapDarkTeal,
                             ),
                           ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    const Divider(height: 1),
-                    const SizedBox(height: 16),
-
-                    // Stats Grid Row (Distance, Duration, Avg Speed, Top Speed)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailStatBox(
-                            icon: Icons.route_rounded,
-                            label: tr(LocaleKeys.stats_dashboard_detail_distance),
-                            value: distanceStr,
-                            color: AppColors.sMapDarkTeal,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _DetailStatBox(
+                              icon: Icons.schedule_rounded,
+                              label: tr(LocaleKeys.stats_dashboard_detail_duration),
+                              value: durationStr,
+                              color: const Color(0xFFE65100),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _DetailStatBox(
-                            icon: Icons.schedule_rounded,
-                            label: tr(LocaleKeys.stats_dashboard_detail_duration),
-                            value: durationStr,
-                            color: const Color(0xFFE65100),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _DetailStatBox(
+                              icon: Icons.speed_rounded,
+                              label: tr(LocaleKeys.stats_dashboard_detail_avg_speed),
+                              value: '${trip.avgSpeedKmh.round()} km/h',
+                              color: const Color(0xFF1565C0),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DetailStatBox(
-                            icon: Icons.speed_rounded,
-                            label: tr(LocaleKeys.stats_dashboard_detail_avg_speed),
-                            value: '${trip.avgSpeedKmh.round()} km/h',
-                            color: const Color(0xFF1565C0),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _DetailStatBox(
+                              icon: Icons.flash_on_rounded,
+                              label: tr(LocaleKeys.stats_dashboard_detail_top_speed),
+                              value: '${trip.topSpeedKmh.round()} km/h',
+                              color: const Color(0xFF7B1FA2),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _DetailStatBox(
-                            icon: Icons.flash_on_rounded,
-                            label: tr(LocaleKeys.stats_dashboard_detail_top_speed),
-                            value: '${trip.topSpeedKmh.round()} km/h',
-                            color: const Color(0xFF7B1FA2),
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Origin & Destination Info
-                    _LocationTimelineItem(
-                      isOrigin: true,
-                      label: tr(LocaleKeys.stats_dashboard_detail_origin),
-                      title: trip.originName ?? startTimeStr,
-                    ),
-                    const SizedBox(height: 8),
-                    _LocationTimelineItem(
-                      isOrigin: false,
-                      label: tr(LocaleKeys.stats_dashboard_detail_destination),
-                      title: trip.destinationName ?? endTimeStr,
-                    ),
-                  ],
+                      // Origin & Destination Info
+                      _LocationTimelineItem(
+                        isOrigin: true,
+                        label: tr(LocaleKeys.stats_dashboard_detail_origin),
+                        title: trip.originName ?? startTimeStr,
+                      ),
+                      const SizedBox(height: 8),
+                      _LocationTimelineItem(
+                        isOrigin: false,
+                        label: tr(LocaleKeys.stats_dashboard_detail_destination),
+                        title: trip.destinationName ?? endTimeStr,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

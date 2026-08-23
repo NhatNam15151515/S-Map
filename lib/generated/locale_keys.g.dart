@@ -230,6 +230,7 @@ abstract class  LocaleKeys {
   static const stats_dashboard_kpi_completion_rate = 'stats_dashboard.kpi_completion_rate';
   static const stats_dashboard_chart_title = 'stats_dashboard.chart_title';
   static const stats_dashboard_chart_empty_title = 'stats_dashboard.chart_empty_title';
+  static const stats_dashboard_chart_trip_count = 'stats_dashboard.chart_trip_count';
   static const stats_dashboard_chart_empty_desc = 'stats_dashboard.chart_empty_desc';
   static const stats_dashboard_history_title = 'stats_dashboard.history_title';
   static const stats_dashboard_history_count = 'stats_dashboard.history_count';
@@ -251,6 +252,7 @@ abstract class  LocaleKeys {
   static const stats_dashboard_detail_unnamed_trip = 'stats_dashboard.detail_unnamed_trip';
   static const stats_dashboard_delete_trip_title = 'stats_dashboard.delete_trip_title';
   static const stats_dashboard_delete_trip_desc = 'stats_dashboard.delete_trip_desc';
+  static const stats_dashboard_delete_trip_btn = 'stats_dashboard.delete_trip_btn';
   static const stats_dashboard_clear_all_title = 'stats_dashboard.clear_all_title';
   static const stats_dashboard_clear_all_desc = 'stats_dashboard.clear_all_desc';
   static const stats_dashboard_clear_all_btn = 'stats_dashboard.clear_all_btn';

@@ -157,7 +157,10 @@ class StatsDistanceChart extends StatelessWidget {
                   ),
                   children: [
                     TextSpan(
-                      text: '${bar.tripCount} ${tr(LocaleKeys.stats_dashboard_history_count, args: ['']).trim()}',
+                      text: tr(
+                        LocaleKeys.stats_dashboard_chart_trip_count,
+                        args: ['${bar.tripCount}'],
+                      ),
                       style: const TextStyle(
                         fontFamily: 'Montserrat',
                         color: AppColors.sMapDarkTeal,

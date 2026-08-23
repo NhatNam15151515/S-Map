@@ -178,7 +178,7 @@ void main() {
       expect(chart.bars[7].distanceKm, 8.0);
     });
 
-    test('fromTrips allTime generates 6 recent month buckets', () {
+    test('fromTrips allTime generates 6 recent month buckets when data is recent', () {
       final trips = [
         createTrip(id: '1', time: DateTime(2026, 8, 23), distanceMeters: 10000),
       ];
@@ -186,6 +186,20 @@ void main() {
       final chart = TripChartData.fromTrips(trips, StatsTimeRange.allTime, now: baseDate);
 
       expect(chart.bars.length, 6);
+      expect(chart.bars.last.distanceKm, 10.0);
+    });
+
+    test('fromTrips allTime spans older than 6 months when trips exist in earlier months', () {
+      final trips = [
+        createTrip(id: '1', time: DateTime(2025, 8, 15), distanceMeters: 5000), // 12 months ago
+        createTrip(id: '2', time: DateTime(2026, 8, 23), distanceMeters: 10000),
+      ];
+
+      final chart = TripChartData.fromTrips(trips, StatsTimeRange.allTime, now: baseDate);
+
+      expect(chart.bars.length, 13);
+      expect(chart.totalDistanceKm, 15.0);
+      expect(chart.bars.first.distanceKm, 5.0);
       expect(chart.bars.last.distanceKm, 10.0);
     });
 

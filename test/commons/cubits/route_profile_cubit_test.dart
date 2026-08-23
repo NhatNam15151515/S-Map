@@ -40,12 +40,14 @@ class MockTripRepository implements ITripRepository {
 
   @override
   Future<void> deleteTrip(String id) async {
+    if (shouldThrow) throw Exception('Delete error');
     storage.removeWhere((t) => t.id == id);
     _controller.add(List.unmodifiable(storage));
   }
 
   @override
   Future<void> clearAllTrips() async {
+    if (shouldThrow) throw Exception('Clear error');
     storage.clear();
     _controller.add(List.unmodifiable(storage));
   }
@@ -71,7 +73,7 @@ class MockTripRepository implements ITripRepository {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final now = DateTime.now();
+  final now = DateTime(2026, 8, 23, 12, 0);
 
   final tripMotorcycle = TripRecordModel(
     id: 't_moto',
@@ -84,6 +86,19 @@ void main() {
     hasArrived: true,
     vehicleProfile: 'motorcycle',
     createdAt: now.subtract(const Duration(hours: 1, minutes: 30)),
+  );
+
+  final tripMopedVn = TripRecordModel(
+    id: 't_moped_vn',
+    startTime: now.subtract(const Duration(hours: 3)),
+    endTime: now.subtract(const Duration(hours: 2, minutes: 30)),
+    durationMs: 1800000, // 0.5h
+    distanceMeters: 10000.0, // 10km
+    avgSpeedKmh: 20.0,
+    topSpeedKmh: 40.0,
+    hasArrived: true,
+    vehicleProfile: 'moped_vn',
+    createdAt: now.subtract(const Duration(hours: 2, minutes: 30)),
   );
 
   final tripCar = TripRecordModel(
@@ -127,7 +142,7 @@ void main() {
     test('loadStats aggregates data correctly across all trips and generates chartData', () async {
       mockRepo.storage.addAll([tripMotorcycle, tripCar]);
 
-      await cubit.loadStats();
+      await cubit.loadStats(timeRange: StatsTimeRange.allTime);
 
       expect(cubit.state.status, equals(RouteProfileStatus.success));
       expect(cubit.state.hasStats, isTrue);
@@ -143,20 +158,18 @@ void main() {
       expect(cubit.state.chartData.totalDistanceKm, equals(45.0));
     });
 
-    test('setProfileFilter filters stats to selected vehicle profile', () async {
-      mockRepo.storage.addAll([tripMotorcycle, tripCar]);
-      await cubit.loadStats();
+    test('setProfileFilter filters stats to selected vehicle profile and matches moped_vn to motorcycle', () async {
+      mockRepo.storage.addAll([tripMotorcycle, tripMopedVn, tripCar]);
+      await cubit.loadStats(timeRange: StatsTimeRange.allTime);
 
-      // Lọc xe máy
+      // Lọc xe máy (khớp cả tripMotorcycle và tripMopedVn)
       cubit.setProfileFilter('motorcycle');
 
       expect(cubit.state.profileFilter, equals('motorcycle'));
-      expect(cubit.state.filteredTrips.length, equals(1));
-      expect(cubit.state.stats.totalTrips, equals(1));
-      expect(cubit.state.stats.totalDistanceKm, equals(15.0));
-      expect(cubit.state.stats.avgSpeedKmh, closeTo(30.0, 0.01));
-      expect(cubit.state.stats.topSpeedKmh, equals(50.0));
-      expect(cubit.state.chartData.totalDistanceKm, equals(15.0));
+      expect(cubit.state.filteredTrips.length, equals(2));
+      expect(cubit.state.stats.totalTrips, equals(2));
+      expect(cubit.state.stats.totalDistanceKm, equals(25.0)); // 15 + 10
+      expect(cubit.state.chartData.totalDistanceKm, equals(25.0));
 
       // Lọc ô tô
       cubit.setProfileFilter('car');
@@ -167,16 +180,16 @@ void main() {
       expect(cubit.state.stats.avgSpeedKmh, closeTo(60.0, 0.01));
       expect(cubit.state.stats.topSpeedKmh, equals(90.0));
 
-      // Bỏ lọc -> trở lại 2 trips
+      // Bỏ lọc -> trở lại 3 trips
       cubit.setProfileFilter(null);
       expect(cubit.state.profileFilter, isNull);
-      expect(cubit.state.filteredTrips.length, equals(2));
-      expect(cubit.state.stats.totalDistanceKm, equals(45.0));
+      expect(cubit.state.filteredTrips.length, equals(3));
+      expect(cubit.state.stats.totalDistanceKm, equals(55.0));
     });
 
     test('setTimeRange updates timeRange and re-aggregates stats and chartData', () async {
       mockRepo.storage.addAll([tripMotorcycle, tripCar]);
-      await cubit.loadStats();
+      await cubit.loadStats(timeRange: StatsTimeRange.allTime);
 
       cubit.setTimeRange(StatsTimeRange.today);
       expect(cubit.state.timeRange, equals(StatsTimeRange.today));
@@ -188,32 +201,44 @@ void main() {
       expect(cubit.state.filteredTrips.length, equals(2));
     });
 
-    test('deleteTrip removes single trip via repository', () async {
+    test('deleteTrip removes single trip via repository and handles error', () async {
       mockRepo.storage.addAll([tripMotorcycle, tripCar]);
-      await cubit.init(autoWatch: true);
+      await cubit.init(autoWatch: true, initialTimeRange: StatsTimeRange.allTime);
       expect(cubit.state.stats.totalTrips, equals(2));
 
       await cubit.deleteTrip(tripMotorcycle.id);
 
       expect(cubit.state.stats.totalTrips, equals(1));
       expect(cubit.state.filteredTrips.first.id, equals('t_car'));
+
+      // Error case
+      mockRepo.shouldThrow = true;
+      await cubit.deleteTrip('t_car');
+      expect(cubit.state.status, equals(RouteProfileStatus.error));
+      expect(cubit.state.errorMessage, contains('Delete error'));
     });
 
-    test('clearAllTrips removes all trips via repository', () async {
+    test('clearAllTrips removes all trips via repository and handles error', () async {
       mockRepo.storage.addAll([tripMotorcycle, tripCar]);
-      await cubit.init(autoWatch: true);
+      await cubit.init(autoWatch: true, initialTimeRange: StatsTimeRange.allTime);
       expect(cubit.state.stats.totalTrips, equals(2));
 
       await cubit.clearAllTrips();
 
       expect(cubit.state.stats.totalTrips, equals(0));
       expect(cubit.state.filteredTrips, isEmpty);
+
+      // Error case
+      mockRepo.shouldThrow = true;
+      await cubit.clearAllTrips();
+      expect(cubit.state.status, equals(RouteProfileStatus.error));
+      expect(cubit.state.errorMessage, contains('Clear error'));
     });
 
     test('init() loads stats and synchronizes realtime on watch stream emissions', () async {
       mockRepo.storage.add(tripMotorcycle);
 
-      await cubit.init(autoWatch: true);
+      await cubit.init(autoWatch: true, initialTimeRange: StatsTimeRange.allTime);
 
       expect(cubit.state.stats.totalTrips, equals(1));
       expect(mockRepo.watchCallCount, equals(1));
@@ -229,11 +254,11 @@ void main() {
 
     test('loadStats with clearFilter=true removes existing profileFilter and calculates all trips', () async {
       mockRepo.storage.addAll([tripMotorcycle, tripCar]);
-      await cubit.loadStats(profileFilter: 'motorcycle');
+      await cubit.loadStats(profileFilter: 'motorcycle', timeRange: StatsTimeRange.allTime);
       expect(cubit.state.profileFilter, equals('motorcycle'));
       expect(cubit.state.stats.totalTrips, equals(1));
 
-      await cubit.loadStats(clearFilter: true);
+      await cubit.loadStats(clearFilter: true, timeRange: StatsTimeRange.allTime);
       expect(cubit.state.profileFilter, isNull);
       expect(cubit.state.stats.totalTrips, equals(2));
       expect(cubit.state.stats.totalDistanceKm, equals(45.0));
@@ -242,7 +267,7 @@ void main() {
     test('repository exception emits error status with message', () async {
       mockRepo.shouldThrow = true;
 
-      await cubit.loadStats();
+      await cubit.loadStats(timeRange: StatsTimeRange.allTime);
       expect(cubit.state.status, equals(RouteProfileStatus.error));
       expect(cubit.state.errorMessage, contains('Database read error'));
     });
@@ -276,18 +301,14 @@ void main() {
       mockRepo.storage.addAll([tripMotorcycle, tripCar]);
       mockRepo.getTripsCompleter = Completer<void>();
 
-      // Bắt đầu loadStats lần 1 (bị nghẽn bởi completer)
-      final pendingLoad1 = cubit.loadStats(profileFilter: 'motorcycle');
+      final pendingLoad1 = cubit.loadStats(profileFilter: 'motorcycle', timeRange: StatsTimeRange.allTime);
 
-      // Đổi filter sang 'car'
       cubit.setProfileFilter('car');
       expect(cubit.state.profileFilter, equals('car'));
 
-      // Hoàn tất loadStats lần 1
       mockRepo.getTripsCompleter!.complete();
       await pendingLoad1;
 
-      // Filter vẫn phải giữ nguyên là 'car', không bị lần 1 ghi đè thành 'motorcycle'
       expect(cubit.state.profileFilter, equals('car'));
     });
   });

@@ -10,6 +10,7 @@ import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/stats/widgets/widgets.dart';
 
 class StatsScreen extends StatefulWidget {
+  static const String path = AppRoutes.stats;
   final RouteProfileCubit? cubit;
 
   const StatsScreen({
@@ -56,6 +57,7 @@ class _StatsScreenState extends State<StatsScreen> {
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.w700,
             fontSize: 16,
+            color: AppColors.onSurface,
           ),
         ),
         content: Text(
@@ -78,7 +80,7 @@ class _StatsScreenState extends State<StatsScreen> {
             key: const Key('confirm_clear_all_btn'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),

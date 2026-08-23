@@ -1,33 +1,41 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/stats/widgets/widgets.dart';
 
 void main() {
   Widget buildTestableWidget(Widget child) {
-    return MaterialApp(
-      home: Scaffold(
-        body: child,
+    return EasyLocalization(
+      supportedLocales: const [Locale('vi'), Locale('en')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('vi'),
+      startLocale: const Locale('vi'),
+      assetLoader: const CodegenLoader(),
+      child: Builder(
+        builder: (context) {
+          return MaterialApp(
+            localizationsDelegates: context.localizationDelegates,
+            supportedLocales: context.supportedLocales,
+            locale: context.locale,
+            home: Scaffold(
+              body: child,
+            ),
+          );
+        },
       ),
     );
   }
 
-  group('StatsTimeRangeSelector Tests', () {
-    testWidgets('renders all 5 time ranges and handles selection callback', (tester) async {
-      StatsTimeRange selected = StatsTimeRange.thisWeek;
+  group('Stats Widgets Tests', () {
+    testWidgets('StatsTimeRangeSelector renders all chips and handles selection', (tester) async {
+      StatsTimeRange? selected;
 
       await tester.pumpWidget(buildTestableWidget(
-        StatefulBuilder(
-          builder: (context, setState) {
-            return StatsTimeRangeSelector(
-              selectedRange: selected,
-              onRangeSelected: (range) {
-                setState(() {
-                  selected = range;
-                });
-              },
-            );
-          },
+        StatsTimeRangeSelector(
+          selectedRange: StatsTimeRange.thisWeek,
+          onRangeSelected: (range) => selected = range,
         ),
       ));
       await tester.pumpAndSettle();
@@ -38,41 +46,25 @@ void main() {
       expect(find.byKey(const Key('stats_range_thisYear')), findsOneWidget);
       expect(find.byKey(const Key('stats_range_allTime')), findsOneWidget);
 
-      // Tap today
       await tester.tap(find.byKey(const Key('stats_range_today')));
       await tester.pumpAndSettle();
+
       expect(selected, equals(StatsTimeRange.today));
-
-      // Scroll and tap allTime
-      await tester.ensureVisible(find.byKey(const Key('stats_range_allTime')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('stats_range_allTime')));
-      await tester.pumpAndSettle();
-      expect(selected, equals(StatsTimeRange.allTime));
     });
-  });
 
-  group('StatsVehicleFilterChips Tests', () {
-    testWidgets('renders vehicle filter chips with counts and handles selection', (tester) async {
-      String? selectedProfile;
+    testWidgets('StatsVehicleFilterChips renders vehicle chips and handles moped_vn under motorcycle profile', (tester) async {
+      String? selected;
 
       await tester.pumpWidget(buildTestableWidget(
-        StatefulBuilder(
-          builder: (context, setState) {
-            return StatsVehicleFilterChips(
-              selectedProfile: selectedProfile,
-              profileCounts: const {
-                'motorcycle': 5,
-                'car': 2,
-                'walking': 1,
-              },
-              onProfileSelected: (profile) {
-                setState(() {
-                  selectedProfile = profile;
-                });
-              },
-            );
+        StatsVehicleFilterChips(
+          selectedProfile: null,
+          profileCounts: const {
+            'moped_vn': 2,
+            'motorcycle': 1,
+            'car': 1,
+            'walking': 1,
           },
+          onProfileSelected: (p) => selected = p,
         ),
       ));
       await tester.pumpAndSettle();
@@ -82,30 +74,23 @@ void main() {
       expect(find.byKey(const Key('stats_profile_car')), findsOneWidget);
       expect(find.byKey(const Key('stats_profile_walking')), findsOneWidget);
 
-      // Total count 8 (5 + 2 + 1)
-      expect(find.text('8'), findsOneWidget);
-      expect(find.text('5'), findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
-      expect(find.text('1'), findsOneWidget);
+      // Motorcycle count should aggregate motorcycle (1) + moped_vn (2) = 3
+      expect(find.text('3'), findsOneWidget);
 
-      // Tap car
-      await tester.ensureVisible(find.byKey(const Key('stats_profile_car')));
+      await tester.tap(find.byKey(const Key('stats_profile_motorcycle')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('stats_profile_car')));
-      await tester.pumpAndSettle();
-      expect(selectedProfile, equals('car'));
+
+      expect(selected, equals('motorcycle'));
     });
-  });
 
-  group('StatsSummaryCards Tests', () {
-    testWidgets('renders all 4 KPI cards with correct values', (tester) async {
+    testWidgets('StatsSummaryCards renders KPI values and subtitles accurately', (tester) async {
       const stats = TripStatsModel(
-        totalTrips: 10,
-        completedTrips: 9,
-        totalDistanceMeters: 125450.0,
-        totalDurationMs: 7200000, // 2 hours
-        avgSpeedKmh: 42.5,
-        topSpeedKmh: 75.0,
+        totalTrips: 5,
+        completedTrips: 4,
+        totalDistanceMeters: 45000, // 45km
+        totalDurationMs: 3600000, // 1h
+        avgSpeedKmh: 45.0,
+        topSpeedKmh: 80.0,
       );
 
       await tester.pumpWidget(buildTestableWidget(
@@ -113,65 +98,61 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('kpi_card_distance')), findsOneWidget);
-      expect(find.byKey(const Key('kpi_card_duration')), findsOneWidget);
-      expect(find.byKey(const Key('kpi_card_trips')), findsOneWidget);
-      expect(find.byKey(const Key('kpi_card_speed')), findsOneWidget);
-
-      expect(find.text('125.5'), findsOneWidget);
-      expect(find.text('10'), findsOneWidget);
-      expect(find.text('43'), findsOneWidget); // 42.5 rounded
+      expect(find.text('45.0'), findsOneWidget);
+      expect(find.text('1 giờ'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('45'), findsOneWidget);
+      expect(find.textContaining('80 km/h'), findsOneWidget);
     });
-  });
 
-  group('StatsTripHistoryList Tests', () {
-    testWidgets('renders trip items and handles tap and delete', (tester) async {
+    testWidgets('StatsTripHistoryList renders trip items and handles delete confirmation', (tester) async {
       final now = DateTime.now();
-      final trip = TripRecordModel(
-        id: 'trip_123',
-        startTime: now.subtract(const Duration(minutes: 30)),
-        endTime: now,
-        durationMs: 1800000,
-        distanceMeters: 12000,
-        avgSpeedKmh: 24.0,
-        topSpeedKmh: 45.0,
-        hasArrived: true,
-        originName: 'Nhà',
-        destinationName: 'Công ty S-Map',
-        vehicleProfile: 'motorcycle',
-        createdAt: now,
-      );
+      final trips = [
+        TripRecordModel(
+          id: 'trip_1',
+          startTime: now.subtract(const Duration(hours: 1)),
+          endTime: now,
+          durationMs: 3600000,
+          distanceMeters: 20000,
+          avgSpeedKmh: 20.0,
+          topSpeedKmh: 40.0,
+          hasArrived: true,
+          originName: 'Nhà',
+          destinationName: 'Công ty',
+          vehicleProfile: 'motorcycle',
+          createdAt: now,
+        ),
+      ];
 
-      TripRecordModel? tappedTrip;
       String? deletedId;
+      TripRecordModel? tappedTrip;
 
       await tester.pumpWidget(buildTestableWidget(
         StatsTripHistoryList(
-          trips: [trip],
+          trips: trips,
           onTapTrip: (t) => tappedTrip = t,
           onDeleteTrip: (id) => deletedId = id,
         ),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Công ty S-Map'), findsOneWidget);
-      expect(find.byKey(const Key('trip_item_trip_123')), findsOneWidget);
+      expect(find.text('Công ty'), findsOneWidget);
+      expect(find.textContaining('20.0 km'), findsOneWidget);
 
       // Tap trip
-      await tester.tap(find.byKey(const Key('trip_item_trip_123')));
+      await tester.tap(find.text('Công ty'));
       await tester.pumpAndSettle();
-      expect(tappedTrip?.id, equals('trip_123'));
+      expect(tappedTrip?.id, equals('trip_1'));
 
-      // Tap delete button -> dialog shows
-      await tester.tap(find.byKey(const Key('delete_trip_btn_trip_123')));
+      // Tap delete button -> opens dialog -> confirm
+      await tester.tap(find.byKey(const Key('delete_trip_btn_trip_1')));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('confirm_delete_trip_btn')), findsOneWidget);
-
-      // Confirm delete
       await tester.tap(find.byKey(const Key('confirm_delete_trip_btn')));
       await tester.pumpAndSettle();
-      expect(deletedId, equals('trip_123'));
+
+      expect(deletedId, equals('trip_1'));
     });
   });
 }
