@@ -151,6 +151,7 @@ class PoiRepositoryImpl implements IPoiRepository {
     required double minLon,
     required double maxLon,
     String? query,
+    String? category,
     int limit = 50,
   }) async {
     final db = await _getDb();
@@ -158,73 +159,76 @@ class PoiRepositoryImpl implements IPoiRepository {
     final cleanAscii = cleanQuery.isNotEmpty
         ? _sanitizeFtsQuery(AppUtils.instance.toAscii(cleanQuery))
         : '';
+    final hasCategory = category != null &&
+        category.trim().isNotEmpty &&
+        category.trim().toLowerCase() != 'all';
+    final cleanCategory = hasCategory ? category.trim().toLowerCase() : '';
 
     try {
+      final whereClauses = <String>[
+        'r.min_lat >= ? AND r.max_lat <= ?',
+        'r.min_lon >= ? AND r.max_lon <= ?',
+      ];
+      final whereArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
+
       if (cleanQuery.isNotEmpty) {
-        final List<Map<String, dynamic>> results = await db.rawQuery(
-          '''
-          SELECT p.*
-          FROM poi_rtree r
-          JOIN poi p ON r.id = p.id
-          WHERE r.min_lat >= ? AND r.max_lat <= ?
-            AND r.min_lon >= ? AND r.max_lon <= ?
-            AND (p.name LIKE ? OR p.name_ascii LIKE ? OR p.category LIKE ? OR p.sub_category LIKE ?)
-          LIMIT ?
-          ''',
-          [
-            minLat,
-            maxLat,
-            minLon,
-            maxLon,
-            '%$cleanQuery%',
-            '%$cleanAscii%',
-            '%$cleanQuery%',
-            '%$cleanQuery%',
-            limit
-          ],
-        );
-        return results.map(PoiModel.fromMap).toList();
+        whereClauses.add(
+            '(p.name LIKE ? OR p.name_ascii LIKE ? OR p.category LIKE ? OR p.sub_category LIKE ?)');
+        whereArgs.addAll([
+          '%$cleanQuery%',
+          '%$cleanAscii%',
+          '%$cleanQuery%',
+          '%$cleanQuery%',
+        ]);
       }
+
+      if (hasCategory) {
+        whereClauses.add('(LOWER(p.category) LIKE ? OR LOWER(p.sub_category) LIKE ?)');
+        whereArgs.addAll(['%$cleanCategory%', '%$cleanCategory%']);
+      }
+
+      whereArgs.add(limit);
 
       final List<Map<String, dynamic>> results = await db.rawQuery(
         '''
         SELECT p.*
         FROM poi_rtree r
         JOIN poi p ON r.id = p.id
-        WHERE r.min_lat >= ? AND r.max_lat <= ?
-          AND r.min_lon >= ? AND r.max_lon <= ?
+        WHERE ${whereClauses.join(' AND ')}
         LIMIT ?
         ''',
-        [minLat, maxLat, minLon, maxLon, limit],
+        whereArgs,
       );
 
       return results.map(PoiModel.fromMap).toList();
     } catch (_) {
       // Fallback query bảng poi thông thường nếu R*Tree không khả dụng
+      final whereClauses = <String>[
+        'lat >= ? AND lat <= ?',
+        'lon >= ? AND lon <= ?',
+      ];
+      final whereArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
+
       if (cleanQuery.isNotEmpty) {
-        final fallbackResults = await db.query(
-          'poi',
-          where:
-              'lat >= ? AND lat <= ? AND lon >= ? AND lon <= ? AND (name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ?)',
-          whereArgs: [
-            minLat,
-            maxLat,
-            minLon,
-            maxLon,
-            '%$cleanQuery%',
-            '%$cleanAscii%',
-            '%$cleanQuery%',
-            '%$cleanQuery%',
-          ],
-          limit: limit,
-        );
-        return fallbackResults.map(PoiModel.fromMap).toList();
+        whereClauses.add(
+            '(name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ?)');
+        whereArgs.addAll([
+          '%$cleanQuery%',
+          '%$cleanAscii%',
+          '%$cleanQuery%',
+          '%$cleanQuery%',
+        ]);
+      }
+
+      if (hasCategory) {
+        whereClauses.add('(LOWER(category) LIKE ? OR LOWER(sub_category) LIKE ?)');
+        whereArgs.addAll(['%$cleanCategory%', '%$cleanCategory%']);
       }
 
       final fallbackResults = await db.query(
         'poi',
-        where: 'lat >= ? AND lat <= ? AND lon >= ? AND lon <= ?',
-        whereArgs: [minLat, maxLat, minLon, maxLon],
+        where: whereClauses.join(' AND '),
+        whereArgs: whereArgs,
         limit: limit,
       );
       return fallbackResults.map(PoiModel.fromMap).toList();

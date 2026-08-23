@@ -42,6 +42,12 @@ class PoiQuickCard extends StatelessWidget {
       subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
     }
 
+    // Category label: ưu tiên subCategory, fallback category
+    final rawCat = poi.subCategory ?? poi.category ?? '';
+    final categoryLabel = rawCat.trim().isNotEmpty
+        ? rawCat.trim()[0].toUpperCase() + rawCat.trim().substring(1)
+        : '';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       padding: const EdgeInsets.all(16),
@@ -89,6 +95,18 @@ class PoiQuickCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (categoryLabel.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        categoryLabel,
+                        style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                          fontSize: 12,
+                          fontWeight: AppFontWeight.regular.weight,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                     if (subtitleText.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(

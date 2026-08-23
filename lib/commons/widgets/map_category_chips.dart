@@ -58,8 +58,7 @@ class MapCategoryChips extends StatelessWidget {
 
   void _onChipTap(String categoryId, bool isSelected) {
     HapticFeedback.lightImpact();
-    final nextCategory = isSelected ? CategoryConstants.all : categoryId;
-    onCategorySelected?.call(nextCategory);
+    onCategorySelected?.call(categoryId);
   }
 
   @override

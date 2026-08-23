@@ -8,30 +8,35 @@ import 'package:s_map/models/models.dart';
 /// Quản lý Symbol/Marker và tính toán Camera Bounds độc lập khỏi tầng UI.
 class MapSymbolManager {
   final Map<String, PoiModel> _renderedSymbols = {};
-  Symbol? _singleSelectedSymbol;
+  final List<Symbol> _searchResultSymbols = [];
+  Symbol? _selectedSymbol;
   PoiModel? _selectedPoi;
   int _renderGeneration = 0;
   int _selectedGeneration = 0;
-  bool _isAssetLoaded = false;
 
   /// Lấy POI tương ứng từ symbol ID khi người dùng bấm vào marker
   PoiModel? getPoiBySymbolId(String symbolId) => _renderedSymbols[symbolId];
 
+  /// Lấy POI đang được chọn
+  PoiModel? get selectedPoi => _selectedPoi;
+
   /// Nạp icon ảnh ghim đỏ vào MapLibre Sprite Engine
   Future<void> loadMarkerAssets(MapLibreMapController? controller) async {
-    if (controller == null || _isAssetLoaded) return;
+    if (controller == null) return;
     try {
       final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
-      final bytes = byteData.buffer.asUint8List();
-      await controller.addImage('red_marker', bytes);
-      _isAssetLoaded = true;
-      DLog.info('🗺️ [MapSymbolManager] Marker asset "red_marker" loaded into map engine');
+      final bytes = byteData.buffer
+          .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
+      await controller.addImage(RoutingConstants.markerImageKey, bytes);
+      DLog.info(
+          '🗺️ [MapSymbolManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine');
     } catch (e, stack) {
-      DLog.warning('⚠️ [MapSymbolManager] Failed to load marker asset: $e', stack);
+      DLog.warning(
+          '⚠️ [MapSymbolManager] Failed to load marker asset: $e', stack);
     }
   }
 
-  /// Render danh sách POI thành các Symbol trên bản đồ tuần tự theo thế hệ
+  /// Render danh sách POI (kết quả tìm kiếm/danh mục) độc lập, không làm mất ghim của POI đang chọn
   Future<void> renderPoiList(
     MapLibreMapController? controller,
     List<PoiModel> pois,
@@ -43,19 +48,27 @@ class MapSymbolManager {
       await loadMarkerAssets(controller);
       if (generation != _renderGeneration) return;
 
-      await controller.clearSymbols();
-      if (generation != _renderGeneration) return;
+      // Xóa các symbol kết quả tìm kiếm cũ (KHÔNG xóa _selectedSymbol)
+      for (final s in _searchResultSymbols) {
+        _renderedSymbols.remove(s.id);
+        try {
+          await controller.removeSymbol(s);
+        } catch (_) {}
+      }
+      _searchResultSymbols.clear();
 
-      _renderedSymbols.clear();
-      _singleSelectedSymbol = null;
+      if (generation != _renderGeneration) return;
 
       for (final poi in pois) {
         if (generation != _renderGeneration) break;
+        // Nếu POI này là POI đang được chọn thì bỏ qua vì đã có ghim nổi bật riêng
+        if (_selectedPoi != null && _selectedPoi!.id == poi.id) continue;
+
         try {
           final symbol = await controller.addSymbol(
             SymbolOptions(
               geometry: LatLng(poi.lat, poi.lon),
-              iconImage: 'red_marker',
+              iconImage: RoutingConstants.markerImageKey,
               iconSize: 0.65,
               iconAnchor: 'bottom',
               textField: poi.name,
@@ -68,40 +81,31 @@ class MapSymbolManager {
             ),
           );
           if (generation == _renderGeneration) {
+            _searchResultSymbols.add(symbol);
             _renderedSymbols[symbol.id] = poi;
           }
-        } catch (_) {}
-      }
-
-      // Giữ lại ghim nổi bật của POI đang chọn nếu có
-      if (_selectedPoi != null && generation == _renderGeneration) {
-        final poi = _selectedPoi!;
-        try {
-          final selectedSymbol = await controller.addSymbol(
-            SymbolOptions(
-              geometry: LatLng(poi.lat, poi.lon),
-              iconImage: 'red_marker',
-              iconSize: 0.85,
-              iconAnchor: 'bottom',
-              textField: poi.name,
-              textSize: 12.0,
-              textColor: AppColors.mapSymbolText.toHex,
-              textHaloColor: AppColors.mapSymbolHalo.toHex,
-              textHaloWidth: MapConstants.symbolTextHaloWidth,
-              textOffset: const Offset(0, 0.6),
-              textAnchor: 'top',
-            ),
-          );
-          if (generation == _renderGeneration) {
-            _singleSelectedSymbol = selectedSymbol;
-            _renderedSymbols[selectedSymbol.id] = poi;
-          }
-        } catch (_) {}
+        } catch (_) {
+          // Fallback: nếu lỗi render text font glyphs, vẽ chỉ icon
+          try {
+            final symbol = await controller.addSymbol(
+              SymbolOptions(
+                geometry: LatLng(poi.lat, poi.lon),
+                iconImage: RoutingConstants.markerImageKey,
+                iconSize: 0.65,
+                iconAnchor: 'bottom',
+              ),
+            );
+            if (generation == _renderGeneration) {
+              _searchResultSymbols.add(symbol);
+              _renderedSymbols[symbol.id] = poi;
+            }
+          } catch (_) {}
+        }
       }
     } catch (_) {}
   }
 
-  /// Hiển thị ghim đỏ nổi bật cho một POI được chọn
+  /// Hiển thị ghim đỏ nổi bật bền vững cho một POI được chọn (chỉ mất khi người dùng đóng thẻ)
   Future<void> setSelectedPoiMarker(
     MapLibreMapController? controller,
     PoiModel poi,
@@ -114,9 +118,9 @@ class MapSymbolManager {
       await loadMarkerAssets(controller);
       if (generation != _selectedGeneration) return;
 
-      if (_singleSelectedSymbol != null) {
-        final oldSymbol = _singleSelectedSymbol!;
-        _singleSelectedSymbol = null;
+      if (_selectedSymbol != null) {
+        final oldSymbol = _selectedSymbol!;
+        _selectedSymbol = null;
         _renderedSymbols.remove(oldSymbol.id);
         try {
           await controller.removeSymbol(oldSymbol);
@@ -125,41 +129,59 @@ class MapSymbolManager {
 
       if (generation != _selectedGeneration) return;
 
-      final symbol = await controller.addSymbol(
-        SymbolOptions(
-          geometry: LatLng(poi.lat, poi.lon),
-          iconImage: 'red_marker',
-          iconSize: 0.85,
-          iconAnchor: 'bottom',
-          textField: poi.name,
-          textSize: 12.0,
-          textColor: AppColors.mapSymbolText.toHex,
-          textHaloColor: AppColors.mapSymbolHalo.toHex,
-          textHaloWidth: MapConstants.symbolTextHaloWidth,
-          textOffset: const Offset(0, 0.6),
-          textAnchor: 'top',
-        ),
-      );
+      Symbol? symbol;
+      try {
+        symbol = await controller.addSymbol(
+          SymbolOptions(
+            geometry: LatLng(poi.lat, poi.lon),
+            iconImage: RoutingConstants.markerImageKey,
+            iconSize: 0.85,
+            iconAnchor: 'bottom',
+            textField: poi.name,
+            textSize: 12.0,
+            textColor: AppColors.mapSymbolText.toHex,
+            textHaloColor: AppColors.mapSymbolHalo.toHex,
+            textHaloWidth: MapConstants.symbolTextHaloWidth,
+            textOffset: const Offset(0, 0.6),
+            textAnchor: 'top',
+          ),
+        );
+      } catch (e) {
+        DLog.warning(
+            '⚠️ [MapSymbolManager] Symbol with text failed, falling back to icon only: $e');
+        // Fallback icon only
+        symbol = await controller.addSymbol(
+          SymbolOptions(
+            geometry: LatLng(poi.lat, poi.lon),
+            iconImage: RoutingConstants.markerImageKey,
+            iconSize: 0.85,
+            iconAnchor: 'bottom',
+          ),
+        );
+      }
 
       if (generation == _selectedGeneration) {
-        _singleSelectedSymbol = symbol;
+        _selectedSymbol = symbol;
         _renderedSymbols[symbol.id] = poi;
-        DLog.info('📍 [MapSymbolManager] Selected POI marker placed: "${poi.name}" at (${poi.lat}, ${poi.lon})');
+        DLog.info(
+            '📍 [MapSymbolManager] Selected POI marker placed: "${poi.name}" at (${poi.lat}, ${poi.lon})');
       }
     } catch (e, stack) {
-      DLog.error('❌ [MapSymbolManager] Failed to add selected POI symbol: $e', stack);
+      DLog.error(
+          '❌ [MapSymbolManager] Failed to add selected POI symbol: $e', stack);
     }
   }
 
-  /// Xóa ghim đơn lẻ khi đóng thẻ POI
+  /// Xóa ghim đơn lẻ khi người dùng đóng thẻ POI
   void clearSelectedPoiMarker(MapLibreMapController? controller) {
     _selectedPoi = null;
     _selectedGeneration++;
-    if (controller == null || _singleSelectedSymbol == null) return;
-    final symbolToRemove = _singleSelectedSymbol!;
-    _singleSelectedSymbol = null;
+    if (controller == null || _selectedSymbol == null) return;
+    final symbolToRemove = _selectedSymbol!;
+    _selectedSymbol = null;
     _renderedSymbols.remove(symbolToRemove.id);
     controller.removeSymbol(symbolToRemove).catchError((_) {});
+    DLog.info('📍 [MapSymbolManager] Selected POI marker cleared');
   }
 
   /// Tính toán khung bao LatLngBounds từ danh sách POIs (thuần túy, dễ viết test)
@@ -214,13 +236,14 @@ class MapSymbolManager {
     }
   }
 
-  /// Dọn sạch toàn bộ marker và bộ nhớ tạm
+  /// Dọn sạch toàn bộ marker (cả search results lẫn selected POI marker)
   void clearAll(MapLibreMapController? controller) {
     _selectedPoi = null;
     _renderGeneration++;
     _selectedGeneration++;
     _renderedSymbols.clear();
-    _singleSelectedSymbol = null;
+    _searchResultSymbols.clear();
+    _selectedSymbol = null;
     if (controller != null) {
       controller.clearSymbols().catchError((_) {});
     }

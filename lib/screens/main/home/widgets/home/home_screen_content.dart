@@ -22,9 +22,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
       DraggableScrollableController();
 
   bool _showSearchThisArea = false;
-  String? _currentSearchQuery;
   PoiModel? _selectedMarkerPoi;
   bool _isTripSummaryShown = false;
+  String? _activeSearchText;
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   MapExploreCubit get exploreCubit => context.read<MapExploreCubit>();
@@ -42,11 +42,14 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     if (cat == null) return;
     exploreCubit.selectCategory(cat);
     _mapLayerKey.currentState?.searchByCategory(cat);
+    setState(() {
+      _activeSearchText = cat;
+    });
   }
 
   void _handleSearchThisArea() {
     setState(() => _showSearchThisArea = false);
-    _mapLayerKey.currentState?.searchThisArea(query: _currentSearchQuery);
+    _mapLayerKey.currentState?.searchThisArea(query: _activeSearchText);
   }
 
   void _handlePoiSelected(PoiModel poi) {
@@ -54,17 +57,19 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     _mapLayerKey.currentState?.setSelectedPoiMarker(poi);
     setState(() {
       _selectedMarkerPoi = poi;
+      _activeSearchText = poi.name;
+      _showSearchThisArea = false;
     });
   }
 
   void _handleSearchResults(List<PoiModel> pois, String? query) {
-    _currentSearchQuery = query;
     _mapLayerKey.currentState?.showSearchResults(pois);
-    if (pois.isNotEmpty) {
-      setState(() {
+    setState(() {
+      _activeSearchText = query;
+      if (pois.isNotEmpty) {
         _selectedMarkerPoi = pois.first;
-      });
-    }
+      }
+    });
   }
 
   void _handleDirections() {
@@ -74,9 +79,23 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
           '🧭 [HomeScreen] "Chỉ đường" tapped for POI: "${poi.name}" (${poi.lat}, ${poi.lon})');
       _mapLayerKey.currentState?.clearSelectedPoiMarker();
       displayCubit.clearSelectedPoi();
-      setState(() => _selectedMarkerPoi = null);
+      setState(() {
+        _selectedMarkerPoi = null;
+        _activeSearchText = null;
+        _showSearchThisArea = false;
+      });
       routePreviewCubit.previewRouteToPoi(poi);
     }
+  }
+
+  void _handleClearSearch() {
+    _mapLayerKey.currentState?.clearAll();
+    displayCubit.clearSelectedPoi();
+    setState(() {
+      _selectedMarkerPoi = null;
+      _activeSearchText = null;
+      _showSearchThisArea = false;
+    });
   }
 
   void _showTripSummaryModal(TripSummary summary) {
@@ -183,12 +202,17 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                         onPoiSelected: _handlePoiSelected,
                         onSearchResults: _handleSearchResults,
                         onCategorySelected: _handleCategorySelected,
+                        activeSearchText: _activeSearchText,
+                        onClearSearch: _handleClearSearch,
                       ),
 
                       // 4. Floating "Search This Area" Button
                       HomeSearchAreaButton(
                         topPadding: topPadding,
-                        isVisible: _showSearchThisArea,
+                        isVisible: _showSearchThisArea &&
+                            (_activeSearchText != null &&
+                                _activeSearchText!.trim().isNotEmpty) &&
+                            _selectedMarkerPoi == null,
                         onPressed: _handleSearchThisArea,
                       ),
 
@@ -214,7 +238,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                         onClosePoiCard: () {
                           _mapLayerKey.currentState?.clearSelectedPoiMarker();
                           displayCubit.clearSelectedPoi();
-                          setState(() => _selectedMarkerPoi = null);
+                          setState(() {
+                            _selectedMarkerPoi = null;
+                            _showSearchThisArea = false;
+                          });
                         },
                         onDirections: _handleDirections,
                       ),
