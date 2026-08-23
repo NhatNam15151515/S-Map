@@ -280,7 +280,9 @@ class CodegenLoader extends AssetLoader{
     "clear_all_desc": "All trip history records and statistics will be permanently removed.",
     "clear_all_btn": "Clear All",
     "trip_deleted_success": "Trip deleted successfully",
-    "all_trips_cleared_success": "All trip history cleared"
+    "all_trips_cleared_success": "All trip history cleared",
+    "invalid_trip_data": "Invalid trip data",
+    "speed_unit": "{} km/h"
   }
 };
 static const Map<String,dynamic> _vi = {
@@ -549,7 +551,9 @@ static const Map<String,dynamic> _vi = {
     "clear_all_desc": "Tất cả bản ghi lịch sử chuyến đi và thống kê sẽ bị xóa vĩnh viễn.",
     "clear_all_btn": "Xóa tất cả",
     "trip_deleted_success": "Đã xóa chuyến đi thành công",
-    "all_trips_cleared_success": "Đã xóa toàn bộ lịch sử chuyến đi"
+    "all_trips_cleared_success": "Đã xóa toàn bộ lịch sử chuyến đi",
+    "invalid_trip_data": "Dữ liệu chuyến đi không hợp lệ",
+    "speed_unit": "{} km/h"
   }
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};

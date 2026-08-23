@@ -65,13 +65,9 @@ class TripStatsModel extends Equatable {
       if (trip.topSpeedKmh > topSpeedKmh) {
         topSpeedKmh = trip.topSpeedKmh;
       }
-      tripsByProfile[trip.vehicleProfile] =
-          (tripsByProfile[trip.vehicleProfile] ?? 0) + 1;
       final normalized = _normalizeProfile(trip.vehicleProfile);
-      if (normalized != trip.vehicleProfile) {
-        tripsByProfile[normalized] =
-            (tripsByProfile[normalized] ?? 0) + 1;
-      }
+      tripsByProfile[normalized] =
+          (tripsByProfile[normalized] ?? 0) + 1;
     }
 
     final double avgSpeedKmh;

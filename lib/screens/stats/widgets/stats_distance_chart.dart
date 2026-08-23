@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -134,130 +135,142 @@ class StatsDistanceChart extends StatelessWidget {
     final rawMaxY = maxDist <= 0 ? 5.0 : (maxDist * 1.25);
     final maxY = rawMaxY.ceilToDouble();
 
-    return SizedBox(
-      height: 200,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY: maxY,
-          barTouchData: BarTouchData(
-            enabled: true,
-            touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (group) => AppColors.surfaceDim,
-              tooltipPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final bar = bars[group.x.toInt()];
-                return BarTooltipItem(
-                  '${bar.distanceKm} km\n',
-                  const TextStyle(
-                    fontFamily: 'Montserrat',
-                    color: AppColors.onSurface,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: tr(
-                        LocaleKeys.stats_dashboard_chart_trip_count,
-                        args: ['${bar.tripCount}'],
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'Montserrat',
-                        color: AppColors.sMapDarkTeal,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          titlesData: FlTitlesData(
-            show: true,
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 28,
-                interval: (maxY / 4).clamp(1.0, double.infinity),
-                getTitlesWidget: (value, meta) {
-                  if (value == 0 || value > maxY) return const SizedBox.shrink();
-                  return Text(
-                    '${value.toInt()}',
-                    style: const TextStyle(
-                      fontFamily: 'Montserrat',
-                      color: AppColors.onSurfaceVariant,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  );
-                },
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  final index = value.toInt();
-                  if (index < 0 || index >= bars.length) {
-                    return const SizedBox.shrink();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      bars[index].label,
-                      style: const TextStyle(
-                        fontFamily: 'Montserrat',
-                        color: AppColors.onSurfaceVariant,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: (maxY / 4).clamp(1.0, double.infinity),
-            getDrawingHorizontalLine: (value) => FlLine(
-              color: AppColors.outline.withValues(alpha: 0.08),
-              strokeWidth: 1,
-              dashArray: [4, 4],
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          barGroups: bars.map((bar) {
-            return BarChartGroupData(
-              x: bar.x,
-              barRods: [
-                BarChartRodData(
-                  toY: bar.distanceKm,
-                  gradient: const LinearGradient(
-                    colors: [
-                      AppColors.sMapDarkTeal,
-                      AppColors.sMapTeal,
-                    ],
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                  ),
-                  width: bars.length > 7 ? 12 : 18,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                  backDrawRodData: BackgroundBarChartRodData(
-                    show: true,
-                    toY: maxY,
-                    color: AppColors.surfaceVariant.withValues(alpha: 0.3),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double minBarWidth = 44.0;
+        final double contentWidth = math.max(constraints.maxWidth, bars.length * minBarWidth);
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: bars.length > 7 ? const BouncingScrollPhysics() : const NeverScrollableScrollPhysics(),
+          child: SizedBox(
+            width: contentWidth,
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxY,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (group) => AppColors.surfaceDim,
+                    tooltipPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final bar = bars[group.x.toInt()];
+                      return BarTooltipItem(
+                        '${bar.distanceKm} km\n',
+                        const TextStyle(
+                          fontFamily: 'Montserrat',
+                          color: AppColors.onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: tr(
+                              LocaleKeys.stats_dashboard_chart_trip_count,
+                              args: ['${bar.tripCount}'],
+                            ),
+                            style: const TextStyle(
+                              fontFamily: 'Montserrat',
+                              color: AppColors.sMapDarkTeal,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      interval: (maxY / 4).clamp(1.0, double.infinity),
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0 || value > maxY) return const SizedBox.shrink();
+                        return Text(
+                          '${value.toInt()}',
+                          style: const TextStyle(
+                            fontFamily: 'Montserrat',
+                            color: AppColors.onSurfaceVariant,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= bars.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            bars[index].label,
+                            style: const TextStyle(
+                              fontFamily: 'Montserrat',
+                              color: AppColors.onSurfaceVariant,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: (maxY / 4).clamp(1.0, double.infinity),
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: AppColors.outline.withValues(alpha: 0.08),
+                    strokeWidth: 1,
+                    dashArray: [4, 4],
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: bars.map((bar) {
+                  return BarChartGroupData(
+                    x: bar.x,
+                    barRods: [
+                      BarChartRodData(
+                        toY: bar.distanceKm,
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.sMapDarkTeal,
+                            AppColors.sMapTeal,
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                        ),
+                        width: bars.length > 7 ? 14 : 18,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: maxY,
+                          color: AppColors.surfaceVariant.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -17,12 +18,7 @@ class StatsVehicleFilterChips extends StatelessWidget {
 
   int _getCountForProfile(String? profile) {
     if (profile == null) {
-      final motorcycle = (profileCounts['motorcycle'] ?? 0) +
-          (profileCounts['moped_vn'] ?? 0) +
-          (profileCounts['moped'] ?? 0);
-      final car = profileCounts['car'] ?? 0;
-      final walking = (profileCounts['walking'] ?? 0) + (profileCounts['foot'] ?? 0);
-      return motorcycle + car + walking;
+      return profileCounts.values.fold(0, (a, b) => a + b);
     }
     if (profile == 'motorcycle') {
       return (profileCounts['motorcycle'] ?? 0) +
@@ -55,6 +51,9 @@ class StatsVehicleFilterChips extends StatelessWidget {
           final isSelected = profile == selectedProfile;
           final count = _getCountForProfile(profile);
 
+          final textColor = isSelected ? AppColors.white : AppColors.onSurface;
+          final badgeColor = isSelected ? AppColors.white : AppColors.sMapDarkTeal;
+
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
@@ -69,11 +68,9 @@ class StatsVehicleFilterChips extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontFamily: 'Montserrat',
+                    style: textColor.textTheme.regularStyle.copyWith(
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? AppColors.white : AppColors.onSurface,
                     ),
                   ),
                   if (count > 0) ...[
@@ -88,11 +85,9 @@ class StatsVehicleFilterChips extends StatelessWidget {
                       ),
                       child: Text(
                         '$count',
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
+                        style: badgeColor.textTheme.boldStyle.copyWith(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? AppColors.white : AppColors.sMapDarkTeal,
                         ),
                       ),
                     ),

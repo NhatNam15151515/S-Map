@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/stats/trip_detail_screen.dart';
@@ -165,8 +166,8 @@ void main() {
             builder: (context, state) {
               final trip = state.extra;
               if (trip is! TripRecordModel) {
-                return const Scaffold(
-                  body: Center(child: Text('Invalid trip data')),
+                return Scaffold(
+                  body: Center(child: Text(tr(LocaleKeys.stats_dashboard_invalid_trip_data))),
                 );
               }
               return TripDetailScreen(trip: trip);
@@ -175,15 +176,29 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(MaterialApp.router(
-        routerConfig: router,
+      await tester.pumpWidget(EasyLocalization(
+        supportedLocales: const [Locale('vi'), Locale('en')],
+        path: 'assets/translations',
+        fallbackLocale: const Locale('vi'),
+        startLocale: const Locale('vi'),
+        assetLoader: const CodegenLoader(),
+        child: Builder(
+          builder: (context) {
+            return MaterialApp.router(
+              routerConfig: router,
+              localizationsDelegates: context.localizationDelegates,
+              supportedLocales: context.supportedLocales,
+              locale: context.locale,
+            );
+          },
+        ),
       ));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('open_invalid_btn')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Invalid trip data'), findsOneWidget);
+      expect(find.text(tr(LocaleKeys.stats_dashboard_invalid_trip_data)), findsOneWidget);
     });
   });
 }

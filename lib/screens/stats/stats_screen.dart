@@ -113,57 +113,73 @@ class _StatsScreenState extends State<StatsScreen> {
             onPressed: () => _showClearAllDialog(context),
           ),
         ),
-        body: BlocBuilder<RouteProfileCubit, RouteProfileState>(
-          builder: (context, state) {
-            if (state.isLoading && state.allTrips.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(),
+        body: BlocListener<RouteProfileCubit, RouteProfileState>(
+          listenWhen: (previous, current) =>
+              current.isError && current.errorMessage != previous.errorMessage,
+          listener: (context, state) {
+            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    state.errorMessage ?? tr(LocaleKeys.common_error),
+                  ),
+                  backgroundColor: AppColors.error,
+                ),
               );
             }
-
-            return RefreshIndicator(
-              onRefresh: () => _cubit.loadStats(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Time Range Selector
-                    StatsTimeRangeSelector(
-                      selectedRange: state.timeRange,
-                      onRangeSelected: (range) => _cubit.setTimeRange(range),
-                    ),
-
-                    // 2. Vehicle Profile Filter Chips
-                    StatsVehicleFilterChips(
-                      selectedProfile: state.profileFilter,
-                      profileCounts: state.stats.tripsByProfile,
-                      onProfileSelected: (profile) => _cubit.setProfileFilter(profile),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // 3. KPI Summary Cards Grid
-                    StatsSummaryCards(stats: state.stats),
-
-                    // 4. Distance Bar Chart
-                    StatsDistanceChart(chartData: state.chartData),
-
-                    // 5. Trip History List
-                    StatsTripHistoryList(
-                      trips: state.filteredTrips,
-                      onTapTrip: (trip) => context.push(
-                        AppRoutes.tripDetail,
-                        extra: trip,
-                      ),
-                      onDeleteTrip: (tripId) => _cubit.deleteTrip(tripId),
-                    ),
-                  ],
-                ),
-              ),
-            );
           },
+          child: BlocBuilder<RouteProfileCubit, RouteProfileState>(
+            builder: (context, state) {
+              if (state.isLoading && state.allTrips.isEmpty) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: () => _cubit.loadStats(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Time Range Selector
+                      StatsTimeRangeSelector(
+                        selectedRange: state.timeRange,
+                        onRangeSelected: (range) => _cubit.setTimeRange(range),
+                      ),
+
+                      // 2. Vehicle Profile Filter Chips
+                      StatsVehicleFilterChips(
+                        selectedProfile: state.profileFilter,
+                        profileCounts: state.stats.tripsByProfile,
+                        onProfileSelected: (profile) => _cubit.setProfileFilter(profile),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // 3. KPI Summary Cards Grid
+                      StatsSummaryCards(stats: state.stats),
+
+                      // 4. Distance Bar Chart
+                      StatsDistanceChart(chartData: state.chartData),
+
+                      // 5. Trip History List
+                      StatsTripHistoryList(
+                        trips: state.filteredTrips,
+                        onTapTrip: (trip) => context.push(
+                          AppRoutes.tripDetail,
+                          extra: trip,
+                        ),
+                        onDeleteTrip: (tripId) => _cubit.deleteTrip(tripId),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

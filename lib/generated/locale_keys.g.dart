@@ -258,6 +258,8 @@ abstract class  LocaleKeys {
   static const stats_dashboard_clear_all_btn = 'stats_dashboard.clear_all_btn';
   static const stats_dashboard_trip_deleted_success = 'stats_dashboard.trip_deleted_success';
   static const stats_dashboard_all_trips_cleared_success = 'stats_dashboard.all_trips_cleared_success';
+  static const stats_dashboard_invalid_trip_data = 'stats_dashboard.invalid_trip_data';
+  static const stats_dashboard_speed_unit = 'stats_dashboard.speed_unit';
   static const stats_dashboard = 'stats_dashboard';
 
 }

@@ -3,9 +3,11 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/map_drawing_route_manager.dart';
 import 'package:s_map/commons/utils/route_format_helper.dart';
+import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/routers/app_routes.dart';
@@ -26,6 +28,11 @@ class TripDetailScreen extends StatefulWidget {
 }
 
 class _TripDetailScreenState extends State<TripDetailScreen> {
+  static const double _panelRadius = 28.0;
+  static const double _badgeRadius = 8.0;
+  static const double _cardRadius = 14.0;
+  static const double _panelMaxHeightFactor = 0.58;
+
   MapLibreMapController? _mapController;
   final MapDrawingRouteManager _routeManager = MapDrawingRouteManager();
   bool _isMapReady = false;
@@ -120,12 +127,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     final trip = widget.trip;
     final startLatLng = trip.polyline?.isNotEmpty == true
         ? LatLng(trip.polyline!.first[0], trip.polyline!.first[1])
-        : const LatLng(10.7769, 106.7009);
+        : MapConstants.defaultLocation;
 
     final durationStr = RouteFormatHelper.formatTripDuration(trip.duration);
     final distanceStr = '${trip.distanceKm.toStringAsFixed(1)} km';
     final startTimeStr = DateFormat('HH:mm, dd/MM/yyyy').format(trip.startTime);
     final endTimeStr = DateFormat('HH:mm, dd/MM/yyyy').format(trip.endTime);
+    final avgSpeedStr = tr(LocaleKeys.stats_dashboard_speed_unit, args: ['${trip.avgSpeedKmh.round()}']);
+    final topSpeedStr = tr(LocaleKeys.stats_dashboard_speed_unit, args: ['${trip.topSpeedKmh.round()}']);
 
     return Scaffold(
       backgroundColor: AppColors.surfaceDim,
@@ -182,12 +191,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             right: 0,
             child: Container(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.58,
+                maxHeight: MediaQuery.of(context).size.height * _panelMaxHeightFactor,
               ),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(_panelRadius)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.08),
@@ -225,20 +234,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               children: [
                                 Text(
                                   tr(LocaleKeys.stats_dashboard_detail_title),
-                                  style: const TextStyle(
-                                    fontFamily: 'Montserrat',
+                                  style: AppColors.onSurface.textTheme.textTitleStyle.copyWith(
                                     fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.onSurface,
                                   ),
                                 ),
                                 Text(
                                   _getVehicleName(trip.vehicleProfile),
-                                  style: const TextStyle(
-                                    fontFamily: 'Montserrat',
+                                  style: AppColors.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                                     fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -249,7 +252,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE8F5E9),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(_badgeRadius),
                               ),
                               child: Text(
                                 tr(LocaleKeys.stats_dashboard_status_completed),
@@ -257,7 +260,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                                   fontFamily: 'Montserrat',
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2E7D32),
+                                  color: AppColors.googleGreen,
                                 ),
                               ),
                             )
@@ -266,15 +269,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(_badgeRadius),
                               ),
                               child: Text(
                                 tr(LocaleKeys.stats_dashboard_status_stopped),
-                                style: const TextStyle(
-                                  fontFamily: 'Montserrat',
+                                style: AppColors.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -294,6 +294,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               label: tr(LocaleKeys.stats_dashboard_detail_distance),
                               value: distanceStr,
                               color: AppColors.sMapDarkTeal,
+                              cardRadius: _cardRadius,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -302,7 +303,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                               icon: Icons.schedule_rounded,
                               label: tr(LocaleKeys.stats_dashboard_detail_duration),
                               value: durationStr,
-                              color: const Color(0xFFE65100),
+                              color: AppColors.sunOrange,
+                              cardRadius: _cardRadius,
                             ),
                           ),
                         ],
@@ -314,8 +316,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             child: _DetailStatBox(
                               icon: Icons.speed_rounded,
                               label: tr(LocaleKeys.stats_dashboard_detail_avg_speed),
-                              value: '${trip.avgSpeedKmh.round()} km/h',
-                              color: const Color(0xFF1565C0),
+                              value: avgSpeedStr,
+                              color: AppColors.googleBlue,
+                              cardRadius: _cardRadius,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -323,8 +326,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             child: _DetailStatBox(
                               icon: Icons.flash_on_rounded,
                               label: tr(LocaleKeys.stats_dashboard_detail_top_speed),
-                              value: '${trip.topSpeedKmh.round()} km/h',
-                              color: const Color(0xFF7B1FA2),
+                              value: topSpeedStr,
+                              color: AppColors.brightIndigo,
+                              cardRadius: _cardRadius,
                             ),
                           ),
                         ],
@@ -361,12 +365,14 @@ class _DetailStatBox extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
+  final double cardRadius;
 
   const _DetailStatBox({
     required this.icon,
     required this.label,
     required this.value,
     required this.color,
+    required this.cardRadius,
   });
 
   @override
@@ -375,7 +381,7 @@ class _DetailStatBox extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(cardRadius),
         border: Border.all(color: color.withValues(alpha: 0.12)),
       ),
       child: Column(
@@ -388,11 +394,8 @@ class _DetailStatBox extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    fontFamily: 'Montserrat',
+                  style: AppColors.onSurfaceVariant.textTheme.regularStyle.copyWith(
                     fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -403,11 +406,8 @@ class _DetailStatBox extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontFamily: 'Montserrat',
+            style: AppColors.onSurface.textTheme.textTitleStyle.copyWith(
               fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -439,7 +439,7 @@ class _LocationTimelineItem extends StatelessWidget {
           width: 10,
           height: 10,
           decoration: BoxDecoration(
-            color: isOrigin ? const Color(0xFF2E7D32) : AppColors.error,
+            color: isOrigin ? AppColors.googleGreen : AppColors.error,
             shape: BoxShape.circle,
           ),
         ),
@@ -450,20 +450,14 @@ class _LocationTimelineItem extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
+                style: AppColors.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                   fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurfaceVariant,
                 ),
               ),
               Text(
                 title,
-                style: const TextStyle(
-                  fontFamily: 'Montserrat',
+                style: AppColors.onSurface.textTheme.semiBoldStyle.copyWith(
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
