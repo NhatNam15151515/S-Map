@@ -159,7 +159,9 @@ class FireStoreService implements IFireStoreService {
   // --- TRIP & STATS SYNC METHODS ---
   @override
   Future<void> syncTrip(String userId, TripRecordModel trip) async {
-    if (_fs == null) return;
+    if (_fs == null) {
+      throw StateError('Cloud Firestore instance is not initialized.');
+    }
     try {
       final userTrips = _fs!.collection('users').doc(userId).collection('trips');
       final tripMap = trip.toMap();
@@ -175,10 +177,14 @@ class FireStoreService implements IFireStoreService {
 
   @override
   Future<void> syncTripsBatch(String userId, List<TripRecordModel> trips) async {
-    if (_fs == null || trips.isEmpty) return;
+    if (trips.isEmpty) return;
+    if (_fs == null) {
+      throw StateError('Cloud Firestore instance is not initialized.');
+    }
     try {
-      final batch = _fs!.batch();
-      final userTrips = _fs!.collection('users').doc(userId).collection('trips');
+      final fs = _fs!;
+      final batch = fs.batch();
+      final userTrips = fs.collection('users').doc(userId).collection('trips');
 
       for (final trip in trips) {
         final tripMap = trip.toMap();
@@ -200,7 +206,9 @@ class FireStoreService implements IFireStoreService {
 
   @override
   Future<void> updateDailyStats(String userId, DateTime date, TripRecordModel trip) async {
-    if (_fs == null) return;
+    if (_fs == null) {
+      throw StateError('Cloud Firestore instance is not initialized.');
+    }
     try {
       final dateKey =
           '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -214,6 +222,13 @@ class FireStoreService implements IFireStoreService {
         final snapshot = await transaction.get(statsDoc);
         if (snapshot.exists && snapshot.data() != null) {
           final data = snapshot.data()!;
+          final appliedTrips = List<String>.from(data['appliedTrips'] as List? ?? []);
+
+          // Idempotency: Bỏ qua cộng dồn nếu chuyến đi đã được tính toán trong ngày
+          if (appliedTrips.contains(trip.id)) {
+            return;
+          }
+
           final currentDistance = (data['totalDistanceMeters'] as num?)?.toDouble() ?? 0.0;
           final currentDuration = (data['totalDurationMs'] as num?)?.toInt() ?? 0;
           final currentTrips = (data['tripCount'] as num?)?.toInt() ?? 0;
@@ -226,6 +241,7 @@ class FireStoreService implements IFireStoreService {
             'totalDurationMs': currentDuration + trip.durationMs,
             'tripCount': currentTrips + 1,
             'topSpeedKmh': newTopSpeed,
+            'appliedTrips': FieldValue.arrayUnion([trip.id]),
             'updatedAt': FieldValue.serverTimestamp(),
           });
         } else {
@@ -235,6 +251,7 @@ class FireStoreService implements IFireStoreService {
             'totalDurationMs': trip.durationMs,
             'tripCount': 1,
             'topSpeedKmh': trip.topSpeedKmh,
+            'appliedTrips': [trip.id],
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           });
@@ -242,6 +259,7 @@ class FireStoreService implements IFireStoreService {
       });
     } catch (e) {
       DLog.error("Firestore updateDailyStats error: $e");
+      rethrow;
     }
   }
 

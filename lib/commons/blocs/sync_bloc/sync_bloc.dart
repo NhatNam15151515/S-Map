@@ -57,31 +57,43 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     });
   }
 
+  @override
+  void emit(SyncState state) {
+    if (!isClosed) {
+      super.emit(state);
+    }
+  }
+
   Future<void> _onSyncStarted(
     SyncStarted event,
     Emitter<SyncState> emit,
   ) async {
-    final currentCount = await _syncRepository.getPendingSyncCount();
-    if (currentCount == 0) {
-      emit(state.copyWith(
-        status: SyncStatus.success,
-        pendingCount: 0,
-        lastSyncedAt: DateTime.now(),
-      ));
-      return;
-    }
-
-    emit(state.copyWith(
-      status: SyncStatus.syncing,
-      pendingCount: currentCount,
-      clearError: true,
-    ));
-
     try {
+      final currentCount = await _syncRepository.getPendingSyncCount();
+      if (isClosed || emit.isDone) return;
+
+      if (currentCount == 0) {
+        emit(state.copyWith(
+          status: SyncStatus.success,
+          pendingCount: 0,
+          lastSyncedAt: DateTime.now(),
+          syncedTripIds: const [],
+          clearError: true,
+        ));
+        return;
+      }
+
+      emit(state.copyWith(
+        status: SyncStatus.syncing,
+        pendingCount: currentCount,
+        clearError: true,
+      ));
+
       // 1. Xác định User ID (nếu chưa đăng nhập thì tự động đăng nhập ẩn danh)
       String? userId = event.userId ?? _authService.currentUser?.uid;
       if (userId == null || userId.trim().isEmpty) {
         final anonUser = await _authRepos.signInAnonymously();
+        if (isClosed || emit.isDone) return;
         userId = anonUser?.id;
       }
 
@@ -91,7 +103,15 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
 
       // 2. Thực hiện đồng bộ toàn bộ chuyến đi đang tồn trong offline queue
       final syncedIds = await _syncRepository.syncPendingTrips(userId);
-      final remainingCount = await _syncRepository.getPendingSyncCount();
+      if (isClosed || emit.isDone) return;
+
+      int remainingCount = 0;
+      try {
+        remainingCount = await _syncRepository.getPendingSyncCount();
+      } catch (_) {
+        remainingCount = 0;
+      }
+      if (isClosed || emit.isDone) return;
 
       emit(state.copyWith(
         status: SyncStatus.success,
@@ -101,12 +121,19 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       ));
     } catch (e) {
       DLog.error('❌ [SyncBloc] Đồng bộ thất bại: $e');
-      final remainingCount = await _syncRepository.getPendingSyncCount();
-      emit(state.copyWith(
-        status: SyncStatus.failure,
-        errorMessage: e.toString(),
-        pendingCount: remainingCount,
-      ));
+      int fallbackPending = state.pendingCount;
+      try {
+        fallbackPending = await _syncRepository.getPendingSyncCount();
+      } catch (_) {
+        // Fallback to state.pendingCount
+      }
+      if (!isClosed && !emit.isDone) {
+        emit(state.copyWith(
+          status: SyncStatus.failure,
+          errorMessage: e.toString(),
+          pendingCount: fallbackPending,
+        ));
+      }
     }
   }
 
@@ -116,10 +143,13 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   ) async {
     try {
       await _syncRepository.enqueueTripForSync(event.tripId);
+      if (isClosed || emit.isDone) return;
       final count = await _syncRepository.getPendingSyncCount();
-      emit(state.copyWith(pendingCount: count));
+      if (!isClosed && !emit.isDone) {
+        emit(state.copyWith(pendingCount: count));
+      }
     } catch (e) {
-      DLog.error('❌ [SyncBloc] Lỗi đưa chuyến đi vào hàng đợi: $e');
+      DLog.error('❌ [SyncBloc] Lỗi enqueue trip: $e');
     }
   }
 
@@ -127,14 +157,18 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     SyncQueueCountChanged event,
     Emitter<SyncState> emit,
   ) {
-    emit(state.copyWith(pendingCount: event.count));
+    if (!isClosed && !emit.isDone) {
+      emit(state.copyWith(pendingCount: event.count));
+    }
   }
 
   void _onSyncReset(
     SyncReset event,
     Emitter<SyncState> emit,
   ) {
-    emit(const SyncState());
+    if (!isClosed && !emit.isDone) {
+      emit(const SyncState());
+    }
   }
 
   @override

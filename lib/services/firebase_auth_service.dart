@@ -115,24 +115,37 @@ class FirebaseAuthService implements IFirebaseAuthService {
       await _ensureFirebaseInitialized();
 
       if (_auth != null) {
-        final fb.UserCredential userCredential = await _auth!.signInAnonymously();
-        final fb.User? firebaseUser = userCredential.user;
+        try {
+          final fb.UserCredential userCredential = await _auth!.signInAnonymously();
+          final fb.User? firebaseUser = userCredential.user;
 
-        if (firebaseUser != null) {
-          final suffix = firebaseUser.uid.length >= 6
-              ? firebaseUser.uid.substring(0, 6)
-              : firebaseUser.uid;
-          final user = User(
-            id: firebaseUser.uid,
-            username: 'Khách_$suffix',
-          );
+          if (firebaseUser != null) {
+            final suffix = firebaseUser.uid.length >= 6
+                ? firebaseUser.uid.substring(0, 6)
+                : firebaseUser.uid;
+            final user = User(
+              id: firebaseUser.uid,
+              username: 'Khách_$suffix',
+            );
 
-          try {
-            await FireStoreService.instance.saveUserProfile(user);
-          } catch (fsErr) {
-            DLog.error("Không thể lưu anonymous profile lên Cloud Firestore: $fsErr");
+            try {
+              await FireStoreService.instance.saveUserProfile(user);
+            } catch (fsErr) {
+              DLog.error("Không thể lưu anonymous profile lên Cloud Firestore: $fsErr");
+            }
+            return user;
           }
-          return user;
+        } on fb.FirebaseAuthException catch (authEx) {
+          if (authEx.code == 'network-request-failed' ||
+              authEx.code == 'unknown' ||
+              authEx.code == 'unavailable') {
+            DLog.warning("⚠️ [FirebaseAuthService] Mạng không khả dụng khi đăng nhập ẩn danh (${authEx.code}), fallback sang offline profile");
+            return User(
+              id: 'anon_${DateTime.now().millisecondsSinceEpoch}',
+              username: 'Khách_offline',
+            );
+          }
+          rethrow;
         }
       }
 

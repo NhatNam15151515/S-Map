@@ -6,7 +6,14 @@ import 'package:s_map/services/services.dart';
 typedef AuthRepos = IAuthRepos;
 
 class AuthReposImpl implements IAuthRepos {
-  final FireStoreService _fireStore = FireStoreService();
+  final IFirebaseAuthService _authService;
+  final IFireStoreService _fireStore;
+
+  AuthReposImpl({
+    IFirebaseAuthService? authService,
+    IFireStoreService? fireStore,
+  })  : _authService = authService ?? FirebaseAuthService.instance,
+        _fireStore = fireStore ?? FireStoreService();
 
   @override
   Future<User?> login(String username, String password) async {
@@ -17,12 +24,12 @@ class AuthReposImpl implements IAuthRepos {
 
   @override
   Future<User?> signInWithGoogle() async {
-    return await FirebaseAuthService.instance.signInWithGoogle();
+    return await _authService.signInWithGoogle();
   }
 
   @override
   Future<User?> signInAnonymously() async {
-    return await FirebaseAuthService.instance.signInAnonymously();
+    return await _authService.signInAnonymously();
   }
 
   @override
@@ -38,7 +45,7 @@ class AuthReposImpl implements IAuthRepos {
 
   @override
   Future<bool> logout() async {
-    await FirebaseAuthService.instance.signOut();
+    await _authService.signOut();
     return true;
   }
 }

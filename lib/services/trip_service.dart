@@ -12,14 +12,14 @@ class TripServiceImpl implements ITripService {
   static const String boxName = 'trip_history_box';
 
   final Box<dynamic>? _customBox;
-  final ITripSyncService? _syncService;
+  final ITripSyncService _syncService;
   Box<dynamic>? _box;
 
   TripServiceImpl({
     Box<dynamic>? customBox,
     ITripSyncService? syncService,
   })  : _customBox = customBox,
-        _syncService = syncService;
+        _syncService = syncService ?? TripSyncServiceImpl.instance;
 
   static final TripServiceImpl instance = TripServiceImpl();
 
@@ -49,23 +49,22 @@ class TripServiceImpl implements ITripService {
   Future<List<TripRecordModel>> getTrips() async {
     try {
       final box = await _getBox();
-      final List<TripRecordModel> list = [];
-
+      final trips = <TripRecordModel>[];
       for (final key in box.keys) {
-        try {
-          final val = box.get(key);
-          if (val is Map) {
+        final val = box.get(key);
+        if (val is Map) {
+          try {
             final map = Map<String, dynamic>.from(val);
-            list.add(TripRecordModel.fromMap(map));
+            trips.add(TripRecordModel.fromMap(map));
+          } catch (corruptedRecordError) {
+            DLog.warning(
+              '⚠️ [TripService] Skipping corrupted trip record at key "$key": $corruptedRecordError',
+            );
           }
-        } catch (recordError) {
-          DLog.warning(
-              '⚠️ [TripService] Skipping corrupted trip record at key "$key": $recordError');
         }
       }
-      // Sắp xếp chuyến đi mới nhất lên trước
-      list.sort((a, b) => b.startTime.compareTo(a.startTime));
-      return list;
+      trips.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return trips;
     } catch (e) {
       DLog.error('❌ [TripService] Failed to access Hive box for trips: $e');
       rethrow;
@@ -88,16 +87,13 @@ class TripServiceImpl implements ITripService {
     }
   }
 
-  ITripSyncService get _effectiveSyncService =>
-      _syncService ?? TripSyncServiceImpl.instance;
-
   @override
   Future<void> saveTrip(TripRecordModel trip) async {
     try {
       final box = await _getBox();
       await box.put(trip.id, trip.toMap());
       if (!trip.isSynced) {
-        await _effectiveSyncService.enqueueTrip(trip.id);
+        await _syncService.enqueueTrip(trip.id);
       }
     } catch (e) {
       DLog.error('❌ [TripService] Error saving trip: $e');
@@ -110,7 +106,7 @@ class TripServiceImpl implements ITripService {
     try {
       final box = await _getBox();
       await box.delete(id);
-      await _effectiveSyncService.removeQueuedTrip(id);
+      await _syncService.removeQueuedTrip(id);
     } catch (e) {
       DLog.error('❌ [TripService] Error deleting trip: $e');
       rethrow;
@@ -122,7 +118,7 @@ class TripServiceImpl implements ITripService {
     try {
       final box = await _getBox();
       await box.clear();
-      await _effectiveSyncService.clearQueue();
+      await _syncService.clearQueue();
     } catch (e) {
       DLog.error('❌ [TripService] Error clearing trips: $e');
       rethrow;
@@ -134,8 +130,9 @@ class TripServiceImpl implements ITripService {
     try {
       final trip = await getTripById(id);
       if (trip != null) {
-        final updated = trip.copyWith(isSynced: true);
-        await saveTrip(updated);
+        final syncedTrip = trip.copyWith(isSynced: true);
+        final box = await _getBox();
+        await box.put(id, syncedTrip.toMap());
       }
     } catch (e) {
       DLog.error('❌ [TripService] Error marking trip $id as synced: $e');

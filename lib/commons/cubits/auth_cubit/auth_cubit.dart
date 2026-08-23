@@ -105,7 +105,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<bool> signInWithGoogle() async {
-    emit(state.copyWith(type: AuthStateType.loading));
+    emit(state.copyWith(type: AuthStateType.loading, clearError: true));
     try {
       final user = await _authRepos.signInWithGoogle();
       if (user != null) {
@@ -126,7 +126,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<bool> signInAnonymously() async {
-    emit(state.copyWith(type: AuthStateType.loading));
+    emit(state.copyWith(type: AuthStateType.loading, clearError: true));
     try {
       final user = await _authRepos.signInAnonymously();
       if (user != null) {

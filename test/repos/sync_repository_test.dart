@@ -221,7 +221,10 @@ void main() {
 
       mockFirestoreService.shouldThrow = true;
 
-      expect(() => syncRepo.syncPendingTrips('user_123'), throwsA(isA<Exception>()));
+      await expectLater(
+        syncRepo.syncPendingTrips('user_123'),
+        throwsA(isA<Exception>()),
+      );
       // Queue is kept intact for retry
       expect(await syncRepo.getPendingSyncCount(), 1);
     });

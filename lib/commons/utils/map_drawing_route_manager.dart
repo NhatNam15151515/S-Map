@@ -65,27 +65,40 @@ class MapDrawingRouteManager {
   /// Helper xóa các đối tượng trên bản đồ mà không tăng thế hệ render
   Future<void> _removeExisting(MapLibreMapController? controller) async {
     if (controller == null) return;
-    try {
-      if (_routeLine != null) {
-        final line = _routeLine!;
-        _routeLine = null;
+    if (_routeLine != null) {
+      final line = _routeLine!;
+      try {
         await controller.removeLine(line);
-      }
-      if (_casingLine != null) {
-        final casing = _casingLine!;
-        _casingLine = null;
-        await controller.removeLine(casing);
-      }
-      if (_waypointSymbols.isNotEmpty) {
-        final symbolsToRemove = List<Symbol>.from(_waypointSymbols);
-        _waypointSymbols.clear();
-        for (final sym in symbolsToRemove) {
-          await controller.removeSymbol(sym);
+      } catch (e) {
+        DLog.warning('⚠️ [MapDrawingRouteManager] Error removing routeLine: $e');
+      } finally {
+        if (identical(_routeLine, line)) {
+          _routeLine = null;
         }
       }
-    } catch (e) {
-      DLog.warning(
-          '⚠️ [MapDrawingRouteManager] Error clearing lines/symbols: $e');
+    }
+    if (_casingLine != null) {
+      final casing = _casingLine!;
+      try {
+        await controller.removeLine(casing);
+      } catch (e) {
+        DLog.warning('⚠️ [MapDrawingRouteManager] Error removing casingLine: $e');
+      } finally {
+        if (identical(_casingLine, casing)) {
+          _casingLine = null;
+        }
+      }
+    }
+    if (_waypointSymbols.isNotEmpty) {
+      final symbolsToRemove = List<Symbol>.from(_waypointSymbols);
+      _waypointSymbols.clear();
+      for (final sym in symbolsToRemove) {
+        try {
+          await controller.removeSymbol(sym);
+        } catch (e) {
+          DLog.warning('⚠️ [MapDrawingRouteManager] Error removing symbol: $e');
+        }
+      }
     }
   }
 
