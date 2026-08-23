@@ -36,8 +36,13 @@ class FakeMapController extends Fake implements MapLibreMapController {
     removedSymbols.add(symbol);
   }
 
+  int animateCameraCalls = 0;
+
   @override
-  Future<bool?> animateCamera(CameraUpdate cameraUpdate, {Duration? duration}) async => true;
+  Future<bool?> animateCamera(CameraUpdate cameraUpdate, {Duration? duration}) async {
+    animateCameraCalls++;
+    return true;
+  }
 }
 
 void main() {
@@ -178,13 +183,12 @@ void main() {
         ),
       ];
 
-      await expectLater(
-        manager.fitRouteBounds(
-          controller: fakeController,
-          points: waypoints,
-        ),
-        completes,
+      await manager.fitRouteBounds(
+        controller: fakeController,
+        points: waypoints,
       );
+
+      expect(fakeController.animateCameraCalls, 1);
     });
   });
 }

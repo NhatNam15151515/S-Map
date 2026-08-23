@@ -102,7 +102,7 @@ class MapDrawingRouteManager {
       // 1. Vẽ Polyline kết nối (nếu có từ 2 điểm trở lên và fullPolyline có dữ liệu)
       final polylineLatLngs = parseRoutePoints(fullPolyline);
       if (polylineLatLngs.length >= 2) {
-        _casingLine = await controller.addLine(
+        final casing = await controller.addLine(
           LineOptions(
             geometry: polylineLatLngs,
             lineColor: AppColors.sMapDarkTeal.toHex,
@@ -111,9 +111,13 @@ class MapDrawingRouteManager {
             lineJoin: RoutingConstants.routeLineJoin,
           ),
         );
-        if (generation != _renderGeneration) return false;
+        if (generation != _renderGeneration) {
+          await controller.removeLine(casing);
+          return false;
+        }
+        _casingLine = casing;
 
-        _routeLine = await controller.addLine(
+        final mainLine = await controller.addLine(
           LineOptions(
             geometry: polylineLatLngs,
             lineColor: AppColors.sMapTeal.toHex,
@@ -122,7 +126,11 @@ class MapDrawingRouteManager {
             lineJoin: RoutingConstants.routeLineJoin,
           ),
         );
-        if (generation != _renderGeneration) return false;
+        if (generation != _renderGeneration) {
+          await controller.removeLine(mainLine);
+          return false;
+        }
+        _routeLine = mainLine;
       }
 
       // 2. Vẽ Waypoint Symbols cho từng điểm
@@ -158,6 +166,9 @@ class MapDrawingRouteManager {
 
         if (generation == _renderGeneration) {
           _waypointSymbols.add(symbol);
+        } else {
+          await controller.removeSymbol(symbol);
+          return false;
         }
       }
 

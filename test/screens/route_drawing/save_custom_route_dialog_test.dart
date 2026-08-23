@@ -35,6 +35,7 @@ void main() {
     testWidgets('shows validation error when route name is empty and saves on valid input', (tester) async {
       String? savedName;
       String? savedDesc;
+      int onSaveCallCount = 0;
 
       await tester.pumpWidget(
         createTestableWidget(
@@ -45,6 +46,7 @@ void main() {
                   context,
                   initialName: 'Lộ trình mới',
                   onSave: (name, desc) {
+                    onSaveCallCount++;
                     savedName = name;
                     savedDesc = desc;
                   },
@@ -71,6 +73,7 @@ void main() {
 
       expect(find.text('Vui lòng nhập tên lộ trình'), findsOneWidget);
       expect(savedName, isNull);
+      expect(onSaveCallCount, 0);
 
       // Enter valid name and description
       await tester.enterText(find.byKey(const Key('save_route_name_input')), 'Cung đường ven biển');
@@ -80,11 +83,13 @@ void main() {
 
       expect(savedName, 'Cung đường ven biển');
       expect(savedDesc, 'Đi ngắm hoàng hôn');
+      expect(onSaveCallCount, 1);
     });
 
     testWidgets('trims whitespace and treats empty description as null', (tester) async {
       String? savedName;
       String? savedDesc;
+      int onSaveCallCount = 0;
 
       await tester.pumpWidget(
         createTestableWidget(
@@ -95,6 +100,7 @@ void main() {
                   context,
                   initialName: 'Lộ trình mới',
                   onSave: (name, desc) {
+                    onSaveCallCount++;
                     savedName = name;
                     savedDesc = desc;
                   },
@@ -119,6 +125,7 @@ void main() {
 
       expect(savedName, 'Đường đèo Hải Vân');
       expect(savedDesc, isNull);
+      expect(onSaveCallCount, 1);
     });
   });
 }

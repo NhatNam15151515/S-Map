@@ -23,7 +23,6 @@ class SaveCustomRouteDialog extends StatefulWidget {
       context: context,
       builder: (dialogCtx) => SaveCustomRouteDialog(
         initialName: initialName,
-        onSave: onSave,
       ),
     );
     if (result != null) {
