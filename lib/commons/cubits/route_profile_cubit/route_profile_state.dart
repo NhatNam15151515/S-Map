@@ -14,6 +14,8 @@ class RouteProfileState extends Equatable {
   final List<TripRecordModel> allTrips;
   final List<TripRecordModel> filteredTrips;
   final String? profileFilter;
+  final StatsTimeRange timeRange;
+  final TripChartData chartData;
   final String? errorMessage;
 
   const RouteProfileState({
@@ -22,6 +24,8 @@ class RouteProfileState extends Equatable {
     this.allTrips = const [],
     this.filteredTrips = const [],
     this.profileFilter,
+    this.timeRange = StatsTimeRange.thisWeek,
+    this.chartData = const TripChartData.empty(),
     this.errorMessage,
   });
 
@@ -30,6 +34,7 @@ class RouteProfileState extends Equatable {
   bool get isError => status == RouteProfileStatus.error;
   bool get hasStats => stats.totalTrips > 0;
   bool get hasTrips => filteredTrips.isNotEmpty;
+  bool get hasChartData => chartData.isNotEmpty;
 
   RouteProfileState copyWith({
     RouteProfileStatus? status,
@@ -37,6 +42,8 @@ class RouteProfileState extends Equatable {
     List<TripRecordModel>? allTrips,
     List<TripRecordModel>? filteredTrips,
     String? profileFilter,
+    StatsTimeRange? timeRange,
+    TripChartData? chartData,
     String? errorMessage,
     bool clearProfileFilter = false,
     bool clearError = false,
@@ -48,6 +55,8 @@ class RouteProfileState extends Equatable {
       filteredTrips: filteredTrips ?? this.filteredTrips,
       profileFilter:
           clearProfileFilter ? null : (profileFilter ?? this.profileFilter),
+      timeRange: timeRange ?? this.timeRange,
+      chartData: chartData ?? this.chartData,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -59,6 +68,8 @@ class RouteProfileState extends Equatable {
         allTrips,
         filteredTrips,
         profileFilter,
+        timeRange,
+        chartData,
         errorMessage,
       ];
 }

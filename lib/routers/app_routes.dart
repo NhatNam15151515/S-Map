@@ -11,6 +11,7 @@ abstract final class AppRoutes {
   static const String navigation = '/NavigationScreen';
   static const String routeDrawing = '/RouteDrawingScreen';
   static const String stats = '/StatsScreen';
+  static const String tripDetail = '/TripDetailScreen';
   static const String settings = '/SettingsScreen';
   static const String fullImage = '/FullImageScreen';
 }
