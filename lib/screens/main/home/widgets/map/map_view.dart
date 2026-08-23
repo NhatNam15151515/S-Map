@@ -11,6 +11,7 @@ class MapView extends StatelessWidget {
   final void Function(CameraPosition position)? onCameraMove;
   final void Function(MyLocationTrackingMode mode)? onCameraTrackingChanged;
   final VoidCallback? onCameraIdle;
+  final void Function(Point<double> point, LatLng latLng)? onMapClick;
   final void Function(Point<double> point, LatLng latLng)? onMapLongClick;
 
   const MapView({
@@ -22,6 +23,7 @@ class MapView extends StatelessWidget {
     this.onCameraMove,
     this.onCameraTrackingChanged,
     this.onCameraIdle,
+    this.onMapClick,
     this.onMapLongClick,
   });
 
@@ -50,6 +52,7 @@ class MapView extends StatelessWidget {
       onCameraTrackingDismissed: onCameraTrackingDismissed,
       onCameraTrackingChanged: onCameraTrackingChanged,
       onCameraIdle: onCameraIdle,
+      onMapClick: onMapClick,
       onMapLongClick: onMapLongClick,
     );
   }

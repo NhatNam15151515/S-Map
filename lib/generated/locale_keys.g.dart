@@ -178,5 +178,35 @@ abstract class  LocaleKeys {
   static const routing_battery_dialog_btn_allow = 'routing.battery_dialog_btn_allow';
   static const routing_battery_dialog_btn_skip = 'routing.battery_dialog_btn_skip';
   static const routing = 'routing';
+  static const route_drawing_ui_title = 'route_drawing_ui.title';
+  static const route_drawing_ui_tap_prompt = 'route_drawing_ui.tap_prompt';
+  static const route_drawing_ui_add_next_prompt = 'route_drawing_ui.add_next_prompt';
+  static const route_drawing_ui_waypoints_count = 'route_drawing_ui.waypoints_count';
+  static const route_drawing_ui_undo = 'route_drawing_ui.undo';
+  static const route_drawing_ui_redo = 'route_drawing_ui.redo';
+  static const route_drawing_ui_clear_all = 'route_drawing_ui.clear_all';
+  static const route_drawing_ui_clear_confirm_title = 'route_drawing_ui.clear_confirm_title';
+  static const route_drawing_ui_clear_confirm_desc = 'route_drawing_ui.clear_confirm_desc';
+  static const route_drawing_ui_fit_bounds = 'route_drawing_ui.fit_bounds';
+  static const route_drawing_ui_save_route = 'route_drawing_ui.save_route';
+  static const route_drawing_ui_start_navigation = 'route_drawing_ui.start_navigation';
+  static const route_drawing_ui_save_dialog_title = 'route_drawing_ui.save_dialog_title';
+  static const route_drawing_ui_route_name_label = 'route_drawing_ui.route_name_label';
+  static const route_drawing_ui_route_name_hint = 'route_drawing_ui.route_name_hint';
+  static const route_drawing_ui_route_name_required = 'route_drawing_ui.route_name_required';
+  static const route_drawing_ui_route_desc_label = 'route_drawing_ui.route_desc_label';
+  static const route_drawing_ui_route_desc_hint = 'route_drawing_ui.route_desc_hint';
+  static const route_drawing_ui_save_success = 'route_drawing_ui.save_success';
+  static const route_drawing_ui_saved_routes_title = 'route_drawing_ui.saved_routes_title';
+  static const route_drawing_ui_no_saved_routes = 'route_drawing_ui.no_saved_routes';
+  static const route_drawing_ui_no_saved_routes_desc = 'route_drawing_ui.no_saved_routes_desc';
+  static const route_drawing_ui_load_route = 'route_drawing_ui.load_route';
+  static const route_drawing_ui_delete_route = 'route_drawing_ui.delete_route';
+  static const route_drawing_ui_delete_confirm_title = 'route_drawing_ui.delete_confirm_title';
+  static const route_drawing_ui_delete_confirm_desc = 'route_drawing_ui.delete_confirm_desc';
+  static const route_drawing_ui_profile_moped = 'route_drawing_ui.profile_moped';
+  static const route_drawing_ui_profile_car = 'route_drawing_ui.profile_car';
+  static const route_drawing_ui_profile_foot = 'route_drawing_ui.profile_foot';
+  static const route_drawing_ui = 'route_drawing_ui';
 
 }
