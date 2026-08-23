@@ -28,6 +28,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   });
 
   void _showClearConfirmDialog(BuildContext context) {
+    final style = AppStyle.of(context);
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -35,20 +36,23 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           tr(LocaleKeys.route_drawing_ui_clear_confirm_title),
-          style: AppStyle.of(context).blackTextColor.textTheme.boldStyle.copyWith(
-                fontSize: 16,
-              ),
+          style: style.blackTextColor.textTheme.boldStyle.copyWith(
+            fontSize: 16,
+          ),
         ),
         content: Text(
           tr(LocaleKeys.route_drawing_ui_clear_confirm_desc),
-          style: AppStyle.of(context).blackTextColor.textTheme.textStyle.copyWith(fontSize: 14),
+          style: style.blackTextColor.textTheme.textStyle.copyWith(fontSize: 14),
         ),
         actions: [
           TextButton(
+            key: const Key('route_drawing_clear_cancel_btn'),
             onPressed: () => Navigator.of(dialogCtx).pop(),
             child: Text(
               tr(LocaleKeys.cancel),
-              style: const TextStyle(color: AppColors.grey),
+              style: style.blackTextColor.textTheme.mediumStyle.copyWith(
+                color: AppColors.grey,
+              ),
             ),
           ),
           ElevatedButton(
@@ -65,7 +69,9 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
             },
             child: Text(
               tr(LocaleKeys.route_drawing_ui_clear_all),
-              style: const TextStyle(color: AppColors.white),
+              style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                color: AppColors.white,
+              ),
             ),
           ),
         ],

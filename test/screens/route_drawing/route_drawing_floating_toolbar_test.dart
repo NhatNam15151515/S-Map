@@ -107,7 +107,16 @@ void main() {
       await tester.pump();
       expect(fitBoundsCalled, isTrue);
 
-      // Test Clear: opens confirm dialog
+      // Test Clear: cancel does not trigger onClear
+      await tester.tap(find.byKey(const Key('route_drawing_clear_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Xóa toàn bộ lộ trình?'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('route_drawing_clear_cancel_btn')));
+      await tester.pumpAndSettle();
+      expect(clearCalled, isFalse);
+
+      // Test Clear: confirm triggers onClear
       await tester.tap(find.byKey(const Key('route_drawing_clear_button')));
       await tester.pumpAndSettle();
 

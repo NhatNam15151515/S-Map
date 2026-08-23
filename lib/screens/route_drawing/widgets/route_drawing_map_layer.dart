@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,7 +32,7 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
     );
   }
 
-  void _onMapClick(dynamic point, LatLng latLng) {
+  void _onMapClick(Point<double> point, LatLng latLng) {
     if (drawingBloc.state.isLoading) return;
     drawingBloc.add(
       RouteDrawingPointTapped(

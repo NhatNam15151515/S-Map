@@ -6,26 +6,29 @@ import 'package:s_map/generated/locale_keys.g.dart';
 
 class SaveCustomRouteDialog extends StatefulWidget {
   final String initialName;
-  final void Function(String name, String? description) onSave;
+  final void Function(String name, String? description)? onSave;
 
   const SaveCustomRouteDialog({
     super.key,
     required this.initialName,
-    required this.onSave,
+    this.onSave,
   });
 
   static Future<void> show(
     BuildContext context, {
     required String initialName,
     required void Function(String name, String? description) onSave,
-  }) {
-    return showDialog(
+  }) async {
+    final result = await showDialog<({String name, String? description})>(
       context: context,
       builder: (dialogCtx) => SaveCustomRouteDialog(
         initialName: initialName,
         onSave: onSave,
       ),
     );
+    if (result != null) {
+      onSave(result.name, result.description);
+    }
   }
 
   @override
@@ -57,8 +60,8 @@ class _SaveCustomRouteDialogState extends State<SaveCustomRouteDialog> {
       final desc = _descController.text.trim().isEmpty
           ? null
           : _descController.text.trim();
-      Navigator.of(context).pop();
-      widget.onSave(name, desc);
+      Navigator.of(context).pop((name: name, description: desc));
+      widget.onSave?.call(name, desc);
     }
   }
 

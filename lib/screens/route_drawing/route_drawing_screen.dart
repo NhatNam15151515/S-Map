@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:s_map/routers/app_routes.dart';
@@ -70,8 +71,10 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
 
   void _handleSaveRoute(BuildContext context, RouteDrawingState state) {
     final now = DateTime.now();
-    final defaultName =
-        'Lộ trình ${DateFormat('dd/MM/yyyy HH:mm').format(now)}';
+    final defaultName = tr(
+      LocaleKeys.route_drawing_ui_default_route_name,
+      args: [DateFormat('dd/MM/yyyy HH:mm').format(now)],
+    );
 
     SaveCustomRouteDialog.show(
       context,
@@ -91,10 +94,12 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     if (!state.hasRoute) return;
 
     final rawPoints = state.fullPolyline.map((p) => [p.lat, p.lon]).toList();
+    final customName = tr(LocaleKeys.route_drawing_ui_custom_route_name);
+    final followInstruction = tr(LocaleKeys.route_drawing_ui_follow_custom_route);
     final instructions = <RouteInstruction>[
       RouteInstruction(
-        text: 'Đi theo lộ trình tùy biến',
-        streetName: 'Lộ trình tùy biến',
+        text: followInstruction,
+        streetName: customName,
         distance: state.totalDistance,
         time: state.totalTime,
         sign: 0,
@@ -116,7 +121,7 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         'initialRoute': customRoute,
         'origin': state.fullPolyline.first,
         'destination': state.fullPolyline.last,
-        'destinationName': 'Lộ trình tùy biến',
+        'destinationName': customName,
       },
     );
   }

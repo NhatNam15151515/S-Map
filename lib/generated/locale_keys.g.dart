@@ -182,6 +182,10 @@ abstract class  LocaleKeys {
   static const route_drawing_ui_tap_prompt = 'route_drawing_ui.tap_prompt';
   static const route_drawing_ui_add_next_prompt = 'route_drawing_ui.add_next_prompt';
   static const route_drawing_ui_waypoints_count = 'route_drawing_ui.waypoints_count';
+  static const route_drawing_ui_waypoints_label = 'route_drawing_ui.waypoints_label';
+  static const route_drawing_ui_custom_route_name = 'route_drawing_ui.custom_route_name';
+  static const route_drawing_ui_default_route_name = 'route_drawing_ui.default_route_name';
+  static const route_drawing_ui_follow_custom_route = 'route_drawing_ui.follow_custom_route';
   static const route_drawing_ui_undo = 'route_drawing_ui.undo';
   static const route_drawing_ui_redo = 'route_drawing_ui.redo';
   static const route_drawing_ui_clear_all = 'route_drawing_ui.clear_all';

@@ -1,7 +1,44 @@
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/models/models.dart';
+
+class FakeMapController extends Fake implements MapLibreMapController {
+  final List<LineOptions> addedLines = [];
+  final List<SymbolOptions> addedSymbols = [];
+  final List<Line> removedLines = [];
+  final List<Symbol> removedSymbols = [];
+  int _nextId = 1;
+
+  @override
+  Future<void> addImage(String name, Uint8List bytes, [bool defer = false]) async {}
+
+  @override
+  Future<Line> addLine(LineOptions options, [Map<String, dynamic>? data]) async {
+    addedLines.add(options);
+    return Line('line_${_nextId++}', options);
+  }
+
+  @override
+  Future<Symbol> addSymbol(SymbolOptions options, [Map<String, dynamic>? data]) async {
+    addedSymbols.add(options);
+    return Symbol('symbol_${_nextId++}', options);
+  }
+
+  @override
+  Future<void> removeLine(Line line) async {
+    removedLines.add(line);
+  }
+
+  @override
+  Future<void> removeSymbol(Symbol symbol) async {
+    removedSymbols.add(symbol);
+  }
+
+  @override
+  Future<bool?> animateCamera(CameraUpdate cameraUpdate, {Duration? duration}) async => true;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -60,11 +97,91 @@ void main() {
       expect(result, isFalse);
     });
 
+    test('drawCustomRoute renders lines and waypoint symbols with FakeMapController', () async {
+      final fakeController = FakeMapController();
+      final waypoints = [
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.7,
+          originalLon: 106.7,
+          snappedLat: 10.7,
+          snappedLon: 106.7,
+        ),
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.75,
+          originalLon: 106.75,
+          snappedLat: 10.75,
+          snappedLon: 106.75,
+        ),
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.8,
+          originalLon: 106.8,
+          snappedLat: 10.8,
+          snappedLon: 106.8,
+        ),
+      ];
+      final polyline = [
+        const RoutePoint(lat: 10.7, lon: 106.7),
+        const RoutePoint(lat: 10.75, lon: 106.75),
+        const RoutePoint(lat: 10.8, lon: 106.8),
+      ];
+
+      final result = await manager.drawCustomRoute(
+        controller: fakeController,
+        points: waypoints,
+        fullPolyline: polyline,
+      );
+
+      expect(result, isTrue);
+      // 2 lines: casing line + main line
+      expect(fakeController.addedLines.length, 2);
+      // 3 symbols for 3 waypoints: A, 1, B
+      expect(fakeController.addedSymbols.length, 3);
+      expect(fakeController.addedSymbols[0].textField, 'A');
+      expect(fakeController.addedSymbols[1].textField, '1');
+      expect(fakeController.addedSymbols[2].textField, 'B');
+
+      // Test clear removes all
+      await manager.clear(fakeController);
+      expect(fakeController.removedLines.length, 2);
+      expect(fakeController.removedSymbols.length, 3);
+    });
+
     test('fitRouteBounds handles null controller and empty points gracefully', () async {
       await expectLater(
         manager.fitRouteBounds(
           controller: null,
           points: const [],
+        ),
+        completes,
+      );
+    });
+
+    test('fitRouteBounds animates camera on valid points with FakeMapController', () async {
+      final fakeController = FakeMapController();
+      final waypoints = [
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.7,
+          originalLon: 106.7,
+          snappedLat: 10.7,
+          snappedLon: 106.7,
+        ),
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.8,
+          originalLon: 106.8,
+          snappedLat: 10.8,
+          snappedLon: 106.8,
+        ),
+      ];
+
+      await expectLater(
+        manager.fitRouteBounds(
+          controller: fakeController,
+          points: waypoints,
         ),
         completes,
       );

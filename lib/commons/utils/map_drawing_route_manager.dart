@@ -54,9 +54,14 @@ class MapDrawingRouteManager {
     );
   }
 
-  /// Xóa toàn bộ line và marker đang vẽ
+  /// Xóa toàn bộ line và marker đang vẽ và tăng thế hệ render để hủy các render đang chạy
   Future<void> clear(MapLibreMapController? controller) async {
     _renderGeneration++;
+    await _removeExisting(controller);
+  }
+
+  /// Helper xóa các đối tượng trên bản đồ mà không tăng thế hệ render
+  Future<void> _removeExisting(MapLibreMapController? controller) async {
     if (controller == null) return;
     try {
       if (_routeLine != null) {
@@ -91,7 +96,7 @@ class MapDrawingRouteManager {
       await loadMarkerAssets(controller);
       if (generation != _renderGeneration) return false;
 
-      await clear(controller);
+      await _removeExisting(controller);
       if (generation != _renderGeneration) return false;
 
       // 1. Vẽ Polyline kết nối (nếu có từ 2 điểm trở lên và fullPolyline có dữ liệu)
@@ -185,10 +190,10 @@ class MapDrawingRouteManager {
       await controller.animateCamera(
         CameraUpdate.newLatLngBounds(
           bounds,
-          left: 60.0,
-          right: 60.0,
-          top: 140.0,
-          bottom: 240.0,
+          left: RoutingConstants.routeFitPaddingLeft,
+          right: RoutingConstants.routeFitPaddingRight,
+          top: RoutingConstants.routeFitPaddingTop,
+          bottom: RoutingConstants.routeFitPaddingBottom,
         ),
       );
     } catch (e) {

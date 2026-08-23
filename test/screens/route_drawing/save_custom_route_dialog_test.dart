@@ -81,5 +81,44 @@ void main() {
       expect(savedName, 'Cung đường ven biển');
       expect(savedDesc, 'Đi ngắm hoàng hôn');
     });
+
+    testWidgets('trims whitespace and treats empty description as null', (tester) async {
+      String? savedName;
+      String? savedDesc;
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () {
+                SaveCustomRouteDialog.show(
+                  context,
+                  initialName: 'Lộ trình mới',
+                  onSave: (name, desc) {
+                    savedName = name;
+                    savedDesc = desc;
+                  },
+                );
+              },
+              child: const Text('Open Dialog'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Open dialog
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
+
+      // Enter name with leading/trailing whitespace, empty description
+      await tester.enterText(find.byKey(const Key('save_route_name_input')), '   Đường đèo Hải Vân   ');
+      await tester.enterText(find.byKey(const Key('save_route_desc_input')), '   ');
+      await tester.tap(find.byKey(const Key('save_route_submit_button')));
+      await tester.pumpAndSettle();
+
+      expect(savedName, 'Đường đèo Hải Vân');
+      expect(savedDesc, isNull);
+    });
   });
 }

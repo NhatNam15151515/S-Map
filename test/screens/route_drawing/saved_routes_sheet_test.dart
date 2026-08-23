@@ -147,15 +147,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Đường đi Vũng Tàu'), findsOneWidget);
-      expect(find.text('12.5 km • 1 waypoints'), findsOneWidget);
+      expect(find.text('12.5 km • 1 điểm mốc'), findsOneWidget);
 
       // Select route
       await tester.tap(find.text('Đường đi Vũng Tàu'));
       await tester.pump();
       expect(selectedRoute?.id, 'route_1');
 
-      // Delete route: tap trash icon -> confirm dialog
-      await tester.tap(find.byType(IconButton).last);
+      // Delete route: tap trash icon by key -> confirm dialog
+      await tester.tap(find.byKey(const Key('delete_saved_route_route_1')));
       await tester.pumpAndSettle();
 
       expect(find.text('Xóa lộ trình đã lưu?'), findsOneWidget);

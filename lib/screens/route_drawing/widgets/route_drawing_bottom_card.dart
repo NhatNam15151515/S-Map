@@ -172,7 +172,7 @@ class RouteDrawingBottomCard extends StatelessWidget {
                 style,
                 icon: HeroIcons.flag,
                 value: pointCount.toString(),
-                label: tr(LocaleKeys.route_drawing_ui_waypoints_count, args: ['']).trim(),
+                label: tr(LocaleKeys.route_drawing_ui_waypoints_label),
               ),
             ),
           ],

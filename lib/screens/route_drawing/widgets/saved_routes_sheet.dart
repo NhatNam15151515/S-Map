@@ -41,6 +41,7 @@ class SavedRoutesSheet extends StatelessWidget {
   }
 
   void _showDeleteConfirmDialog(BuildContext context, CustomRouteModel route) {
+    final style = AppStyle.of(context);
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -48,20 +49,22 @@ class SavedRoutesSheet extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           tr(LocaleKeys.route_drawing_ui_delete_confirm_title),
-          style: AppStyle.of(context).blackTextColor.textTheme.boldStyle.copyWith(
-                fontSize: 16,
-              ),
+          style: style.blackTextColor.textTheme.boldStyle.copyWith(
+            fontSize: 16,
+          ),
         ),
         content: Text(
           tr(LocaleKeys.route_drawing_ui_delete_confirm_desc, args: [route.name]),
-          style: AppStyle.of(context).blackTextColor.textTheme.textStyle.copyWith(fontSize: 14),
+          style: style.blackTextColor.textTheme.textStyle.copyWith(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
             child: Text(
               tr(LocaleKeys.cancel),
-              style: const TextStyle(color: AppColors.grey),
+              style: style.blackTextColor.textTheme.mediumStyle.copyWith(
+                color: AppColors.grey,
+              ),
             ),
           ),
           ElevatedButton(
@@ -78,7 +81,9 @@ class SavedRoutesSheet extends StatelessWidget {
             },
             child: Text(
               tr(LocaleKeys.route_drawing_ui_delete_route),
-              style: const TextStyle(color: AppColors.white),
+              style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                color: AppColors.white,
+              ),
             ),
           ),
         ],
@@ -204,7 +209,7 @@ class SavedRoutesSheet extends StatelessWidget {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          '${distanceKm.toStringAsFixed(1)} km • ${route.waypoints.length} waypoints',
+                          '${distanceKm.toStringAsFixed(1)} km • ${tr(LocaleKeys.route_drawing_ui_waypoints_count, args: [route.waypoints.length.toString()])}',
                           style: style.blackTextColor.textTheme.textStyle.copyWith(
                             fontSize: 12,
                             color: AppColors.sonicSilver,
@@ -224,6 +229,7 @@ class SavedRoutesSheet extends StatelessWidget {
                             onPressed: () => onRouteSelected(route),
                           ),
                           IconButton(
+                            key: Key('delete_saved_route_${route.id}'),
                             icon: const HeroIcon(
                               HeroIcons.trash,
                               size: 20,

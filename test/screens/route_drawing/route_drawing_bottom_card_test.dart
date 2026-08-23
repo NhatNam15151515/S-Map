@@ -96,6 +96,7 @@ void main() {
       expect(find.text('2.5 km'), findsOneWidget);
       expect(find.text('3 phút'), findsOneWidget);
       expect(find.text('3'), findsOneWidget);
+      expect(find.text('Điểm mốc'), findsOneWidget);
       expect(find.byKey(const Key('route_drawing_save_button')), findsOneWidget);
       expect(find.byKey(const Key('route_drawing_navigate_button')), findsOneWidget);
 
