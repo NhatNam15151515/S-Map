@@ -102,9 +102,10 @@ void main() {
   late MockRegionRepository mockRepository;
   late DownloadRegionCubit cubit;
 
-  setUp(() {
+  setUp(() async {
     mockRepository = MockRegionRepository();
     cubit = DownloadRegionCubit(repository: mockRepository);
+    await cubit.loadRegions();
   });
 
   tearDown(() async {
@@ -114,8 +115,6 @@ void main() {
 
   group('DownloadRegionCubit Tests', () {
     test('initial state and loadRegions loads available regions and storage usage', () async {
-      await Future.delayed(const Duration(milliseconds: 10));
-
       expect(cubit.state.status, equals(DownloadRegionStatus.loaded));
       expect(cubit.state.regions.length, equals(2));
       expect(cubit.state.totalStorageBytes, equals(0));
@@ -124,13 +123,10 @@ void main() {
     });
 
     test('downloadRegion triggers downloading state, progress stream updates and completes with success', () async {
-      await Future.delayed(const Duration(milliseconds: 10));
-
       final states = <DownloadRegionState>[];
       final sub = cubit.stream.listen(states.add);
 
       await cubit.downloadRegion('metro_hcm');
-      await Future.delayed(const Duration(milliseconds: 20));
 
       await sub.cancel();
 
@@ -158,9 +154,15 @@ void main() {
       expect(region?.hasUpdate, isTrue);
     });
 
-    test('cancelDownload cancels active download', () async {
+    test('cancelDownload cancels active download and clears downloading region', () async {
+      final downloadFuture = cubit.downloadRegion('metro_hcm');
+      await Future.delayed(const Duration(milliseconds: 1));
+      expect(cubit.state.currentlyDownloadingRegionId, equals('metro_hcm'));
+
       await cubit.cancelDownload('metro_hcm');
+      expect(cubit.state.currentlyDownloadingRegionId, isNull);
       expect(cubit.state.isDownloading('metro_hcm'), isFalse);
+      await downloadFuture;
     });
 
     test('downloadRegion handles exception gracefully and emits error state', () async {

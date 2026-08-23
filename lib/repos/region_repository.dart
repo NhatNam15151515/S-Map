@@ -42,16 +42,10 @@ class RegionRepositoryImpl implements IRegionRepository {
     _progressController.add(Map.unmodifiable(_currentProgressMap));
 
     try {
-      await for (final progress in _service.downloadAndExtractRegion(
-        region,
-        onProgress: (p) {
-          _currentProgressMap[regionId] = p;
-          _progressController.add(Map.unmodifiable(_currentProgressMap));
-          onProgress?.call(p);
-        },
-      )) {
+      await for (final progress in _service.downloadAndExtractRegion(region)) {
         _currentProgressMap[regionId] = progress;
         _progressController.add(Map.unmodifiable(_currentProgressMap));
+        onProgress?.call(progress);
       }
     } catch (e) {
       DLog.error('❌ [RegionRepository] Lỗi tải vùng $regionId: $e');

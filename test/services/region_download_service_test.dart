@@ -56,15 +56,24 @@ class FakeHiveBox implements Box<dynamic> {
 class FakeHttpClient implements HttpClient {
   final Uint8List zipBytes;
   final int statusCode;
+  final Duration chunkDelay;
 
   FakeHttpClient({
     required this.zipBytes,
     this.statusCode = HttpStatus.ok,
+    this.chunkDelay = Duration.zero,
   });
 
   @override
+  Duration? connectionTimeout;
+
+  @override
   Future<HttpClientRequest> getUrl(Uri url) async {
-    return FakeHttpClientRequest(zipBytes: zipBytes, statusCode: statusCode);
+    return FakeHttpClientRequest(
+      zipBytes: zipBytes,
+      statusCode: statusCode,
+      chunkDelay: chunkDelay,
+    );
   }
 
   @override
@@ -74,15 +83,21 @@ class FakeHttpClient implements HttpClient {
 class FakeHttpClientRequest implements HttpClientRequest {
   final Uint8List zipBytes;
   final int statusCode;
+  final Duration chunkDelay;
 
   FakeHttpClientRequest({
     required this.zipBytes,
     required this.statusCode,
+    this.chunkDelay = Duration.zero,
   });
 
   @override
   Future<HttpClientResponse> close() async {
-    return FakeHttpClientResponse(zipBytes: zipBytes, statusCode: statusCode);
+    return FakeHttpClientResponse(
+      zipBytes: zipBytes,
+      statusCode: statusCode,
+      chunkDelay: chunkDelay,
+    );
   }
 
   @override
@@ -93,10 +108,12 @@ class FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResp
   final Uint8List zipBytes;
   @override
   final int statusCode;
+  final Duration chunkDelay;
 
   FakeHttpClientResponse({
     required this.zipBytes,
     required this.statusCode,
+    this.chunkDelay = Duration.zero,
   });
 
   @override
@@ -110,12 +127,16 @@ class FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResp
     bool? cancelOnError,
   }) {
     final controller = StreamController<List<int>>();
-    controller.onListen = () {
-      // Stream in 2 chunks to test progress
+    controller.onListen = () async {
       final half = zipBytes.length ~/ 2;
       controller.add(zipBytes.sublist(0, half));
-      controller.add(zipBytes.sublist(half));
-      controller.close();
+      if (chunkDelay > Duration.zero) {
+        await Future.delayed(chunkDelay);
+      }
+      if (!controller.isClosed) {
+        controller.add(zipBytes.sublist(half));
+        controller.close();
+      }
     };
     return controller.stream.listen(
       onData,
@@ -132,7 +153,6 @@ class FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResp
 Uint8List createSampleZipArchive() {
   final archive = Archive();
 
-  // Add dummy files representing region assets
   final pmtilesBytes = Uint8List.fromList([1, 2, 3, 4]);
   final ghzBytes = Uint8List.fromList([5, 6, 7, 8]);
   final dbBytes = Uint8List.fromList([9, 10, 11, 12]);
@@ -207,7 +227,6 @@ void main() {
       expect(progressEvents, isNotEmpty);
       expect(progressEvents.last, equals(1.0));
 
-      // Verify files were extracted to directory
       final extractedDir = Directory('${tempDir.path}/metro_hcm');
       expect(extractedDir.existsSync(), isTrue);
       expect(File('${extractedDir.path}/metro_hcm.pmtiles').existsSync(), isTrue);
@@ -215,17 +234,59 @@ void main() {
       expect(File('${extractedDir.path}/metro_hcm_poi.db').existsSync(), isTrue);
       expect(File('${extractedDir.path}/version.json').existsSync(), isTrue);
 
-      // Verify Hive metadata
       final savedData = fakeBox.get('metro_hcm');
       expect(savedData, isNotNull);
       expect(savedData['status'], equals(RegionDownloadStatus.downloaded.name));
       expect(savedData['localVersion'], equals('1.0.0'));
 
-      // Verify getDownloadedRegions returns downloaded region
       final downloaded = await service.getDownloadedRegions();
       expect(downloaded.length, 1);
       expect(downloaded.first.id, equals('metro_hcm'));
       expect(downloaded.first.isDownloaded, isTrue);
+    });
+
+    test('downloadAndExtractRegion throws HttpException on non-200 HTTP response', () async {
+      final errorHttpClient = FakeHttpClient(
+        zipBytes: sampleZipBytes,
+        statusCode: HttpStatus.notFound,
+      );
+      final errorService = RegionDownloadServiceImpl(
+        customBox: fakeBox,
+        customHttpClient: errorHttpClient,
+        customBaseDir: tempDir.path,
+      );
+      final regions = await errorService.getAvailableRegions();
+      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+
+      expect(
+        errorService.downloadAndExtractRegion(targetRegion).drain(),
+        throwsA(isA<HttpException>()),
+      );
+      expect(fakeBox.get('metro_hcm'), isNull);
+      expect(File('${tempDir.path}/metro_hcm_temp.zip').existsSync(), isFalse);
+    });
+
+    test('cancelDownload cancels download stream and cleans temp zip file', () async {
+      final delayedHttpClient = FakeHttpClient(
+        zipBytes: sampleZipBytes,
+        chunkDelay: const Duration(milliseconds: 50),
+      );
+      final cancelService = RegionDownloadServiceImpl(
+        customBox: fakeBox,
+        customHttpClient: delayedHttpClient,
+        customBaseDir: tempDir.path,
+      );
+      final regions = await cancelService.getAvailableRegions();
+      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+
+      final stream = cancelService.downloadAndExtractRegion(targetRegion);
+      final future = expectLater(stream.drain(), throwsA(isA<Exception>()));
+      await Future.delayed(const Duration(milliseconds: 10));
+      await cancelService.cancelDownload('metro_hcm');
+
+      await future;
+      expect(File('${tempDir.path}/metro_hcm_temp.zip').existsSync(), isFalse);
+      expect(fakeBox.get('metro_hcm'), isNull);
     });
 
     test('deleteRegion removes local directory and deletes Hive record', () async {

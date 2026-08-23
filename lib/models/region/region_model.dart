@@ -22,6 +22,7 @@ class RegionModel extends Equatable {
   final double downloadProgress;
   final DateTime? downloadedAt;
   final String? localPath;
+  final String? checksum;
 
   const RegionModel({
     required this.id,
@@ -36,6 +37,7 @@ class RegionModel extends Equatable {
     this.downloadProgress = 0.0,
     this.downloadedAt,
     this.localPath,
+    this.checksum,
   });
 
   bool get isDownloaded =>
@@ -71,6 +73,7 @@ class RegionModel extends Equatable {
     double? downloadProgress,
     DateTime? downloadedAt,
     String? localPath,
+    String? checksum,
   }) {
     return RegionModel(
       id: id ?? this.id,
@@ -85,6 +88,7 @@ class RegionModel extends Equatable {
       downloadProgress: downloadProgress ?? this.downloadProgress,
       downloadedAt: downloadedAt ?? this.downloadedAt,
       localPath: localPath ?? this.localPath,
+      checksum: checksum ?? this.checksum,
     );
   }
 
@@ -102,6 +106,7 @@ class RegionModel extends Equatable {
       'downloadProgress': downloadProgress,
       'downloadedAt': downloadedAt?.toIso8601String(),
       'localPath': localPath,
+      'checksum': checksum,
     };
   }
 
@@ -128,6 +133,7 @@ class RegionModel extends Equatable {
           ? DateTime.tryParse(map['downloadedAt'] as String)
           : null,
       localPath: map['localPath'] as String?,
+      checksum: map['checksum'] as String?,
     );
   }
 
@@ -145,5 +151,6 @@ class RegionModel extends Equatable {
         downloadProgress,
         downloadedAt,
         localPath,
+        checksum,
       ];
 }

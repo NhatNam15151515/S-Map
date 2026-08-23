@@ -284,5 +284,6 @@
   "offline_maps_delete_confirm_desc": "Offline map and search data for this region will be removed from your device.",
   "offline_maps_delete_success": "Region data deleted successfully",
   "offline_maps_download_success": "Region data downloaded successfully",
+  "offline_maps_error": "An error occurred while processing offline map data",
   "offline_maps_cancel_btn": "Cancel"
 }

@@ -284,5 +284,6 @@
   "offline_maps_delete_confirm_desc": "Dữ liệu bản đồ và tìm kiếm ngoại tuyến của vùng này sẽ bị xóa khỏi thiết bị.",
   "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
   "offline_maps_download_success": "Tải dữ liệu vùng thành công",
+  "offline_maps_error": "Đã xảy ra lỗi khi xử lý dữ liệu bản đồ ngoại tuyến",
   "offline_maps_cancel_btn": "Hủy"
 }

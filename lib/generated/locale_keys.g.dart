@@ -277,6 +277,7 @@ abstract class  LocaleKeys {
   static const offline_maps_delete_confirm_desc = 'offline_maps_delete_confirm_desc';
   static const offline_maps_delete_success = 'offline_maps_delete_success';
   static const offline_maps_download_success = 'offline_maps_download_success';
+  static const offline_maps_error = 'offline_maps_error';
   static const offline_maps_cancel_btn = 'offline_maps_cancel_btn';
 
 }

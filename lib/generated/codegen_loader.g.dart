@@ -300,6 +300,7 @@ class CodegenLoader extends AssetLoader{
   "offline_maps_delete_confirm_desc": "Offline map and search data for this region will be removed from your device.",
   "offline_maps_delete_success": "Region data deleted successfully",
   "offline_maps_download_success": "Region data downloaded successfully",
+  "offline_maps_error": "An error occurred while processing offline map data",
   "offline_maps_cancel_btn": "Cancel"
 };
 static const Map<String,dynamic> _vi = {
@@ -588,6 +589,7 @@ static const Map<String,dynamic> _vi = {
   "offline_maps_delete_confirm_desc": "Dữ liệu bản đồ và tìm kiếm ngoại tuyến của vùng này sẽ bị xóa khỏi thiết bị.",
   "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
   "offline_maps_download_success": "Tải dữ liệu vùng thành công",
+  "offline_maps_error": "Đã xảy ra lỗi khi xử lý dữ liệu bản đồ ngoại tuyến",
   "offline_maps_cancel_btn": "Hủy"
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};

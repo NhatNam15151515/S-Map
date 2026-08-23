@@ -7,21 +7,24 @@ import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
-import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/routers/app_routes.dart';
 import 'widgets/region_card.dart';
 
 class OfflineRegionsScreen extends StatefulWidget {
+  static const String path = AppRoutes.offlineRegions;
+
   const OfflineRegionsScreen({super.key});
 
   @override
   State<OfflineRegionsScreen> createState() => _OfflineRegionsScreenState();
 }
 
-class _OfflineRegionsScreenState extends State<OfflineRegionsScreen> with AppMixin {
+class _OfflineRegionsScreenState extends State<OfflineRegionsScreen>
+    with AppMixin {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => DownloadRegionCubit(),
+      create: (context) => DownloadRegionCubit()..loadRegions(),
       child: const _OfflineRegionsContent(),
     );
   }
@@ -30,16 +33,24 @@ class _OfflineRegionsScreenState extends State<OfflineRegionsScreen> with AppMix
 class _OfflineRegionsContent extends StatelessWidget with AppMixin {
   const _OfflineRegionsContent();
 
+  void _handleMessage(BuildContext context, DownloadRegionState state) {
+    if (state.isSuccess && state.successMessage != null) {
+      if (state.successMessage == 'DOWNLOAD_SUCCESS') {
+        showSuccess(tr(LocaleKeys.offline_maps_download_success));
+      } else if (state.successMessage == 'DELETE_SUCCESS') {
+        showSuccess(tr(LocaleKeys.offline_maps_delete_success));
+      } else {
+        showSuccess(state.successMessage!);
+      }
+    } else if (state.isError && state.errorMessage != null) {
+      showError(tr(LocaleKeys.offline_maps_error));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<DownloadRegionCubit, DownloadRegionState>(
-      listener: (context, state) {
-        if (state.isSuccess && state.successMessage != null) {
-          showSuccess(state.successMessage!);
-        } else if (state.isError && state.errorMessage != null) {
-          showError(state.errorMessage!);
-        }
-      },
+      listener: _handleMessage,
       builder: (context, state) {
         return Scaffold(
           appBar: TitleBackAppBar(
@@ -55,12 +66,15 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
             ),
           ),
           body: state.isLoading && state.regions.isEmpty
-              ? const Center(child: CircularProgressIndicator(color: AppColors.sMapTeal))
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.sMapTeal))
               : RefreshIndicator(
-                  onRefresh: () => context.read<DownloadRegionCubit>().loadRegions(),
+                  onRefresh: () =>
+                      context.read<DownloadRegionCubit>().loadRegions(),
                   color: AppColors.sMapTeal,
                   child: ListView(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
                     children: [
                       // Header Card: Tổng dung lượng bộ nhớ & thống kê
                       _buildStorageSummaryCard(context, state),
@@ -73,11 +87,13 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
                         children: [
                           Text(
                             tr(LocaleKeys.offline_maps_available_regions),
-                            style: AppColors.googleDarkText.textTheme.boldStyle.copyWith(fontSize: 16.sp),
+                            style: AppColors.googleDarkText.textTheme.boldStyle
+                                .copyWith(fontSize: 16.sp),
                           ),
                           Text(
                             '${state.downloadedRegionsCount}/${state.regions.length}',
-                            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: AppColors.sMapTeal),
+                            style: AppColors.sMapTeal.textTheme.semiBoldStyle
+                                .copyWith(fontSize: 14.sp),
                           ),
                         ],
                       ),
@@ -127,20 +143,13 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.sMapTeal,
-            AppColors.sMapTeal.withOpacity(0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.sMapTeal,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: AppColors.sMapTeal.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: AppColors.blackOpa25,
+            blurRadius: 8,
+            offset: Offset(0, 3),
           ),
         ],
       ),
@@ -148,13 +157,13 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
         children: [
           Container(
             padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+            decoration: const BoxDecoration(
+              color: AppColors.sMapLightTeal,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.cloud_download_outlined,
-              color: Colors.white,
+              color: AppColors.sMapDarkTeal,
               size: 26.sp,
             ),
           ),
@@ -165,20 +174,23 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
               children: [
                 Text(
                   tr(LocaleKeys.offline_maps_storage_used),
-                  style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.9)),
+                  style: AppColors.white.textTheme.mediumStyle
+                      .copyWith(fontSize: 13.sp),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   state.formattedTotalStorage,
-                  style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: AppColors.white.textTheme.boldStyle
+                      .copyWith(fontSize: 20.sp),
                 ),
               ],
             ),
           ),
           OutlinedButton(
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+              side: const BorderSide(color: AppColors.white),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r)),
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             ),
             onPressed: () {
@@ -186,7 +198,8 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
             },
             child: Text(
               tr(LocaleKeys.offline_maps_check_updates),
-              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.white),
+              style: AppColors.white.textTheme.semiBoldStyle
+                  .copyWith(fontSize: 12.sp),
             ),
           ),
         ],

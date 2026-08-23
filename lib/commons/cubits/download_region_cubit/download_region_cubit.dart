@@ -15,7 +15,6 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
       : _repository = repository ?? RegionRepositoryImpl.instance,
         super(const DownloadRegionState()) {
     _initProgressSubscription();
-    loadRegions();
   }
 
   void _initProgressSubscription() {
@@ -59,7 +58,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
       DLog.error('❌ [DownloadRegionCubit] Lỗi tải danh sách vùng: $e');
       emit(state.copyWith(
         status: DownloadRegionStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: 'FETCH_REGIONS_ERROR',
       ));
     }
   }
@@ -87,7 +86,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
         regions: updatedRegions,
         totalStorageBytes: updatedStorage,
         clearDownloadingRegion: true,
-        successMessage: 'Tải vùng dữ liệu thành công',
+        successMessage: 'DOWNLOAD_SUCCESS',
       ));
     } catch (e) {
       DLog.error('❌ [DownloadRegionCubit] Lỗi tải vùng $regionId: $e');
@@ -95,7 +94,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
       emit(state.copyWith(
         status: DownloadRegionStatus.error,
         regions: updatedRegions,
-        errorMessage: e.toString(),
+        errorMessage: 'DOWNLOAD_ERROR',
         clearDownloadingRegion: true,
       ));
     }
@@ -118,12 +117,13 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
         regions: updatedRegions,
         totalStorageBytes: updatedStorage,
         clearSuccess: true,
+        successMessage: 'DELETE_SUCCESS',
       ));
     } catch (e) {
       DLog.error('❌ [DownloadRegionCubit] Lỗi xóa vùng $regionId: $e');
       emit(state.copyWith(
         status: DownloadRegionStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: 'DELETE_ERROR',
       ));
     }
   }
@@ -144,7 +144,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
       DLog.error('❌ [DownloadRegionCubit] Lỗi kiểm tra cập nhật: $e');
       emit(state.copyWith(
         status: DownloadRegionStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: 'UPDATE_CHECK_ERROR',
       ));
     }
   }
