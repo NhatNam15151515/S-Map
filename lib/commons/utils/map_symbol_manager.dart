@@ -27,9 +27,9 @@ class MapSymbolManager {
       final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
       final bytes = byteData.buffer
           .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
-      await controller.addImage('red_marker', bytes);
+      await controller.addImage(RoutingConstants.markerImageKey, bytes);
       DLog.info(
-          '🗺️ [MapSymbolManager] Marker asset "red_marker" loaded into map engine');
+          '🗺️ [MapSymbolManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine');
     } catch (e, stack) {
       DLog.warning(
           '⚠️ [MapSymbolManager] Failed to load marker asset: $e', stack);
@@ -68,7 +68,7 @@ class MapSymbolManager {
           final symbol = await controller.addSymbol(
             SymbolOptions(
               geometry: LatLng(poi.lat, poi.lon),
-              iconImage: 'red_marker',
+              iconImage: RoutingConstants.markerImageKey,
               iconSize: 0.65,
               iconAnchor: 'bottom',
               textField: poi.name,
@@ -90,7 +90,7 @@ class MapSymbolManager {
             final symbol = await controller.addSymbol(
               SymbolOptions(
                 geometry: LatLng(poi.lat, poi.lon),
-                iconImage: 'red_marker',
+                iconImage: RoutingConstants.markerImageKey,
                 iconSize: 0.65,
                 iconAnchor: 'bottom',
               ),
@@ -134,7 +134,7 @@ class MapSymbolManager {
         symbol = await controller.addSymbol(
           SymbolOptions(
             geometry: LatLng(poi.lat, poi.lon),
-            iconImage: 'red_marker',
+            iconImage: RoutingConstants.markerImageKey,
             iconSize: 0.85,
             iconAnchor: 'bottom',
             textField: poi.name,
@@ -153,7 +153,7 @@ class MapSymbolManager {
         symbol = await controller.addSymbol(
           SymbolOptions(
             geometry: LatLng(poi.lat, poi.lon),
-            iconImage: 'red_marker',
+            iconImage: RoutingConstants.markerImageKey,
             iconSize: 0.85,
             iconAnchor: 'bottom',
           ),
