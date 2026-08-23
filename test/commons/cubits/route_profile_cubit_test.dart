@@ -24,7 +24,13 @@ class MockTripRepository implements ITripRepository {
   }
 
   @override
-  Future<TripRecordModel?> getTripById(String id) async => null;
+  Future<TripRecordModel?> getTripById(String id) async {
+    try {
+      return storage.firstWhere((t) => t.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<void> saveTrip(TripRecordModel trip) async {
@@ -65,30 +71,32 @@ class MockTripRepository implements ITripRepository {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  final now = DateTime.now();
+
   final tripMotorcycle = TripRecordModel(
     id: 't_moto',
-    startTime: DateTime(2026, 8, 22, 8, 0),
-    endTime: DateTime(2026, 8, 22, 8, 30),
+    startTime: now.subtract(const Duration(hours: 2)),
+    endTime: now.subtract(const Duration(hours: 1, minutes: 30)),
     durationMs: 1800000, // 0.5h
     distanceMeters: 15000.0, // 15km
     avgSpeedKmh: 30.0,
     topSpeedKmh: 50.0,
     hasArrived: true,
     vehicleProfile: 'motorcycle',
-    createdAt: DateTime(2026, 8, 22, 8, 30),
+    createdAt: now.subtract(const Duration(hours: 1, minutes: 30)),
   );
 
   final tripCar = TripRecordModel(
     id: 't_car',
-    startTime: DateTime(2026, 8, 22, 10, 0),
-    endTime: DateTime(2026, 8, 22, 10, 30),
+    startTime: now.subtract(const Duration(hours: 4)),
+    endTime: now.subtract(const Duration(hours: 3, minutes: 30)),
     durationMs: 1800000, // 0.5h
     distanceMeters: 30000.0, // 30km
     avgSpeedKmh: 60.0,
     topSpeedKmh: 90.0,
     hasArrived: true,
     vehicleProfile: 'car',
-    createdAt: DateTime(2026, 8, 22, 10, 30),
+    createdAt: now.subtract(const Duration(hours: 3, minutes: 30)),
   );
 
   late MockTripRepository mockRepo;
@@ -112,9 +120,11 @@ void main() {
       expect(cubit.state.allTrips, isEmpty);
       expect(cubit.state.filteredTrips, isEmpty);
       expect(cubit.state.profileFilter, isNull);
+      expect(cubit.state.timeRange, equals(StatsTimeRange.thisWeek));
+      expect(cubit.state.chartData, equals(const TripChartData.empty()));
     });
 
-    test('loadStats aggregates data correctly across all trips', () async {
+    test('loadStats aggregates data correctly across all trips and generates chartData', () async {
       mockRepo.storage.addAll([tripMotorcycle, tripCar]);
 
       await cubit.loadStats();
@@ -129,6 +139,8 @@ void main() {
       expect(cubit.state.stats.topSpeedKmh, equals(90.0));
       expect(cubit.state.stats.tripsByProfile['motorcycle'], equals(1));
       expect(cubit.state.stats.tripsByProfile['car'], equals(1));
+      expect(cubit.state.chartData.isNotEmpty, isTrue);
+      expect(cubit.state.chartData.totalDistanceKm, equals(45.0));
     });
 
     test('setProfileFilter filters stats to selected vehicle profile', () async {
@@ -144,6 +156,7 @@ void main() {
       expect(cubit.state.stats.totalDistanceKm, equals(15.0));
       expect(cubit.state.stats.avgSpeedKmh, closeTo(30.0, 0.01));
       expect(cubit.state.stats.topSpeedKmh, equals(50.0));
+      expect(cubit.state.chartData.totalDistanceKm, equals(15.0));
 
       // Lọc ô tô
       cubit.setProfileFilter('car');
@@ -159,6 +172,42 @@ void main() {
       expect(cubit.state.profileFilter, isNull);
       expect(cubit.state.filteredTrips.length, equals(2));
       expect(cubit.state.stats.totalDistanceKm, equals(45.0));
+    });
+
+    test('setTimeRange updates timeRange and re-aggregates stats and chartData', () async {
+      mockRepo.storage.addAll([tripMotorcycle, tripCar]);
+      await cubit.loadStats();
+
+      cubit.setTimeRange(StatsTimeRange.today);
+      expect(cubit.state.timeRange, equals(StatsTimeRange.today));
+      expect(cubit.state.chartData.timeRange, equals(StatsTimeRange.today));
+
+      cubit.setTimeRange(StatsTimeRange.allTime);
+      expect(cubit.state.timeRange, equals(StatsTimeRange.allTime));
+      expect(cubit.state.chartData.timeRange, equals(StatsTimeRange.allTime));
+      expect(cubit.state.filteredTrips.length, equals(2));
+    });
+
+    test('deleteTrip removes single trip via repository', () async {
+      mockRepo.storage.addAll([tripMotorcycle, tripCar]);
+      await cubit.init(autoWatch: true);
+      expect(cubit.state.stats.totalTrips, equals(2));
+
+      await cubit.deleteTrip(tripMotorcycle.id);
+
+      expect(cubit.state.stats.totalTrips, equals(1));
+      expect(cubit.state.filteredTrips.first.id, equals('t_car'));
+    });
+
+    test('clearAllTrips removes all trips via repository', () async {
+      mockRepo.storage.addAll([tripMotorcycle, tripCar]);
+      await cubit.init(autoWatch: true);
+      expect(cubit.state.stats.totalTrips, equals(2));
+
+      await cubit.clearAllTrips();
+
+      expect(cubit.state.stats.totalTrips, equals(0));
+      expect(cubit.state.filteredTrips, isEmpty);
     });
 
     test('init() loads stats and synchronizes realtime on watch stream emissions', () async {

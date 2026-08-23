@@ -1,7 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/main/user/widgets/widgets.dart';
 
 class UserScreen extends StatefulWidget {
@@ -40,7 +42,7 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
                 UserMenuTile(
                   icon: Icons.history_rounded,
                   title: tr(LocaleKeys.activityHistory),
-                  onTap: () {},
+                  onTap: () => context.push(AppRoutes.stats),
                 ),
                 UserMenuTile(
                   icon: Icons.share_rounded,

@@ -169,12 +169,17 @@ class AppColors {
   static const sMapTealGradientEnd = Color(0xFF006653);
 
   // Semantic Surface Colors (Material 3 inspired)
+  static const surface = white;
   static const surfaceContainer = Color(0xFFF1F3F4);
+  static const surfaceVariant = surfaceContainer;
   static const surfaceContainerHigh = Color(0xFFE8EAED);
   static const surfaceContainerHighest = Color(0xFFDFE1E5);
+  static const outline = Color(0xFFDADCE0);
   static const outlineVariant = Color(0xFFDADCE0);
   static const surfaceDim = Color(0xFFF8F9FA);
+  static const onSurface = googleDarkText;
   static const onSurfaceVariant = Color(0xFF5F6368);
+  static const error = heroicRed;
 
   // Map Symbol & Route Colors
   static const mapSymbolText = Color(0xFF0F172A);

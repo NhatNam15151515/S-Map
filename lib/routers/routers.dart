@@ -17,7 +17,9 @@ import 'package:s_map/screens/main/user/user_screen.dart';
 import 'package:s_map/screens/search/search_screen.dart';
 import 'package:s_map/screens/navigation/navigation_screen.dart';
 import 'package:s_map/screens/route_drawing/route_drawing_screen.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/stats/stats_screen.dart';
+import 'package:s_map/screens/stats/trip_detail_screen.dart';
 import 'package:s_map/screens/settings/settings_screen.dart';
 import 'package:s_map/services/services.dart';
 import 'package:flutter/material.dart';
@@ -84,6 +86,13 @@ class Routes extends NavigatorObserver {
         GoRoute(
           path: AppRoutes.stats,
           builder: (context, state) => const StatsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.tripDetail,
+          builder: (context, state) {
+            final trip = state.extra as TripRecordModel;
+            return TripDetailScreen(trip: trip);
+          },
         ),
         GoRoute(
           path: AppRoutes.settings,

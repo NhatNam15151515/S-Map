@@ -70,6 +70,7 @@ dependencies:
   webview_flutter: ^4.8.0
   location: ^10.0.2
   bloc: ^8.1.4
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:

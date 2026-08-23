@@ -10,6 +10,7 @@ export 'routing/route_instruction.dart';
 export 'routing/route_point.dart';
 export 'routing/route_result.dart';
 export 'routing/snapped_road_point.dart';
+export 'routing/trip_chart_data.dart';
 export 'routing/trip_record_model.dart';
 export 'routing/trip_stats_model.dart';
 export 'routing/trip_summary.dart';
