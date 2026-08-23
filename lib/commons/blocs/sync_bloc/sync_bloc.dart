@@ -57,12 +57,6 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     });
   }
 
-  @override
-  void emit(SyncState state) {
-    if (!isClosed) {
-      super.emit(state);
-    }
-  }
 
   Future<void> _onSyncStarted(
     SyncStarted event,
