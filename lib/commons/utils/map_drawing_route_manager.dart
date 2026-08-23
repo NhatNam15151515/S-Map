@@ -19,11 +19,13 @@ class MapDrawingRouteManager {
     try {
       final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
       final bytes = byteData.buffer.asUint8List();
-      await controller.addImage('red_marker', bytes);
+      await controller.addImage(RoutingConstants.markerImageKey, bytes);
       _isAssetLoaded = true;
-      DLog.info('🗺️ [MapDrawingRouteManager] Marker asset "red_marker" loaded into map engine');
+      DLog.info(
+          '🗺️ [MapDrawingRouteManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine (${AppAsset.redMarker.fullPath})');
     } catch (e, stack) {
-      DLog.warning('⚠️ [MapDrawingRouteManager] Failed to load marker asset: $e', stack);
+      DLog.warning(
+          '⚠️ [MapDrawingRouteManager] Failed to load marker asset: $e', stack);
     }
   }
 
@@ -65,21 +67,25 @@ class MapDrawingRouteManager {
     if (controller == null) return;
     try {
       if (_routeLine != null) {
-        await controller.removeLine(_routeLine!);
+        final line = _routeLine!;
         _routeLine = null;
+        await controller.removeLine(line);
       }
       if (_casingLine != null) {
-        await controller.removeLine(_casingLine!);
+        final casing = _casingLine!;
         _casingLine = null;
+        await controller.removeLine(casing);
       }
       if (_waypointSymbols.isNotEmpty) {
-        for (final sym in _waypointSymbols) {
+        final symbolsToRemove = List<Symbol>.from(_waypointSymbols);
+        _waypointSymbols.clear();
+        for (final sym in symbolsToRemove) {
           await controller.removeSymbol(sym);
         }
-        _waypointSymbols.clear();
       }
     } catch (e) {
-      DLog.warning('⚠️ [MapDrawingRouteManager] Error clearing lines/symbols: $e');
+      DLog.warning(
+          '⚠️ [MapDrawingRouteManager] Error clearing lines/symbols: $e');
     }
   }
 
@@ -151,7 +157,7 @@ class MapDrawingRouteManager {
         final symbol = await controller.addSymbol(
           SymbolOptions(
             geometry: latLng,
-            iconImage: 'red_marker',
+            iconImage: RoutingConstants.markerImageKey,
             iconSize: i == 0 || i == points.length - 1 ? 0.75 : 0.6,
             iconAnchor: 'bottom',
             textField: label,
@@ -174,7 +180,8 @@ class MapDrawingRouteManager {
 
       return true;
     } catch (e, stack) {
-      DLog.error('❌ [MapDrawingRouteManager] Error drawing custom route: $e', e, stack);
+      DLog.error('❌ [MapDrawingRouteManager] Error drawing custom route: $e', e,
+          stack);
       return false;
     }
   }
@@ -191,7 +198,8 @@ class MapDrawingRouteManager {
     if (fullPolyline != null && fullPolyline.isNotEmpty) {
       allPoints = parseRoutePoints(fullPolyline);
     } else {
-      allPoints = points.map((p) => LatLng(p.snappedLat, p.snappedLon)).toList();
+      allPoints =
+          points.map((p) => LatLng(p.snappedLat, p.snappedLon)).toList();
     }
 
     final bounds = calculateBounds(allPoints);
