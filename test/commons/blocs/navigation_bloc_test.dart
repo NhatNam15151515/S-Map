@@ -215,6 +215,14 @@ class MockTripRepository implements ITripRepository {
   }
 
   @override
+  Future<void> markTripAsSynced(String id) async {
+    final index = savedTrips.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      savedTrips[index] = savedTrips[index].copyWith(isSynced: true);
+    }
+  }
+
+  @override
   Stream<List<TripRecordModel>> watchTrips() =>
       Stream.value(List.unmodifiable(savedTrips));
 }

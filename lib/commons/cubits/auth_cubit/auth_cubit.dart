@@ -125,6 +125,27 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<bool> signInAnonymously() async {
+    emit(state.copyWith(type: AuthStateType.loading));
+    try {
+      final user = await _authRepos.signInAnonymously();
+      if (user != null) {
+        await onLoggedIn(user);
+        return true;
+      } else {
+        emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        return false;
+      }
+    } catch (e) {
+      DLog.error('Lỗi đăng nhập ẩn danh: $e');
+      emit(state.copyWith(
+        type: AuthStateType.unAuthenticated,
+        errorMessage: e.toString(),
+      ));
+      return false;
+    }
+  }
+
   Future<void> updateProfile(User user) async {
     await _secureStorage.saveProfile(user);
     emit(state.copyWith(

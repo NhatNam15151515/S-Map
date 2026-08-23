@@ -15,6 +15,7 @@ class TripRecordModel extends Equatable {
   final String vehicleProfile;
   final List<List<double>>? polyline;
   final DateTime createdAt;
+  final bool isSynced;
 
   TripRecordModel({
     required this.id,
@@ -30,6 +31,7 @@ class TripRecordModel extends Equatable {
     this.vehicleProfile = 'motorcycle',
     List<List<double>>? polyline,
     required this.createdAt,
+    this.isSynced = false,
   }) : polyline = polyline == null
             ? null
             : List<List<double>>.unmodifiable(
@@ -56,6 +58,7 @@ class TripRecordModel extends Equatable {
     String? vehicleProfile,
     List<List<double>>? polyline,
     DateTime? createdAt,
+    bool? isSynced,
     bool clearDestination = false,
     bool clearOrigin = false,
     bool clearPolyline = false,
@@ -75,6 +78,7 @@ class TripRecordModel extends Equatable {
       vehicleProfile: vehicleProfile ?? this.vehicleProfile,
       polyline: clearPolyline ? null : (polyline ?? this.polyline),
       createdAt: createdAt ?? this.createdAt,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 
@@ -93,6 +97,7 @@ class TripRecordModel extends Equatable {
       'vehicleProfile': vehicleProfile,
       'polyline': polyline,
       'createdAt': createdAt.toIso8601String(),
+      'isSynced': isSynced,
     };
   }
 
@@ -232,6 +237,9 @@ class TripRecordModel extends Equatable {
       createdAt = parsed;
     }
 
+    final rawIsSynced = map['isSynced'];
+    final bool isSynced = rawIsSynced is bool ? rawIsSynced : false;
+
     return TripRecordModel(
       id: rawId,
       startTime: startTime,
@@ -246,6 +254,7 @@ class TripRecordModel extends Equatable {
       vehicleProfile: (rawProfile as String?) ?? 'motorcycle',
       polyline: parsedPolyline,
       createdAt: createdAt,
+      isSynced: isSynced,
     );
   }
 
@@ -264,5 +273,6 @@ class TripRecordModel extends Equatable {
         vehicleProfile,
         polyline,
         createdAt,
+        isSynced,
       ];
 }

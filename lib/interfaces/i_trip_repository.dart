@@ -17,6 +17,9 @@ abstract class ITripRepository {
   /// Xóa toàn bộ lịch sử chuyến đi
   Future<void> clearAllTrips();
 
+  /// Đánh dấu chuyến đi đã được đồng bộ lên Cloud
+  Future<void> markTripAsSynced(String id);
+
   /// Lắng nghe stream thay đổi của danh sách chuyến đi
   Stream<List<TripRecordModel>> watchTrips();
 }

@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:s_map/models/notification_model.dart';
-import 'package:s_map/models/place_model.dart';
-import 'package:s_map/models/user.dart';
+import 'package:s_map/models/models.dart';
 
 abstract class IFireStoreService {
   CollectionReference? get usersCollection;
@@ -24,4 +22,10 @@ abstract class IFireStoreService {
   // --- SAVED PLACES METHODS ---
   Future<void> savePlace(String userId, Map<String, dynamic> placeData);
   Stream<QuerySnapshot?> streamSavedPlaces(String userId);
+
+  // --- TRIP & STATS SYNC METHODS ---
+  Future<void> syncTrip(String userId, TripRecordModel trip);
+  Future<void> syncTripsBatch(String userId, List<TripRecordModel> trips);
+  Future<void> updateDailyStats(String userId, DateTime date, TripRecordModel trip);
+  Future<List<TripRecordModel>> getSyncedTrips(String userId);
 }

@@ -7,9 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class MockAuthRepos implements IAuthRepos {
   final User? mockGoogleUser;
+  final User? mockAnonUser;
   final bool shouldThrow;
 
-  MockAuthRepos({this.mockGoogleUser, this.shouldThrow = false});
+  MockAuthRepos({
+    this.mockGoogleUser,
+    this.mockAnonUser,
+    this.shouldThrow = false,
+  });
 
   @override
   Future<User?> login(String username, String password) async => null;
@@ -20,6 +25,14 @@ class MockAuthRepos implements IAuthRepos {
       throw Exception('Network error during Google Sign In');
     }
     return mockGoogleUser;
+  }
+
+  @override
+  Future<User?> signInAnonymously() async {
+    if (shouldThrow) {
+      throw Exception('Firebase auth anonymous error');
+    }
+    return mockAnonUser ?? User(id: 'anon_123', username: 'Khách_123');
   }
 
   @override
@@ -96,6 +109,35 @@ void main() {
 
       expect(result, isFalse);
       expect(cubit.state.isUnAuthenticated, isTrue);
+      await cubit.close();
+    });
+  });
+
+  group('AuthCubit Tests - signInAnonymously', () {
+    test('signInAnonymously success sets authenticated state with anonymous user', () async {
+      final mockRepos = MockAuthRepos(
+        mockAnonUser: User(id: 'anon_test_99', username: 'Khách_test_99'),
+      );
+      final cubit = AuthCubit(authRepos: mockRepos);
+
+      final result = await cubit.signInAnonymously();
+
+      expect(result, isTrue);
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.loggedInProfile?.id, 'anon_test_99');
+      expect(cubit.state.loggedInProfile?.username, 'Khách_test_99');
+      await cubit.close();
+    });
+
+    test('signInAnonymously handles exception gracefully and emits unAuthenticated', () async {
+      final mockRepos = MockAuthRepos(shouldThrow: true);
+      final cubit = AuthCubit(authRepos: mockRepos);
+
+      final result = await cubit.signInAnonymously();
+
+      expect(result, isFalse);
+      expect(cubit.state.isUnAuthenticated, isTrue);
+      expect(cubit.state.errorMessage, contains('Firebase auth anonymous error'));
       await cubit.close();
     });
   });

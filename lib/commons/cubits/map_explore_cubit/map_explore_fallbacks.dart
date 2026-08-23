@@ -39,4 +39,16 @@ class NoOpFireStoreService implements IFireStoreService {
 
   @override
   Stream<QuerySnapshot?> streamSavedPlaces(String userId) => const Stream.empty();
+
+  @override
+  Future<void> syncTrip(String userId, TripRecordModel trip) async {}
+
+  @override
+  Future<void> syncTripsBatch(String userId, List<TripRecordModel> trips) async {}
+
+  @override
+  Future<void> updateDailyStats(String userId, DateTime date, TripRecordModel trip) async {}
+
+  @override
+  Future<List<TripRecordModel>> getSyncedTrips(String userId) async => const [];
 }

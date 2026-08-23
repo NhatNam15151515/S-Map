@@ -9,6 +9,7 @@ class AppReposProvider {
   final IRoutingRepository routingRepos;
   final ICustomRouteRepository customRouteRepos;
   final ITripRepository tripRepos;
+  final ISyncRepository syncRepos;
 
   AppReposProvider({
     IAuthRepos? authRepos,
@@ -17,6 +18,7 @@ class AppReposProvider {
     IRoutingRepository? routingRepos,
     ICustomRouteRepository? customRouteRepos,
     ITripRepository? tripRepos,
+    ISyncRepository? syncRepos,
     IRoutingService? routingService,
   })  : authRepos = authRepos ?? AuthReposImpl(),
         notiRepos = notiRepos ?? NotificationReposImpl(),
@@ -28,6 +30,12 @@ class AppReposProvider {
         tripRepos = tripRepos ??
             TripRepositoryImpl(
               tripService: TripServiceImpl.instance,
+            ),
+        syncRepos = syncRepos ??
+            SyncRepositoryImpl(
+              syncService: TripSyncServiceImpl.instance,
+              tripRepository: tripRepos ?? TripRepositoryImpl(tripService: TripServiceImpl.instance),
+              fireStoreService: FireStoreService.instance,
             ),
         routingRepos = routingRepos ?? _resolveRoutingRepos(routingService);
 
@@ -63,6 +71,7 @@ class AppReposProvider {
     IRoutingRepository? routingRepos,
     ICustomRouteRepository? customRouteRepos,
     ITripRepository? tripRepos,
+    ISyncRepository? syncRepos,
   }) {
     _instance = AppReposProvider(
       routingService: routingService,
@@ -72,6 +81,7 @@ class AppReposProvider {
       routingRepos: routingRepos,
       customRouteRepos: customRouteRepos,
       tripRepos: tripRepos,
+      syncRepos: syncRepos,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/services/services.dart';
 
@@ -60,10 +61,42 @@ class FakeHiveBox implements Box<dynamic> {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class FakeTripSyncService implements ITripSyncService {
+  final List<String> queued = [];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> enqueueTrip(String tripId) async {
+    queued.add(tripId);
+  }
+
+  @override
+  Future<List<String>> getQueuedTripIds() async => queued;
+
+  @override
+  Future<void> removeQueuedTrip(String tripId) async {
+    queued.remove(tripId);
+  }
+
+  @override
+  Future<void> clearQueue() async {
+    queued.clear();
+  }
+
+  @override
+  Future<int> getQueueCount() async => queued.length;
+
+  @override
+  Stream<int> watchQueueCount() => Stream.value(queued.length);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeHiveBox fakeBox;
+  late FakeTripSyncService fakeSyncService;
   late TripServiceImpl service;
 
   final sampleTrip1 = TripRecordModel(
@@ -98,7 +131,8 @@ void main() {
 
   setUp(() {
     fakeBox = FakeHiveBox();
-    service = TripServiceImpl(customBox: fakeBox);
+    fakeSyncService = FakeTripSyncService();
+    service = TripServiceImpl(customBox: fakeBox, syncService: fakeSyncService);
   });
 
   tearDown(() async {
@@ -157,6 +191,16 @@ void main() {
       final list = await service.getTrips();
       expect(list.length, equals(1));
       expect(list.first.id, equals('trip_1'));
+    });
+
+    test('markTripAsSynced updates isSynced flag on stored trip record', () async {
+      await service.saveTrip(sampleTrip1);
+      final before = await service.getTripById('trip_1');
+      expect(before?.isSynced, isFalse);
+
+      await service.markTripAsSynced('trip_1');
+      final after = await service.getTripById('trip_1');
+      expect(after?.isSynced, isTrue);
     });
 
     test('rethrows Hive exceptions when underlying storage fails', () async {

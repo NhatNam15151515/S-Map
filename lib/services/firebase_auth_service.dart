@@ -108,6 +108,45 @@ class FirebaseAuthService implements IFirebaseAuthService {
     }
   }
 
+  /// Đăng nhập ẩn danh (Anonymous Sign-In)
+  @override
+  Future<User?> signInAnonymously() async {
+    try {
+      await _ensureFirebaseInitialized();
+
+      if (_auth != null) {
+        final fb.UserCredential userCredential = await _auth!.signInAnonymously();
+        final fb.User? firebaseUser = userCredential.user;
+
+        if (firebaseUser != null) {
+          final suffix = firebaseUser.uid.length >= 6
+              ? firebaseUser.uid.substring(0, 6)
+              : firebaseUser.uid;
+          final user = User(
+            id: firebaseUser.uid,
+            username: 'Khách_$suffix',
+          );
+
+          try {
+            await FireStoreService.instance.saveUserProfile(user);
+          } catch (fsErr) {
+            DLog.error("Không thể lưu anonymous profile lên Cloud Firestore: $fsErr");
+          }
+          return user;
+        }
+      }
+
+      // Fallback offline user
+      return User(
+        id: 'anon_${DateTime.now().millisecondsSinceEpoch}',
+        username: 'Khách_offline',
+      );
+    } catch (e) {
+      DLog.error("Lỗi đăng nhập ẩn danh: $e");
+      rethrow;
+    }
+  }
+
   /// Đăng xuất
   @override
   Future<void> signOut() async {

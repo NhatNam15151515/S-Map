@@ -43,6 +43,15 @@ class MockTripService implements ITripService {
   }
 
   @override
+  Future<void> markTripAsSynced(String id) async {
+    final index = storage.indexWhere((t) => t.id == id);
+    if (index >= 0) {
+      storage[index] = storage[index].copyWith(isSynced: true);
+      _controller.add(List.unmodifiable(storage));
+    }
+  }
+
+  @override
   Stream<List<TripRecordModel>> watchTrips() => _controller.stream;
 
   Future<void> dispose() async => await _controller.close();

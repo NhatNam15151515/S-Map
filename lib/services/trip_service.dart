@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'trip_sync_service.dart';
 
 // Backward compatibility alias
 typedef TripService = ITripService;
@@ -11,9 +12,14 @@ class TripServiceImpl implements ITripService {
   static const String boxName = 'trip_history_box';
 
   final Box<dynamic>? _customBox;
+  final ITripSyncService? _syncService;
   Box<dynamic>? _box;
 
-  TripServiceImpl({Box<dynamic>? customBox}) : _customBox = customBox;
+  TripServiceImpl({
+    Box<dynamic>? customBox,
+    ITripSyncService? syncService,
+  })  : _customBox = customBox,
+        _syncService = syncService;
 
   static final TripServiceImpl instance = TripServiceImpl();
 
@@ -82,11 +88,17 @@ class TripServiceImpl implements ITripService {
     }
   }
 
+  ITripSyncService get _effectiveSyncService =>
+      _syncService ?? TripSyncServiceImpl.instance;
+
   @override
   Future<void> saveTrip(TripRecordModel trip) async {
     try {
       final box = await _getBox();
       await box.put(trip.id, trip.toMap());
+      if (!trip.isSynced) {
+        await _effectiveSyncService.enqueueTrip(trip.id);
+      }
     } catch (e) {
       DLog.error('❌ [TripService] Error saving trip: $e');
       rethrow;
@@ -98,6 +110,7 @@ class TripServiceImpl implements ITripService {
     try {
       final box = await _getBox();
       await box.delete(id);
+      await _effectiveSyncService.removeQueuedTrip(id);
     } catch (e) {
       DLog.error('❌ [TripService] Error deleting trip: $e');
       rethrow;
@@ -109,8 +122,23 @@ class TripServiceImpl implements ITripService {
     try {
       final box = await _getBox();
       await box.clear();
+      await _effectiveSyncService.clearQueue();
     } catch (e) {
       DLog.error('❌ [TripService] Error clearing trips: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> markTripAsSynced(String id) async {
+    try {
+      final trip = await getTripById(id);
+      if (trip != null) {
+        final updated = trip.copyWith(isSynced: true);
+        await saveTrip(updated);
+      }
+    } catch (e) {
+      DLog.error('❌ [TripService] Error marking trip $id as synced: $e');
       rethrow;
     }
   }

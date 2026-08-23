@@ -155,4 +155,106 @@ class FireStoreService implements IFireStoreService {
       return Stream.value(null);
     }
   }
+
+  // --- TRIP & STATS SYNC METHODS ---
+  @override
+  Future<void> syncTrip(String userId, TripRecordModel trip) async {
+    if (_fs == null) return;
+    try {
+      final userTrips = _fs!.collection('users').doc(userId).collection('trips');
+      final tripMap = trip.toMap();
+      tripMap['isSynced'] = true;
+      tripMap['syncedAt'] = FieldValue.serverTimestamp();
+      await userTrips.doc(trip.id).set(tripMap, SetOptions(merge: true));
+      await updateDailyStats(userId, trip.startTime, trip);
+    } catch (e) {
+      DLog.error("Firestore syncTrip error: $e");
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> syncTripsBatch(String userId, List<TripRecordModel> trips) async {
+    if (_fs == null || trips.isEmpty) return;
+    try {
+      final batch = _fs!.batch();
+      final userTrips = _fs!.collection('users').doc(userId).collection('trips');
+
+      for (final trip in trips) {
+        final tripMap = trip.toMap();
+        tripMap['isSynced'] = true;
+        tripMap['syncedAt'] = FieldValue.serverTimestamp();
+        batch.set(userTrips.doc(trip.id), tripMap, SetOptions(merge: true));
+      }
+
+      await batch.commit();
+
+      for (final trip in trips) {
+        await updateDailyStats(userId, trip.startTime, trip);
+      }
+    } catch (e) {
+      DLog.error("Firestore syncTripsBatch error: $e");
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updateDailyStats(String userId, DateTime date, TripRecordModel trip) async {
+    if (_fs == null) return;
+    try {
+      final dateKey =
+          '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final statsDoc = _fs!
+          .collection('users')
+          .doc(userId)
+          .collection('daily_stats')
+          .doc(dateKey);
+
+      await _fs!.runTransaction((transaction) async {
+        final snapshot = await transaction.get(statsDoc);
+        if (snapshot.exists && snapshot.data() != null) {
+          final data = snapshot.data()!;
+          final currentDistance = (data['totalDistanceMeters'] as num?)?.toDouble() ?? 0.0;
+          final currentDuration = (data['totalDurationMs'] as num?)?.toInt() ?? 0;
+          final currentTrips = (data['tripCount'] as num?)?.toInt() ?? 0;
+          final currentTopSpeed = (data['topSpeedKmh'] as num?)?.toDouble() ?? 0.0;
+
+          final newTopSpeed = trip.topSpeedKmh > currentTopSpeed ? trip.topSpeedKmh : currentTopSpeed;
+
+          transaction.update(statsDoc, {
+            'totalDistanceMeters': currentDistance + trip.distanceMeters,
+            'totalDurationMs': currentDuration + trip.durationMs,
+            'tripCount': currentTrips + 1,
+            'topSpeedKmh': newTopSpeed,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          transaction.set(statsDoc, {
+            'date': dateKey,
+            'totalDistanceMeters': trip.distanceMeters,
+            'totalDurationMs': trip.durationMs,
+            'tripCount': 1,
+            'topSpeedKmh': trip.topSpeedKmh,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+    } catch (e) {
+      DLog.error("Firestore updateDailyStats error: $e");
+    }
+  }
+
+  @override
+  Future<List<TripRecordModel>> getSyncedTrips(String userId) async {
+    if (_fs == null) return [];
+    try {
+      final userTrips = _fs!.collection('users').doc(userId).collection('trips');
+      final snapshot = await userTrips.orderBy('startTime', descending: true).get();
+      return snapshot.docs.map((doc) => TripRecordModel.fromMap(doc.data())).toList();
+    } catch (e) {
+      DLog.error("Firestore getSyncedTrips error: $e");
+      return [];
+    }
+  }
 }

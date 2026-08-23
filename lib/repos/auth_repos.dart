@@ -21,6 +21,11 @@ class AuthReposImpl implements IAuthRepos {
   }
 
   @override
+  Future<User?> signInAnonymously() async {
+    return await FirebaseAuthService.instance.signInAnonymously();
+  }
+
+  @override
   Future<User?> getProfile() async {
     return User();
   }
@@ -36,4 +41,27 @@ class AuthReposImpl implements IAuthRepos {
     await FirebaseAuthService.instance.signOut();
     return true;
   }
+}
+
+/// Fallback implementation cho môi trường Testing hoặc Decoupled
+class NoOpAuthRepos implements IAuthRepos {
+  const NoOpAuthRepos();
+
+  @override
+  Future<User?> login(String username, String password) async => null;
+
+  @override
+  Future<User?> signInWithGoogle() async => null;
+
+  @override
+  Future<User?> signInAnonymously() async => null;
+
+  @override
+  Future<User?> getProfile() async => null;
+
+  @override
+  Future<User?> updateProfile(User user) async => user;
+
+  @override
+  Future<bool> logout() async => true;
 }

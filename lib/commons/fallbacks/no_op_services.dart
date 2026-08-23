@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:geolocator/geolocator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -150,4 +151,47 @@ class NoOpRoutingService implements IRoutingService {
 
   @override
   Future<bool> dispose() async => true;
+}
+
+/// Fallback / No-Op implementation for IFirebaseAuthService
+class NoOpFirebaseAuthService implements IFirebaseAuthService {
+  const NoOpFirebaseAuthService();
+
+  @override
+  fb.User? get currentUser => null;
+
+  @override
+  Future<User?> signInWithGoogle() async => null;
+
+  @override
+  Future<User?> signInAnonymously() async => null;
+
+  @override
+  Future<void> signOut() async {}
+}
+
+/// Fallback / No-Op implementation for ITripSyncService
+class NoOpTripSyncService implements ITripSyncService {
+  const NoOpTripSyncService();
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> enqueueTrip(String tripId) async {}
+
+  @override
+  Future<List<String>> getQueuedTripIds() async => const [];
+
+  @override
+  Future<void> removeQueuedTrip(String tripId) async {}
+
+  @override
+  Future<void> clearQueue() async {}
+
+  @override
+  Future<int> getQueueCount() async => 0;
+
+  @override
+  Stream<int> watchQueueCount() => const Stream.empty();
 }
