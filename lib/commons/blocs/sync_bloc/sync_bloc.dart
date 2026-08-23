@@ -40,14 +40,6 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   }
 
   void _initQueueWatcher() {
-    _syncRepository.getPendingSyncCount().then((count) {
-      if (!isClosed) {
-        add(SyncQueueCountChanged(count));
-      }
-    }).catchError((e) {
-      DLog.error('❌ [SyncBloc] Lỗi đọc số lượng queue ban đầu: $e');
-    });
-
     _queueSubscription = _syncRepository.watchPendingSyncCount().listen((count) {
       if (!isClosed) {
         add(SyncQueueCountChanged(count));
