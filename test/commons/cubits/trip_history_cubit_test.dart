@@ -60,6 +60,15 @@ class MockTripRepository implements ITripRepository {
   }
 
   @override
+  Future<void> markTripAsSynced(String id) async {
+    final index = storage.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      storage[index] = storage[index].copyWith(isSynced: true);
+      _controller.add(List.unmodifiable(storage));
+    }
+  }
+
+  @override
   Stream<List<TripRecordModel>> watchTrips() {
     watchCallCount++;
     if (throwOnWatch) throw Exception('Synchronous watch initialization failed');

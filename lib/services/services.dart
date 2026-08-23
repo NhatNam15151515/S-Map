@@ -17,3 +17,4 @@ export 'recent_search_service.dart';
 export 'remote_config_service.dart';
 export 'routing_service.dart';
 export 'trip_service.dart';
+export 'trip_sync_service.dart';

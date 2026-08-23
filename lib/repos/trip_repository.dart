@@ -24,6 +24,9 @@ class TripRepositoryImpl implements ITripRepository {
   Future<void> clearAllTrips() => _tripService.clearAllTrips();
 
   @override
+  Future<void> markTripAsSynced(String id) => _tripService.markTripAsSynced(id);
+
+  @override
   Stream<List<TripRecordModel>> watchTrips() => _tripService.watchTrips();
 }
 
@@ -45,6 +48,9 @@ class NoOpTripRepository implements ITripRepository {
 
   @override
   Future<void> clearAllTrips() async {}
+
+  @override
+  Future<void> markTripAsSynced(String id) async {}
 
   @override
   Stream<List<TripRecordModel>> watchTrips() =>

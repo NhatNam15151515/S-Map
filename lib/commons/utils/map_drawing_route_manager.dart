@@ -19,11 +19,13 @@ class MapDrawingRouteManager {
     try {
       final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
       final bytes = byteData.buffer.asUint8List();
-      await controller.addImage('red_marker', bytes);
+      await controller.addImage(RoutingConstants.markerImageKey, bytes);
       _isAssetLoaded = true;
-      DLog.info('🗺️ [MapDrawingRouteManager] Marker asset "red_marker" loaded into map engine');
+      DLog.info(
+          '🗺️ [MapDrawingRouteManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine (${AppAsset.redMarker.fullPath})');
     } catch (e, stack) {
-      DLog.warning('⚠️ [MapDrawingRouteManager] Failed to load marker asset: $e', stack);
+      DLog.warning(
+          '⚠️ [MapDrawingRouteManager] Failed to load marker asset: $e', stack);
     }
   }
 
@@ -63,23 +65,40 @@ class MapDrawingRouteManager {
   /// Helper xóa các đối tượng trên bản đồ mà không tăng thế hệ render
   Future<void> _removeExisting(MapLibreMapController? controller) async {
     if (controller == null) return;
-    try {
-      if (_routeLine != null) {
-        await controller.removeLine(_routeLine!);
-        _routeLine = null;
-      }
-      if (_casingLine != null) {
-        await controller.removeLine(_casingLine!);
-        _casingLine = null;
-      }
-      if (_waypointSymbols.isNotEmpty) {
-        for (final sym in _waypointSymbols) {
-          await controller.removeSymbol(sym);
+    if (_routeLine != null) {
+      final line = _routeLine!;
+      try {
+        await controller.removeLine(line);
+      } catch (e) {
+        DLog.warning('⚠️ [MapDrawingRouteManager] Error removing routeLine: $e');
+      } finally {
+        if (identical(_routeLine, line)) {
+          _routeLine = null;
         }
-        _waypointSymbols.clear();
       }
-    } catch (e) {
-      DLog.warning('⚠️ [MapDrawingRouteManager] Error clearing lines/symbols: $e');
+    }
+    if (_casingLine != null) {
+      final casing = _casingLine!;
+      try {
+        await controller.removeLine(casing);
+      } catch (e) {
+        DLog.warning('⚠️ [MapDrawingRouteManager] Error removing casingLine: $e');
+      } finally {
+        if (identical(_casingLine, casing)) {
+          _casingLine = null;
+        }
+      }
+    }
+    if (_waypointSymbols.isNotEmpty) {
+      final symbolsToRemove = List<Symbol>.from(_waypointSymbols);
+      _waypointSymbols.clear();
+      for (final sym in symbolsToRemove) {
+        try {
+          await controller.removeSymbol(sym);
+        } catch (e) {
+          DLog.warning('⚠️ [MapDrawingRouteManager] Error removing symbol: $e');
+        }
+      }
     }
   }
 
@@ -151,7 +170,7 @@ class MapDrawingRouteManager {
         final symbol = await controller.addSymbol(
           SymbolOptions(
             geometry: latLng,
-            iconImage: 'red_marker',
+            iconImage: RoutingConstants.markerImageKey,
             iconSize: i == 0 || i == points.length - 1 ? 0.75 : 0.6,
             iconAnchor: 'bottom',
             textField: label,
@@ -174,7 +193,8 @@ class MapDrawingRouteManager {
 
       return true;
     } catch (e, stack) {
-      DLog.error('❌ [MapDrawingRouteManager] Error drawing custom route: $e', e, stack);
+      DLog.error('❌ [MapDrawingRouteManager] Error drawing custom route: $e', e,
+          stack);
       return false;
     }
   }
@@ -191,7 +211,8 @@ class MapDrawingRouteManager {
     if (fullPolyline != null && fullPolyline.isNotEmpty) {
       allPoints = parseRoutePoints(fullPolyline);
     } else {
-      allPoints = points.map((p) => LatLng(p.snappedLat, p.snappedLon)).toList();
+      allPoints =
+          points.map((p) => LatLng(p.snappedLat, p.snappedLon)).toList();
     }
 
     final bounds = calculateBounds(allPoints);

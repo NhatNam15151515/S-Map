@@ -3,8 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/repos/trip_repository.dart';
-import 'package:s_map/services/services.dart';
+import 'package:s_map/repos/repos.dart';
 import 'route_profile_state.dart';
 
 export 'route_profile_state.dart';
@@ -19,9 +18,9 @@ class RouteProfileCubit extends Cubit<RouteProfileState> {
 
   RouteProfileCubit({ITripRepository? repository})
       : _repository = repository ??
-            TripRepositoryImpl(
-              tripService: TripServiceImpl.instance,
-            ),
+            (AppReposProvider.isInitialized
+                ? AppReposProvider.instance.tripRepos
+                : const NoOpTripRepository()),
         super(const RouteProfileState());
 
   @override

@@ -41,6 +41,18 @@ class MockFireStoreService implements IFireStoreService {
   Stream<QuerySnapshot?> streamSavedPlaces(String userId) => const Stream.empty();
 
   @override
+  Future<void> syncTrip(String userId, TripRecordModel trip) async {}
+
+  @override
+  Future<void> syncTripsBatch(String userId, List<TripRecordModel> trips) async {}
+
+  @override
+  Future<void> updateDailyStats(String userId, DateTime date, TripRecordModel trip) async {}
+
+  @override
+  Future<List<TripRecordModel>> getSyncedTrips(String userId) async => const [];
+
+  @override
   CollectionReference? get notificationsCollection => null;
   @override
   CollectionReference? get placesCollection => null;
