@@ -261,5 +261,22 @@ abstract class  LocaleKeys {
   static const stats_dashboard_invalid_trip_data = 'stats_dashboard.invalid_trip_data';
   static const stats_dashboard_speed_unit = 'stats_dashboard.speed_unit';
   static const stats_dashboard = 'stats_dashboard';
+  static const offline_maps_title = 'offline_maps_title';
+  static const offline_maps_subtitle = 'offline_maps_subtitle';
+  static const offline_maps_storage_used = 'offline_maps_storage_used';
+  static const offline_maps_available_regions = 'offline_maps_available_regions';
+  static const offline_maps_check_updates = 'offline_maps_check_updates';
+  static const offline_maps_download_btn = 'offline_maps_download_btn';
+  static const offline_maps_downloading = 'offline_maps_downloading';
+  static const offline_maps_extracting = 'offline_maps_extracting';
+  static const offline_maps_downloaded = 'offline_maps_downloaded';
+  static const offline_maps_update_available = 'offline_maps_update_available';
+  static const offline_maps_update_btn = 'offline_maps_update_btn';
+  static const offline_maps_delete_btn = 'offline_maps_delete_btn';
+  static const offline_maps_delete_confirm_title = 'offline_maps_delete_confirm_title';
+  static const offline_maps_delete_confirm_desc = 'offline_maps_delete_confirm_desc';
+  static const offline_maps_delete_success = 'offline_maps_delete_success';
+  static const offline_maps_download_success = 'offline_maps_download_success';
+  static const offline_maps_cancel_btn = 'offline_maps_cancel_btn';
 
 }

@@ -18,6 +18,8 @@ export 'i_package_info_service.dart';
 export 'i_poi_database_service.dart';
 export 'i_poi_repository.dart';
 export 'i_recent_search_service.dart';
+export 'i_region_download_service.dart';
+export 'i_region_repository.dart';
 export 'i_remote_config_service.dart';
 export 'i_routing_repository.dart';
 export 'i_routing_service.dart';

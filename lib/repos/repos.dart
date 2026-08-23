@@ -3,6 +3,7 @@ export 'auth_repos.dart';
 export 'custom_route_repository.dart';
 export 'notification_repos.dart';
 export 'poi_repository.dart';
+export 'region_repository.dart';
 export 'routing_repository.dart';
 export 'sync_repository.dart';
 export 'trip_repository.dart';

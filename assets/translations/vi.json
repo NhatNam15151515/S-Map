@@ -267,5 +267,22 @@
     "all_trips_cleared_success": "Đã xóa toàn bộ lịch sử chuyến đi",
     "invalid_trip_data": "Dữ liệu chuyến đi không hợp lệ",
     "speed_unit": "{} km/h"
-  }
+  },
+  "offline_maps_title": "Bản đồ ngoại tuyến",
+  "offline_maps_subtitle": "Quản lý dữ liệu tải về để dẫn đường không cần mạng",
+  "offline_maps_storage_used": "Bộ nhớ đã dùng",
+  "offline_maps_available_regions": "Danh sách vùng ngoại tuyến",
+  "offline_maps_check_updates": "Kiểm tra cập nhật",
+  "offline_maps_download_btn": "Tải về",
+  "offline_maps_downloading": "Đang tải...",
+  "offline_maps_extracting": "Đang giải nén dữ liệu...",
+  "offline_maps_downloaded": "Đã tải",
+  "offline_maps_update_available": "Có bản mới",
+  "offline_maps_update_btn": "Cập nhật",
+  "offline_maps_delete_btn": "Xóa",
+  "offline_maps_delete_confirm_title": "Xóa dữ liệu vùng?",
+  "offline_maps_delete_confirm_desc": "Dữ liệu bản đồ và tìm kiếm ngoại tuyến của vùng này sẽ bị xóa khỏi thiết bị.",
+  "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
+  "offline_maps_download_success": "Tải dữ liệu vùng thành công",
+  "offline_maps_cancel_btn": "Hủy"
 }
