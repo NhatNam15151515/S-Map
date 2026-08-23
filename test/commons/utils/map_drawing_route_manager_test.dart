@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -42,6 +43,22 @@ class FakeMapController extends Fake implements MapLibreMapController {
   Future<bool?> animateCamera(CameraUpdate cameraUpdate, {Duration? duration}) async {
     animateCameraCalls++;
     return true;
+  }
+}
+
+class DelayedFakeMapController extends FakeMapController {
+  Completer<void>? lineGate;
+  final Completer<void> lineReached = Completer<void>();
+
+  @override
+  Future<Line> addLine(LineOptions options, [Map<String, dynamic>? data]) async {
+    if (!lineReached.isCompleted) {
+      lineReached.complete();
+    }
+    if (lineGate != null && !lineGate!.isCompleted) {
+      await lineGate!.future;
+    }
+    return super.addLine(options, data);
   }
 }
 
@@ -152,6 +169,60 @@ void main() {
       await manager.clear(fakeController);
       expect(fakeController.removedLines.length, 2);
       expect(fakeController.removedSymbols.length, 3);
+    });
+
+    test('drawCustomRoute cancels previous render when new render starts and cleans up orphaned lines', () async {
+      final delayedController = DelayedFakeMapController();
+      delayedController.lineGate = Completer<void>();
+
+      final waypoints = [
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.7,
+          originalLon: 106.7,
+          snappedLat: 10.7,
+          snappedLon: 106.7,
+        ),
+        const SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: 10.8,
+          originalLon: 106.8,
+          snappedLat: 10.8,
+          snappedLon: 106.8,
+        ),
+      ];
+      final polyline = [
+        const RoutePoint(lat: 10.7, lon: 106.7),
+        const RoutePoint(lat: 10.8, lon: 106.8),
+      ];
+
+      // Start first render (will be paused at addLine)
+      final firstRenderFuture = manager.drawCustomRoute(
+        controller: delayedController,
+        points: waypoints,
+        fullPolyline: polyline,
+      );
+
+      // Wait until first render reaches addLine
+      await delayedController.lineReached.future;
+
+      // Start second render (bumps generation)
+      final secondRenderFuture = manager.drawCustomRoute(
+        controller: delayedController,
+        points: waypoints,
+        fullPolyline: polyline,
+      );
+
+      // Now release first line gate
+      delayedController.lineGate!.complete();
+
+      final firstResult = await firstRenderFuture;
+      final secondResult = await secondRenderFuture;
+
+      expect(firstResult, isFalse);
+      expect(secondResult, isTrue);
+      // Orphaned casing line created by first render was removed
+      expect(delayedController.removedLines, isNotEmpty);
     });
 
     test('fitRouteBounds handles null controller and empty points gracefully', () async {
