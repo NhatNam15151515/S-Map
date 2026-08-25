@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
-import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/settings/widgets/widgets.dart';
 

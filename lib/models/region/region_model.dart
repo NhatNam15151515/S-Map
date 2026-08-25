@@ -9,6 +9,14 @@ enum RegionDownloadStatus {
   failed,
 }
 
+class DownloadCancelledException implements Exception {
+  final String message;
+  const DownloadCancelledException([this.message = 'DOWNLOAD_CANCELLED']);
+
+  @override
+  String toString() => message;
+}
+
 class RegionModel extends Equatable {
   final String id;
   final String name;

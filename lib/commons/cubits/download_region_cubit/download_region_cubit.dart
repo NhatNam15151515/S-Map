@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
 import 'download_region_state.dart';
 
@@ -88,7 +89,27 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
         clearDownloadingRegion: true,
         successMessage: 'DOWNLOAD_SUCCESS',
       ));
+    } on DownloadCancelledException {
+      DLog.info('ℹ️ [DownloadRegionCubit] Tải vùng $regionId đã bị hủy');
+      final updatedRegions = await _repository.getRegions().catchError((_) => state.regions);
+      emit(state.copyWith(
+        status: DownloadRegionStatus.loaded,
+        regions: updatedRegions,
+        clearDownloadingRegion: true,
+      ));
     } catch (e) {
+      if (e is DownloadCancelledException ||
+          e.toString().contains('DOWNLOAD_CANCELLED') ||
+          e.toString().contains('cancelled') ||
+          e.toString().contains('hủy')) {
+        final updatedRegions = await _repository.getRegions().catchError((_) => state.regions);
+        emit(state.copyWith(
+          status: DownloadRegionStatus.loaded,
+          regions: updatedRegions,
+          clearDownloadingRegion: true,
+        ));
+        return;
+      }
       DLog.error('❌ [DownloadRegionCubit] Lỗi tải vùng $regionId: $e');
       final updatedRegions = await _repository.getRegions().catchError((_) => state.regions);
       emit(state.copyWith(

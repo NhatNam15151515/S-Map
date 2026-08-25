@@ -29,6 +29,7 @@ class MockRegionRepository implements IRegionRepository {
   final StreamController<Map<String, double>> _progressController =
       StreamController<Map<String, double>>.broadcast();
   final Set<String> downloadedIds = {};
+  final Set<String> cancelledIds = {};
   bool shouldThrow = false;
 
   @override
@@ -59,6 +60,9 @@ class MockRegionRepository implements IRegionRepository {
     _progressController.add({regionId: 0.5});
     onProgress?.call(0.5);
     await Future.delayed(const Duration(milliseconds: 10));
+    if (cancelledIds.contains(regionId)) {
+      throw const DownloadCancelledException();
+    }
     downloadedIds.add(regionId);
     _progressController.add({regionId: 1.0});
     onProgress?.call(1.0);
@@ -84,6 +88,7 @@ class MockRegionRepository implements IRegionRepository {
   @override
   Future<void> cancelDownload(String regionId) async {
     if (shouldThrow) throw Exception('Cancel download failed');
+    cancelledIds.add(regionId);
     _progressController.add({});
   }
 
@@ -154,15 +159,17 @@ void main() {
       expect(region?.hasUpdate, isTrue);
     });
 
-    test('cancelDownload cancels active download and clears downloading region', () async {
+    test('cancelDownload cancels active download and clears downloading region and keeps loaded state', () async {
       final downloadFuture = cubit.downloadRegion('metro_hcm');
       await Future.delayed(const Duration(milliseconds: 1));
       expect(cubit.state.currentlyDownloadingRegionId, equals('metro_hcm'));
 
       await cubit.cancelDownload('metro_hcm');
+      await downloadFuture;
+
+      expect(cubit.state.status, equals(DownloadRegionStatus.loaded));
       expect(cubit.state.currentlyDownloadingRegionId, isNull);
       expect(cubit.state.isDownloading('metro_hcm'), isFalse);
-      await downloadFuture;
     });
 
     test('downloadRegion handles exception gracefully and emits error state', () async {

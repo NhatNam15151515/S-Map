@@ -132,7 +132,14 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         final raw = box.get(defaultRegion.id);
         if (raw != null && raw is Map) {
           final map = Map<String, dynamic>.from(raw);
-          regions.add(RegionModel.fromMap(map));
+          final local = RegionModel.fromMap(map);
+          regions.add(defaultRegion.copyWith(
+            status: local.status,
+            localVersion: local.localVersion,
+            downloadProgress: local.downloadProgress,
+            downloadedAt: local.downloadedAt,
+            localPath: local.localPath,
+          ));
         } else {
           regions.add(defaultRegion);
         }
@@ -197,6 +204,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     final url = customDownloadUrl ?? region.downloadUrl;
     final regionsBaseDir = await _getRegionsStorageDirectory();
     final targetDir = Directory(p.join(regionsBaseDir, region.id));
+    final stagingDir = Directory(p.join(regionsBaseDir, '${region.id}_staging'));
     final tempZipFile = File(p.join(regionsBaseDir, '${region.id}_temp.zip'));
 
     final bool ownsClient = _customHttpClient == null;
@@ -214,7 +222,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
 
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException(
-          'Tải gói dữ liệu thất bại với mã lỗi HTTP ${response.statusCode}',
+          'Failed to download package with HTTP status ${response.statusCode}',
           uri: Uri.parse(url),
         );
       }
@@ -230,7 +238,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
           await activeSink.close();
           sink = null;
           if (tempZipFile.existsSync()) tempZipFile.deleteSync();
-          throw Exception('Quá trình tải đã bị hủy bởi người dùng');
+          throw const DownloadCancelledException();
         }
 
         activeSink.add(chunk);
@@ -251,19 +259,20 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       await activeSink.close();
       sink = null;
 
-      // Bắt đầu giải nén (0.75 -> 1.0)
+      // Bắt đầu giải nén vào staging directory (0.75 -> 1.0)
       yield 0.75;
       onProgress?.call(0.75);
       lastEmittedProgress = 0.75;
 
       if (_cancellationMap[region.id] == true) {
         if (tempZipFile.existsSync()) tempZipFile.deleteSync();
-        throw Exception('Quá trình tải đã bị hủy bởi người dùng');
+        throw const DownloadCancelledException();
       }
 
-      if (!targetDir.existsSync()) {
-        targetDir.createSync(recursive: true);
+      if (stagingDir.existsSync()) {
+        stagingDir.deleteSync(recursive: true);
       }
+      stagingDir.createSync(recursive: true);
 
       final inputStream = InputFileStream(tempZipFile.path);
       final archive = ZipDecoder().decodeStream(inputStream);
@@ -274,13 +283,14 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       for (final file in archive) {
         if (_cancellationMap[region.id] == true) {
           inputStream.close();
+          if (stagingDir.existsSync()) stagingDir.deleteSync(recursive: true);
           if (tempZipFile.existsSync()) tempZipFile.deleteSync();
-          throw Exception('Quá trình tải đã bị hủy bởi người dùng');
+          throw const DownloadCancelledException();
         }
 
         final filename = p.basename(file.name);
         if (file.isFile) {
-          final outFile = File(p.join(targetDir.path, filename));
+          final outFile = File(p.join(stagingDir.path, filename));
           final outputStream = OutputFileStream(outFile.path);
           file.writeContent(outputStream);
           outputStream.closeSync();
@@ -303,6 +313,12 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         tempZipFile.deleteSync();
       }
 
+      // Hoán đổi stagingDir vào targetDir nguyên tử
+      if (targetDir.existsSync()) {
+        targetDir.deleteSync(recursive: true);
+      }
+      stagingDir.renameSync(targetDir.path);
+
       // Lưu thông tin vào Hive
       final box = await _getBox();
       final updatedRegion = region.copyWith(
@@ -319,7 +335,14 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       onProgress?.call(1.0);
       DLog.info('✅ [RegionDownloadService] Đã tải và giải nén thành công vùng: ${region.name}');
     } catch (e) {
-      DLog.error('❌ [RegionDownloadService] Lỗi tải vùng ${region.name}: $e');
+      if (e is! DownloadCancelledException) {
+        DLog.error('❌ [RegionDownloadService] Lỗi tải vùng ${region.name}: $e');
+      }
+      if (stagingDir.existsSync()) {
+        try {
+          stagingDir.deleteSync(recursive: true);
+        } catch (_) {}
+      }
       if (tempZipFile.existsSync()) {
         try {
           tempZipFile.deleteSync();
@@ -334,6 +357,11 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       }
       if (ownsClient) {
         client.close(force: true);
+      }
+      if (stagingDir.existsSync()) {
+        try {
+          stagingDir.deleteSync(recursive: true);
+        } catch (_) {}
       }
       _cancellationMap.remove(region.id);
     }

@@ -63,10 +63,14 @@ class RegionRepositoryImpl implements IRegionRepository {
 
   @override
   Future<List<RegionModel>> checkForUpdates() async {
-    final downloaded = await _service.getDownloadedRegions();
+    final regions = await _service.getAvailableRegions();
     final updatedList = <RegionModel>[];
 
-    for (final region in downloaded) {
+    for (final region in regions) {
+      if (!region.isDownloaded) {
+        updatedList.add(region);
+        continue;
+      }
       final latest = await _service.checkRegionVersion(region.id);
       if (latest != null && latest.version != region.localVersion) {
         updatedList.add(region.copyWith(status: RegionDownloadStatus.updateAvailable));

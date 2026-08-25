@@ -139,12 +139,15 @@ void main() {
       expect(mockService.downloadedIds, isNot(contains('metro_hcm')));
     });
 
-    test('checkForUpdates identifies regions with newer remote version', () async {
+    test('checkForUpdates identifies regions with newer remote version while preserving full list', () async {
       mockService.downloadedIds.add('metro_hcm');
 
       final updated = await repository.checkForUpdates();
-      expect(updated.length, 1);
+      expect(updated.length, 2);
+      expect(updated.first.id, equals('metro_hcm'));
       expect(updated.first.status, equals(RegionDownloadStatus.updateAvailable));
+      expect(updated[1].id, equals('metro_hn'));
+      expect(updated[1].status, equals(RegionDownloadStatus.notDownloaded));
     });
 
     test('getTotalStorageUsage returns total storage from service', () async {
