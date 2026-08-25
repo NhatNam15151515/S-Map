@@ -341,6 +341,21 @@ void main() {
       expect(Directory('${tempDir.path}/metro_hcm_staging').existsSync(), isFalse);
     });
 
+    test('cleans promoted targetDir when first download fails to save metadata', () async {
+      final regions = await service.getAvailableRegions();
+      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+
+      fakeBox.shouldThrow = true;
+      expect(
+        service.downloadAndExtractRegion(targetRegion).drain(),
+        throwsA(isA<Exception>()),
+      );
+
+      expect(Directory('${tempDir.path}/metro_hcm').existsSync(), isFalse);
+      expect(Directory('${tempDir.path}/metro_hcm_staging').existsSync(), isFalse);
+      expect(File('${tempDir.path}/metro_hcm_temp.zip').existsSync(), isFalse);
+    });
+
     test('checkRegionVersion returns region model', () async {
       final region = await service.checkRegionVersion('metro_hn');
       expect(region, isNotNull);

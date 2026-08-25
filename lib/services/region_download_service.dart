@@ -213,6 +213,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     IOSink? sink;
     double lastEmittedProgress = 0.05;
     bool metadataCommitted = false;
+    bool stagingPromoted = false;
 
     try {
       yield 0.05;
@@ -324,6 +325,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       }
       try {
         stagingDir.renameSync(targetDir.path);
+        stagingPromoted = true;
       } catch (_) {
         if (!targetDir.existsSync() && backupDir.existsSync()) {
           try {
@@ -375,6 +377,11 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
             backupDir.renameSync(targetDir.path);
           } catch (_) {}
         }
+      } else if (stagingPromoted && !metadataCommitted && targetDir.existsSync()) {
+        // Lần tải đầu tiên không có backup: xóa targetDir để không để lại rác trên đĩa
+        try {
+          targetDir.deleteSync(recursive: true);
+        } catch (_) {}
       }
       if (stagingDir.existsSync()) {
         try {
@@ -400,6 +407,11 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       if (metadataCommitted && backupDir.existsSync()) {
         try {
           backupDir.deleteSync(recursive: true);
+        } catch (_) {}
+      }
+      if (stagingPromoted && !metadataCommitted && targetDir.existsSync() && !backupDir.existsSync()) {
+        try {
+          targetDir.deleteSync(recursive: true);
         } catch (_) {}
       }
       if (stagingDir.existsSync()) {
