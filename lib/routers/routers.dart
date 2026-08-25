@@ -21,6 +21,7 @@ import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/stats/stats_screen.dart';
 import 'package:s_map/screens/stats/trip_detail_screen.dart';
 import 'package:s_map/screens/settings/settings_screen.dart';
+import 'package:s_map/screens/settings/offline_regions/offline_regions_screen.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/services/services.dart';
@@ -106,6 +107,10 @@ class Routes extends NavigatorObserver {
         GoRoute(
           path: AppRoutes.settings,
           builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.offlineRegions,
+          builder: (context, state) => const OfflineRegionsScreen(),
         ),
         GoRoute(
           path: AppRoutes.fullImage,

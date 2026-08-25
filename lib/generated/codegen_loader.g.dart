@@ -283,7 +283,25 @@ class CodegenLoader extends AssetLoader{
     "all_trips_cleared_success": "All trip history cleared",
     "invalid_trip_data": "Invalid trip data",
     "speed_unit": "{} km/h"
-  }
+  },
+  "offline_maps_title": "Offline Maps",
+  "offline_maps_subtitle": "Manage downloaded data for offline navigation",
+  "offline_maps_storage_used": "Storage Used",
+  "offline_maps_available_regions": "Offline Regions",
+  "offline_maps_check_updates": "Check for Updates",
+  "offline_maps_download_btn": "Download",
+  "offline_maps_downloading": "Downloading...",
+  "offline_maps_extracting": "Extracting data...",
+  "offline_maps_downloaded": "Downloaded",
+  "offline_maps_update_available": "Update Available",
+  "offline_maps_update_btn": "Update",
+  "offline_maps_delete_btn": "Delete",
+  "offline_maps_delete_confirm_title": "Delete Region Data?",
+  "offline_maps_delete_confirm_desc": "Offline map and search data for this region will be removed from your device.",
+  "offline_maps_delete_success": "Region data deleted successfully",
+  "offline_maps_download_success": "Region data downloaded successfully",
+  "offline_maps_error": "An error occurred while processing offline map data",
+  "offline_maps_cancel_btn": "Cancel"
 };
 static const Map<String,dynamic> _vi = {
   "loginToYourAccount": "Đăng nhập vào tài khoản",
@@ -554,7 +572,25 @@ static const Map<String,dynamic> _vi = {
     "all_trips_cleared_success": "Đã xóa toàn bộ lịch sử chuyến đi",
     "invalid_trip_data": "Dữ liệu chuyến đi không hợp lệ",
     "speed_unit": "{} km/h"
-  }
+  },
+  "offline_maps_title": "Bản đồ ngoại tuyến",
+  "offline_maps_subtitle": "Quản lý dữ liệu tải về để dẫn đường không cần mạng",
+  "offline_maps_storage_used": "Bộ nhớ đã dùng",
+  "offline_maps_available_regions": "Danh sách vùng ngoại tuyến",
+  "offline_maps_check_updates": "Kiểm tra cập nhật",
+  "offline_maps_download_btn": "Tải về",
+  "offline_maps_downloading": "Đang tải...",
+  "offline_maps_extracting": "Đang giải nén dữ liệu...",
+  "offline_maps_downloaded": "Đã tải",
+  "offline_maps_update_available": "Có bản mới",
+  "offline_maps_update_btn": "Cập nhật",
+  "offline_maps_delete_btn": "Xóa",
+  "offline_maps_delete_confirm_title": "Xóa dữ liệu vùng?",
+  "offline_maps_delete_confirm_desc": "Dữ liệu bản đồ và tìm kiếm ngoại tuyến của vùng này sẽ bị xóa khỏi thiết bị.",
+  "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
+  "offline_maps_download_success": "Tải dữ liệu vùng thành công",
+  "offline_maps_error": "Đã xảy ra lỗi khi xử lý dữ liệu bản đồ ngoại tuyến",
+  "offline_maps_cancel_btn": "Hủy"
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};
 }

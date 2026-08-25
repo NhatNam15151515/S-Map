@@ -14,6 +14,7 @@ export 'map_style_service.dart';
 export 'package_info_service.dart';
 export 'poi_database_service.dart';
 export 'recent_search_service.dart';
+export 'region_download_service.dart';
 export 'remote_config_service.dart';
 export 'routing_service.dart';
 export 'trip_service.dart';

@@ -14,5 +14,6 @@ export 'routing/trip_chart_data.dart';
 export 'routing/trip_record_model.dart';
 export 'routing/trip_stats_model.dart';
 export 'routing/trip_summary.dart';
+export 'region/region_model.dart';
 export 'search_result_payload.dart';
 export 'user.dart';

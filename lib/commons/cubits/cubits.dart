@@ -3,6 +3,8 @@ export 'app_cubit/app_state.dart';
 export 'auth_cubit/auth_cubit.dart';
 export 'auth_cubit/auth_fallbacks.dart';
 export 'auth_cubit/auth_state.dart';
+export 'download_region_cubit/download_region_cubit.dart';
+export 'download_region_cubit/download_region_state.dart';
 export 'favorites_cubit/favorites_cubit.dart';
 export 'favorites_cubit/favorites_fallbacks.dart';
 export 'favorites_cubit/favorites_state.dart';
