@@ -210,6 +210,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     final bool ownsClient = _customHttpClient == null;
     final client = _customHttpClient ?? HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
+    const Duration requestTimeout = Duration(seconds: 15);
+    const Duration receiveTimeout = Duration(minutes: 10);
     IOSink? sink;
     double lastEmittedProgress = 0.05;
     bool metadataCommitted = false;
@@ -219,8 +221,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       yield 0.05;
       onProgress?.call(0.05);
 
-      final request = await client.getUrl(Uri.parse(url));
-      final response = await request.close();
+      final request = await client.getUrl(Uri.parse(url)).timeout(requestTimeout);
+      final response = await request.close().timeout(requestTimeout);
 
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException(
@@ -235,7 +237,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       final activeSink = tempZipFile.openWrite();
       sink = activeSink;
 
-      await for (final chunk in response) {
+      await for (final chunk in response.timeout(receiveTimeout)) {
         if (_cancellationMap[region.id] == true) {
           await activeSink.close();
           sink = null;
