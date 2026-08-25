@@ -313,11 +313,25 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         tempZipFile.deleteSync();
       }
 
-      // Hoán đổi stagingDir vào targetDir nguyên tử
-      if (targetDir.existsSync()) {
-        targetDir.deleteSync(recursive: true);
+      // Hoán đổi stagingDir vào targetDir nguyên tử có backup phục hồi
+      final backupDir = Directory('${targetDir.path}.backup');
+      if (backupDir.existsSync()) {
+        backupDir.deleteSync(recursive: true);
       }
-      stagingDir.renameSync(targetDir.path);
+      if (targetDir.existsSync()) {
+        targetDir.renameSync(backupDir.path);
+      }
+      try {
+        stagingDir.renameSync(targetDir.path);
+      } catch (_) {
+        if (!targetDir.existsSync() && backupDir.existsSync()) {
+          backupDir.renameSync(targetDir.path);
+        }
+        rethrow;
+      }
+      if (backupDir.existsSync()) {
+        backupDir.deleteSync(recursive: true);
+      }
 
       // Lưu thông tin vào Hive
       final box = await _getBox();
@@ -338,6 +352,17 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       if (e is! DownloadCancelledException) {
         DLog.error('❌ [RegionDownloadService] Lỗi tải vùng ${region.name}: $e');
       }
+      final backupDir = Directory('${targetDir.path}.backup');
+      if (!targetDir.existsSync() && backupDir.existsSync()) {
+        try {
+          backupDir.renameSync(targetDir.path);
+        } catch (_) {}
+      }
+      if (backupDir.existsSync()) {
+        try {
+          backupDir.deleteSync(recursive: true);
+        } catch (_) {}
+      }
       if (stagingDir.existsSync()) {
         try {
           stagingDir.deleteSync(recursive: true);
@@ -357,6 +382,12 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       }
       if (ownsClient) {
         client.close(force: true);
+      }
+      final backupDir = Directory('${targetDir.path}.backup');
+      if (backupDir.existsSync()) {
+        try {
+          backupDir.deleteSync(recursive: true);
+        } catch (_) {}
       }
       if (stagingDir.existsSync()) {
         try {
