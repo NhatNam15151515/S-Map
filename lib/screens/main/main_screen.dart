@@ -1,8 +1,7 @@
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/widgets/main_bottom_bar.dart';
-import 'package:boilerplate/services/firebase_messaging_services.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 
 class MainScreen extends StatefulWidget with AppMixin {
   final StatefulNavigationShell navigationShell;
@@ -14,21 +13,19 @@ class MainScreen extends StatefulWidget with AppMixin {
 }
 
 class _MainScreenState extends State<MainScreen> with AppMixin {
-
   @override
   void initState() {
-
-    FirebaseMessagingService.instance.fmsCompleter.completeAfter(true);
-    FirebaseMessagingService.instance.onAppStartedWithNotification();
-
+    appCubit.onMainScreenMounted();
     super.initState();
   }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: widget.navigationShell,
       resizeToAvoidBottomInset: false,
+      extendBody: true,
       bottomNavigationBar: AppMainBottomBar(widget.navigationShell),
     );
   }

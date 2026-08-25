@@ -1,12 +1,12 @@
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/mixin/auth_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/commons/widgets/app_bar.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/routers/app_routes.dart';
+import 'package:s_map/screens/main/user/widgets/widgets.dart';
 
 class UserScreen extends StatefulWidget {
-  static const String path = '/UserScreen';
-
   const UserScreen({super.key});
 
   @override
@@ -14,32 +14,81 @@ class UserScreen extends StatefulWidget {
 }
 
 class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: TitleAppBar(
-        title: locale.profile,
+        title: tr(LocaleKeys.profile),
       ),
-      body: Text(
-        "${currentProfile.username}",
-        style: styles.blackTextColor.textTheme.textTitleStyle.copyWith(
-          fontSize: 16,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: marginBottomDefault),
+        child: Column(
+          children: [
+            // Profile header card
+            UserProfileCard(
+              username: currentProfile.username,
+              appName: appName,
+              onViewProfile: () {},
+            ),
+
+            // Navigation menu items
+            UserMenuCard(
+              children: [
+                UserMenuTile(
+                  icon: Icons.bookmark_rounded,
+                  title: tr(LocaleKeys.savedPlaces),
+                  onTap: () {},
+                ),
+                UserMenuTile(
+                  icon: Icons.history_rounded,
+                  title: tr(LocaleKeys.activityHistory),
+                  onTap: () => context.push(AppRoutes.stats),
+                ),
+                UserMenuTile(
+                  icon: Icons.share_rounded,
+                  title: tr(LocaleKeys.shareLocation),
+                  onTap: () {},
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Settings and About
+            UserMenuCard(
+              children: [
+                UserMenuTile(
+                  icon: Icons.settings_rounded,
+                  title: tr(LocaleKeys.settings),
+                  onTap: () {},
+                ),
+                UserMenuTile(
+                  icon: Icons.help_outline_rounded,
+                  title: tr(LocaleKeys.helpAndFeedback),
+                  onTap: () {},
+                ),
+                UserMenuTile(
+                  icon: Icons.info_outline_rounded,
+                  title: tr(LocaleKeys.about),
+                  onTap: () {},
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Logout action
+            UserMenuCard(
+              children: [
+                UserMenuTile(
+                  icon: Icons.logout_rounded,
+                  title: tr(LocaleKeys.logOut),
+                  onTap: () => authCubit.onLogout(),
+                  isDestructive: true,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

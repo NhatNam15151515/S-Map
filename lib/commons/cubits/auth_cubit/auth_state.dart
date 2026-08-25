@@ -1,31 +1,42 @@
-import 'package:boilerplate/commons/enums/enums.dart';
-import 'package:boilerplate/models/user.dart';
 import 'package:equatable/equatable.dart';
+import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/models/models.dart';
 
-abstract class AuthState {
+class AuthState extends Equatable {
   final AuthStateType type;
+  final User? loggedInProfile;
+  final bool isDone;
+  final String? errorMessage;
 
-  AuthState(this.type);
+  const AuthState({
+    this.type = AuthStateType.initial,
+    this.loggedInProfile,
+    this.isDone = false,
+    this.errorMessage,
+  });
 
   bool get isAuthenticated => type == AuthStateType.authenticated;
-}
+  bool get isUnAuthenticated => type == AuthStateType.unAuthenticated;
+  bool get isInitial => type == AuthStateType.initial;
+  bool get isLoading => type == AuthStateType.loading;
+  bool get isError => errorMessage != null;
 
-class Authenticated extends AuthState with EquatableMixin {
-  final User loggedInProfile;
-  Authenticated(this.loggedInProfile) : super(AuthStateType.authenticated);
+  AuthState copyWith({
+    AuthStateType? type,
+    User? loggedInProfile,
+    bool? isDone,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return AuthState(
+      type: type ?? this.type,
+      loggedInProfile: loggedInProfile ?? this.loggedInProfile,
+      isDone: isDone ?? this.isDone,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    );
+  }
 
   @override
-  List<Object?> get props => [loggedInProfile.username];
+  List<Object?> get props => [type, loggedInProfile, isDone, errorMessage];
 }
 
-class UnAuthenticated extends AuthState {
-  UnAuthenticated() : super(AuthStateType.unAuthenticated);
-}
-
-class InitialAuth extends AuthState {
-  InitialAuth() : super(AuthStateType.initial);
-}
-class LoadingAuth extends AuthState {
-  final bool isDone;
-  LoadingAuth({this.isDone=false}) : super(AuthStateType.loading);
-}

@@ -33,8 +33,7 @@ class AppColors {
   static const victorianGreenhouse = Color(0xFF00B592); //
   static const victorianGreenhouse_1 = Color(0xFF00B492); //
   static const maltedMintMadness = Color(0xFF11D3AE);
-  static const porcelainGreen
-  = Color(0xFF0E9278);
+  static const porcelainGreen = Color(0xFF0E9278);
 
   static const white = Color(0xFFFFFFFF);
   static const doctor = Color(0xFFF9F9F9);
@@ -152,9 +151,60 @@ class AppColors {
   static const sonicBlue = Color(0xFF17569b);
   static const coarseWool = Color(0xFF181b26);
 
+  // Google Maps Theme Colors
+  static const googleBlue = Color(0xFF1A73E8);
+  static const googleGreen = Color(0xFF34A853);
+  static const googleRed = Color(0xFFEA4335);
+  static const googleYellow = Color(0xFFFBBC04);
+  static const googleDarkText = Color(0xFF3C4043);
+  static const googleGreyText = Color(0xFF70757A);
+  static const googleLightBg = Color(0xFFF8F9FA);
 
+  // S-Map Brand Colors
+  static const sMapTeal = Color(0xFF00B996);
+  static const sMapDarkTeal = Color(0xFF006653);
+  static const sMapLightTeal = Color(0xFFE0F7F3);
+  static const sMapTealSurface = Color(0xFFF0FBF8);
+  static const sMapTealGradientStart = Color(0xFF00D4AA);
+  static const sMapTealGradientEnd = Color(0xFF006653);
+
+  // Semantic Surface Colors (Material 3 inspired)
+  static const surface = white;
+  static const surfaceContainer = Color(0xFFF1F3F4);
+  static const surfaceVariant = surfaceContainer;
+  static const surfaceContainerHigh = Color(0xFFE8EAED);
+  static const surfaceContainerHighest = Color(0xFFDFE1E5);
+  static const outline = Color(0xFFDADCE0);
+  static const outlineVariant = Color(0xFFDADCE0);
+  static const surfaceDim = Color(0xFFF8F9FA);
+  static const onSurface = googleDarkText;
+  static const onSurfaceVariant = Color(0xFF5F6368);
+  static const error = heroicRed;
+
+  // Map Symbol & Route Colors
+  static const mapSymbolText = Color(0xFF0F172A);
+  static const mapSymbolHalo = Color(0xFFFFFFFF);
+  static const routeMainColor = googleBlue;
+  static const routeCasingColor = Color(0xFF1557B0);
+  static const routeDimmedColor = Color(0xFF9AA0A6);
+
+  // Navigation Panel UI Colors
+  static const navDarkSurface = Color(0xFF202124);
+  static const navManeuverBg = Color(0xFF137333);
+  static const navAccentGreen = Color(0xFF1E8E3E);
+  static const navAlertRed = Color(0xFFD93025);
+  static const navCardBorder = Color(0xFF3C4043);
 }
 
-extension ToTextStyle on Color {
+extension ColorExtension on Color {
   TextStyle get toTextStyle => TextStyle(color: this);
+
+  /// Chuyển đổi Color sang chuỗi Hex '#RRGGBB' (phù hợp cho MapLibre)
+  String get toHex {
+    final argb = toARGB32();
+    final rInt = ((argb >> 16) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final gInt = ((argb >> 8) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final bInt = (argb & 0xFF).toRadixString(16).padLeft(2, '0');
+    return '#$rInt$gInt$bInt'.toUpperCase();
+  }
 }

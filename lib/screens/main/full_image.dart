@@ -1,11 +1,10 @@
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/utils/app_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/routers/routers.dart';
 
 class FullImageScreen extends StatefulWidget {
-  static String path = "/FullImageScreen";
   final AppImage args;
 
   const FullImageScreen({super.key, required this.args});
@@ -15,7 +14,6 @@ class FullImageScreen extends StatefulWidget {
 }
 
 class _FullImageScreenState extends State<FullImageScreen> with AppMixin {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,23 +24,47 @@ class _FullImageScreenState extends State<FullImageScreen> with AppMixin {
             color: Colors.black,
             child: widget.args.build(),
           ),
+          // Top gradient overlay
           Positioned(
-            left: 32,
-            top: 60,
-            child: ElevatedButton(
-              style: styles.buttonStyle.copyWith(
-                shape: const WidgetStatePropertyAll(CircleBorder()),
-                backgroundColor: WidgetStatePropertyAll(styles.whiteTextColor),
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withAlpha(128),
+                    Colors.transparent,
+                  ],
+                ),
               ),
-              onPressed: () {
-                context.pop();
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Icon(
-                  Icons.arrow_back_ios_sharp,
-                  color: styles.blackTextColor,
-                  size: 16,
+            ),
+          ),
+          // Back button
+          Positioned(
+            left: 16,
+            top: MediaQuery.paddingOf(context).top + 8,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(77),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () {
+                  context.pop();
+                },
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: AppColors.white,
+                  size: 24,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(
+                  minWidth: 40,
+                  minHeight: 40,
                 ),
               ),
             ),
@@ -52,3 +74,36 @@ class _FullImageScreenState extends State<FullImageScreen> with AppMixin {
     );
   }
 }
+
+extension AppImageToFullScreen on AppImage {
+  Widget buildWithFullScreen(
+    BuildContext context, {
+    Widget? placeHolder,
+    Widget? error,
+    Size? size,
+    BoxFit fit = BoxFit.contain,
+    Color? color,
+    Alignment? alignment,
+    double? memCacheWidth,
+    double? memCacheHeight,
+    String? cacheKey,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        context.push(AppRoutes.fullImage, extra: this);
+      },
+      child: build(
+        placeHolder: placeHolder,
+        error: error,
+        size: size,
+        fit: fit,
+        color: color,
+        alignment: alignment,
+        memCacheHeight: memCacheHeight,
+        memCacheWidth: memCacheWidth,
+        cacheKey: cacheKey,
+      ),
+    );
+  }
+}
+

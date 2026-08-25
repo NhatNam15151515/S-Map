@@ -2,12 +2,10 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/generated/codegen_loader.g.dart';
-import 'package:boilerplate/localizations/app_localization.dart';
-import 'package:boilerplate/routers/routers.dart';
-
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/generated/codegen_loader.g.dart';
+import 'package:s_map/localizations/app_localization.dart';
+import 'package:s_map/routers/routers.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -17,19 +15,24 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-
   late AppCubit appCubit;
   late AuthCubit authCubit;
+  late NotificationCubit notificationCubit;
+  late FavoritesCubit favoritesCubit;
 
   @override
   void initState() {
-    appCubit = AppCubit();
-    authCubit = AuthCubit(appCubit);
-    Routes.instance.applyWithAuthState(authCubit);
     super.initState();
+    appCubit = AppCubit();
+    authCubit = AuthCubit();
+    notificationCubit = NotificationCubit();
+    favoritesCubit = FavoritesCubit();
+    Routes.instance.applyWithAuthState(authCubit);
   }
+
   @override
   void dispose() {
+    favoritesCubit.close();
     super.dispose();
   }
 
@@ -39,14 +42,16 @@ class _MyAppState extends State<MyApp> {
       providers: [
         BlocProvider.value(value: appCubit),
         BlocProvider.value(value: authCubit),
+        BlocProvider.value(value: notificationCubit),
+        BlocProvider.value(value: favoritesCubit),
       ],
-      child: BlocBuilder(
+      child: BlocBuilder<AppCubit, AppState>(
         bloc: appCubit,
         builder: (context, state) {
-
           return EasyLocalization(
             useOnlyLangCode: true,
-            supportedLocales: SupportedLocale.values.map((e) => e.locale).toList(),
+            supportedLocales:
+                SupportedLocale.values.map((e) => e.locale).toList(),
             path: SupportedLocale.assetLanguage,
             fallbackLocale: SupportedLocale.vi.locale,
             saveLocale: true,
@@ -65,10 +70,11 @@ class _MyAppState extends State<MyApp> {
                   locale: context.locale,
                   builder: (context, widget) {
                     final routeMounted = Routes.instance.routeMounted;
-                    if(!routeMounted.isCompleted) routeMounted.complete(true);
+                    if (!routeMounted.isCompleted) routeMounted.complete(true);
                     return GestureDetector(
-                      onTap: (){
-                        WidgetsBinding.instance.focusManager.primaryFocus?.unfocus();
+                      onTap: () {
+                        WidgetsBinding.instance.focusManager.primaryFocus
+                            ?.unfocus();
                       },
                       child: MediaQuery(
                         data: MediaQuery.of(context),
@@ -81,7 +87,7 @@ class _MyAppState extends State<MyApp> {
               },
             ),
           );
-        }
+        },
       ),
     );
   }

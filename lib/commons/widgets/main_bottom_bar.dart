@@ -1,9 +1,9 @@
-import 'package:badges/badges.dart' as badges;
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/utils/utils.dart';
 
 class AppMainBottomBar extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -16,17 +16,26 @@ class AppMainBottomBar extends StatefulWidget {
 class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
+      margin: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: bottomPadding + 8,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            offset: Offset(0, -1),
+            color: Colors.black.withAlpha(20),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
             blurRadius: 4,
-            color: Color.fromRGBO(0, 0, 0, 0.1),
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -34,24 +43,24 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
       child: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: getAppImage(HeroIcons.home, false),
-            activeIcon: getAppImage(HeroIcons.home, true),
-            label: locale.name,
+            icon: _buildNavItem(HeroIcons.mapPin, false),
+            activeIcon: _buildNavItem(HeroIcons.mapPin, true),
+            label: tr(LocaleKeys.home),
           ),
           BottomNavigationBarItem(
-            icon: getAppImage(HeroIcons.shoppingBag, false, showBadge: true),
-            activeIcon: getAppImage(HeroIcons.shoppingBag, true, showBadge: true),
-            label: "Giỏ hàng",
+            icon: _buildNavItem(HeroIcons.bookmark, false),
+            activeIcon: _buildNavItem(HeroIcons.bookmark, true),
+            label: tr(LocaleKeys.location),
           ),
           BottomNavigationBarItem(
-            icon: getAppImage(HeroIcons.bell, false),
-            activeIcon: getAppImage(HeroIcons.bell, true),
-            label: locale.notification,
+            icon: _buildNavItem(HeroIcons.bell, false),
+            activeIcon: _buildNavItem(HeroIcons.bell, true),
+            label: tr(LocaleKeys.notification),
           ),
           BottomNavigationBarItem(
-            icon: getAppImage(HeroIcons.user, false),
-            activeIcon: getAppImage(HeroIcons.user, true),
-            label: locale.account,
+            icon: _buildNavItem(HeroIcons.userCircle, false),
+            activeIcon: _buildNavItem(HeroIcons.userCircle, true),
+            label: tr(LocaleKeys.account),
           ),
         ],
         currentIndex: widget.navigationShell.currentIndex,
@@ -61,45 +70,25 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
             initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
+        elevation: 0,
+        backgroundColor: Colors.transparent,
       ),
     );
   }
 
-  Widget getAppImage(HeroIcons asset, bool selected, {bool showBadge = false}){
-    final child = HeroIcon(
-      asset,
-      size: 24,
-      style: selected ? HeroIconStyle.solid : HeroIconStyle.outline,
-      color: styles.light.bottomNavigationBarTheme.selectedItemColor,
-    );
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0),
-      child: Column(
-        children: [
-          showBadge ? badges.Badge(
-            position: badges.BadgePosition.topEnd(top: -10, end: -8),
-            showBadge: true,
-            ignorePointer: true,
-            badgeContent: Text(
-              "0",
-              style: styles.whiteTextColor.textTheme.textStyle.copyWith(
-                fontSize: 11,
-              ),
-            ),
-            child: child,
-          ) : child,
-          const SizedBox(height: 8),
-          Container(
-            width: 14,
-            height: 1.2,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: selected
-                  ? styles.light.bottomNavigationBarTheme.selectedItemColor
-                  : Colors.transparent,
-            ),
-          ),
-        ],
+  Widget _buildNavItem(HeroIcons icon, bool selected) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: selected ? AppColors.sMapLightTeal : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: HeroIcon(
+        icon,
+        size: 24,
+        style: selected ? HeroIconStyle.solid : HeroIconStyle.outline,
+        color: selected ? AppColors.sMapTeal : AppColors.onSurfaceVariant,
       ),
     );
   }

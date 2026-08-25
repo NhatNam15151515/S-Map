@@ -1,0 +1,23 @@
+# GraphHopper config cho S-Map (Android Native Clean CH Routing)
+
+graphhopper:
+  datareader.file: data-pipeline/data/raw/vietnam-latest.osm.pbf
+  graph.location: data-pipeline/data/graph-cache/metro_hcm
+
+  profiles:
+    - name: moped_vn
+      vehicle: car
+      weighting: fastest
+
+  profiles_ch:
+    - profile: moped_vn
+
+  import.osm.ignored_highways: ""
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: localhost
+  request_log:
+    appenders: []

@@ -1,58 +1,61 @@
-// import 'package:boilerplate/screens/main/home/notification/notification_screen.dart';
-import 'package:boilerplate/commons/enums/enums.dart';
-import 'package:boilerplate/services/api_service/decoder.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 
 enum NotificationTab {
-  system("Tin tức"),
-  customer("Thông báo"),
-  ;
+  system,
+  customer;
 
-  const NotificationTab(this.title);
-  final String title;
+  String get title {
+    switch (this) {
+      case system:
+        return tr(LocaleKeys.notification_tabs_tab_system);
+      case customer:
+        return tr(LocaleKeys.notification_tabs_tab_customer);
+    }
+  }
 }
 
-class NotificationModel extends Decoder<NotificationModel>{
-
-  NotificationType get notiType => NotificationType.values.where((element) => element.id == type).firstOrNull ?? NotificationType.system;
-
-  int? createdBy;
-  int? updatedBy;
-  String? createdDate;
-  String? updatedDate;
-  int? systemNotificationId;
+class NotificationModel {
+  String? id;
   String? title;
   String? content;
-  dynamic jsonData;
-  int? type;
-  int? isDeleted;
+  NotificationType? notiType;
+  DateTime? createdDate;
+  Map<String, dynamic>? jsonData;
 
-  NotificationModel(
-      {this.createdBy,
-        this.updatedBy,
-        this.createdDate,
-        this.updatedDate,
-        this.systemNotificationId,
-        this.title,
-        this.content,
-        this.jsonData,
-        this.type,
-        this.isDeleted});
+  NotificationModel({
+    this.id,
+    this.title,
+    this.content,
+    this.notiType,
+    this.createdDate,
+    this.jsonData,
+  });
 
   NotificationModel.fromJson(Map<String, dynamic> json) {
-    createdBy = json['createdBy'];
-    updatedBy = json['updatedBy'];
-    createdDate = json['createdDate'];
-    updatedDate = json['updatedDate'];
-    systemNotificationId = int.tryParse(json['systemNotificationId'].toString());
-    title = json['title'];
-    content = json['content'];
-    jsonData = json['jsonData'];
-    type = int.tryParse(json['type'].toString());
-    isDeleted = int.tryParse(json['isDeleted'].toString());
+    id = json['id']?.toString();
+    title = json['title'] ?? "";
+    content = json['content'] ?? "";
+    notiType = json['type'] != null
+        ? NotificationType.values.firstWhere(
+            (e) => e.id == json['type'],
+            orElse: () => NotificationType.system,
+          )
+        : NotificationType.system;
+    createdDate = json['createdDate'] != null
+        ? DateTime.tryParse(json['createdDate'].toString()) ?? DateTime.now()
+        : DateTime.now();
+    jsonData = json;
   }
 
-  @override
-  NotificationModel decode(Map<String, dynamic> json) {
-    return NotificationModel.fromJson(json);
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['title'] = title;
+    data['content'] = content;
+    data['type'] = notiType?.id;
+    data['createdDate'] = createdDate?.toIso8601String();
+    return data;
   }
 }
