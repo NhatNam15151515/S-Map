@@ -318,6 +318,29 @@ void main() {
       expect(storageBytes, greaterThan(0));
     });
 
+    test('preserves existing region data via backup rollback when update fails', () async {
+      final regions = await service.getAvailableRegions();
+      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+
+      // First successful download
+      await service.downloadAndExtractRegion(targetRegion).drain();
+      final originalPmtiles = File('${tempDir.path}/metro_hcm/metro_hcm.pmtiles');
+      expect(originalPmtiles.existsSync(), isTrue);
+      originalPmtiles.writeAsStringSync('original_content');
+
+      // Second download with failing hive box put
+      fakeBox.shouldThrow = true;
+      expect(
+        service.downloadAndExtractRegion(targetRegion).drain(),
+        throwsA(isA<Exception>()),
+      );
+
+      // Verify original data was restored from backup
+      expect(originalPmtiles.existsSync(), isTrue);
+      expect(originalPmtiles.readAsStringSync(), equals('original_content'));
+      expect(Directory('${tempDir.path}/metro_hcm_staging').existsSync(), isFalse);
+    });
+
     test('checkRegionVersion returns region model', () async {
       final region = await service.checkRegionVersion('metro_hn');
       expect(region, isNotNull);

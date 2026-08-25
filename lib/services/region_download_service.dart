@@ -212,6 +212,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     client.connectionTimeout = const Duration(seconds: 15);
     IOSink? sink;
     double lastEmittedProgress = 0.05;
+    bool metadataCommitted = false;
 
     try {
       yield 0.05;
@@ -325,12 +326,11 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         stagingDir.renameSync(targetDir.path);
       } catch (_) {
         if (!targetDir.existsSync() && backupDir.existsSync()) {
-          backupDir.renameSync(targetDir.path);
+          try {
+            backupDir.renameSync(targetDir.path);
+          } catch (_) {}
         }
         rethrow;
-      }
-      if (backupDir.existsSync()) {
-        backupDir.deleteSync(recursive: true);
       }
 
       // Lưu thông tin vào Hive
@@ -344,6 +344,14 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       );
 
       await box.put(region.id, updatedRegion.toMap());
+      metadataCommitted = true;
+
+      // Chỉ xóa backup sau khi metadata đã lưu vào Hive thành công
+      if (backupDir.existsSync()) {
+        try {
+          backupDir.deleteSync(recursive: true);
+        } catch (_) {}
+      }
 
       yield 1.0;
       onProgress?.call(1.0);
@@ -353,15 +361,20 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         DLog.error('❌ [RegionDownloadService] Lỗi tải vùng ${region.name}: $e');
       }
       final backupDir = Directory('${targetDir.path}.backup');
-      if (!targetDir.existsSync() && backupDir.existsSync()) {
-        try {
-          backupDir.renameSync(targetDir.path);
-        } catch (_) {}
-      }
       if (backupDir.existsSync()) {
-        try {
-          backupDir.deleteSync(recursive: true);
-        } catch (_) {}
+        if (!targetDir.existsSync()) {
+          try {
+            backupDir.renameSync(targetDir.path);
+          } catch (_) {}
+        } else if (!metadataCommitted) {
+          // Khôi phục lại backup nếu commit metadata bị lỗi sau khi promote staging
+          try {
+            if (targetDir.existsSync()) {
+              targetDir.deleteSync(recursive: true);
+            }
+            backupDir.renameSync(targetDir.path);
+          } catch (_) {}
+        }
       }
       if (stagingDir.existsSync()) {
         try {
@@ -384,7 +397,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         client.close(force: true);
       }
       final backupDir = Directory('${targetDir.path}.backup');
-      if (backupDir.existsSync()) {
+      if (metadataCommitted && backupDir.existsSync()) {
         try {
           backupDir.deleteSync(recursive: true);
         } catch (_) {}
