@@ -178,7 +178,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _locationSubscription = null;
     _stopAutoSaveTimer();
 
-    if (generation != _requestGeneration || isClosed) return;
+    if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
     _lastRerouteTime = null;
     _lastValidDistanceLat = snapshot.lastKnownLat;
@@ -197,7 +197,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       DLog.error('Lỗi kiểm tra battery optimization khi resume: $e');
     }
 
-    if (generation != _requestGeneration || isClosed) return;
+    if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
     final progress = _turnByTurnEngine.updateProgress(
       currentLat: snapshot.lastKnownLat ?? snapshot.origin.lat,
@@ -247,7 +247,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     await _locationService.requestNotificationPermission();
 
-    if (generation != _requestGeneration || isClosed) return;
+    if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
     final destName =
         snapshot.destinationName ?? LocaleKeys.routing_destination_fallback.tr();

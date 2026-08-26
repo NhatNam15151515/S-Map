@@ -10,6 +10,8 @@ class FakeHiveBox implements Box<dynamic> {
   final StreamController<BoxEvent> _eventController =
       StreamController<BoxEvent>.broadcast();
   bool shouldThrow = false;
+  Future<void> Function(dynamic key, dynamic value)? onPut;
+  Future<void> Function(dynamic key)? onDelete;
 
   @override
   bool get isOpen => true;
@@ -29,6 +31,7 @@ class FakeHiveBox implements Box<dynamic> {
   @override
   Future<void> put(dynamic key, dynamic value) async {
     if (shouldThrow) throw Exception('Hive put failed');
+    if (onPut != null) await onPut!(key, value);
     _storage[key] = value;
     _eventController.add(BoxEvent(key, value, false));
   }
@@ -36,6 +39,7 @@ class FakeHiveBox implements Box<dynamic> {
   @override
   Future<void> delete(dynamic key) async {
     if (shouldThrow) throw Exception('Hive delete failed');
+    if (onDelete != null) await onDelete!(key);
     final prev = _storage.remove(key);
     _eventController.add(BoxEvent(key, prev, true));
   }
@@ -202,28 +206,64 @@ void main() {
       );
     });
 
-    test('saveActiveSession and clearActiveSession execute strictly in FIFO order', () async {
-      final order = <String>[];
+    test('saveActiveSession and clearActiveSession execute strictly in FIFO order even with asynchronous delays', () async {
+      final startOrder = <String>[];
+      final completeOrder = <String>[];
+      final firstPutBlocker = Completer<void>();
+      bool isFirstPut = true;
 
-      // First action: save
-      final saveFuture = service.saveActiveSession(sampleSnapshot).then((_) {
-        order.add('save1');
+      final snapshot1 = sampleSnapshot.copyWith(destinationName: 'Destination 1');
+      final snapshot2 = sampleSnapshot.copyWith(destinationName: 'Destination 2');
+
+      fakeBox.onPut = (key, value) async {
+        if (isFirstPut) {
+          isFirstPut = false;
+          startOrder.add('put1_started');
+          await firstPutBlocker.future;
+        } else {
+          startOrder.add('put2_started');
+        }
+      };
+
+      fakeBox.onDelete = (key) async {
+        startOrder.add('delete_started');
+      };
+
+      // 1. Dispatch saveActiveSession (snapshot1) -> will block inside onPut
+      final future1 = service.saveActiveSession(snapshot1).then((_) {
+        completeOrder.add('save1_completed');
       });
 
-      // Second action: clear queued behind save
-      final clearFuture = service.clearActiveSession().then((_) {
-        order.add('clear1');
+      // 2. Dispatch clearActiveSession -> must be queued behind future1
+      final future2 = service.clearActiveSession().then((_) {
+        completeOrder.add('clear_completed');
       });
 
-      // Third action: save again queued behind clear
-      final saveFuture2 = service.saveActiveSession(sampleSnapshot).then((_) {
-        order.add('save2');
+      // 3. Dispatch saveActiveSession (snapshot2) -> must be queued behind future2
+      final future3 = service.saveActiveSession(snapshot2).then((_) {
+        completeOrder.add('save2_completed');
       });
 
-      await Future.wait([saveFuture, clearFuture, saveFuture2]);
+      // Allow microtasks to execute
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      expect(order, equals(['save1', 'clear1', 'save2']));
-      expect(fakeBox.get(ActiveTripServiceImpl.activeSessionKey), isNotNull);
+      // At this point, only put1 has started; delete and put2 have NOT started yet!
+      expect(startOrder, equals(['put1_started']));
+      expect(completeOrder, isEmpty);
+
+      // Release first put blocker
+      firstPutBlocker.complete();
+
+      await Future.wait([future1, future2, future3]);
+
+      // All mutations must have started and completed strictly in FIFO order
+      expect(startOrder, equals(['put1_started', 'delete_started', 'put2_started']));
+      expect(completeOrder, equals(['save1_completed', 'clear_completed', 'save2_completed']));
+
+      // The final stored session in Hive must be snapshot2
+      final finalStored = await service.getActiveSession();
+      expect(finalStored, isNotNull);
+      expect(finalStored!.destinationName, equals('Destination 2'));
     });
   });
 }
