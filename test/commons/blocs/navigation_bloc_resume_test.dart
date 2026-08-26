@@ -21,6 +21,11 @@ class MockRoutingRepository implements IRoutingRepository {
   );
 
   int calculateRouteCallCount = 0;
+  double? lastFromLat;
+  double? lastFromLon;
+  double? lastToLat;
+  double? lastToLon;
+  String? lastVehicleProfile;
 
   @override
   Future<RouteResult> calculateRoute({
@@ -31,6 +36,11 @@ class MockRoutingRepository implements IRoutingRepository {
     String? vehicleProfile,
   }) async {
     calculateRouteCallCount++;
+    lastFromLat = fromLat;
+    lastFromLon = fromLon;
+    lastToLat = toLat;
+    lastToLon = toLon;
+    lastVehicleProfile = vehicleProfile;
     return nextCalculateResult;
   }
 
@@ -306,6 +316,17 @@ void main() {
       expect(bloc.state.status, equals(NavigationStatus.navigating));
       expect(mockRoutingRepo.calculateRouteCallCount, equals(0));
 
+      const rerouteResult = RouteResult(
+        isSuccess: true,
+        distance: 1800.0,
+        time: 200000,
+        points: [
+          [10.8000, 106.7300],
+          [10.7820, 106.7050],
+        ],
+      );
+      mockRoutingRepo.nextCalculateResult = rerouteResult;
+
       // Emit a GPS position clearly far away from the resumed route (> 50m)
       mockLocationService.emitPosition(
         Position(
@@ -323,11 +344,16 @@ void main() {
       );
       await pumpEventQueue();
 
-      // Verify routing repository was called for rerouting and state returned to navigating
+      // Verify routing repository was called with exact GPS position and snapshot destination
       expect(mockRoutingRepo.calculateRouteCallCount, equals(1));
+      expect(mockRoutingRepo.lastFromLat, equals(10.8000));
+      expect(mockRoutingRepo.lastFromLon, equals(106.7300));
+      expect(mockRoutingRepo.lastToLat, equals(sampleSnapshot.destination.lat));
+      expect(mockRoutingRepo.lastToLon, equals(sampleSnapshot.destination.lon));
       expect(bloc.state.status, equals(NavigationStatus.navigating));
       expect(bloc.state.rerouteCount, equals(1));
       expect(bloc.state.isOffRoute, isFalse);
+      expect(bloc.state.currentRoute, equals(rerouteResult));
     });
 
     test('DiscardActiveSession clears active session from service and state', () async {
@@ -418,17 +444,15 @@ void main() {
       expect(mockActiveTripService.currentSnapshot, isNull);
     });
 
-    test('Storage failure during SaveActiveSessionSnapshot emits storage warning error message', () async {
+    test('Storage failure during StartNavigation emits storage warning error message', () async {
+      mockActiveTripService.shouldThrowOnSave = true;
+
       bloc.add(const StartNavigation(
         initialRoute: sampleRoute,
         origin: RoutePoint(lat: 10.7769, lon: 106.7009),
         destination: RoutePoint(lat: 10.7820, lon: 106.7050),
         destinationName: 'Landmark 81',
       ));
-      await pumpEventQueue();
-
-      mockActiveTripService.shouldThrowOnSave = true;
-      bloc.add(const SaveActiveSessionSnapshot());
       await pumpEventQueue();
 
       expect(bloc.state.errorMessageKey, equals(LocaleKeys.routing_storage_warning));

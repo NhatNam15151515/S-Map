@@ -123,21 +123,6 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     );
   }
 
-  Future<void> _saveActiveSessionSafely() async {
-    final snapshot = _buildSnapshotFromState();
-    if (snapshot == null) return;
-
-    try {
-      await _activeTripService.saveActiveSession(snapshot);
-    } catch (e, stack) {
-      DLog.warning(
-        '⚠️ [NavigationBloc] Failed to persist active session to Hive: $e',
-        e,
-        stack,
-      );
-    }
-  }
-
   Future<void> _clearActiveSessionSafely() async {
     try {
       await _activeTripService.clearActiveSession();
@@ -246,6 +231,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     ));
 
     _startAutoSaveTimer();
+    add(const SaveActiveSessionSnapshot());
 
     await _locationService.requestNotificationPermission();
 
@@ -383,7 +369,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     ));
 
     _startAutoSaveTimer();
-    unawaited(_saveActiveSessionSafely());
+    add(const SaveActiveSessionSnapshot());
 
     await _locationService.requestNotificationPermission();
 
@@ -713,7 +699,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
           messageKey: LocaleKeys.routing_reroute_success,
           clearError: true,
         ));
-        unawaited(_saveActiveSessionSafely());
+        add(const SaveActiveSessionSnapshot());
       } else {
         DLog.error('❌ [NavigationBloc] Reroute calculation failed: ${newRoute.errorMessage}');
         emit(state.copyWith(
