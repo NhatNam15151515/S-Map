@@ -104,3 +104,29 @@ class SkipBatteryOptimization extends NavigationEvent {
 class DismissBatteryOptimizationPrompt extends NavigationEvent {
   const DismissBatteryOptimizationPrompt();
 }
+
+/// Kiểm tra xem có phiên chuyến đi dang dở cần khôi phục trong bộ nhớ không
+class CheckActiveSession extends NavigationEvent {
+  const CheckActiveSession();
+}
+
+/// Khôi phục chuyến đi từ snapshot đã lưu trước đó
+class ResumeNavigation extends NavigationEvent {
+  final ActiveTripSnapshot snapshot;
+
+  const ResumeNavigation(this.snapshot);
+
+  @override
+  List<Object?> get props => [snapshot];
+}
+
+/// Bỏ qua phiên chuyến đi dang dở và xóa khỏi bộ nhớ lưu tạm
+class DiscardActiveSession extends NavigationEvent {
+  const DiscardActiveSession();
+}
+
+/// Lưu snapshot phiên điều hướng hiện tại vào bộ nhớ (kích hoạt định kỳ hoặc khi có checkpoint)
+class SaveActiveSessionSnapshot extends NavigationEvent {
+  const SaveActiveSessionSnapshot();
+}
+

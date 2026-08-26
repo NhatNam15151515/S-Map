@@ -1,3 +1,4 @@
+export 'active_trip_service.dart';
 export 'compass_service.dart';
 export 'custom_route_service.dart';
 export 'device_info_service.dart';

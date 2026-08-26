@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +32,16 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
   RoutePreviewCubit get routePreviewCubit => context.read<RoutePreviewCubit>();
   NavigationBloc get navigationBloc => context.read<NavigationBloc>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        navigationBloc.add(const CheckActiveSession());
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -158,6 +169,40 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                 if (result == null && context.mounted) {
                   navigationBloc.add(const DismissBatteryOptimizationPrompt());
                 }
+              }
+            },
+          ),
+          BlocListener<NavigationBloc, NavigationState>(
+            listenWhen: (prev, curr) =>
+                prev.pendingResumeSession != curr.pendingResumeSession &&
+                curr.pendingResumeSession != null,
+            listener: (context, navState) async {
+              final session = navState.pendingResumeSession;
+              if (session != null) {
+                final result = await ResumeTripDialog.show(
+                  context,
+                  snapshot: session,
+                  onResume: () {
+                    navigationBloc.add(ResumeNavigation(session));
+                  },
+                  onDiscard: () {
+                    navigationBloc.add(const DiscardActiveSession());
+                  },
+                );
+                if (result == null && context.mounted) {
+                  navigationBloc.add(const DiscardActiveSession());
+                }
+              }
+            },
+          ),
+          BlocListener<NavigationBloc, NavigationState>(
+            listenWhen: (prev, curr) =>
+                prev.errorMessageKey != curr.errorMessageKey &&
+                curr.errorMessageKey != null,
+            listener: (context, navState) {
+              final errKey = navState.errorMessageKey;
+              if (errKey != null) {
+                showError(tr(errKey));
               }
             },
           ),

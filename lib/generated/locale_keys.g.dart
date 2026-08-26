@@ -177,6 +177,12 @@ abstract class  LocaleKeys {
   static const routing_battery_dialog_desc_general = 'routing.battery_dialog_desc_general';
   static const routing_battery_dialog_btn_allow = 'routing.battery_dialog_btn_allow';
   static const routing_battery_dialog_btn_skip = 'routing.battery_dialog_btn_skip';
+  static const routing_resume_trip_title = 'routing.resume_trip_title';
+  static const routing_resume_trip_desc = 'routing.resume_trip_desc';
+  static const routing_resume_trip_desc_unnamed = 'routing.resume_trip_desc_unnamed';
+  static const routing_resume_btn = 'routing.resume_btn';
+  static const routing_discard_btn = 'routing.discard_btn';
+  static const routing_storage_warning = 'routing.storage_warning';
   static const routing = 'routing';
   static const route_drawing_ui_title = 'route_drawing_ui.title';
   static const route_drawing_ui_tap_prompt = 'route_drawing_ui.tap_prompt';

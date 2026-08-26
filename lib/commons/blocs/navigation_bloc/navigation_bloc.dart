@@ -23,8 +23,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final ITurnByTurnEngine _turnByTurnEngine;
   final IDeviceInfoService _deviceInfoService;
   final ITripRepository _tripRepository;
+  final IActiveTripService _activeTripService;
 
   StreamSubscription<Position>? _locationSubscription;
+  Timer? _autoSaveTimer;
   int _requestGeneration = 0;
   DateTime? _lastRerouteTime;
   double? _lastValidDistanceLat;
@@ -34,9 +36,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   static ILocationService? defaultLocationService;
   static ITurnByTurnEngine? defaultTurnByTurnEngine;
   static IDeviceInfoService? defaultDeviceInfoService;
+  static IActiveTripService? defaultActiveTripService;
 
   /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
   static const Duration _rerouteCooldown = Duration(seconds: 2);
+
+  /// Chu kỳ lưu snapshot phiên điều hướng định kỳ vào Hive (mỗi 30 giây)
+  static const Duration _autoSaveInterval = Duration(seconds: 30);
 
   NavigationBloc({
     required IRoutingRepository routingRepository,
@@ -45,6 +51,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     IOffRouteDetector? offRouteDetector,
     ITurnByTurnEngine? turnByTurnEngine,
     IDeviceInfoService? deviceInfoService,
+    IActiveTripService? activeTripService,
   })  : _routingRepository = routingRepository,
         _tripRepository = tripRepository,
         _locationService = locationService ??
@@ -57,6 +64,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         _deviceInfoService = deviceInfoService ??
             defaultDeviceInfoService ??
             const NoOpDeviceInfoService(),
+        _activeTripService = activeTripService ??
+            defaultActiveTripService ??
+            const NoOpActiveTripService(),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
@@ -66,6 +76,236 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     on<AllowBatteryOptimization>(_onAllowBatteryOptimization);
     on<SkipBatteryOptimization>(_onSkipBatteryOptimization);
     on<DismissBatteryOptimizationPrompt>(_onDismissBatteryOptimizationPrompt);
+    on<CheckActiveSession>(_onCheckActiveSession);
+    on<ResumeNavigation>(_onResumeNavigation);
+    on<DiscardActiveSession>(_onDiscardActiveSession);
+    on<SaveActiveSessionSnapshot>(
+      _onSaveActiveSessionSnapshot,
+      transformer: sequential(),
+    );
+  }
+
+  void _startAutoSaveTimer() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer.periodic(_autoSaveInterval, (_) {
+      if (!isClosed) {
+        add(const SaveActiveSessionSnapshot());
+      }
+    });
+  }
+
+  void _stopAutoSaveTimer() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = null;
+  }
+
+  ActiveTripSnapshot? _buildSnapshotFromState() {
+    if (!state.isNavigating ||
+        state.currentRoute == null ||
+        state.origin == null ||
+        state.destination == null) {
+      return null;
+    }
+
+    return ActiveTripSnapshot(
+      origin: state.origin!,
+      destination: state.destination!,
+      destinationName: state.destinationName,
+      profile: state.profile,
+      initialRoute: state.currentRoute!,
+      currentSegmentIndex: state.currentSegmentIndex,
+      currentInstructionIndex: state.currentInstructionIndex,
+      tripStartTime: state.tripStartTime ?? DateTime.now(),
+      lastSavedTime: DateTime.now(),
+      totalDistanceTraveledMeters: state.totalDistanceTraveledMeters,
+      maxSpeedKmh: state.maxSpeedKmh,
+      speedSampleSum: state.speedSampleSum,
+      speedSampleCount: state.speedSampleCount,
+      lastKnownLat: state.currentLat,
+      lastKnownLon: state.currentLon,
+    );
+  }
+
+  Future<void> _clearActiveSessionSafely() async {
+    try {
+      await _activeTripService.clearActiveSession();
+    } catch (e, stack) {
+      DLog.error('❌ [NavigationBloc] Failed to clear active session: $e', e, stack);
+    }
+  }
+
+  Future<void> _onCheckActiveSession(
+    CheckActiveSession event,
+    Emitter<NavigationState> emit,
+  ) async {
+    if (state.isNavigating) return;
+
+    try {
+      final session = await _activeTripService.getActiveSession();
+      if (isClosed || emit.isDone) return;
+      if (session != null && session.isValid()) {
+        DLog.info(
+          '🔔 [NavigationBloc] Found pending active trip session to "${session.destinationName}"',
+        );
+        emit(state.copyWith(pendingResumeSession: session));
+      }
+    } catch (e, stack) {
+      if (isClosed || emit.isDone) return;
+      DLog.error('❌ [NavigationBloc] Error checking active session: $e', e, stack);
+    }
+  }
+
+  Future<void> _onResumeNavigation(
+    ResumeNavigation event,
+    Emitter<NavigationState> emit,
+  ) async {
+    final snapshot = event.snapshot;
+    if (!snapshot.isValid()) {
+      DLog.warning(
+        '⚠️ [NavigationBloc] Cannot resume: active session expired (> 24h)',
+      );
+      unawaited(_clearActiveSessionSafely());
+      emit(state.copyWith(clearPendingResumeSession: true));
+      return;
+    }
+
+    DLog.info(
+      '🚀 [NavigationBloc] Resuming Navigation from snapshot to "${snapshot.destinationName}" (${snapshot.destination.lat}, ${snapshot.destination.lon})',
+    );
+
+    final generation = ++_requestGeneration;
+    await _locationSubscription?.cancel();
+    _locationSubscription = null;
+    _stopAutoSaveTimer();
+
+    if (generation != _requestGeneration || isClosed || emit.isDone) return;
+
+    _lastRerouteTime = null;
+    _lastValidDistanceLat = snapshot.lastKnownLat;
+    _lastValidDistanceLon = snapshot.lastKnownLon;
+
+    DeviceOemType? promptOem;
+    try {
+      final isIgnored = await _locationService.isBatteryOptimizationIgnored();
+      if (!isIgnored) {
+        final oemType = await _deviceInfoService.getDeviceOemType();
+        if (oemType.isAggressiveOem) {
+          promptOem = oemType;
+        }
+      }
+    } catch (e) {
+      DLog.error('Lỗi kiểm tra battery optimization khi resume: $e');
+    }
+
+    if (generation != _requestGeneration || isClosed || emit.isDone) return;
+
+    final progress = _turnByTurnEngine.updateProgress(
+      currentLat: snapshot.lastKnownLat ?? snapshot.origin.lat,
+      currentLon: snapshot.lastKnownLon ?? snapshot.origin.lon,
+      instructions: snapshot.initialRoute.instructions,
+      currentInstructionIndex: snapshot.currentInstructionIndex,
+    );
+
+    emit(state.copyWith(
+      status: NavigationStatus.navigating,
+      currentRoute: snapshot.initialRoute,
+      origin: snapshot.origin,
+      destination: snapshot.destination,
+      destinationName: snapshot.destinationName,
+      clearDestinationName: snapshot.destinationName == null,
+      profile: snapshot.profile,
+      currentLat: snapshot.lastKnownLat,
+      currentLon: snapshot.lastKnownLon,
+      currentSegmentIndex: snapshot.currentSegmentIndex,
+      distanceToRoute: 0.0,
+      isOffRoute: false,
+      isRerouting: false,
+      rerouteCount: 0,
+      currentInstructionIndex: progress.currentInstructionIndex,
+      currentInstruction: progress.currentInstruction,
+      clearCurrentInstruction: progress.currentInstruction == null,
+      nextInstruction: progress.nextInstruction,
+      clearNextInstruction: progress.nextInstruction == null,
+      distanceToNextInstruction: progress.distanceToNextInstruction,
+      remainingDistance: progress.remainingDistance,
+      remainingDurationMs: progress.remainingDurationMs,
+      isPreAnnounced: progress.isPreAnnounced,
+      tripStartTime: snapshot.tripStartTime,
+      maxSpeedKmh: snapshot.maxSpeedKmh,
+      totalDistanceTraveledMeters: snapshot.totalDistanceTraveledMeters,
+      speedSampleSum: snapshot.speedSampleSum,
+      speedSampleCount: snapshot.speedSampleCount,
+      clearPendingResumeSession: true,
+      clearTripSummary: true,
+      clearError: true,
+      clearMessage: true,
+      promptBatteryOptimizationOem: promptOem,
+    ));
+
+    _startAutoSaveTimer();
+    add(const SaveActiveSessionSnapshot());
+
+    await _locationService.requestNotificationPermission();
+
+    if (generation != _requestGeneration || isClosed || emit.isDone) return;
+
+    final destName =
+        snapshot.destinationName ?? LocaleKeys.routing_destination_fallback.tr();
+    final stream = _locationService.getPositionStream(
+      enableBackground: true,
+      notificationTitle:
+          LocaleKeys.routing_foreground_notification_title.tr(),
+      notificationText: LocaleKeys.routing_foreground_notification_text.tr(
+        args: [destName],
+      ),
+      intervalDuration: const Duration(seconds: 1),
+      enableWakeLock: true,
+    );
+
+    _locationSubscription = stream.listen(
+      (position) {
+        if (!isClosed) {
+          add(LocationUpdated.fromPosition(position));
+        }
+      },
+      onError: (error) {
+        DLog.error('❌ [NavigationBloc] GPS Position Stream error on resume: $error');
+      },
+    );
+  }
+
+  Future<void> _onDiscardActiveSession(
+    DiscardActiveSession event,
+    Emitter<NavigationState> emit,
+  ) async {
+    DLog.info('🗑️ [NavigationBloc] Discarding pending active trip session');
+    try {
+      await _activeTripService.clearActiveSession();
+    } catch (e, stack) {
+      DLog.error('❌ [NavigationBloc] Error clearing discarded active session: $e', e, stack);
+    }
+    if (isClosed || emit.isDone) return;
+    emit(state.copyWith(clearPendingResumeSession: true));
+  }
+
+  Future<void> _onSaveActiveSessionSnapshot(
+    SaveActiveSessionSnapshot event,
+    Emitter<NavigationState> emit,
+  ) async {
+    final snapshot = _buildSnapshotFromState();
+    if (snapshot == null) return;
+
+    try {
+      await _activeTripService.saveActiveSession(snapshot);
+    } catch (e, stack) {
+      if (isClosed || emit.isDone) return;
+      DLog.warning(
+        '⚠️ [NavigationBloc] Storage error while auto-saving active session: $e',
+        e,
+        stack,
+      );
+      emit(state.copyWith(errorMessageKey: LocaleKeys.routing_storage_warning));
+    }
   }
 
   Future<void> _onStartNavigation(
@@ -78,6 +318,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     final generation = ++_requestGeneration;
     await _locationSubscription?.cancel();
     _locationSubscription = null;
+    _stopAutoSaveTimer();
 
     if (generation != _requestGeneration || isClosed) return;
 
@@ -133,10 +374,14 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       speedSampleSum: 0.0,
       speedSampleCount: 0,
       clearTripSummary: true,
+      clearPendingResumeSession: true,
       clearError: true,
       clearMessage: true,
       promptBatteryOptimizationOem: promptOem,
     ));
+
+    _startAutoSaveTimer();
+    add(const SaveActiveSessionSnapshot());
 
     await _locationService.requestNotificationPermission();
 
@@ -288,6 +533,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       _requestGeneration++;
       _locationSubscription?.cancel();
       _locationSubscription = null;
+      _stopAutoSaveTimer();
+      unawaited(_clearActiveSessionSafely());
 
       final now = DateTime.now();
       final startTime = state.tripStartTime ?? now;
@@ -464,6 +711,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
           messageKey: LocaleKeys.routing_reroute_success,
           clearError: true,
         ));
+        add(const SaveActiveSessionSnapshot());
       } else {
         DLog.error('❌ [NavigationBloc] Reroute calculation failed: ${newRoute.errorMessage}');
         emit(state.copyWith(
@@ -491,6 +739,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   ) async {
     final generation = ++_requestGeneration;
     DLog.info('🛑 [NavigationBloc] Stopping navigation [Gen #$generation]');
+
+    _stopAutoSaveTimer();
+    unawaited(_clearActiveSessionSafely());
 
     await _locationSubscription?.cancel();
     _locationSubscription = null;
@@ -571,6 +822,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   ) async {
     DLog.info('🧹 [NavigationBloc] Clearing navigation state back to initial');
     final generation = ++_requestGeneration;
+    _stopAutoSaveTimer();
+    unawaited(_clearActiveSessionSafely());
+
     await _locationSubscription?.cancel();
     _locationSubscription = null;
 
@@ -586,6 +840,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   Future<void> close() async {
     DLog.info('🧹 [NavigationBloc] Disposing NavigationBloc and cancelling GPS listeners');
     _requestGeneration++;
+    _stopAutoSaveTimer();
     _lastRerouteTime = null;
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
