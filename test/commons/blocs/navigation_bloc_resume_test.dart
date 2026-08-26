@@ -307,6 +307,21 @@ void main() {
       expect(bloc.state.pendingResumeSession, isNull);
     });
 
+    test('ResumeNavigation with expired snapshot clears session and does not navigate', () async {
+      final expiredSnapshot = sampleSnapshot.copyWith(
+        lastSavedTime: DateTime.now().subtract(const Duration(hours: 25)),
+      );
+      mockActiveTripService.currentSnapshot = expiredSnapshot;
+
+      bloc.add(ResumeNavigation(expiredSnapshot));
+      await pumpEventQueue();
+
+      expect(bloc.state.status, equals(NavigationStatus.initial));
+      expect(bloc.state.isNavigating, isFalse);
+      expect(bloc.state.pendingResumeSession, isNull);
+      expect(mockActiveTripService.clearCount, equals(1));
+    });
+
     test('ResumeNavigation followed by off-route GPS triggers reroute calculation', () async {
       mockActiveTripService.currentSnapshot = sampleSnapshot;
 

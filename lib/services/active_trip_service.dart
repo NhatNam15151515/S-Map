@@ -10,12 +10,19 @@ class ActiveTripServiceImpl implements IActiveTripService {
 
   final Box<dynamic>? _customBox;
   Box<dynamic>? _box;
+  Future<void> _mutationQueue = Future.value();
 
   ActiveTripServiceImpl({
     Box<dynamic>? customBox,
   }) : _customBox = customBox;
 
   static final ActiveTripServiceImpl instance = ActiveTripServiceImpl();
+
+  Future<T> _enqueueMutation<T>(Future<T> Function() action) {
+    final next = _mutationQueue.then((_) => action());
+    _mutationQueue = next.then<void>((_) {}, onError: (_) {});
+    return next;
+  }
 
   Future<Box<dynamic>> _getBox() async {
     if (_customBox != null) return _customBox;
@@ -44,21 +51,23 @@ class ActiveTripServiceImpl implements IActiveTripService {
   }
 
   @override
-  Future<void> saveActiveSession(ActiveTripSnapshot snapshot) async {
-    try {
-      final box = await _getBox();
-      await box.put(activeSessionKey, snapshot.toMap());
-      DLog.info(
-        '💾 [ActiveTripService] Saved active trip session snapshot (Dest: "${snapshot.destinationName}", Dist: ${snapshot.totalDistanceTraveledMeters.toStringAsFixed(1)}m)',
-      );
-    } catch (e, stack) {
-      DLog.error(
-        '❌ [ActiveTripService] Failed to persist active trip snapshot to Hive: $e',
-        e,
-        stack,
-      );
-      rethrow;
-    }
+  Future<void> saveActiveSession(ActiveTripSnapshot snapshot) {
+    return _enqueueMutation(() async {
+      try {
+        final box = await _getBox();
+        await box.put(activeSessionKey, snapshot.toMap());
+        DLog.info(
+          '💾 [ActiveTripService] Saved active trip session snapshot (Dest: "${snapshot.destinationName}", Dist: ${snapshot.totalDistanceTraveledMeters.toStringAsFixed(1)}m)',
+        );
+      } catch (e, stack) {
+        DLog.error(
+          '❌ [ActiveTripService] Failed to persist active trip snapshot to Hive: $e',
+          e,
+          stack,
+        );
+        rethrow;
+      }
+    });
   }
 
   @override
@@ -102,15 +111,17 @@ class ActiveTripServiceImpl implements IActiveTripService {
   }
 
   @override
-  Future<void> clearActiveSession() async {
-    try {
-      final box = await _getBox();
-      await box.delete(activeSessionKey);
-      DLog.info('🧹 [ActiveTripService] Cleared active trip session');
-    } catch (e, stack) {
-      DLog.error('❌ [ActiveTripService] Error clearing active session: $e', e, stack);
-      rethrow;
-    }
+  Future<void> clearActiveSession() {
+    return _enqueueMutation(() async {
+      try {
+        final box = await _getBox();
+        await box.delete(activeSessionKey);
+        DLog.info('🧹 [ActiveTripService] Cleared active trip session');
+      } catch (e, stack) {
+        DLog.error('❌ [ActiveTripService] Error clearing active session: $e', e, stack);
+        rethrow;
+      }
+    });
   }
 
   @override

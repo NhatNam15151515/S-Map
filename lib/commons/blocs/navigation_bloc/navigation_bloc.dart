@@ -79,7 +79,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     on<CheckActiveSession>(_onCheckActiveSession);
     on<ResumeNavigation>(_onResumeNavigation);
     on<DiscardActiveSession>(_onDiscardActiveSession);
-    on<SaveActiveSessionSnapshot>(_onSaveActiveSessionSnapshot);
+    on<SaveActiveSessionSnapshot>(
+      _onSaveActiveSessionSnapshot,
+      transformer: sequential(),
+    );
   }
 
   void _startAutoSaveTimer() {
@@ -157,6 +160,15 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     Emitter<NavigationState> emit,
   ) async {
     final snapshot = event.snapshot;
+    if (!snapshot.isValid()) {
+      DLog.warning(
+        '⚠️ [NavigationBloc] Cannot resume: active session expired (> 24h)',
+      );
+      unawaited(_clearActiveSessionSafely());
+      emit(state.copyWith(clearPendingResumeSession: true));
+      return;
+    }
+
     DLog.info(
       '🚀 [NavigationBloc] Resuming Navigation from snapshot to "${snapshot.destinationName}" (${snapshot.destination.lat}, ${snapshot.destination.lon})',
     );

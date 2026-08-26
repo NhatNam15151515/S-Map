@@ -201,5 +201,29 @@ void main() {
         throwsA(isA<Exception>()),
       );
     });
+
+    test('saveActiveSession and clearActiveSession execute strictly in FIFO order', () async {
+      final order = <String>[];
+
+      // First action: save
+      final saveFuture = service.saveActiveSession(sampleSnapshot).then((_) {
+        order.add('save1');
+      });
+
+      // Second action: clear queued behind save
+      final clearFuture = service.clearActiveSession().then((_) {
+        order.add('clear1');
+      });
+
+      // Third action: save again queued behind clear
+      final saveFuture2 = service.saveActiveSession(sampleSnapshot).then((_) {
+        order.add('save2');
+      });
+
+      await Future.wait([saveFuture, clearFuture, saveFuture2]);
+
+      expect(order, equals(['save1', 'clear1', 'save2']));
+      expect(fakeBox.get(ActiveTripServiceImpl.activeSessionKey), isNotNull);
+    });
   });
 }
