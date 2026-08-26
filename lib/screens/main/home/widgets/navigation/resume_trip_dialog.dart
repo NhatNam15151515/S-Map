@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -31,11 +32,11 @@ class ResumeTripDialog extends StatelessWidget {
       builder: (dialogContext) => ResumeTripDialog(
         snapshot: snapshot,
         onResume: () {
-          Navigator.of(dialogContext).pop(true);
+          dialogContext.pop(true);
           onResume();
         },
         onDiscard: () {
-          Navigator.of(dialogContext).pop(false);
+          dialogContext.pop(false);
           onDiscard();
         },
       ),

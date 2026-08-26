@@ -96,15 +96,15 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _autoSaveTimer = null;
   }
 
-  Future<void> _saveActiveSessionSafely() async {
+  ActiveTripSnapshot? _buildSnapshotFromState() {
     if (!state.isNavigating ||
         state.currentRoute == null ||
         state.origin == null ||
         state.destination == null) {
-      return;
+      return null;
     }
 
-    final snapshot = ActiveTripSnapshot(
+    return ActiveTripSnapshot(
       origin: state.origin!,
       destination: state.destination!,
       destinationName: state.destinationName,
@@ -121,6 +121,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       lastKnownLat: state.currentLat,
       lastKnownLon: state.currentLon,
     );
+  }
+
+  Future<void> _saveActiveSessionSafely() async {
+    final snapshot = _buildSnapshotFromState();
+    if (snapshot == null) return;
 
     try {
       await _activeTripService.saveActiveSession(snapshot);
@@ -133,6 +138,14 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     }
   }
 
+  Future<void> _clearActiveSessionSafely() async {
+    try {
+      await _activeTripService.clearActiveSession();
+    } catch (e, stack) {
+      DLog.error('❌ [NavigationBloc] Failed to clear active session: $e', e, stack);
+    }
+  }
+
   Future<void> _onCheckActiveSession(
     CheckActiveSession event,
     Emitter<NavigationState> emit,
@@ -141,6 +154,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     try {
       final session = await _activeTripService.getActiveSession();
+      if (isClosed || emit.isDone) return;
       if (session != null && session.isValid()) {
         DLog.info(
           '🔔 [NavigationBloc] Found pending active trip session to "${session.destinationName}"',
@@ -148,6 +162,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         emit(state.copyWith(pendingResumeSession: session));
       }
     } catch (e, stack) {
+      if (isClosed || emit.isDone) return;
       DLog.error('❌ [NavigationBloc] Error checking active session: $e', e, stack);
     }
   }
@@ -271,6 +286,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     } catch (e, stack) {
       DLog.error('❌ [NavigationBloc] Error clearing discarded active session: $e', e, stack);
     }
+    if (isClosed || emit.isDone) return;
     emit(state.copyWith(clearPendingResumeSession: true));
   }
 
@@ -278,34 +294,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     SaveActiveSessionSnapshot event,
     Emitter<NavigationState> emit,
   ) async {
-    if (!state.isNavigating ||
-        state.currentRoute == null ||
-        state.origin == null ||
-        state.destination == null) {
-      return;
-    }
-
-    final snapshot = ActiveTripSnapshot(
-      origin: state.origin!,
-      destination: state.destination!,
-      destinationName: state.destinationName,
-      profile: state.profile,
-      initialRoute: state.currentRoute!,
-      currentSegmentIndex: state.currentSegmentIndex,
-      currentInstructionIndex: state.currentInstructionIndex,
-      tripStartTime: state.tripStartTime ?? DateTime.now(),
-      lastSavedTime: DateTime.now(),
-      totalDistanceTraveledMeters: state.totalDistanceTraveledMeters,
-      maxSpeedKmh: state.maxSpeedKmh,
-      speedSampleSum: state.speedSampleSum,
-      speedSampleCount: state.speedSampleCount,
-      lastKnownLat: state.currentLat,
-      lastKnownLon: state.currentLon,
-    );
+    final snapshot = _buildSnapshotFromState();
+    if (snapshot == null) return;
 
     try {
       await _activeTripService.saveActiveSession(snapshot);
     } catch (e, stack) {
+      if (isClosed || emit.isDone) return;
       DLog.warning(
         '⚠️ [NavigationBloc] Storage error while auto-saving active session: $e',
         e,
@@ -541,7 +536,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       _locationSubscription?.cancel();
       _locationSubscription = null;
       _stopAutoSaveTimer();
-      unawaited(_activeTripService.clearActiveSession());
+      unawaited(_clearActiveSessionSafely());
 
       final now = DateTime.now();
       final startTime = state.tripStartTime ?? now;
@@ -748,7 +743,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     DLog.info('🛑 [NavigationBloc] Stopping navigation [Gen #$generation]');
 
     _stopAutoSaveTimer();
-    unawaited(_activeTripService.clearActiveSession());
+    unawaited(_clearActiveSessionSafely());
 
     await _locationSubscription?.cancel();
     _locationSubscription = null;
@@ -830,7 +825,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     DLog.info('🧹 [NavigationBloc] Clearing navigation state back to initial');
     final generation = ++_requestGeneration;
     _stopAutoSaveTimer();
-    unawaited(_activeTripService.clearActiveSession());
+    unawaited(_clearActiveSessionSafely());
 
     await _locationSubscription?.cancel();
     _locationSubscription = null;

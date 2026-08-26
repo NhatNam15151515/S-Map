@@ -74,4 +74,7 @@ class RoutingConstants {
 
   static const double routeDimmedLineWidth = 4.0;
   static const double routeDimmedOpacity = 0.55;
+
+  // Active Trip Persistence Constants
+  static const Duration maxActiveSessionAge = Duration(hours: 24);
 }

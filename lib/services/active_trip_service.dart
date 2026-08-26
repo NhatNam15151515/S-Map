@@ -4,9 +4,6 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
-// Backward compatibility alias
-typedef ActiveTripService = IActiveTripService;
-
 class ActiveTripServiceImpl implements IActiveTripService {
   static const String boxName = 'active_trip_session_box';
   static const String activeSessionKey = 'current_active_session';
@@ -30,16 +27,20 @@ class ActiveTripServiceImpl implements IActiveTripService {
       } else {
         _box = Hive.box<dynamic>(boxName);
       }
-    } catch (e) {
-      DLog.error('❌ [ActiveTripService] Lỗi mở Hive box $boxName: $e');
-      _box = await Hive.openBox<dynamic>(boxName);
+    } catch (e, stack) {
+      DLog.error('❌ [ActiveTripService] Lỗi mở Hive box $boxName: $e', e, stack);
+      rethrow;
     }
     return _box!;
   }
 
   @override
   Future<void> init() async {
-    await _getBox();
+    try {
+      await _getBox();
+    } catch (e, stack) {
+      DLog.error('❌ [ActiveTripService] Initialization failed for $boxName: $e', e, stack);
+    }
   }
 
   @override

@@ -41,7 +41,7 @@ class ActiveTripSnapshot extends Equatable {
   });
 
   /// Kiểm tra xem snapshot có còn hợp lệ theo thời gian tối đa cho phép (mặc định 24h)
-  bool isValid({Duration maxAge = const Duration(hours: 24)}) {
+  bool isValid({Duration maxAge = RoutingConstants.maxActiveSessionAge}) {
     final now = DateTime.now();
     return now.difference(lastSavedTime) <= maxAge;
   }

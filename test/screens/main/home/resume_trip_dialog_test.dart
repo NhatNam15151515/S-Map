@@ -1,11 +1,39 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/constants/constants.dart';
+import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/navigation/resume_trip_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+Widget createTestApp(Widget child) {
+  return EasyLocalization(
+    supportedLocales: const [Locale('vi'), Locale('en')],
+    path: 'assets/translations',
+    fallbackLocale: const Locale('vi'),
+    startLocale: const Locale('vi'),
+    assetLoader: const CodegenLoader(),
+    child: Builder(
+      builder: (context) => MaterialApp(
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+        home: Scaffold(
+          body: Center(child: child),
+        ),
+      ),
+    ),
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    EasyLocalization.logger.enableLevels = [];
+  });
 
   const sampleRoute = RouteResult(
     isSuccess: true,
@@ -46,50 +74,42 @@ void main() {
     speedSampleCount: 15,
   );
 
-  Widget createTestWidget({
-    required ActiveTripSnapshot snapshot,
-    required VoidCallback onResume,
-    required VoidCallback onDiscard,
-  }) {
-    return MaterialApp(
-      home: Scaffold(
-        body: ResumeTripDialog(
-          snapshot: snapshot,
-          onResume: onResume,
-          onDiscard: onDiscard,
-        ),
-      ),
-    );
-  }
-
   group('ResumeTripDialog Widget Tests', () {
-    testWidgets('renders dialog with destination info and action buttons', (tester) async {
-      await tester.pumpWidget(createTestWidget(
-        snapshot: sampleSnapshot,
-        onResume: () {},
-        onDiscard: () {},
+    testWidgets('renders dialog with destination info and localized strings', (tester) async {
+      await tester.pumpWidget(createTestApp(
+        ResumeTripDialog(
+          snapshot: sampleSnapshot,
+          onResume: () {},
+          onDiscard: () {},
+        ),
       ));
       await tester.pumpAndSettle();
 
       expect(find.byType(ResumeTripDialog), findsOneWidget);
       expect(find.byIcon(Icons.restore_rounded), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsOneWidget);
-      expect(find.byType(OutlinedButton), findsOneWidget);
+      expect(find.text('Tiếp tục chuyến đi?'), findsOneWidget);
+      expect(find.textContaining('Nhà Hát Thành Phố'), findsOneWidget);
+      expect(find.text('Quãng đường'), findsOneWidget);
+      expect(find.text('Thời gian'), findsOneWidget);
+      expect(find.text('Tiếp tục'), findsOneWidget);
+      expect(find.text('Bỏ qua'), findsOneWidget);
     });
 
     testWidgets('tapping resume button triggers onResume callback', (tester) async {
       bool resumed = false;
 
-      await tester.pumpWidget(createTestWidget(
-        snapshot: sampleSnapshot,
-        onResume: () {
-          resumed = true;
-        },
-        onDiscard: () {},
+      await tester.pumpWidget(createTestApp(
+        ResumeTripDialog(
+          snapshot: sampleSnapshot,
+          onResume: () {
+            resumed = true;
+          },
+          onDiscard: () {},
+        ),
       ));
       await tester.pumpAndSettle();
 
-      final resumeBtn = find.byType(ElevatedButton);
+      final resumeBtn = find.widgetWithText(ElevatedButton, 'Tiếp tục');
       expect(resumeBtn, findsOneWidget);
       await tester.tap(resumeBtn);
       await tester.pumpAndSettle();
@@ -100,16 +120,18 @@ void main() {
     testWidgets('tapping discard button triggers onDiscard callback', (tester) async {
       bool discarded = false;
 
-      await tester.pumpWidget(createTestWidget(
-        snapshot: sampleSnapshot,
-        onResume: () {},
-        onDiscard: () {
-          discarded = true;
-        },
+      await tester.pumpWidget(createTestApp(
+        ResumeTripDialog(
+          snapshot: sampleSnapshot,
+          onResume: () {},
+          onDiscard: () {
+            discarded = true;
+          },
+        ),
       ));
       await tester.pumpAndSettle();
 
-      final discardBtn = find.byType(OutlinedButton);
+      final discardBtn = find.widgetWithText(OutlinedButton, 'Bỏ qua');
       expect(discardBtn, findsOneWidget);
       await tester.tap(discardBtn);
       await tester.pumpAndSettle();

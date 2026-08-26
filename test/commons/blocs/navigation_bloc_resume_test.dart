@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
@@ -310,18 +311,46 @@ void main() {
       expect(mockActiveTripService.currentSnapshot, isNull);
     });
 
-    test('StartNavigation auto-saves snapshot to active trip service', () async {
-      bloc.add(const StartNavigation(
-        initialRoute: sampleRoute,
-        origin: RoutePoint(lat: 10.7769, lon: 106.7009),
-        destination: RoutePoint(lat: 10.7820, lon: 106.7050),
-        destinationName: 'Landmark 81',
-      ));
-      await pumpEventQueue();
+    test('StartNavigation auto-saves snapshot periodically and cancels on close', () {
+      fakeAsync((async) {
+        final localBloc = NavigationBloc(
+          routingRepository: mockRoutingRepo,
+          tripRepository: mockTripRepo,
+          locationService: mockLocationService,
+          activeTripService: mockActiveTripService,
+        );
 
-      expect(mockActiveTripService.saveCount, greaterThanOrEqualTo(1));
-      expect(mockActiveTripService.currentSnapshot, isNotNull);
-      expect(mockActiveTripService.currentSnapshot!.destinationName, equals('Landmark 81'));
+        localBloc.add(const StartNavigation(
+          initialRoute: sampleRoute,
+          origin: RoutePoint(lat: 10.7769, lon: 106.7009),
+          destination: RoutePoint(lat: 10.7820, lon: 106.7050),
+          destinationName: 'Landmark 81',
+        ));
+        async.flushMicrotasks();
+
+        expect(mockActiveTripService.saveCount, equals(1));
+        expect(mockActiveTripService.currentSnapshot, isNotNull);
+        expect(mockActiveTripService.currentSnapshot!.destinationName, equals('Landmark 81'));
+
+        // Advance 30 seconds -> periodic auto-save triggers SaveActiveSessionSnapshot
+        async.elapse(const Duration(seconds: 30));
+        async.flushMicrotasks();
+        expect(mockActiveTripService.saveCount, equals(2));
+
+        // Advance another 30 seconds -> triggers again
+        async.elapse(const Duration(seconds: 30));
+        async.flushMicrotasks();
+        expect(mockActiveTripService.saveCount, equals(3));
+
+        // Close bloc -> timer must be cancelled
+        localBloc.close();
+        async.flushMicrotasks();
+
+        final countAfterClose = mockActiveTripService.saveCount;
+        async.elapse(const Duration(seconds: 60));
+        async.flushMicrotasks();
+        expect(mockActiveTripService.saveCount, equals(countAfterClose));
+      });
     });
 
     test('StopNavigation clears active trip session from service', () async {
