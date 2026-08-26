@@ -297,6 +297,39 @@ void main() {
       expect(bloc.state.pendingResumeSession, isNull);
     });
 
+    test('ResumeNavigation followed by off-route GPS triggers reroute calculation', () async {
+      mockActiveTripService.currentSnapshot = sampleSnapshot;
+
+      bloc.add(ResumeNavigation(sampleSnapshot));
+      await pumpEventQueue();
+
+      expect(bloc.state.status, equals(NavigationStatus.navigating));
+      expect(mockRoutingRepo.calculateRouteCallCount, equals(0));
+
+      // Emit a GPS position clearly far away from the resumed route (> 50m)
+      mockLocationService.emitPosition(
+        Position(
+          latitude: 10.8000,
+          longitude: 106.7300,
+          timestamp: DateTime.now(),
+          accuracy: 5.0,
+          altitude: 10.0,
+          altitudeAccuracy: 1.0,
+          heading: 90.0,
+          headingAccuracy: 1.0,
+          speed: 8.33,
+          speedAccuracy: 1.0,
+        ),
+      );
+      await pumpEventQueue();
+
+      // Verify routing repository was called for rerouting and state returned to navigating
+      expect(mockRoutingRepo.calculateRouteCallCount, equals(1));
+      expect(bloc.state.status, equals(NavigationStatus.navigating));
+      expect(bloc.state.rerouteCount, equals(1));
+      expect(bloc.state.isOffRoute, isFalse);
+    });
+
     test('DiscardActiveSession clears active session from service and state', () async {
       mockActiveTripService.currentSnapshot = sampleSnapshot;
       bloc.add(const CheckActiveSession());
