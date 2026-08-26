@@ -1,3 +1,4 @@
+export 'i_active_trip_service.dart';
 export 'i_auth_repos.dart';
 export 'i_compass_service.dart';
 export 'i_custom_route_repository.dart';

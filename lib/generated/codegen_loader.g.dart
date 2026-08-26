@@ -197,7 +197,13 @@ class CodegenLoader extends AssetLoader{
     "battery_dialog_desc_xiaomi": "Xiaomi/Redmi devices may restrict background GPS. Please set Battery Saver to 'No restrictions' and enable 'Autostart' for S-Map.",
     "battery_dialog_desc_general": "To receive background navigation while the screen is off, please allow unrestricted background battery usage.",
     "battery_dialog_btn_allow": "Allow Background",
-    "battery_dialog_btn_skip": "Skip"
+    "battery_dialog_btn_skip": "Skip",
+    "resume_trip_title": "Resume Trip?",
+    "resume_trip_desc": "Found an unfinished trip to {}. Would you like to resume navigation?",
+    "resume_trip_desc_unnamed": "Found an unfinished trip. Would you like to resume navigation?",
+    "resume_btn": "Resume",
+    "discard_btn": "Discard",
+    "storage_warning": "Low device storage or storage error, unable to persist active navigation state"
   },
   "route_drawing_ui": {
     "title": "Custom Route Drawing",
@@ -486,7 +492,13 @@ static const Map<String,dynamic> _vi = {
     "battery_dialog_desc_xiaomi": "Thiết bị Xiaomi/Redmi có thể ngắt GPS nền. Vui lòng chọn 'Không hạn chế' trong Tiết kiệm pin và bật 'Tự khởi chạy' cho S-Map.",
     "battery_dialog_desc_general": "Để đảm bảo nhận chỉ dẫn và định vị liên tục khi tắt màn hình, vui lòng cho phép ứng dụng chạy ngầm không hạn chế pin.",
     "battery_dialog_btn_allow": "Cho phép chạy ngầm",
-    "battery_dialog_btn_skip": "Bỏ qua"
+    "battery_dialog_btn_skip": "Bỏ qua",
+    "resume_trip_title": "Tiếp tục chuyến đi?",
+    "resume_trip_desc": "Phát hiện chuyến đi chưa hoàn tất đến {}. Bạn có muốn tiếp tục hành trình không?",
+    "resume_trip_desc_unnamed": "Phát hiện một chuyến đi chưa hoàn tất. Bạn có muốn tiếp tục hành trình không?",
+    "resume_btn": "Tiếp tục",
+    "discard_btn": "Bỏ qua",
+    "storage_warning": "Bộ nhớ thiết bị sắp đầy hoặc xảy ra lỗi lưu trữ, không thể lưu trạng thái phiên điều hướng"
   },
   "route_drawing_ui": {
     "title": "Vẽ lộ trình tùy chỉnh",

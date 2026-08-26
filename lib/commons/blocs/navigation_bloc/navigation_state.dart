@@ -58,6 +58,9 @@ class NavigationState extends Equatable {
   // Battery optimization prompt
   final DeviceOemType? promptBatteryOptimizationOem;
 
+  // Active trip resume prompt
+  final ActiveTripSnapshot? pendingResumeSession;
+
   const NavigationState({
     this.status = NavigationStatus.initial,
     this.currentRoute,
@@ -92,6 +95,7 @@ class NavigationState extends Equatable {
     this.messageKey,
     this.errorMessageKey,
     this.promptBatteryOptimizationOem,
+    this.pendingResumeSession,
   });
 
   bool get isNavigating =>
@@ -150,6 +154,8 @@ class NavigationState extends Equatable {
     bool clearError = false,
     DeviceOemType? promptBatteryOptimizationOem,
     bool clearPromptBatteryOptimization = false,
+    ActiveTripSnapshot? pendingResumeSession,
+    bool clearPendingResumeSession = false,
   }) {
     return NavigationState(
       status: status ?? this.status,
@@ -199,6 +205,9 @@ class NavigationState extends Equatable {
       promptBatteryOptimizationOem: clearPromptBatteryOptimization
           ? null
           : (promptBatteryOptimizationOem ?? this.promptBatteryOptimizationOem),
+      pendingResumeSession: clearPendingResumeSession
+          ? null
+          : (pendingResumeSession ?? this.pendingResumeSession),
     );
   }
 
@@ -237,5 +246,6 @@ class NavigationState extends Equatable {
         messageKey,
         errorMessageKey,
         promptBatteryOptimizationOem,
+        pendingResumeSession,
       ];
 }

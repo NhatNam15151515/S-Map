@@ -31,6 +31,7 @@ void main() async {
   RoutePreviewCubit.defaultLocationService = LocationService.instance;
   NavigationBloc.defaultLocationService = LocationService.instance;
   NavigationBloc.defaultDeviceInfoService = DeviceInfoService.instance;
+  NavigationBloc.defaultActiveTripService = ActiveTripServiceImpl.instance;
   ListenComingNotification.messagingServiceResolver = FirebaseMessagingService.instance;
 
   await EasyLocalization.ensureInitialized();

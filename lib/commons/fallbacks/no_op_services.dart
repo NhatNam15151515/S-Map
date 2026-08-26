@@ -195,3 +195,24 @@ class NoOpTripSyncService implements ITripSyncService {
   @override
   Stream<int> watchQueueCount() => const Stream.empty();
 }
+
+/// Fallback / No-Op implementation for IActiveTripService
+class NoOpActiveTripService implements IActiveTripService {
+  const NoOpActiveTripService();
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> saveActiveSession(ActiveTripSnapshot snapshot) async {}
+
+  @override
+  Future<ActiveTripSnapshot?> getActiveSession() async => null;
+
+  @override
+  Future<void> clearActiveSession() async {}
+
+  @override
+  Future<bool> hasActiveSession() async => false;
+}
+
