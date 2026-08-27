@@ -10,4 +10,10 @@ abstract class ISharedPreferences {
 
   /// Marks the first-install flag as consumed so it won't trigger again.
   Future<void> save1stInstall();
+
+  /// Gets stored theme mode preference ('system', 'light', 'dark').
+  Future<String?> getThemeMode();
+
+  /// Saves theme mode preference ('system', 'light', 'dark').
+  Future<void> saveThemeMode(String mode);
 }

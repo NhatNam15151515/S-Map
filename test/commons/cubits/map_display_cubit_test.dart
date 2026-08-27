@@ -253,10 +253,19 @@ class MockCompassService implements ICompassService {
 
 class MockMapStyleService implements IMapStyleService {
   final String mockStyle;
-  MockMapStyleService(this.mockStyle);
+  final String mockNightStyle;
+  MockMapStyleService(this.mockStyle,
+      {this.mockNightStyle = '{"version": 8, "name": "Night"}'});
 
   @override
   String get styleJson => mockStyle;
+
+  @override
+  String get nightStyleJson => mockNightStyle;
+
+  @override
+  String getStyleJson({bool isDarkMode = false}) =>
+      isDarkMode ? nightStyleJson : styleJson;
 
   @override
   Future<void> init() async {}
@@ -527,6 +536,31 @@ void main() {
 
       cubit.clearSelectedPoi();
       expect(cubit.state.selectedPoi, isNull);
+
+      cubit.close();
+    });
+
+    test('updateMapTheme and toggleNightMode switch day and night map styles', () {
+      final mockStyleService = MockMapStyleService(
+        '{"version": 8, "name": "Day"}',
+        mockNightStyle: '{"version": 8, "name": "Night"}',
+      );
+      final cubit = MapDisplayCubit(mapStyleService: mockStyleService);
+
+      expect(cubit.state.styleString, equals('{"version": 8, "name": "Day"}'));
+      expect(cubit.state.isNightMode, isFalse);
+
+      cubit.updateMapTheme(isDarkMode: true);
+      expect(cubit.state.styleString, equals('{"version": 8, "name": "Night"}'));
+      expect(cubit.state.isNightMode, isTrue);
+
+      cubit.updateMapTheme(isDarkMode: false);
+      expect(cubit.state.styleString, equals('{"version": 8, "name": "Day"}'));
+      expect(cubit.state.isNightMode, isFalse);
+
+      cubit.toggleNightMode();
+      expect(cubit.state.styleString, equals('{"version": 8, "name": "Night"}'));
+      expect(cubit.state.isNightMode, isTrue);
 
       cubit.close();
     });

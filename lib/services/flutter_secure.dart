@@ -88,6 +88,8 @@ class AppSharedPreferences implements ISharedPreferences {
     initComplete.complete(true);
   }
 
+  static const String themeModeKey = "app_theme_mode";
+
   @override
   Future<bool> get1stInstall() async {
     await initComplete.future;
@@ -98,5 +100,17 @@ class AppSharedPreferences implements ISharedPreferences {
   Future<void> save1stInstall() async {
     await initComplete.future;
     await prefs.setBool(firstInstall, false);
+  }
+
+  @override
+  Future<String?> getThemeMode() async {
+    await initComplete.future;
+    return prefs.getString(themeModeKey);
+  }
+
+  @override
+  Future<void> saveThemeMode(String mode) async {
+    await initComplete.future;
+    await prefs.setString(themeModeKey, mode);
   }
 }

@@ -39,6 +39,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         navigationBloc.add(const CheckActiveSession());
+        final isDark = context.read<AppCubit>().state.isDarkMode;
+        displayCubit.updateMapTheme(isDarkMode: isDark);
       }
     });
   }
@@ -134,6 +136,14 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     return Scaffold(
       body: MultiBlocListener(
         listeners: [
+          BlocListener<AppCubit, AppState>(
+            listenWhen: (prev, curr) =>
+                prev.themeMode != curr.themeMode ||
+                prev.appStyle != curr.appStyle,
+            listener: (context, appState) {
+              displayCubit.updateMapTheme(isDarkMode: appState.isDarkMode);
+            },
+          ),
           BlocListener<NavigationBloc, NavigationState>(
             listenWhen: (prev, curr) =>
                 !_isTripSummaryShown &&

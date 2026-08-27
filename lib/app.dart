@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/styles/themes/themes.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/routers/routers.dart';
@@ -65,7 +66,9 @@ class _MyAppState extends State<MyApp> {
                 return MaterialApp.router(
                   localizationsDelegates: context.localizationDelegates,
                   supportedLocales: context.supportedLocales,
-                  theme: appCubit.state.appStyle.light,
+                  theme: DefaultTheme().light,
+                  darkTheme: DarkTheme().light,
+                  themeMode: state.themeMode,
                   debugShowCheckedModeBanner: false,
                   locale: context.locale,
                   builder: (context, widget) {

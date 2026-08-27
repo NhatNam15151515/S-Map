@@ -115,6 +115,14 @@ class NoOpMapStyleService implements IMapStyleService {
   String get styleJson => '{"version": 8, "sources": {}, "layers": []}';
 
   @override
+  String get nightStyleJson =>
+      '{"version": 8, "name": "Dark", "sources": {}, "layers": []}';
+
+  @override
+  String getStyleJson({bool isDarkMode = false}) =>
+      isDarkMode ? nightStyleJson : styleJson;
+
+  @override
   Future<void> init() async {}
 }
 

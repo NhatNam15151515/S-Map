@@ -12,6 +12,7 @@ import 'map_display_state.dart';
 class MapDisplayCubit extends Cubit<MapDisplayState> {
   final ILocationService _locationService;
   final ICompassService _compassService;
+  final IMapStyleService _mapStyleService;
 
   StreamSubscription<double?>? _compassSubscription;
   double? _lastRotatedHeading;
@@ -34,6 +35,9 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
         _compassService = compassService ??
             defaultCompassService ??
             const NoOpCompassService(),
+        _mapStyleService = mapStyleService ??
+            defaultMapStyleService ??
+            const NoOpMapStyleService(),
         super(MapDisplayState(
           status: MapDisplayStatus.initial,
           styleString: (mapStyleService ??
@@ -42,12 +46,26 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
               .styleJson,
         ));
 
-
   /// Safe emit guard rule mandatory for all Cubits/Blocs
   @override
   void emit(MapDisplayState state) {
     if (isClosed) return;
     super.emit(state);
+  }
+
+  void updateMapTheme({required bool isDarkMode}) {
+    final newStyle = _mapStyleService.getStyleJson(isDarkMode: isDarkMode);
+    if (newStyle.isNotEmpty &&
+        (newStyle != state.styleString || isDarkMode != state.isNightMode)) {
+      emit(state.copyWith(
+        styleString: newStyle,
+        isNightMode: isDarkMode,
+      ));
+    }
+  }
+
+  void toggleNightMode() {
+    updateMapTheme(isDarkMode: !state.isNightMode);
   }
 
   void onMapCreated() {

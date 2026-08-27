@@ -166,7 +166,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             left: 16,
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.white,
+                color: AppStyle.of(context).colorScheme.surface,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -178,7 +178,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               ),
               child: IconButton(
                 key: const Key('trip_detail_back_btn'),
-                icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
+                icon: Icon(Icons.arrow_back_rounded,
+                    color: AppStyle.of(context).blackTextColor),
                 onPressed: () => context.pop(),
               ),
             ),
@@ -195,7 +196,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               ),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppStyle.of(context).colorScheme.surface,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(_panelRadius)),
                 boxShadow: [
                   BoxShadow(

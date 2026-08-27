@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -30,6 +31,7 @@ class MapControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return RepaintBoundary(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -46,6 +48,7 @@ class MapControls extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           _buildControlButton(
+            context: context,
             icon: Icons.layers_rounded,
             tooltip: tr(LocaleKeys.map_switch_layers),
             onPressed: () {
@@ -55,6 +58,7 @@ class MapControls extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _buildControlButton(
+            context: context,
             icon: Icons.add_rounded,
             tooltip: tr(LocaleKeys.map_zoom_in),
             onPressed: () {
@@ -64,6 +68,7 @@ class MapControls extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _buildControlButton(
+            context: context,
             icon: Icons.remove_rounded,
             tooltip: tr(LocaleKeys.map_zoom_out),
             onPressed: () {
@@ -79,7 +84,7 @@ class MapControls extends StatelessWidget {
               HapticFeedback.mediumImpact();
               onLocateMe();
             },
-            backgroundColor: AppColors.white,
+            backgroundColor: style.colorScheme.surface,
             foregroundColor: AppColors.googleBlue,
             elevation: 4,
             shape: const CircleBorder(),
@@ -91,17 +96,19 @@ class MapControls extends StatelessWidget {
   }
 
   Widget _buildControlButton({
+    required BuildContext context,
     required IconData icon,
     required String tooltip,
     required VoidCallback onPressed,
   }) {
+    final style = AppStyle.of(context);
     return Container(
       width: 44,
       height: 44,
-      decoration: const BoxDecoration(
-        color: AppColors.white,
+      decoration: BoxDecoration(
+        color: style.colorScheme.surface,
         shape: BoxShape.circle,
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Color.fromRGBO(0, 0, 0, 0.08),
             blurRadius: 8,
@@ -110,7 +117,7 @@ class MapControls extends StatelessWidget {
         ],
       ),
       child: IconButton(
-        icon: Icon(icon, color: AppColors.googleDarkText, size: 20),
+        icon: Icon(icon, color: style.blackTextColor, size: 20),
         tooltip: tooltip,
         onPressed: onPressed,
         padding: EdgeInsets.zero,
