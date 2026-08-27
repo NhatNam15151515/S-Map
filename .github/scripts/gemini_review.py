@@ -219,14 +219,15 @@ def main():
         else:
             diff_text = truncated_text + "\n\n... (diff truncated due to size)"
 
-    # Cấu hình client với timeout 90 giây để tránh bị treo vĩnh viễn
+    # Cấu hình client với timeout 5 phút (300000ms) để tránh bị DEADLINE_EXCEEDED cho file lớn
     client = genai.Client(
         api_key=gemini_api_key,
-        http_options=types.HttpOptions(timeout=90000),
+        http_options=types.HttpOptions(timeout=300000),
     )
 
-    # Ưu tiên Gemini 3.1 Pro (High Reasoning) hàng đầu
+    # Ưu tiên Gemini 3.1 Pro Preview (dành cho API version v1beta mới)
     models_to_try = [
+        "gemini-3.1-pro-preview",
         "gemini-3.1-pro",
         "gemini-2.5-pro",
         "gemini-1.5-pro",
