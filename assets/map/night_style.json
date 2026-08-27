@@ -1,15 +1,17 @@
 {
   "version": 8,
-  "name": "S-Map OSM Dark (Raster Filter)",
+  "name": "S-Map OSM Dark (Dedicated Raster Tiles)",
   "sources": {
-    "osm-tiles": {
+    "osm-tiles-dark": {
       "type": "raster",
       "tiles": [
-        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
       ],
       "tileSize": 256,
       "maxzoom": 19,
-      "attribution": "© OpenStreetMap contributors"
+      "attribution": "© OpenStreetMap contributors, © CARTO"
     }
   },
   "layers": [
@@ -17,21 +19,15 @@
       "id": "background-layer",
       "type": "background",
       "paint": {
-        "background-color": "#121212"
+        "background-color": "#090909"
       }
     },
     {
-      "id": "osm-tiles-layer",
+      "id": "osm-tiles-dark-layer",
       "type": "raster",
-      "source": "osm-tiles",
+      "source": "osm-tiles-dark",
       "minzoom": 0,
-      "maxzoom": 22,
-      "paint": {
-        "raster-hue-rotate": 180,
-        "raster-brightness-max": 0.7,
-        "raster-saturation": -0.5,
-        "raster-contrast": 0.5
-      }
+      "maxzoom": 22
     }
   ]
 }

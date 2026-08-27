@@ -11,6 +11,7 @@ typedef AppStyleResolver = AppStyle Function(BuildContext context);
 
 abstract class AppStyle {
   ThemeData get light;
+  ThemeData get dark => light;
   ColorScheme get colorScheme;
   Color get blackTextColor;
   Color get whiteTextColor;
