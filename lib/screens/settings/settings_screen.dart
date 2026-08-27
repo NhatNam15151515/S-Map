@@ -75,10 +75,10 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: () => dialogContext.pop(),
               child: Text(
                 tr(LocaleKeys.common_cancel),
-                style: const TextStyle(color: AppColors.sMapTeal),
+                style: style.colorScheme.primary.toTextStyle,
               ),
             ),
           ],
@@ -102,7 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
         borderRadius: BorderRadius.circular(12),
         onTap: () {
           context.read<AppCubit>().onChangeThemeMode(value);
-          Navigator.of(dialogContext).pop();
+          dialogContext.pop();
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

@@ -10,7 +10,7 @@ import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/routers/routers.dart';
 import 'app_state.dart';
 
-class AppCubit extends Cubit<AppState> {
+class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
   final ISharedPreferences _sharedPreferences;
 
   /// Global service resolvers set during app initialization
@@ -34,12 +34,29 @@ class AppCubit extends Cubit<AppState> {
               'S-Map',
           supportedLocale: SupportedLocale.vi,
         )) {
-    // Register resolver to break circular dependency:
-    // styles.dart ↔ app_cubit.dart ↔ default_theme.dart
+    try {
+      WidgetsBinding.instance.addObserver(this);
+    } catch (_) {}
     AppStyle.setResolver(
       (context) => BlocProvider.of<AppCubit>(context).state.appStyle,
     );
     initTheme();
+  }
+
+  @override
+  Future<void> close() {
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
+    return super.close();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    if (state.themeMode == ThemeMode.system) {
+      _updateStyleForMode(ThemeMode.system);
+    }
   }
 
   @override
@@ -53,22 +70,36 @@ class AppCubit extends Cubit<AppState> {
       final savedMode = await _sharedPreferences.getThemeMode();
       if (savedMode != null) {
         final mode = _parseThemeMode(savedMode);
-        final style = mode == ThemeMode.dark ? DarkTheme() : DefaultTheme();
-        emit(state.copyWith(
-          themeMode: mode,
-          appStyle: style,
-        ));
+        _updateStyleForMode(mode);
+      } else {
+        _updateStyleForMode(ThemeMode.system);
       }
     } catch (_) {}
   }
 
   void onChangeThemeMode(ThemeMode mode) {
-    final style = mode == ThemeMode.dark ? DarkTheme() : DefaultTheme();
+    _updateStyleForMode(mode);
+    _sharedPreferences.saveThemeMode(_themeModeToString(mode));
+  }
+
+  void _updateStyleForMode(ThemeMode mode) {
+    AppStyle style;
+    if (mode == ThemeMode.dark) {
+      style = DarkTheme();
+    } else if (mode == ThemeMode.light) {
+      style = DefaultTheme();
+    } else {
+      try {
+        final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+        style = isPlatformDark ? DarkTheme() : DefaultTheme();
+      } catch (_) {
+        style = DefaultTheme();
+      }
+    }
     emit(state.copyWith(
       themeMode: mode,
       appStyle: style,
     ));
-    _sharedPreferences.saveThemeMode(_themeModeToString(mode));
   }
 
   void toggleDarkMode(bool isDark) {

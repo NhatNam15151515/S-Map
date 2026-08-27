@@ -13,10 +13,10 @@ class DarkTheme extends AppStyle {
         onSecondary: AppColors.white,
         error: AppColors.googleRed,
         onError: AppColors.white,
-        surface: Color(0xFF1E1E1E),
-        onSurface: Color(0xFFE8EAED),
-        surfaceContainerHighest: Color(0xFF2D2D2D),
-        outline: Color(0xFF3C4043),
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkOnSurface,
+        surfaceContainerHighest: AppColors.darkSurfaceContainerHighest,
+        outline: AppColors.darkOutline,
       );
 
   @override

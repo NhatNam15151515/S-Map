@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -28,6 +29,16 @@ class FakeSharedPreferences implements ISharedPreferences {
 }
 
 Widget createSettingsTestApp({required AppCubit appCubit}) {
+  final router = GoRouter(
+    initialLocation: '/',
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+    ],
+  );
+
   return EasyLocalization(
     supportedLocales: const [Locale('vi'), Locale('en')],
     path: 'assets/translations',
@@ -37,11 +48,11 @@ Widget createSettingsTestApp({required AppCubit appCubit}) {
     child: BlocProvider<AppCubit>.value(
       value: appCubit,
       child: Builder(
-        builder: (context) => MaterialApp(
+        builder: (context) => MaterialApp.router(
           localizationsDelegates: context.localizationDelegates,
           supportedLocales: context.supportedLocales,
           locale: context.locale,
-          home: const SettingsScreen(),
+          routerConfig: router,
         ),
       ),
     ),
