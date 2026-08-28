@@ -101,7 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
         key: ValueKey('theme_option_${value.name}'),
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          context.read<AppCubit>().onChangeThemeMode(value);
+          dialogContext.read<AppCubit>().onChangeThemeMode(value);
           dialogContext.pop();
         },
         child: Padding(
