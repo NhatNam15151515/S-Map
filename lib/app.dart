@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/styles/themes/themes.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/routers/routers.dart';
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final ThemeMode initialThemeMode;
+  const MyApp({super.key, this.initialThemeMode = ThemeMode.system});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -23,7 +25,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    appCubit = AppCubit();
+    appCubit = AppCubit(initialThemeMode: widget.initialThemeMode);
     authCubit = AuthCubit();
     notificationCubit = NotificationCubit();
     favoritesCubit = FavoritesCubit();
@@ -65,7 +67,9 @@ class _MyAppState extends State<MyApp> {
                 return MaterialApp.router(
                   localizationsDelegates: context.localizationDelegates,
                   supportedLocales: context.supportedLocales,
-                  theme: appCubit.state.appStyle.light,
+                  theme: DefaultTheme.instance.light,
+                  darkTheme: DarkTheme.instance.dark,
+                  themeMode: state.themeMode,
                   debugShowCheckedModeBanner: false,
                   locale: context.locale,
                   builder: (context, widget) {

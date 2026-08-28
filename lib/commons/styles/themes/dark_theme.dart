@@ -1,30 +1,31 @@
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/styles/themes/default_theme.dart';
+import 'package:s_map/commons/utils/app_colors.dart';
 
-class DefaultTheme extends AppStyle {
-  static final DefaultTheme instance = DefaultTheme();
+class DarkTheme extends AppStyle {
+  static final DarkTheme instance = DarkTheme();
 
   @override
   ColorScheme get colorScheme => const ColorScheme(
-        brightness: Brightness.light,
+        brightness: Brightness.dark,
         primary: AppColors.sMapTeal,
         onPrimary: AppColors.white,
         secondary: AppColors.sMapDarkTeal,
         onSecondary: AppColors.white,
         error: AppColors.googleRed,
         onError: AppColors.white,
-        surface: AppColors.white,
-        onSurface: AppColors.googleDarkText,
-        surfaceContainerHighest: AppColors.surfaceContainerHighest,
-        outline: AppColors.outlineVariant,
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkOnSurface,
+        surfaceContainerHighest: AppColors.darkSurfaceContainerHighest,
+        outline: AppColors.darkOutline,
       );
 
   @override
   InputBorder get defaultBorder => OutlineInputBorder(
         borderSide: const BorderSide(
           width: 1,
-          color: AppColors.outlineVariant,
+          color: AppColors.darkOutline,
         ),
         borderRadius: BorderRadius.circular(12),
       );
@@ -40,16 +41,16 @@ class DefaultTheme extends AppStyle {
 
   @override
   BoxDecoration get searchContainer => BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.darkSurfaceContainer,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withAlpha(80),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
           BoxShadow(
-            color: Colors.black.withAlpha(10),
+            color: Colors.black.withAlpha(50),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -58,11 +59,11 @@ class DefaultTheme extends AppStyle {
 
   @override
   ThemeData get light => ThemeData(
-        brightness: Brightness.light,
+        brightness: Brightness.dark,
         colorScheme: colorScheme,
         useMaterial3: true,
-        unselectedWidgetColor: AppColors.onSurfaceVariant,
-        scaffoldBackgroundColor: AppColors.surfaceDim,
+        unselectedWidgetColor: const Color(0xFF9AA0A6),
+        scaffoldBackgroundColor: AppColors.darkBackground,
         fontFamily: 'Montserrat',
         cardTheme: CardThemeData(
           elevation: 0.5,
@@ -70,10 +71,14 @@ class DefaultTheme extends AppStyle {
             borderRadius: BorderRadius.circular(16),
           ),
           surfaceTintColor: Colors.transparent,
-          color: AppColors.white,
+          color: AppColors.darkSurface,
         ),
         snackBarTheme: SnackBarThemeData(
-          backgroundColor: AppColors.googleDarkText,
+          backgroundColor: AppColors.darkSurfaceContainerHighest,
+          contentTextStyle: const TextStyle(
+            fontFamily: 'Montserrat',
+            color: AppColors.darkOnSurface,
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -83,9 +88,9 @@ class DefaultTheme extends AppStyle {
           type: BottomNavigationBarType.fixed,
           showSelectedLabels: true,
           showUnselectedLabels: true,
-          backgroundColor: AppColors.white,
+          backgroundColor: AppColors.darkSurface,
           selectedItemColor: AppColors.sMapTeal,
-          unselectedItemColor: AppColors.onSurfaceVariant,
+          unselectedItemColor: Color(0xFF9AA0A6),
           selectedLabelStyle: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -94,7 +99,7 @@ class DefaultTheme extends AppStyle {
           unselectedLabelStyle: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: AppColors.onSurfaceVariant,
+            color: Color(0xFF9AA0A6),
           ),
         ),
         textButtonTheme: TextButtonThemeData(
@@ -108,8 +113,10 @@ class DefaultTheme extends AppStyle {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.surfaceContainer,
-          hintStyle: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+          fillColor: AppColors.darkSurfaceContainer,
+          hintStyle: const TextStyle(
+            fontFamily: 'Montserrat',
+            color: Color(0xFF9AA0A6),
             fontSize: 14,
           ),
           contentPadding:
@@ -138,22 +145,26 @@ class DefaultTheme extends AppStyle {
           ),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.white,
-          foregroundColor: AppColors.googleDarkText,
+          backgroundColor: AppColors.darkBackground,
+          foregroundColor: AppColors.darkOnSurface,
           elevation: 0,
           scrolledUnderElevation: 0.5,
           surfaceTintColor: Colors.transparent,
         ),
         dividerTheme: const DividerThemeData(
-          color: AppColors.outlineVariant,
+          color: AppColors.darkOutline,
           thickness: 0.5,
           space: 0,
         ),
         chipTheme: ChipThemeData(
-          backgroundColor: AppColors.surfaceContainer,
-          selectedColor: AppColors.sMapLightTeal,
-          labelStyle: AppColors.googleDarkText.textTheme.boldStyle
-              .copyWith(fontSize: 13),
+          backgroundColor: AppColors.darkSurfaceContainer,
+          selectedColor: AppColors.sMapDarkTeal,
+          labelStyle: const TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.w500,
+            color: AppColors.darkOnSurface,
+            fontSize: 13,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -163,18 +174,18 @@ class DefaultTheme extends AppStyle {
       );
 
   @override
-  Color get blackTextColor => AppColors.googleDarkText;
+  Color get blackTextColor => AppColors.darkOnSurface;
 
   @override
   Color get whiteTextColor => AppColors.white;
 
   @override
-  List<Color> get greysTextColor => [
-        AppColors.onSurfaceVariant, //600
-        AppColors.argent, //500
-        AppColors.doveGrey, //400
-        AppColors.outlineVariant, //200
-        AppColors.whiteOut, //50
+  List<Color> get greysTextColor => const [
+        Color(0xFF9AA0A6),
+        Color(0xFF80868B),
+        Color(0xFF5F6368),
+        Color(0xFF3C4043),
+        Color(0xFF202124),
       ];
 
   @override
@@ -192,8 +203,8 @@ class DefaultTheme extends AppStyle {
 
   @override
   ButtonStyle get outlineButtonStyle => ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(AppColors.white),
-        foregroundColor: WidgetStateProperty.all(AppColors.googleDarkText),
+        backgroundColor: WidgetStateProperty.all(AppColors.darkSurface),
+        foregroundColor: WidgetStateProperty.all(AppColors.darkOnSurface),
         elevation: WidgetStateProperty.all(0),
         minimumSize: WidgetStateProperty.all(const Size(0, 48)),
         padding: WidgetStateProperty.all(
@@ -201,7 +212,7 @@ class DefaultTheme extends AppStyle {
         shape: WidgetStateProperty.all(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
         side: WidgetStateProperty.all(const BorderSide(
-          color: AppColors.outlineVariant,
+          color: AppColors.darkOutline,
           width: 1,
         )),
       );
@@ -217,25 +228,10 @@ class DefaultTheme extends AppStyle {
   @override
   ButtonStyle get whiteButton => buttonStyle
       .mergeBackgroundColor(
-        Colors.white,
+        AppColors.darkSurfaceContainerHighest,
       )
       .copyWith(
-        foregroundColor: const WidgetStatePropertyAll(AppColors.googleDarkText),
+        foregroundColor: const WidgetStatePropertyAll(AppColors.darkOnSurface),
         overlayColor: WidgetStatePropertyAll(AppColors.grey.withAlpha(26)),
       );
-}
-
-extension ButtonStyleExtension on ButtonStyle {
-  ButtonStyle mergeBackgroundColor(Color? color) => color == null
-      ? this
-      : copyWith(
-          backgroundColor: WidgetStateProperty.all(color),
-        );
-  ButtonStyle mergeOutlineColor(Color? color) => color == null
-      ? this
-      : copyWith(
-          side: WidgetStateProperty.all(BorderSide(
-          color: color,
-          width: 1,
-        )));
 }

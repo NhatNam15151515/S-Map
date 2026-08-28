@@ -36,12 +36,19 @@ class NoOpSecureStorage implements ISecureStorage {
 /// Fallback / No-Op implementation for ISharedPreferences
 class NoOpSharedPreferences implements ISharedPreferences {
   bool _firstInstall = false;
+  String? _themeMode;
 
   @override
   Future<bool> get1stInstall() async => _firstInstall;
 
   @override
   Future<void> save1stInstall() async => _firstInstall = false;
+
+  @override
+  Future<String?> getThemeMode() async => _themeMode;
+
+  @override
+  Future<void> saveThemeMode(String mode) async => _themeMode = mode;
 }
 
 /// Fallback / No-Op implementation for ILocalAuthService

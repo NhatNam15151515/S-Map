@@ -1,31 +1,62 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_fallbacks.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/styles/themes/dark_theme.dart';
 import 'package:s_map/commons/styles/themes/default_theme.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/routers/routers.dart';
 import 'app_state.dart';
 
-class AppCubit extends Cubit<AppState> {
+class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
+  final ISharedPreferences _sharedPreferences;
+
   /// Global service resolvers set during app initialization
   static IPackageInfoService? defaultPackageInfoService;
   static IFirebaseMessagingService? defaultMessagingService;
+  static ISharedPreferences? defaultSharedPreferences;
 
-  AppCubit({String? appName, IPackageInfoService? packageInfoService})
-      : super(AppState(
-            type: AppStateType.initial,
-            appStyle: DefaultTheme(),
-            appName: appName ??
-                (packageInfoService ?? defaultPackageInfoService)?.appName ??
-                'S-Map',
-            supportedLocale: SupportedLocale.vi)) {
-    // Register resolver to break circular dependency:
-    // styles.dart ↔ app_cubit.dart ↔ default_theme.dart
+  AppCubit({
+    String? appName,
+    IPackageInfoService? packageInfoService,
+    ISharedPreferences? sharedPreferences,
+    ThemeMode initialThemeMode = ThemeMode.system,
+  })  : _sharedPreferences = sharedPreferences ??
+            defaultSharedPreferences ??
+            NoOpSharedPreferences(),
+        super(AppState(
+          type: AppStateType.initial,
+          appStyle: getInitialStyle(initialThemeMode),
+          themeMode: initialThemeMode,
+          appName: appName ??
+              (packageInfoService ?? defaultPackageInfoService)?.appName ??
+              'S-Map',
+          supportedLocale: SupportedLocale.vi,
+        )) {
+    try {
+      WidgetsBinding.instance.addObserver(this);
+    } catch (_) {}
     AppStyle.setResolver(
       (context) => BlocProvider.of<AppCubit>(context).state.appStyle,
     );
+  }
+
+  @override
+  Future<void> close() {
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
+    return super.close();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    if (state.themeMode == ThemeMode.system) {
+      _updateStyleForMode(ThemeMode.system);
+    }
   }
 
   @override
@@ -34,13 +65,81 @@ class AppCubit extends Cubit<AppState> {
     super.emit(state);
   }
 
+  static AppStyle getInitialStyle(ThemeMode mode) {
+    if (mode == ThemeMode.dark) return DarkTheme.instance;
+    if (mode == ThemeMode.light) return DefaultTheme.instance;
+    try {
+      final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+      return isPlatformDark ? DarkTheme.instance : DefaultTheme.instance;
+    } catch (_) {
+      return DefaultTheme.instance;
+    }
+  }
+
+  void onChangeThemeMode(ThemeMode mode) {
+    _updateStyleForMode(mode);
+    _sharedPreferences.saveThemeMode(_themeModeToString(mode));
+  }
+
+  void _updateStyleForMode(ThemeMode mode) {
+    AppStyle style;
+    if (mode == ThemeMode.dark) {
+      style = DarkTheme.instance;
+    } else if (mode == ThemeMode.light) {
+      style = DefaultTheme.instance;
+    } else {
+      try {
+        final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+        style = isPlatformDark ? DarkTheme.instance : DefaultTheme.instance;
+      } catch (_) {
+        style = DefaultTheme.instance;
+      }
+    }
+    emit(state.copyWith(
+      themeMode: mode,
+      appStyle: style,
+    ));
+  }
+
+  void toggleDarkMode(bool isDark) {
+    onChangeThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  static ThemeMode parseThemeMode(String modeStr) {
+    switch (modeStr) {
+      case 'dark':
+        return ThemeMode.dark;
+      case 'light':
+        return ThemeMode.light;
+      case 'system':
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  static String _themeModeToString(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.dark:
+        return 'dark';
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.system:
+        return 'system';
+    }
+  }
+
   void onChangeLocale(SupportedLocale supportedLocale,
       [BuildContext? context]) {
     emit(state.copyWith(supportedLocale: supportedLocale));
     if (context != null) {
       context.setLocale(supportedLocale.locale);
     } else {
-      Routes.instance.context.setLocale(supportedLocale.locale);
+      try {
+        final ctx = Routes.instance.rootNavigatorKey.currentContext;
+        if (ctx != null) {
+          ctx.setLocale(supportedLocale.locale);
+        }
+      } catch (_) {}
     }
   }
 
@@ -58,4 +157,3 @@ class AppCubit extends Cubit<AppState> {
     }
   }
 }
-

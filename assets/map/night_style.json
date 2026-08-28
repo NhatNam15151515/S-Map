@@ -1,0 +1,40 @@
+{
+  "version": 8,
+  "name": "S-Map OSM Dark (Raster Filter)",
+  "metadata": {
+    "TODO": "Transition to Vector Tiles with a dedicated Night Style JSON to eliminate raster filter performance overhead and achieve stable 60fps on low-end Android devices."
+  },
+  "sources": {
+    "osm-tiles": {
+      "type": "raster",
+      "tiles": [
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "© OpenStreetMap contributors"
+    }
+  },
+  "layers": [
+    {
+      "id": "background-layer",
+      "type": "background",
+      "paint": {
+        "background-color": "#121212"
+      }
+    },
+    {
+      "id": "osm-tiles-layer",
+      "type": "raster",
+      "source": "osm-tiles",
+      "minzoom": 0,
+      "maxzoom": 22,
+      "paint": {
+        "raster-hue-rotate": 180,
+        "raster-brightness-max": 0.85,
+        "raster-saturation": -0.4,
+        "raster-contrast": 0.3
+      }
+    }
+  ]
+}

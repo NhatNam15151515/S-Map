@@ -181,6 +181,14 @@ class AppColors {
   static const onSurfaceVariant = Color(0xFF5F6368);
   static const error = heroicRed;
 
+  // Dark Theme Semantic Colors
+  static const darkBackground = Color(0xFF121212);
+  static const darkSurface = Color(0xFF1E1E1E);
+  static const darkSurfaceContainer = Color(0xFF242424);
+  static const darkSurfaceContainerHighest = Color(0xFF2D2D2D);
+  static const darkOnSurface = Color(0xFFE8EAED);
+  static const darkOutline = Color(0xFF3C4043);
+
   // Map Symbol & Route Colors
   static const mapSymbolText = Color(0xFF0F172A);
   static const mapSymbolHalo = Color(0xFFFFFFFF);

@@ -102,6 +102,12 @@ abstract class  LocaleKeys {
   static const guest = 'guest';
   static const general = 'general';
   static const darkMode = 'darkMode';
+  static const themeMode = 'themeMode';
+  static const themeModeSystem = 'themeModeSystem';
+  static const themeModeLight = 'themeModeLight';
+  static const themeModeDark = 'themeModeDark';
+  static const nightMapStyle = 'nightMapStyle';
+  static const dayMapStyle = 'dayMapStyle';
   static const language = 'language';
   static const vietnamese = 'vietnamese';
   static const english = 'english';

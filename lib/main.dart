@@ -28,6 +28,8 @@ void main() async {
   MapExploreCubit.defaultFireStoreService = FireStoreService.instance;
   FavoritesCubit.defaultFavoritesService = FavoritesServiceImpl.instance;
   AppCubit.defaultMessagingService = FirebaseMessagingService.instance;
+  AppCubit.defaultSharedPreferences = AppSharedPreferences();
+  AuthCubit.defaultSharedPreferences = AppSharedPreferences();
   RoutePreviewCubit.defaultLocationService = LocationService.instance;
   NavigationBloc.defaultLocationService = LocationService.instance;
   NavigationBloc.defaultDeviceInfoService = DeviceInfoService.instance;
@@ -73,5 +75,10 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const MyApp());
+  final savedThemeStr = await AppSharedPreferences().getThemeMode();
+  final initialThemeMode = savedThemeStr != null 
+      ? AppCubit.parseThemeMode(savedThemeStr) 
+      : ThemeMode.system;
+
+  runApp(MyApp(initialThemeMode: initialThemeMode));
 }

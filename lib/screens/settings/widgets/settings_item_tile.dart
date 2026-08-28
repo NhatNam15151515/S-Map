@@ -20,11 +20,12 @@ class SettingsItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: trailing == null ? (onTap ?? () {}) : null,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
@@ -32,7 +33,7 @@ class SettingsItemTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.sMapTeal.withAlpha(15),
+                  color: AppColors.sMapTeal.withAlpha(25),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, size: 20, color: AppColors.sMapTeal),
@@ -44,15 +45,18 @@ class SettingsItemTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: AppColors.googleDarkText.textTheme.boldStyle
+                      style: style.blackTextColor.textTheme.boldStyle
                           .copyWith(fontSize: 15),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style:
-                            AppColors.onSurfaceVariant.textTheme.captionStyle,
+                        style: (style.greysTextColor.isNotEmpty
+                                ? style.greysTextColor.first
+                                : AppColors.onSurfaceVariant)
+                            .textTheme
+                            .captionStyle,
                       ),
                     ],
                   ],
@@ -61,9 +65,11 @@ class SettingsItemTile extends StatelessWidget {
               if (trailing != null)
                 trailing!
               else
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.onSurfaceVariant,
+                  color: style.greysTextColor.isNotEmpty
+                      ? style.greysTextColor.first
+                      : AppColors.onSurfaceVariant,
                   size: 20,
                 ),
             ],
@@ -84,9 +90,10 @@ class SettingsGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: style.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(children: children),
@@ -99,11 +106,12 @@ class SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 60),
       child: Divider(
         height: 0.5,
-        color: AppColors.outlineVariant.withAlpha(128),
+        color: style.colorScheme.outline.withAlpha(128),
       ),
     );
   }
