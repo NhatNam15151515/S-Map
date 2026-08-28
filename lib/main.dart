@@ -75,5 +75,10 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const MyApp());
+  final savedThemeStr = await AppSharedPreferences().getThemeMode();
+  final initialThemeMode = savedThemeStr != null 
+      ? AppCubit.parseThemeMode(savedThemeStr) 
+      : ThemeMode.system;
+
+  runApp(MyApp(initialThemeMode: initialThemeMode));
 }

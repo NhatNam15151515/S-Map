@@ -22,13 +22,14 @@ class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
     String? appName,
     IPackageInfoService? packageInfoService,
     ISharedPreferences? sharedPreferences,
+    ThemeMode initialThemeMode = ThemeMode.system,
   })  : _sharedPreferences = sharedPreferences ??
             defaultSharedPreferences ??
             NoOpSharedPreferences(),
         super(AppState(
           type: AppStateType.initial,
-          appStyle: DefaultTheme.instance,
-          themeMode: ThemeMode.system,
+          appStyle: getInitialStyle(initialThemeMode),
+          themeMode: initialThemeMode,
           appName: appName ??
               (packageInfoService ?? defaultPackageInfoService)?.appName ??
               'S-Map',
@@ -40,7 +41,6 @@ class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
     AppStyle.setResolver(
       (context) => BlocProvider.of<AppCubit>(context).state.appStyle,
     );
-    initTheme();
   }
 
   @override
@@ -65,16 +65,15 @@ class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
     super.emit(state);
   }
 
-  Future<void> initTheme() async {
+  static AppStyle getInitialStyle(ThemeMode mode) {
+    if (mode == ThemeMode.dark) return DarkTheme.instance;
+    if (mode == ThemeMode.light) return DefaultTheme.instance;
     try {
-      final savedMode = await _sharedPreferences.getThemeMode();
-      if (savedMode != null) {
-        final mode = _parseThemeMode(savedMode);
-        _updateStyleForMode(mode);
-      } else {
-        _updateStyleForMode(ThemeMode.system);
-      }
-    } catch (_) {}
+      final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+      return isPlatformDark ? DarkTheme.instance : DefaultTheme.instance;
+    } catch (_) {
+      return DefaultTheme.instance;
+    }
   }
 
   void onChangeThemeMode(ThemeMode mode) {
@@ -106,7 +105,7 @@ class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
     onChangeThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
   }
 
-  static ThemeMode _parseThemeMode(String modeStr) {
+  static ThemeMode parseThemeMode(String modeStr) {
     switch (modeStr) {
       case 'dark':
         return ThemeMode.dark;

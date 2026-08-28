@@ -124,11 +124,12 @@ void main() {
       appCubit.close();
     });
 
-    test('initTheme restores dark mode from preferences', () async {
+    test('initialThemeMode sets initial state correctly', () {
       final fakePrefs = FakeSharedPreferences()..storedTheme = 'dark';
-      final appCubit = AppCubit(sharedPreferences: fakePrefs);
-
-      await appCubit.initTheme();
+      final appCubit = AppCubit(
+        sharedPreferences: fakePrefs, 
+        initialThemeMode: ThemeMode.dark
+      );
 
       expect(appCubit.state.themeMode, equals(ThemeMode.dark));
       expect(appCubit.state.appStyle, isA<DarkTheme>());

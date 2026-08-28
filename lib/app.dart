@@ -9,7 +9,8 @@ import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/routers/routers.dart';
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final ThemeMode initialThemeMode;
+  const MyApp({super.key, this.initialThemeMode = ThemeMode.system});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -24,7 +25,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    appCubit = AppCubit();
+    appCubit = AppCubit(initialThemeMode: widget.initialThemeMode);
     authCubit = AuthCubit();
     notificationCubit = NotificationCubit();
     favoritesCubit = FavoritesCubit();

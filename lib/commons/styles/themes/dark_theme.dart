@@ -25,7 +25,7 @@ class DarkTheme extends AppStyle {
   InputBorder get defaultBorder => OutlineInputBorder(
         borderSide: const BorderSide(
           width: 1,
-          color: Color(0xFF3C4043),
+          color: AppColors.darkOutline,
         ),
         borderRadius: BorderRadius.circular(12),
       );
@@ -41,7 +41,7 @@ class DarkTheme extends AppStyle {
 
   @override
   BoxDecoration get searchContainer => BoxDecoration(
-        color: const Color(0xFF242424),
+        color: AppColors.darkSurfaceContainer,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
@@ -63,7 +63,7 @@ class DarkTheme extends AppStyle {
         colorScheme: colorScheme,
         useMaterial3: true,
         unselectedWidgetColor: const Color(0xFF9AA0A6),
-        scaffoldBackgroundColor: const Color(0xFF121212),
+        scaffoldBackgroundColor: AppColors.darkBackground,
         fontFamily: 'Montserrat',
         cardTheme: CardThemeData(
           elevation: 0.5,
@@ -71,13 +71,13 @@ class DarkTheme extends AppStyle {
             borderRadius: BorderRadius.circular(16),
           ),
           surfaceTintColor: Colors.transparent,
-          color: const Color(0xFF1E1E1E),
+          color: AppColors.darkSurface,
         ),
         snackBarTheme: SnackBarThemeData(
-          backgroundColor: const Color(0xFF2D2D2D),
+          backgroundColor: AppColors.darkSurfaceContainerHighest,
           contentTextStyle: const TextStyle(
             fontFamily: 'Montserrat',
-            color: Color(0xFFE8EAED),
+            color: AppColors.darkOnSurface,
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -88,7 +88,7 @@ class DarkTheme extends AppStyle {
           type: BottomNavigationBarType.fixed,
           showSelectedLabels: true,
           showUnselectedLabels: true,
-          backgroundColor: Color(0xFF1E1E1E),
+          backgroundColor: AppColors.darkSurface,
           selectedItemColor: AppColors.sMapTeal,
           unselectedItemColor: Color(0xFF9AA0A6),
           selectedLabelStyle: TextStyle(
@@ -113,7 +113,7 @@ class DarkTheme extends AppStyle {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF242424),
+          fillColor: AppColors.darkSurfaceContainer,
           hintStyle: const TextStyle(
             fontFamily: 'Montserrat',
             color: Color(0xFF9AA0A6),
@@ -145,24 +145,24 @@ class DarkTheme extends AppStyle {
           ),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF121212),
-          foregroundColor: Color(0xFFE8EAED),
+          backgroundColor: AppColors.darkBackground,
+          foregroundColor: AppColors.darkOnSurface,
           elevation: 0,
           scrolledUnderElevation: 0.5,
           surfaceTintColor: Colors.transparent,
         ),
         dividerTheme: const DividerThemeData(
-          color: Color(0xFF3C4043),
+          color: AppColors.darkOutline,
           thickness: 0.5,
           space: 0,
         ),
         chipTheme: ChipThemeData(
-          backgroundColor: const Color(0xFF242424),
+          backgroundColor: AppColors.darkSurfaceContainer,
           selectedColor: AppColors.sMapDarkTeal,
           labelStyle: const TextStyle(
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.w500,
-            color: Color(0xFFE8EAED),
+            color: AppColors.darkOnSurface,
             fontSize: 13,
           ),
           shape: RoundedRectangleBorder(
@@ -174,7 +174,7 @@ class DarkTheme extends AppStyle {
       );
 
   @override
-  Color get blackTextColor => const Color(0xFFE8EAED);
+  Color get blackTextColor => AppColors.darkOnSurface;
 
   @override
   Color get whiteTextColor => AppColors.white;
@@ -203,8 +203,8 @@ class DarkTheme extends AppStyle {
 
   @override
   ButtonStyle get outlineButtonStyle => ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(const Color(0xFF1E1E1E)),
-        foregroundColor: WidgetStateProperty.all(const Color(0xFFE8EAED)),
+        backgroundColor: WidgetStateProperty.all(AppColors.darkSurface),
+        foregroundColor: WidgetStateProperty.all(AppColors.darkOnSurface),
         elevation: WidgetStateProperty.all(0),
         minimumSize: WidgetStateProperty.all(const Size(0, 48)),
         padding: WidgetStateProperty.all(
@@ -212,7 +212,7 @@ class DarkTheme extends AppStyle {
         shape: WidgetStateProperty.all(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
         side: WidgetStateProperty.all(const BorderSide(
-          color: Color(0xFF3C4043),
+          color: AppColors.darkOutline,
           width: 1,
         )),
       );
@@ -228,10 +228,10 @@ class DarkTheme extends AppStyle {
   @override
   ButtonStyle get whiteButton => buttonStyle
       .mergeBackgroundColor(
-        const Color(0xFF2A2A2A),
+        AppColors.darkSurfaceContainerHighest,
       )
       .copyWith(
-        foregroundColor: const WidgetStatePropertyAll(Color(0xFFE8EAED)),
+        foregroundColor: const WidgetStatePropertyAll(AppColors.darkOnSurface),
         overlayColor: WidgetStatePropertyAll(AppColors.grey.withAlpha(26)),
       );
 }
