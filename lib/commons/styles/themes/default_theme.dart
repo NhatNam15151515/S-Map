@@ -3,6 +3,8 @@ import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class DefaultTheme extends AppStyle {
+  static final DefaultTheme instance = DefaultTheme();
+
   @override
   ColorScheme get colorScheme => const ColorScheme(
         brightness: Brightness.light,

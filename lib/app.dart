@@ -66,8 +66,8 @@ class _MyAppState extends State<MyApp> {
                 return MaterialApp.router(
                   localizationsDelegates: context.localizationDelegates,
                   supportedLocales: context.supportedLocales,
-                  theme: DefaultTheme().light,
-                  darkTheme: DarkTheme().dark,
+                  theme: DefaultTheme.instance.light,
+                  darkTheme: DarkTheme.instance.dark,
                   themeMode: state.themeMode,
                   debugShowCheckedModeBanner: false,
                   locale: context.locale,

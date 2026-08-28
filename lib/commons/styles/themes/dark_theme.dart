@@ -4,6 +4,8 @@ import 'package:s_map/commons/styles/themes/default_theme.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 
 class DarkTheme extends AppStyle {
+  static final DarkTheme instance = DarkTheme();
+
   @override
   ColorScheme get colorScheme => const ColorScheme(
         brightness: Brightness.dark,

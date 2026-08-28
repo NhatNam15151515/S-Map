@@ -27,7 +27,7 @@ class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
             NoOpSharedPreferences(),
         super(AppState(
           type: AppStateType.initial,
-          appStyle: DefaultTheme(),
+          appStyle: DefaultTheme.instance,
           themeMode: ThemeMode.system,
           appName: appName ??
               (packageInfoService ?? defaultPackageInfoService)?.appName ??
@@ -85,15 +85,15 @@ class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
   void _updateStyleForMode(ThemeMode mode) {
     AppStyle style;
     if (mode == ThemeMode.dark) {
-      style = DarkTheme();
+      style = DarkTheme.instance;
     } else if (mode == ThemeMode.light) {
-      style = DefaultTheme();
+      style = DefaultTheme.instance;
     } else {
       try {
         final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
-        style = isPlatformDark ? DarkTheme() : DefaultTheme();
+        style = isPlatformDark ? DarkTheme.instance : DefaultTheme.instance;
       } catch (_) {
-        style = DefaultTheme();
+        style = DefaultTheme.instance;
       }
     }
     emit(state.copyWith(
