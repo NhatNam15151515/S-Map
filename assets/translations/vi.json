@@ -308,5 +308,6 @@
   "onboarding_downloading_region_fallback": "Vùng bản đồ",
   "onboarding_ready_title": "Hoàn tất!",
   "onboarding_ready_subtitle": "Bản đồ của bạn đã sẵn sàng sử dụng ngoại tuyến.",
-  "onboarding_lets_go_btn": "Khám phá ngay"
+  "onboarding_lets_go_btn": "Khám phá ngay",
+  "onboarding_retry_btn": "Thử lại"
 }

@@ -22,19 +22,11 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
   final PageController _pageController = PageController();
-  late final DownloadRegionCubit _downloadRegionCubit;
   int _currentPageIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _downloadRegionCubit = DownloadRegionCubit()..loadRegions();
-  }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _downloadRegionCubit.close();
     super.dispose();
   }
 
@@ -59,8 +51,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _downloadRegionCubit,
+    return BlocProvider(
+      create: (context) => DownloadRegionCubit()..loadRegions(),
       child: Scaffold(
         body: Container(
           decoration: const BoxDecoration(

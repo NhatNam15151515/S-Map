@@ -308,5 +308,6 @@
   "onboarding_downloading_region_fallback": "Map Region",
   "onboarding_ready_title": "All done!",
   "onboarding_ready_subtitle": "Your offline map is ready to use.",
-  "onboarding_lets_go_btn": "Let's Go!"
+  "onboarding_lets_go_btn": "Let's Go!",
+  "onboarding_retry_btn": "Retry"
 }

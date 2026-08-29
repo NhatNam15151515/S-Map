@@ -104,6 +104,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> completeOnboarding() async {
     await _sharedPreferences.saveOnboardingCompleted(true).catchError((_) {});
+    if (isClosed) return;
     await loginGuest();
   }
 

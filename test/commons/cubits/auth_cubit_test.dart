@@ -53,6 +53,13 @@ class FailingSharedPreferences extends NoOpSharedPreferences {
   }
 }
 
+class SaveFailingSharedPreferences extends NoOpSharedPreferences {
+  @override
+  Future<void> saveOnboardingCompleted(bool value) async {
+    throw Exception('Native storage write failure');
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -181,6 +188,16 @@ void main() {
 
       expect(cubit.state.isAuthenticated, isTrue);
       expect(await mockPrefs.getOnboardingCompleted(), isTrue);
+      await cubit.close();
+    });
+
+    test('completeOnboarding transitions to authenticated guest even when saveOnboardingCompleted throws', () async {
+      final mockPrefs = SaveFailingSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.completeOnboarding();
+
+      expect(cubit.state.isAuthenticated, isTrue);
       await cubit.close();
     });
   });

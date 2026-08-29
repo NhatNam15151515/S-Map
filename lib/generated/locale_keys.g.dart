@@ -302,5 +302,6 @@ abstract class  LocaleKeys {
   static const onboarding_ready_title = 'onboarding_ready_title';
   static const onboarding_ready_subtitle = 'onboarding_ready_subtitle';
   static const onboarding_lets_go_btn = 'onboarding_lets_go_btn';
+  static const onboarding_retry_btn = 'onboarding_retry_btn';
 
 }

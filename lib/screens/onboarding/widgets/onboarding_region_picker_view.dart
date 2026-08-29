@@ -48,30 +48,62 @@ class OnboardingRegionPickerView extends StatelessWidget {
             child: state.isLoading && state.regions.isEmpty
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.white))
-                : ListView.separated(
-                    itemCount: availableRegions.length,
-                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                    itemBuilder: (context, index) {
-                      final region = availableRegions[index];
-                      return RegionCard(
-                        region: region,
-                        progress: state.getProgress(region.id),
-                        isCurrentlyDownloading:
-                            state.currentlyDownloadingRegionId == region.id,
-                        onDownload: () {
-                          context
-                              .read<DownloadRegionCubit>()
-                              .downloadRegion(region.id);
+                : availableRegions.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.wifi_off_rounded,
+                                size: 48.r, color: AppColors.white),
+                            SizedBox(height: 12.h),
+                            Text(
+                              tr(LocaleKeys.offline_maps_error),
+                              style: AppColors.white.textTheme.mediumStyle
+                                  .copyWith(fontSize: 14.sp),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 12.h),
+                            TextButton(
+                              onPressed: () => context
+                                  .read<DownloadRegionCubit>()
+                                  .loadRegions(),
+                              child: Text(
+                                tr(LocaleKeys.onboarding_retry_btn),
+                                style: AppColors.white.textTheme.boldStyle
+                                    .copyWith(
+                                  fontSize: 14.sp,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: AppColors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: availableRegions.length,
+                        separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                        itemBuilder: (context, index) {
+                          final region = availableRegions[index];
+                          return RegionCard(
+                            region: region,
+                            progress: state.getProgress(region.id),
+                            isCurrentlyDownloading:
+                                state.currentlyDownloadingRegionId == region.id,
+                            onDownload: () {
+                              context
+                                  .read<DownloadRegionCubit>()
+                                  .downloadRegion(region.id);
+                            },
+                            onDelete: () {},
+                            onCancel: () {
+                              context
+                                  .read<DownloadRegionCubit>()
+                                  .cancelDownload(region.id);
+                            },
+                          );
                         },
-                        onDelete: () {},
-                        onCancel: () {
-                          context
-                              .read<DownloadRegionCubit>()
-                              .cancelDownload(region.id);
-                        },
-                      );
-                    },
-                  ),
+                      ),
           ),
           SizedBox(height: 16.h),
           Center(
