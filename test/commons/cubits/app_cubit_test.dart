@@ -54,6 +54,16 @@ class FakeSharedPreferences implements ISharedPreferences {
   Future<void> saveThemeMode(String mode) async {
     storedTheme = mode;
   }
+
+  bool _onboardingCompleted = false;
+
+  @override
+  Future<bool> getOnboardingCompleted() async => _onboardingCompleted;
+
+  @override
+  Future<void> saveOnboardingCompleted(bool value) async {
+    _onboardingCompleted = value;
+  }
 }
 
 void main() {

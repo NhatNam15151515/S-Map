@@ -49,6 +49,14 @@ class NoOpSharedPreferences implements ISharedPreferences {
 
   @override
   Future<void> saveThemeMode(String mode) async => _themeMode = mode;
+
+  bool _onboardingCompleted = false;
+
+  @override
+  Future<bool> getOnboardingCompleted() async => _onboardingCompleted;
+
+  @override
+  Future<void> saveOnboardingCompleted(bool value) async => _onboardingCompleted = value;
 }
 
 /// Fallback / No-Op implementation for ILocalAuthService

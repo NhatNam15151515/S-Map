@@ -2,6 +2,7 @@
 /// Tránh hardcode chuỗi đường dẫn và không định nghĩa path rải rác trong từng Widget Screen.
 abstract final class AppRoutes {
   static const String initial = '/InitialScreen';
+  static const String onboarding = '/OnboardingScreen';
   static const String login = '/LoginScreen';
   static const String home = '/HomeScreen';
   static const String search = '/search';

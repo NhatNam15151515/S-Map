@@ -62,6 +62,8 @@ class AuthCubit extends Cubit<AuthState> {
       await _sharedPreferences.save1stInstall();
     }
 
+    final hasCompletedOnboarding = await _sharedPreferences.getOnboardingCompleted();
+
     final authToken = await _secureStorage.getStoredAuthToken();
     final profile = await _secureStorage.getStoredProfile();
 
@@ -71,7 +73,11 @@ class AuthCubit extends Cubit<AuthState> {
       await onAuthenticated(profile);
     } else {
       if (state.isInitial) {
-        emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        if (!hasCompletedOnboarding) {
+          emit(state.copyWith(type: AuthStateType.onboarding));
+        } else {
+          emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        }
       }
     }
     FlutterNativeSplash.remove();

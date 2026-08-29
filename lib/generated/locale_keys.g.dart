@@ -291,5 +291,16 @@ abstract class  LocaleKeys {
   static const offline_maps_download_success = 'offline_maps_download_success';
   static const offline_maps_error = 'offline_maps_error';
   static const offline_maps_cancel_btn = 'offline_maps_cancel_btn';
+  static const onboarding_welcome_title = 'onboarding_welcome_title';
+  static const onboarding_welcome_subtitle = 'onboarding_welcome_subtitle';
+  static const onboarding_continue_btn = 'onboarding_continue_btn';
+  static const onboarding_region_title = 'onboarding_region_title';
+  static const onboarding_region_subtitle = 'onboarding_region_subtitle';
+  static const onboarding_skip_btn = 'onboarding_skip_btn';
+  static const onboarding_downloading_title = 'onboarding_downloading_title';
+  static const onboarding_downloading_region_fallback = 'onboarding_downloading_region_fallback';
+  static const onboarding_ready_title = 'onboarding_ready_title';
+  static const onboarding_ready_subtitle = 'onboarding_ready_subtitle';
+  static const onboarding_lets_go_btn = 'onboarding_lets_go_btn';
 
 }

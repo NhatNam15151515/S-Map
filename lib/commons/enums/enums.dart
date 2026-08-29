@@ -3,6 +3,7 @@ enum AuthStateType {
   unAuthenticated,
   initial,
   loading,
+  onboarding,
 }
 
 enum NotificationType {

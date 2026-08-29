@@ -8,6 +8,7 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/screens/auth/login_screen.dart';
 import 'package:s_map/screens/initial/initial_screen.dart';
+import 'package:s_map/screens/onboarding/onboarding_screen.dart';
 import 'package:s_map/screens/main/full_image.dart';
 import 'package:s_map/screens/main/home/home_screen.dart';
 import 'package:s_map/screens/main/main_screen.dart';
@@ -69,6 +70,10 @@ class Routes extends NavigatorObserver {
         GoRoute(
           path: AppRoutes.login,
           builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.onboarding,
+          builder: (context, state) => const OnboardingScreen(),
         ),
         GoRoute(
           path: AppRoutes.search,
@@ -166,6 +171,9 @@ class Routes extends NavigatorObserver {
       switch (event.type) {
         case AuthStateType.unAuthenticated:
           if (context.mounted) context.go(AppRoutes.login);
+          break;
+        case AuthStateType.onboarding:
+          if (context.mounted) context.go(AppRoutes.onboarding);
           break;
         case AuthStateType.authenticated:
           if (context.mounted) context.go(AppRoutes.home);

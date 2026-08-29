@@ -297,5 +297,16 @@
   "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
   "offline_maps_download_success": "Tải dữ liệu vùng thành công",
   "offline_maps_error": "Đã xảy ra lỗi khi xử lý dữ liệu bản đồ ngoại tuyến",
-  "offline_maps_cancel_btn": "Hủy"
+  "offline_maps_cancel_btn": "Hủy",
+  "onboarding_welcome_title": "Chào mừng đến với S-Map",
+  "onboarding_welcome_subtitle": "Bản đồ ngoại tuyến của người Việt.\nKhông cần mạng, không lo lạc đường.",
+  "onboarding_continue_btn": "Tiếp tục",
+  "onboarding_region_title": "Chọn vùng bản đồ",
+  "onboarding_region_subtitle": "Tải trước một vùng để sử dụng ngay khi không có kết nối Internet.",
+  "onboarding_skip_btn": "Bỏ qua tải xuống (Tôi sẽ tải sau)",
+  "onboarding_downloading_title": "Đang tải bản đồ...",
+  "onboarding_downloading_region_fallback": "Vùng bản đồ",
+  "onboarding_ready_title": "Hoàn tất!",
+  "onboarding_ready_subtitle": "Bản đồ của bạn đã sẵn sàng sử dụng ngoại tuyến.",
+  "onboarding_lets_go_btn": "Khám phá ngay"
 }
