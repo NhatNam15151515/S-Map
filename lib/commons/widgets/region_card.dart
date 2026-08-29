@@ -152,7 +152,7 @@ class RegionCard extends StatelessWidget {
                 Icon(Icons.calendar_today_outlined, size: 14.sp, color: AppColors.googleGreyText),
                 SizedBox(width: 4.w),
                 Text(
-                  DateFormat('dd/MM/yyyy').format(region.downloadedAt!),
+                  DateFormat('dd/MM/yyyy', context.locale.toString()).format(region.downloadedAt!),
                   style: AppColors.googleGreyText.textTheme.captionStyle.copyWith(fontSize: 12.sp),
                 ),
               ],
@@ -169,7 +169,7 @@ class RegionCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      progress >= 0.75
+                      region.status == RegionDownloadStatus.extracting
                           ? tr(LocaleKeys.offline_maps_extracting)
                           : tr(LocaleKeys.offline_maps_downloading),
                       style: AppColors.sMapTeal.textTheme.mediumStyle.copyWith(fontSize: 12.sp),

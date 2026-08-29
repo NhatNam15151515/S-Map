@@ -1,6 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
@@ -12,11 +11,19 @@ import 'package:s_map/models/models.dart';
 class OnboardingRegionPickerView extends StatelessWidget {
   final DownloadRegionState state;
   final VoidCallback onSkip;
+  final VoidCallback onRetry;
+  final ValueChanged<String> onDownload;
+  final ValueChanged<String> onDelete;
+  final ValueChanged<String> onCancel;
 
   const OnboardingRegionPickerView({
     super.key,
     required this.state,
     required this.onSkip,
+    required this.onRetry,
+    required this.onDownload,
+    required this.onDelete,
+    required this.onCancel,
   });
 
   List<RegionModel> get _availableRegions =>
@@ -64,9 +71,7 @@ class OnboardingRegionPickerView extends StatelessWidget {
                             ),
                             SizedBox(height: 12.h),
                             TextButton(
-                              onPressed: () => context
-                                  .read<DownloadRegionCubit>()
-                                  .loadRegions(),
+                              onPressed: onRetry,
                               child: Text(
                                 tr(LocaleKeys.onboarding_retry_btn),
                                 style: AppColors.white.textTheme.boldStyle
@@ -90,21 +95,9 @@ class OnboardingRegionPickerView extends StatelessWidget {
                             progress: state.getProgress(region.id),
                             isCurrentlyDownloading:
                                 state.currentlyDownloadingRegionId == region.id,
-                            onDownload: () {
-                              context
-                                  .read<DownloadRegionCubit>()
-                                  .downloadRegion(region.id);
-                            },
-                            onDelete: () {
-                              context
-                                  .read<DownloadRegionCubit>()
-                                  .deleteRegion(region.id);
-                            },
-                            onCancel: () {
-                              context
-                                  .read<DownloadRegionCubit>()
-                                  .cancelDownload(region.id);
-                            },
+                            onDownload: () => onDownload(region.id),
+                            onDelete: () => onDelete(region.id),
+                            onCancel: () => onCancel(region.id),
                           );
                         },
                       ),

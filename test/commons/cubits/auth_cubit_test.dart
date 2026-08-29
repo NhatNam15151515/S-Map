@@ -180,6 +180,18 @@ void main() {
       await cubit.close();
     });
 
+    test('onAppStarted emits unAuthenticated when onboarding is already completed', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      await mockPrefs.saveOnboardingCompleted(true);
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.onAppStarted();
+
+      expect(cubit.state.isOnboarding, isFalse);
+      expect(cubit.state.type, AuthStateType.unAuthenticated);
+      await cubit.close();
+    });
+
     test('completeOnboarding saves flag and transitions to authenticated guest', () async {
       final mockPrefs = NoOpSharedPreferences();
       final cubit = AuthCubit(sharedPreferences: mockPrefs);

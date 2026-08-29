@@ -5,11 +5,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/routers/app_routes.dart';
-
-import 'widgets/onboarding_downloading_view.dart';
-import 'widgets/onboarding_ready_view.dart';
-import 'widgets/onboarding_region_picker_view.dart';
-import 'widgets/onboarding_welcome_view.dart';
+import 'package:s_map/screens/onboarding/widgets/widgets.dart';
 
 class OnboardingScreen extends StatefulWidget {
   static const String path = AppRoutes.onboarding;
@@ -107,6 +103,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                     OnboardingRegionPickerView(
                       state: state,
                       onSkip: () => _finishOnboarding(context),
+                      onRetry: () =>
+                          context.read<DownloadRegionCubit>().loadRegions(),
+                      onDownload: (regionId) => context
+                          .read<DownloadRegionCubit>()
+                          .downloadRegion(regionId),
+                      onDelete: (regionId) => context
+                          .read<DownloadRegionCubit>()
+                          .deleteRegion(regionId),
+                      onCancel: (regionId) => context
+                          .read<DownloadRegionCubit>()
+                          .cancelDownload(regionId),
                     ),
                     OnboardingDownloadingView(
                       state: state,

@@ -46,7 +46,7 @@ class OnboardingDownloadingView extends StatelessWidget {
           ),
           SizedBox(height: 32.h),
           LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0),
+            value: progress.clamp(0.0, 1.0).toDouble(),
             backgroundColor: AppColors.white.withAlpha(50),
             color: AppColors.white,
             minHeight: 8.h,
