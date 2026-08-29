@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/commons/fallbacks/no_op_services.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -138,6 +140,30 @@ void main() {
       expect(result, isFalse);
       expect(cubit.state.isUnAuthenticated, isTrue);
       expect(cubit.state.errorMessage, contains('Firebase auth anonymous error'));
+      await cubit.close();
+    });
+  });
+
+  group('AuthCubit Tests - Onboarding Flow', () {
+    test('onAppStarted emits onboarding on fresh install', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.onAppStarted();
+
+      expect(cubit.state.isOnboarding, isTrue);
+      expect(cubit.state.type, AuthStateType.onboarding);
+      await cubit.close();
+    });
+
+    test('completeOnboarding saves flag and transitions to authenticated guest', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.completeOnboarding();
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(await mockPrefs.getOnboardingCompleted(), isTrue);
       await cubit.close();
     });
   });

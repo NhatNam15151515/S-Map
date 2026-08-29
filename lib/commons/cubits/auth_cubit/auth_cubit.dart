@@ -62,7 +62,9 @@ class AuthCubit extends Cubit<AuthState> {
       await _sharedPreferences.save1stInstall();
     }
 
-    final hasCompletedOnboarding = await _sharedPreferences.getOnboardingCompleted();
+    final hasCompletedOnboarding = await _sharedPreferences
+        .getOnboardingCompleted()
+        .catchError((_) => false);
 
     final authToken = await _secureStorage.getStoredAuthToken();
     final profile = await _secureStorage.getStoredProfile();
@@ -95,6 +97,11 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> onLoggedIn(User user) async {
     faceIdAcceptStream.value = false;
     await onAuthenticated(user);
+  }
+
+  Future<void> completeOnboarding() async {
+    await _sharedPreferences.saveOnboardingCompleted(true).catchError((_) {});
+    await loginGuest();
   }
 
   Future<void> loginGuest({String? username}) async {

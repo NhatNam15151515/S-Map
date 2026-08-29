@@ -6,9 +6,9 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/app_asset.dart';
 import 'package:s_map/routers/app_routes.dart';
-import 'package:s_map/screens/settings/offline_regions/widgets/region_card.dart';
 
 class OnboardingScreen extends StatefulWidget {
   static const String path = AppRoutes.onboarding;
@@ -37,15 +37,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
     }
   }
 
-  void _finishOnboarding(BuildContext context) async {
-    final prefs =
-        AuthCubit.defaultSharedPreferences ?? AppCubit.defaultSharedPreferences;
-    if (prefs != null) {
-      await prefs.saveOnboardingCompleted(true);
-    }
-    if (context.mounted) {
-      context.read<AuthCubit>().loginGuest();
-    }
+  void _finishOnboarding(BuildContext context) {
+    context.read<AuthCubit>().completeOnboarding();
   }
 
   @override
@@ -286,6 +279,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
             "${(progress * 100).toStringAsFixed(1)}%",
             style:
                 AppColors.white.textTheme.boldStyle.copyWith(fontSize: 16.sp),
+          ),
+          SizedBox(height: 24.h),
+          TextButton(
+            onPressed: () {
+              if (regionId != null) {
+                context.read<DownloadRegionCubit>().cancelDownload(regionId);
+              }
+              if (_pageController.hasClients) {
+                _pageController.animateToPage(
+                  1,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            },
+            child: Text(
+              tr(LocaleKeys.offline_maps_cancel_btn),
+              style: AppColors.white.textTheme.semiBoldStyle.copyWith(
+                fontSize: 14.sp,
+                decoration: TextDecoration.underline,
+                decorationColor: AppColors.white,
+              ),
+            ),
           ),
         ],
       ),
