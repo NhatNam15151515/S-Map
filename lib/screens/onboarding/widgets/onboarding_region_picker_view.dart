@@ -95,7 +95,11 @@ class OnboardingRegionPickerView extends StatelessWidget {
                                   .read<DownloadRegionCubit>()
                                   .downloadRegion(region.id);
                             },
-                            onDelete: () {},
+                            onDelete: () {
+                              context
+                                  .read<DownloadRegionCubit>()
+                                  .deleteRegion(region.id);
+                            },
                             onCancel: () {
                               context
                                   .read<DownloadRegionCubit>()

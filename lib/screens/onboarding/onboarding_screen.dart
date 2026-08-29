@@ -75,8 +75,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                     _nextPage();
                   }
                 } else if (state.isSuccess &&
-                    state.currentlyDownloadingRegionId == null) {
-                  // Jump to Ready page when download finishes
+                    state.successMessage == 'DOWNLOAD_SUCCESS') {
+                  // Jump to Ready page only when region download actually succeeds
                   if (_currentPageIndex == 2) {
                     _nextPage();
                   }
