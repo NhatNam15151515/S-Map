@@ -2,8 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -31,9 +29,10 @@ class MapControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool showCompass = onToggleOrientation != null && rotation.abs() > 0.05;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bool showCompass =
+        onToggleOrientation != null && rotation.abs() > 0.05;
 
     return RepaintBoundary(
       child: Column(
@@ -64,16 +63,17 @@ class MapControls extends StatelessWidget {
           Container(
             width: 44,
             decoration: BoxDecoration(
-              color: style.colorScheme.surface,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(22),
-              border: isDark
-                  ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
-                  : null,
-              boxShadow: [
+              border: Border.all(
+                color: colorScheme.outline.withAlpha(50),
+                width: 0.5,
+              ),
+              boxShadow: const [
                 BoxShadow(
-                  color: Colors.black.withAlpha(isDark ? 60 : 12),
+                  color: Color.fromRGBO(0, 0, 0, 0.15),
                   blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
@@ -81,7 +81,8 @@ class MapControls extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: Icon(Icons.add_rounded, color: style.blackTextColor, size: 20),
+                  icon: Icon(Icons.add_rounded,
+                      color: colorScheme.onSurface, size: 20),
                   tooltip: tr(LocaleKeys.map_zoom_in),
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -92,10 +93,11 @@ class MapControls extends StatelessWidget {
                 Divider(
                   height: 1,
                   thickness: 0.5,
-                  color: isDark ? AppColors.darkOutline : AppColors.outlineVariant.withAlpha(120),
+                  color: colorScheme.outline.withAlpha(80),
                 ),
                 IconButton(
-                  icon: Icon(Icons.remove_rounded, color: style.blackTextColor, size: 20),
+                  icon: Icon(Icons.remove_rounded,
+                      color: colorScheme.onSurface, size: 20),
                   tooltip: tr(LocaleKeys.map_zoom_out),
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -114,8 +116,8 @@ class MapControls extends StatelessWidget {
               HapticFeedback.mediumImpact();
               onLocateMe();
             },
-            backgroundColor: style.colorScheme.surface,
-            foregroundColor: AppColors.googleBlue,
+            backgroundColor: colorScheme.surface,
+            foregroundColor: colorScheme.primary,
             elevation: 3,
             shape: const CircleBorder(),
             child: const Icon(Icons.my_location_rounded, size: 24),
@@ -131,32 +133,31 @@ class MapControls extends StatelessWidget {
     required String tooltip,
     required VoidCallback onPressed,
   }) {
-    final style = AppStyle.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: style.colorScheme.surface,
+        color: colorScheme.surface,
         shape: BoxShape.circle,
-        border: isDark
-            ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
-            : null,
-        boxShadow: [
+        border: Border.all(
+          color: colorScheme.outline.withAlpha(50),
+          width: 0.5,
+        ),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 60 : 12),
+            color: Color.fromRGBO(0, 0, 0, 0.15),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: IconButton(
-        icon: Icon(icon, color: style.blackTextColor, size: 20),
+        icon: Icon(icon, color: colorScheme.onSurface, size: 20),
         tooltip: tooltip,
         onPressed: onPressed,
         padding: EdgeInsets.zero,
       ),
     );
   }
-
 }

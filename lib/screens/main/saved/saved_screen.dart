@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/routers/app_routes.dart';
@@ -17,16 +16,13 @@ class SavedScreen extends StatefulWidget {
 class _SavedScreenState extends State<SavedScreen> {
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.white,
       appBar: TitleAppBar(
-
         title: tr(LocaleKeys.savedPlaces),
         rightWidget: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.gesture_rounded,
-            color: AppColors.sMapTeal,
+            color: Theme.of(context).colorScheme.primary,
           ),
           tooltip: tr(LocaleKeys.route_drawing_ui_title),
           onPressed: () => context.push(AppRoutes.routeDrawing),

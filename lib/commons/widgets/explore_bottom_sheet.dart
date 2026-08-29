@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -22,9 +21,7 @@ class ExploreBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return DraggableScrollableSheet(
@@ -37,18 +34,18 @@ class ExploreBottomSheet extends StatelessWidget {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
+            color: colorScheme.surface,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
             ),
-            border: isDark
-                ? Border.all(
-                    color: AppColors.darkOutline.withAlpha(60), width: 0.5)
-                : null,
+            border: Border.all(
+              color: colorScheme.outline.withAlpha(50),
+              width: 0.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 80 : 25),
+                color: colorScheme.shadow.withValues(alpha: 0.12),
                 blurRadius: 16,
                 offset: const Offset(0, -3),
               ),
@@ -68,9 +65,7 @@ class ExploreBottomSheet extends StatelessWidget {
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkOutline
-                              : AppColors.outlineVariant,
+                          color: colorScheme.outline.withAlpha(120),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -88,7 +83,7 @@ class ExploreBottomSheet extends StatelessWidget {
                               children: [
                                 Text(
                                   tr(LocaleKeys.explore_title),
-                                  style: style.blackTextColor.textTheme.subTitleStyle
+                                  style: colorScheme.onSurface.textTheme.subTitleStyle
                                       .copyWith(
                                     fontSize: 17,
                                     fontWeight: AppFontWeight.bold.weight,
@@ -97,8 +92,7 @@ class ExploreBottomSheet extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Text(
                                   tr(LocaleKeys.explore_subtitle),
-                                  style: AppColors
-                                      .onSurfaceVariant.textTheme.captionStyle,
+                                  style: colorScheme.onSurfaceVariant.textTheme.captionStyle,
                                 ),
                               ],
                             ),
@@ -106,14 +100,12 @@ class ExploreBottomSheet extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? AppColors.sMapTeal.withAlpha(40)
-                                  : AppColors.sMapLightTeal,
+                              color: colorScheme.primary.withAlpha(35),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.explore_rounded,
-                              color: AppColors.sMapTeal,
+                              color: colorScheme.primary,
                               size: 20,
                             ),
                           ),
@@ -144,12 +136,12 @@ class ExploreBottomSheet extends StatelessWidget {
                           Icon(
                             Icons.location_off_rounded,
                             size: 40,
-                            color: AppColors.onSurfaceVariant.withAlpha(120),
+                            color: colorScheme.onSurfaceVariant.withAlpha(120),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             tr(LocaleKeys.explore_empty),
-                            style: AppColors
+                            style: colorScheme
                                 .onSurfaceVariant.textTheme.captionStyle
                                 .copyWith(fontSize: 14),
                           ),
@@ -189,7 +181,9 @@ class ExploreBottomSheet extends StatelessWidget {
     required PlaceModel place,
     VoidCallback? onTap,
   }) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Material(
@@ -205,12 +199,12 @@ class ExploreBottomSheet extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.sMapTeal.withAlpha(18),
+                    color: colorScheme.primary.withAlpha(25),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.location_on_rounded,
-                    color: AppColors.sMapTeal,
+                    color: colorScheme.primary,
                     size: 24,
                   ),
                 ),
@@ -221,7 +215,7 @@ class ExploreBottomSheet extends StatelessWidget {
                     children: [
                       Text(
                         place.title,
-                        style: style.blackTextColor.textTheme.textStyle.copyWith(
+                        style: colorScheme.onSurface.textTheme.textStyle.copyWith(
                           fontSize: 15,
                           fontWeight: AppFontWeight.semiBold.weight,
                         ),
@@ -230,12 +224,11 @@ class ExploreBottomSheet extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           place.subtitle!,
-                          style: AppColors.onSurfaceVariant.textTheme.captionStyle,
+                          style: colorScheme.onSurfaceVariant.textTheme.captionStyle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-
                       if (place.rating != null || place.category != null) ...[
                         const SizedBox(height: 2),
                         Row(
@@ -243,10 +236,10 @@ class ExploreBottomSheet extends StatelessWidget {
                             if (place.rating != null) ...[
                               Text(
                                 "${place.rating} ★${place.reviewCount != null ? ' (${place.reviewCount})' : ''}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.googleYellow,
+                                  color: themeColors.statsOrange,
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -254,9 +247,9 @@ class ExploreBottomSheet extends StatelessWidget {
                             if (place.category != null)
                               Text(
                                 "• ${place.category}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.onSurfaceVariant,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                           ],
@@ -265,9 +258,9 @@ class ExploreBottomSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.directions_rounded,
-                  color: AppColors.googleBlue,
+                  color: colorScheme.primary,
                   size: 24,
                 ),
               ],

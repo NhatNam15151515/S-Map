@@ -63,8 +63,8 @@ class MapCategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final style = AppStyle.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return RepaintBoundary(
       child: SizedBox(
@@ -88,26 +88,20 @@ class MapCategoryChips extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? (isDark
-                            ? AppColors.sMapTeal.withAlpha(50)
-                            : AppColors.sMapLightTeal)
-                        : (isDark
-                            ? AppColors.darkSurfaceContainer
-                            : AppColors.white),
+                        ? colorScheme.primary.withAlpha(35)
+                        : colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isSelected
-                          ? AppColors.sMapTeal
-                          : (isDark
-                              ? AppColors.darkOutline.withAlpha(60)
-                              : AppColors.outlineVariant.withAlpha(120)),
+                          ? colorScheme.primary
+                          : colorScheme.outline.withAlpha(50),
                       width: isSelected ? 1.2 : 0.8,
                     ),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
-                        color: Colors.black.withAlpha(isDark ? 40 : 12),
+                        color: Color.fromRGBO(0, 0, 0, 0.08),
                         blurRadius: 6,
-                        offset: const Offset(0, 2),
+                        offset: Offset(0, 2),
                       ),
                     ],
                   ),
@@ -117,22 +111,20 @@ class MapCategoryChips extends StatelessWidget {
                       Icon(
                         item.icon,
                         size: 16,
-                        color: isSelected ? AppColors.sMapTeal : item.color,
+                        color: isSelected ? colorScheme.primary : item.color,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         labelText,
                         style: isSelected
-                            ? (isDark
-                                    ? AppColors.sMapTeal
-                                    : AppColors.sMapDarkTeal)
+                            ? colorScheme.primary
                                 .textTheme
                                 .textStyle
                                 .copyWith(
                                   fontSize: 13,
                                   fontWeight: AppFontWeight.semiBold.weight,
                                 )
-                            : style.blackTextColor.textTheme.textStyle.copyWith(
+                            : colorScheme.onSurface.textTheme.textStyle.copyWith(
                                 fontSize: 13,
                                 fontWeight: AppFontWeight.medium.weight,
                               ),
@@ -147,5 +139,6 @@ class MapCategoryChips extends StatelessWidget {
       ),
     );
   }
+
 
 }

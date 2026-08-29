@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -19,38 +18,41 @@ class RegionCard extends StatelessWidget {
     super.key,
     required this.region,
     required this.progress,
-    required this.isCurrentlyDownloading,
+    this.isCurrentlyDownloading = false,
     required this.onDownload,
     required this.onDelete,
     required this.onCancel,
   });
 
   void _showDeleteConfirmDialog(BuildContext context) {
-    showDialog<void>(
+    final colorScheme = context.colorScheme;
+
+    showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: Theme.of(context).cardColor,
+          backgroundColor: colorScheme.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
           title: Text(
             tr(LocaleKeys.offline_maps_delete_confirm_title),
-            style: AppColors.googleDarkText.textTheme.boldStyle.copyWith(fontSize: 18.sp),
+            style: colorScheme.onSurface.textTheme.boldStyle.copyWith(fontSize: 18.sp),
           ),
           content: Text(
             tr(LocaleKeys.offline_maps_delete_confirm_desc),
-            style: AppColors.googleDarkText.textTheme.regularStyle.copyWith(fontSize: 14.sp),
+            style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(fontSize: 14.sp),
           ),
           actions: [
             TextButton(
               onPressed: dialogContext.pop,
               child: Text(
                 tr(LocaleKeys.offline_maps_cancel_btn),
-                style: AppColors.googleGreyText.textTheme.mediumStyle.copyWith(fontSize: 14.sp),
+                style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(fontSize: 14.sp),
               ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.googleRed,
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
               ),
               onPressed: () {
@@ -59,7 +61,7 @@ class RegionCard extends StatelessWidget {
               },
               child: Text(
                 tr(LocaleKeys.offline_maps_delete_btn),
-                style: AppColors.white.textTheme.semiBoldStyle.copyWith(fontSize: 14.sp),
+                style: colorScheme.onError.textTheme.semiBoldStyle.copyWith(fontSize: 14.sp),
               ),
             ),
           ],
@@ -71,21 +73,24 @@ class RegionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDownloading = isCurrentlyDownloading || region.isDownloading;
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
 
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
-          color: AppColors.outline,
+          color: colorScheme.outline.withAlpha(50),
+          width: 0.8,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppColors.blackOpa25,
-            blurRadius: 4,
-            offset: Offset(0, 1),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -99,12 +104,12 @@ class RegionCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: AppColors.sMapLightTeal,
+                  color: colorScheme.primary.withAlpha(25),
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Icon(
                   Icons.map_outlined,
-                  color: AppColors.sMapTeal,
+                  color: colorScheme.primary,
                   size: 22.sp,
                 ),
               ),
@@ -115,12 +120,12 @@ class RegionCard extends StatelessWidget {
                   children: [
                     Text(
                       region.name,
-                      style: AppColors.googleDarkText.textTheme.boldStyle.copyWith(fontSize: 16.sp),
+                      style: colorScheme.onSurface.textTheme.boldStyle.copyWith(fontSize: 16.sp),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       region.description,
-                      style: AppColors.googleGreyText.textTheme.captionStyle.copyWith(fontSize: 13.sp),
+                      style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 13.sp),
                     ),
                   ],
                 ),
@@ -134,26 +139,26 @@ class RegionCard extends StatelessWidget {
           // Dung lượng & Version
           Row(
             children: [
-              Icon(Icons.sd_storage_outlined, size: 14.sp, color: AppColors.googleGreyText),
+              Icon(Icons.sd_storage_outlined, size: 14.sp, color: colorScheme.onSurfaceVariant),
               SizedBox(width: 4.w),
               Text(
                 region.formattedSize,
-                style: AppColors.googleGreyText.textTheme.captionStyle.copyWith(fontSize: 12.sp),
+                style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 12.sp),
               ),
               SizedBox(width: 16.w),
-              Icon(Icons.verified_outlined, size: 14.sp, color: AppColors.googleGreyText),
+              Icon(Icons.verified_outlined, size: 14.sp, color: colorScheme.onSurfaceVariant),
               SizedBox(width: 4.w),
               Text(
                 'v${region.version}',
-                style: AppColors.googleGreyText.textTheme.captionStyle.copyWith(fontSize: 12.sp),
+                style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 12.sp),
               ),
               if (region.downloadedAt != null) ...[
                 SizedBox(width: 16.w),
-                Icon(Icons.calendar_today_outlined, size: 14.sp, color: AppColors.googleGreyText),
+                Icon(Icons.calendar_today_outlined, size: 14.sp, color: colorScheme.onSurfaceVariant),
                 SizedBox(width: 4.w),
                 Text(
                   DateFormat('dd/MM/yyyy', context.locale.toString()).format(region.downloadedAt!),
-                  style: AppColors.googleGreyText.textTheme.captionStyle.copyWith(fontSize: 12.sp),
+                  style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 12.sp),
                 ),
               ],
             ],
@@ -172,7 +177,7 @@ class RegionCard extends StatelessWidget {
                       region.status == RegionDownloadStatus.extracting
                           ? tr(LocaleKeys.offline_maps_extracting)
                           : tr(LocaleKeys.offline_maps_downloading),
-                      style: AppColors.sMapTeal.textTheme.mediumStyle.copyWith(fontSize: 12.sp),
+                      style: colorScheme.primary.textTheme.mediumStyle.copyWith(fontSize: 12.sp),
                     ),
                     Text(
                       () {
@@ -181,7 +186,7 @@ class RegionCard extends StatelessWidget {
                             : progress.clamp(0.0, 1.0);
                         return '${(safeProgress * 100).toInt()}%';
                       }(),
-                      style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(fontSize: 12.sp),
+                      style: colorScheme.primary.textTheme.boldStyle.copyWith(fontSize: 12.sp),
                     ),
                   ],
                 ),
@@ -191,8 +196,8 @@ class RegionCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress > 0 ? progress : null,
                     minHeight: 6.h,
-                    backgroundColor: AppColors.sMapLightTeal,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.sMapTeal),
+                    backgroundColor: colorScheme.primary.withAlpha(30),
+                    valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
                   ),
                 ),
               ],
@@ -208,8 +213,8 @@ class RegionCard extends StatelessWidget {
               if (isDownloading) ...[
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.googleRed,
-                    side: const BorderSide(color: AppColors.googleRed),
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(color: colorScheme.error),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
                     padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
                   ),
@@ -217,15 +222,15 @@ class RegionCard extends StatelessWidget {
                   icon: Icon(Icons.close_rounded, size: 16.sp),
                   label: Text(
                     tr(LocaleKeys.offline_maps_cancel_btn),
-                    style: AppColors.googleRed.textTheme.mediumStyle.copyWith(fontSize: 13.sp),
+                    style: colorScheme.error.textTheme.mediumStyle.copyWith(fontSize: 13.sp),
                   ),
                 ),
               ] else if (region.status == RegionDownloadStatus.notDownloaded ||
                   region.status == RegionDownloadStatus.failed) ...[
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.sMapTeal,
-                    foregroundColor: AppColors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
                     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                   ),
@@ -233,15 +238,15 @@ class RegionCard extends StatelessWidget {
                   icon: Icon(Icons.download_rounded, size: 16.sp),
                   label: Text(
                     tr(LocaleKeys.offline_maps_download_btn),
-                    style: AppColors.white.textTheme.semiBoldStyle.copyWith(fontSize: 13.sp),
+                    style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(fontSize: 13.sp),
                   ),
                 ),
               ] else ...[
                 if (region.hasUpdate) ...[
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.orangePop,
-                      foregroundColor: AppColors.white,
+                      backgroundColor: themeColors.statsOrange,
+                      foregroundColor: colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
                       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
                     ),
@@ -249,15 +254,15 @@ class RegionCard extends StatelessWidget {
                     icon: Icon(Icons.system_update_alt_rounded, size: 16.sp),
                     label: Text(
                       tr(LocaleKeys.offline_maps_update_btn),
-                      style: AppColors.white.textTheme.semiBoldStyle.copyWith(fontSize: 13.sp),
+                      style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(fontSize: 13.sp),
                     ),
                   ),
                   SizedBox(width: 8.w),
                 ],
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.googleRed,
-                    side: const BorderSide(color: AppColors.googleRed),
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(color: colorScheme.error),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
                     padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                   ),
@@ -265,7 +270,7 @@ class RegionCard extends StatelessWidget {
                   icon: Icon(Icons.delete_outline_rounded, size: 16.sp),
                   label: Text(
                     tr(LocaleKeys.offline_maps_delete_btn),
-                    style: AppColors.googleRed.textTheme.mediumStyle.copyWith(fontSize: 13.sp),
+                    style: colorScheme.error.textTheme.mediumStyle.copyWith(fontSize: 13.sp),
                   ),
                 ),
               ],
@@ -277,22 +282,25 @@ class RegionCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
+
     switch (region.status) {
       case RegionDownloadStatus.downloaded:
         return Container(
           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
           decoration: BoxDecoration(
-            color: AppColors.glowInTheDark,
+            color: themeColors.statsSuccessBg,
             borderRadius: BorderRadius.circular(6.r),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle_rounded, size: 12.sp, color: AppColors.googleGreen),
+              Icon(Icons.check_circle_rounded, size: 12.sp, color: themeColors.statsSuccess),
               SizedBox(width: 4.w),
               Text(
                 tr(LocaleKeys.offline_maps_downloaded),
-                style: AppColors.googleGreen.textTheme.semiBoldStyle.copyWith(fontSize: 11.sp),
+                style: themeColors.statsSuccess.textTheme.semiBoldStyle.copyWith(fontSize: 11.sp),
               ),
             ],
           ),
@@ -301,17 +309,17 @@ class RegionCard extends StatelessWidget {
         return Container(
           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
           decoration: BoxDecoration(
-            color: AppColors.orangePopOpa12,
+            color: themeColors.statsOrange.withAlpha(25),
             borderRadius: BorderRadius.circular(6.r),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.info_outline_rounded, size: 12.sp, color: AppColors.orangePop),
+              Icon(Icons.info_outline_rounded, size: 12.sp, color: themeColors.statsOrange),
               SizedBox(width: 4.w),
               Text(
                 tr(LocaleKeys.offline_maps_update_available),
-                style: AppColors.orangePop.textTheme.semiBoldStyle.copyWith(fontSize: 11.sp),
+                style: themeColors.statsOrange.textTheme.semiBoldStyle.copyWith(fontSize: 11.sp),
               ),
             ],
           ),
@@ -321,7 +329,7 @@ class RegionCard extends StatelessWidget {
         return Container(
           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
           decoration: BoxDecoration(
-            color: AppColors.sMapLightTeal,
+            color: colorScheme.primary.withAlpha(25),
             borderRadius: BorderRadius.circular(6.r),
           ),
           child: Row(
@@ -330,7 +338,7 @@ class RegionCard extends StatelessWidget {
               SizedBox(
                 width: 10.w,
                 height: 10.h,
-                child: const CircularProgressIndicator(strokeWidth: 2, color: AppColors.sMapTeal),
+                child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primary),
               ),
               SizedBox(width: 6.w),
               Text(
@@ -340,7 +348,7 @@ class RegionCard extends StatelessWidget {
                       : progress.clamp(0.0, 1.0);
                   return '${(safeProgress * 100).toInt()}%';
                 }(),
-                style: AppColors.sMapTeal.textTheme.semiBoldStyle.copyWith(fontSize: 11.sp),
+                style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(fontSize: 11.sp),
               ),
             ],
           ),

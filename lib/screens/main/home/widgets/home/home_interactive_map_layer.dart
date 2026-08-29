@@ -242,8 +242,10 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           return Stack(
             children: [
               MapView(
+                key: ValueKey('map_view_night_${state.isNightMode}'),
                 styleString: state.styleString,
                 onMapCreated: (controller) {
+
                   _mapController = controller;
                   _mapController!.onSymbolTapped.add((symbol) {
                     final poi = _symbolManager.getPoiBySymbolId(symbol.id);

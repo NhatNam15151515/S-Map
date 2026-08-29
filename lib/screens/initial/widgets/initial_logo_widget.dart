@@ -2,7 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -16,6 +15,8 @@ class InitialLogoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -23,22 +24,22 @@ class InitialLogoWidget extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.white.withAlpha(30),
+            color: colorScheme.onPrimary.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: AppAsset.logo.image.build(
             size: const Size(64, 64),
-            color: AppColors.white,
+            color: colorScheme.onPrimary,
           ),
         ),
         const SizedBox(height: 24),
         // App name with shimmer
         Shimmer.fromColors(
-          baseColor: AppColors.white,
-          highlightColor: AppColors.white.withAlpha(128),
+          baseColor: colorScheme.onPrimary,
+          highlightColor: colorScheme.onPrimary.withValues(alpha: 0.5),
           child: Text(
             appName,
-            style: AppColors.white.textTheme.displayStyle.copyWith(
+            style: colorScheme.onPrimary.textTheme.displayStyle.copyWith(
               letterSpacing: 2,
             ),
           ),
@@ -47,7 +48,7 @@ class InitialLogoWidget extends StatelessWidget {
         // Tagline
         Text(
           tr(LocaleKeys.app_tagline),
-          style: AppColors.white.withAlpha(200).textTheme.textStyle.copyWith(
+          style: colorScheme.onPrimary.withValues(alpha: 0.8).textTheme.textStyle.copyWith(
                 fontSize: 14,
                 letterSpacing: 0.5,
               ),

@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -21,7 +20,7 @@ class SearchRecentList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
 
     if (recentSearches.isEmpty) {
       return Center(
@@ -41,22 +40,22 @@ class SearchRecentList extends StatelessWidget {
             children: [
               Text(
                 tr(LocaleKeys.recentSearches),
-                style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                   fontSize: 14,
-                  color: AppColors.googleDarkText,
                 ),
               ),
               const Spacer(),
               TextButton(
                 onPressed: onClearAll,
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
                   tr(LocaleKeys.clearAll),
-                  style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
+                  style: colorScheme.primary.textTheme.boldStyle.copyWith(
                     fontSize: 13,
                   ),
                 ),
@@ -68,11 +67,11 @@ class SearchRecentList extends StatelessWidget {
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 4),
             itemCount: recentSearches.length,
-            separatorBuilder: (_, __) => const Divider(
+            separatorBuilder: (_, __) => Divider(
               height: 1,
               indent: 52,
               endIndent: 16,
-              color: AppColors.outlineVariant,
+              color: colorScheme.outline.withValues(alpha: 0.3),
             ),
             itemBuilder: (context, index) {
               final query = recentSearches[index];
@@ -82,19 +81,20 @@ class SearchRecentList extends StatelessWidget {
                 leading: Container(
                   width: 36,
                   height: 36,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceContainer,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.history_rounded,
-                    color: AppColors.onSurfaceVariant,
+                    color: colorScheme.onSurfaceVariant,
                     size: 20,
                   ),
                 ),
                 title: Text(
                   query,
-                  style: style.blackTextColor.textTheme.textStyle.copyWith(
+                  style:
+                      colorScheme.onSurface.textTheme.textStyle.copyWith(
                     fontSize: 15,
                     fontWeight: AppFontWeight.regular.weight,
                   ),
@@ -102,10 +102,10 @@ class SearchRecentList extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 trailing: IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
                     size: 18,
-                    color: AppColors.onSurfaceVariant,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                   onPressed: () => onItemRemove(query),
                   tooltip: tr(LocaleKeys.cancel),

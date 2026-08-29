@@ -21,7 +21,7 @@ class SavedPoiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     final icon =
         PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
     final iconColor = PoiCategoryHelper.getIconColor(poi.category,
@@ -30,20 +30,17 @@ class SavedPoiCard extends StatelessWidget {
         subCategory: poi.subCategory);
     final address = PoiCategoryHelper.formatAddress(poi);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: (isDark ? AppColors.darkOutline : AppColors.outlineVariant)
-              .withAlpha(100),
+          color: colorScheme.outline.withAlpha(50),
           width: 0.8,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 40 : 10),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -77,21 +74,17 @@ class SavedPoiCard extends StatelessWidget {
                     children: [
                       Text(
                         poi.name,
-                        style:
-                            style.blackTextColor.textTheme.boldStyle.copyWith(
+                        style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                           fontSize: 15,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-
                       if (address.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           address,
-                          style: AppColors
-                              .onSurfaceVariant.textTheme.textStyle
-                              .copyWith(
+                          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                             fontSize: 12,
                             fontWeight: AppFontWeight.regular.weight,
                           ),
@@ -106,18 +99,18 @@ class SavedPoiCard extends StatelessWidget {
 
                 // Actions: Directions & Remove
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.directions_rounded,
-                    color: AppColors.googleBlue,
+                    color: colorScheme.primary,
                     size: 22,
                   ),
                   tooltip: tr(LocaleKeys.directions),
                   onPressed: onDirections,
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.bookmark_remove_rounded,
-                    color: AppColors.googleRed,
+                    color: colorScheme.error,
                     size: 20,
                   ),
                   tooltip: tr(LocaleKeys.common_cancel),

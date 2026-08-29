@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -26,22 +25,22 @@ class UserProfileCard extends StatelessWidget {
             args: [appName],
           );
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: isDark
-            ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
-            : null,
+        border: Border.all(
+          color: colorScheme.outline.withAlpha(50),
+          width: 0.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 40 : 10),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -53,7 +52,7 @@ class UserProfileCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             displayName,
-            style: style.blackTextColor.textTheme.subTitleStyle.copyWith(
+            style: colorScheme.onSurface.textTheme.subTitleStyle.copyWith(
               fontSize: 20,
             ),
           ),
@@ -62,14 +61,13 @@ class UserProfileCard extends StatelessWidget {
             onTap: onViewProfile,
             child: Text(
               tr(LocaleKeys.viewProfile),
-              style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(
+              style: colorScheme.primary.textTheme.boldStyle.copyWith(
                 fontSize: 14,
               ),
             ),
           ),
         ],
       ),
-
     );
   }
 }

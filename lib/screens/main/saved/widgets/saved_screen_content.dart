@@ -49,7 +49,7 @@ class SavedScreenContent extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () => context.read<FavoritesCubit>().loadFavorites(),
-          color: AppColors.sMapTeal,
+          color: Theme.of(context).colorScheme.primary,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             itemCount: state.favorites.length,

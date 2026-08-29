@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class SearchThisAreaButton extends StatelessWidget {
@@ -18,7 +17,7 @@ class SearchThisAreaButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 250),
@@ -38,17 +37,17 @@ class SearchThisAreaButton extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: AppColors.outlineVariant.withAlpha(100),
+                    color: colorScheme.outline.withAlpha(80),
                     width: 0.8,
                   ),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color.fromRGBO(0, 0, 0, 0.12),
+                      color: colorScheme.shadow.withValues(alpha: 0.12),
                       blurRadius: 10,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -56,28 +55,27 @@ class SearchThisAreaButton extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isLoading)
-                      const SizedBox(
+                      SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.sMapTeal,
+                          color: colorScheme.primary,
                         ),
                       )
                     else
-                      const Icon(
+                      Icon(
                         Icons.refresh_rounded,
                         size: 18,
-                        color: AppColors.sMapTeal,
+                        color: colorScheme.primary,
                       ),
                     const SizedBox(width: 8),
                     Text(
                       isLoading
                           ? tr(LocaleKeys.searching_this_area)
                           : tr(LocaleKeys.search_this_area),
-                      style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                      style: colorScheme.primary.textTheme.boldStyle.copyWith(
                         fontSize: 13,
-                        color: AppColors.sMapDarkTeal,
                       ),
                     ),
                   ],

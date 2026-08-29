@@ -17,7 +17,8 @@ class NavigationBottomPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
 
     return BlocBuilder<NavigationBloc, NavigationState>(
       buildWhen: (prev, curr) =>
@@ -51,17 +52,17 @@ class NavigationBottomPanel extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.white,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: AppColors.outlineVariant.withAlpha(120),
+                  color: colorScheme.outline.withValues(alpha: 0.2),
                   width: 0.8,
                 ),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Color.fromRGBO(0, 0, 0, 0.12),
+                    color: colorScheme.shadow.withValues(alpha: 0.12),
                     blurRadius: 20,
-                    offset: Offset(0, 6),
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
@@ -74,7 +75,7 @@ class NavigationBottomPanel extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceContainer,
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -82,19 +83,15 @@ class NavigationBottomPanel extends StatelessWidget {
                       children: [
                         Text(
                           speedStr,
-                          style:
-                              style.blackTextColor.textTheme.boldStyle.copyWith(
+                          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                             fontSize: 20,
                             letterSpacing: -0.5,
-                            color: AppColors.googleDarkText,
                           ),
                         ),
                         Text(
                           tr(LocaleKeys.routing_speed_kmh),
-                          style: style.blackTextColor.textTheme.mediumStyle
-                              .copyWith(
+                          style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                             fontSize: 10,
-                            color: AppColors.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -111,19 +108,15 @@ class NavigationBottomPanel extends StatelessWidget {
                         Text.rich(
                           TextSpan(
                             text: remainingDurationStr,
-                            style: style.blackTextColor.textTheme.boldStyle
-                                .copyWith(
+                            style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                               fontSize: 17,
-                              color: AppColors.navAccentGreen,
+                              color: themeColors.statsSuccess,
                             ),
                             children: [
                               TextSpan(
                                 text: ' • $etaTimeStr',
-                                style: style
-                                    .blackTextColor.textTheme.mediumStyle
-                                    .copyWith(
+                                style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                                   fontSize: 13,
-                                  color: AppColors.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -136,10 +129,8 @@ class NavigationBottomPanel extends StatelessWidget {
                           '$remainingDistStr ${tr(LocaleKeys.routing_remaining)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: style.blackTextColor.textTheme.regularStyle
-                              .copyWith(
+                          style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
                             fontSize: 12,
-                            color: AppColors.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -158,28 +149,26 @@ class NavigationBottomPanel extends StatelessWidget {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.navAlertRed.withAlpha(25),
+                          color: colorScheme.error.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: AppColors.navAlertRed.withAlpha(80),
+                            color: colorScheme.error.withValues(alpha: 0.3),
                             width: 1.0,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.close_rounded,
-                              color: AppColors.navAlertRed,
+                              color: colorScheme.error,
                               size: 18,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               tr(LocaleKeys.routing_end_navigation),
-                              style: style.blackTextColor.textTheme.boldStyle
-                                  .copyWith(
+                              style: colorScheme.error.textTheme.boldStyle.copyWith(
                                 fontSize: 13,
-                                color: AppColors.navAlertRed,
                               ),
                             ),
                           ],

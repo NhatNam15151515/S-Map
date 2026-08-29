@@ -4,13 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/utils/utils.dart';
-import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/onboarding/widgets/widgets.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  static const String path = AppRoutes.onboarding;
-
   const OnboardingScreen({super.key});
 
   @override
@@ -70,97 +66,98 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
         },
         child: Scaffold(
           body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.sMapTealGradientStart,
-                AppColors.sMapTeal,
-                AppColors.sMapDarkTeal,
-              ],
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.85),
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primaryContainer,
+                ],
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: BlocConsumer<DownloadRegionCubit, DownloadRegionState>(
-              listenWhen: (previous, current) =>
-                  previous.status != current.status ||
-                  previous.currentlyDownloadingRegionId !=
-                      current.currentlyDownloadingRegionId,
-              listener: (context, state) {
-                if (state.status == DownloadRegionStatus.downloading &&
-                    state.currentlyDownloadingRegionId != null) {
-                  // Navigate directly to downloading view (index 2)
-                  if (_currentPageIndex != OnboardingStep.downloading.index) {
-                    _goToPage(OnboardingStep.downloading.index);
+            child: SafeArea(
+              child: BlocConsumer<DownloadRegionCubit, DownloadRegionState>(
+                listenWhen: (previous, current) =>
+                    previous.status != current.status ||
+                    previous.currentlyDownloadingRegionId !=
+                        current.currentlyDownloadingRegionId,
+                listener: (context, state) {
+                  if (state.status == DownloadRegionStatus.downloading &&
+                      state.currentlyDownloadingRegionId != null) {
+                    // Navigate directly to downloading view (index 2)
+                    if (_currentPageIndex != OnboardingStep.downloading.index) {
+                      _goToPage(OnboardingStep.downloading.index);
+                    }
+                  } else if (state.isSuccess &&
+                      state.successMessage ==
+                          DownloadRegionMessages.downloadSuccess) {
+                    // Navigate directly to Ready view (index 3)
+                    if (_currentPageIndex != OnboardingStep.ready.index) {
+                      _goToPage(OnboardingStep.ready.index);
+                    }
+                  } else if (state.status == DownloadRegionStatus.loaded &&
+                      state.currentlyDownloadingRegionId == null) {
+                    // Go back to region picker (index 1) if cancelled/loaded
+                    if (_currentPageIndex == OnboardingStep.downloading.index) {
+                      _goToPage(OnboardingStep.regionPicker.index);
+                    }
+                  } else if (state.isError) {
+                    showError(tr(LocaleKeys.offline_maps_error));
+                    // Go back to region picker (index 1) on error
+                    if (_currentPageIndex !=
+                        OnboardingStep.regionPicker.index) {
+                      _goToPage(OnboardingStep.regionPicker.index);
+                    }
                   }
-                } else if (state.isSuccess &&
-                    state.successMessage ==
-                        DownloadRegionMessages.downloadSuccess) {
-                  // Navigate directly to Ready view (index 3)
-                  if (_currentPageIndex != OnboardingStep.ready.index) {
-                    _goToPage(OnboardingStep.ready.index);
-                  }
-                } else if (state.status == DownloadRegionStatus.loaded &&
-                    state.currentlyDownloadingRegionId == null) {
-                  // Go back to region picker (index 1) if cancelled/loaded
-                  if (_currentPageIndex == OnboardingStep.downloading.index) {
-                    _goToPage(OnboardingStep.regionPicker.index);
-                  }
-                } else if (state.isError) {
-                  showError(tr(LocaleKeys.offline_maps_error));
-                  // Go back to region picker (index 1) on error
-                  if (_currentPageIndex != OnboardingStep.regionPicker.index) {
-                    _goToPage(OnboardingStep.regionPicker.index);
-                  }
-                }
-              },
-              builder: (context, state) {
-                return PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) => _currentPageIndex = index,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    OnboardingWelcomeView(
-                      onContinue: _nextPage,
-                    ),
-                    OnboardingRegionPickerView(
-                      state: state,
-                      onSkip: () => _finishOnboarding(context),
-                      onRetry: () =>
-                          context.read<DownloadRegionCubit>().loadRegions(),
-                      onDownload: (regionId) => context
-                          .read<DownloadRegionCubit>()
-                          .downloadRegion(regionId),
-                      onDelete: (regionId) => context
-                          .read<DownloadRegionCubit>()
-                          .deleteRegion(regionId),
-                      onCancel: (regionId) => context
-                          .read<DownloadRegionCubit>()
-                          .cancelDownload(regionId),
-                    ),
-                    OnboardingDownloadingView(
-                      state: state,
-                      onCancel: () {
-                        final regionId = state.currentlyDownloadingRegionId;
-                        if (regionId != null) {
-                          context
-                              .read<DownloadRegionCubit>()
-                              .cancelDownload(regionId);
-                        }
-                      },
-                    ),
-                    OnboardingReadyView(
-                      onLetsGo: () => _finishOnboarding(context),
-                    ),
-                  ],
-                );
-              },
+                },
+                builder: (context, state) {
+                  return PageView(
+                    controller: _pageController,
+                    onPageChanged: (index) => _currentPageIndex = index,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      OnboardingWelcomeView(
+                        onContinue: _nextPage,
+                      ),
+                      OnboardingRegionPickerView(
+                        state: state,
+                        onSkip: () => _finishOnboarding(context),
+                        onRetry: () =>
+                            context.read<DownloadRegionCubit>().loadRegions(),
+                        onDownload: (regionId) => context
+                            .read<DownloadRegionCubit>()
+                            .downloadRegion(regionId),
+                        onDelete: (regionId) => context
+                            .read<DownloadRegionCubit>()
+                            .deleteRegion(regionId),
+                        onCancel: (regionId) => context
+                            .read<DownloadRegionCubit>()
+                            .cancelDownload(regionId),
+                      ),
+                      OnboardingDownloadingView(
+                        state: state,
+                        onCancel: () {
+                          final regionId = state.currentlyDownloadingRegionId;
+                          if (regionId != null) {
+                            context
+                                .read<DownloadRegionCubit>()
+                                .cancelDownload(regionId);
+                          }
+                        },
+                      ),
+                      OnboardingReadyView(
+                        onLetsGo: () => _finishOnboarding(context),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -31,6 +30,7 @@ class StatsTimeRangeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     const ranges = StatsTimeRange.values;
 
     return SingleChildScrollView(
@@ -46,18 +46,21 @@ class StatsTimeRangeSelector extends StatelessWidget {
               label: Text(
                 _getRangeLabel(range),
                 style: TextStyle(
-                  fontFamily: 'Montserrat',
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+                  color: isSelected
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
                 ),
               ),
               selected: isSelected,
-              selectedColor: AppColors.sMapDarkTeal,
-              backgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.5),
+              selectedColor: colorScheme.primary,
+              backgroundColor: colorScheme.surfaceContainerHighest,
               showCheckmark: false,
               side: BorderSide(
-                color: isSelected ? AppColors.sMapDarkTeal : AppColors.outline.withValues(alpha: 0.2),
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.outline.withValues(alpha: 0.2),
                 width: 1,
               ),
               shape: RoundedRectangleBorder(

@@ -113,19 +113,17 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
                     ? Icons.radio_button_checked_rounded
                     : Icons.radio_button_unchecked_rounded,
                 color: isSelected
-                    ? AppColors.sMapTeal
-                    : (style.greysTextColor.isNotEmpty
-                        ? style.greysTextColor.first
-                        : AppColors.onSurfaceVariant),
+                    ? context.colorScheme.primary
+                    : context.colorScheme.onSurfaceVariant,
                 size: 22,
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   title,
-                  style: style.blackTextColor.textTheme.textStyle.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w400,
+                  style: context.colorScheme.onSurface.textTheme.textStyle
+                      .copyWith(
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ),
@@ -170,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> with AppMixin {
                     onChanged: (value) {
                       context.read<AppCubit>().toggleDarkMode(value);
                     },
-                    activeTrackColor: AppColors.sMapTeal,
+                    activeTrackColor: context.colorScheme.primary,
                   ),
                 ),
                 const SettingsDivider(),

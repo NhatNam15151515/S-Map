@@ -2,7 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class RouteDrawingBottomCard extends StatelessWidget {
@@ -25,7 +24,7 @@ class RouteDrawingBottomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
     return Positioned(
@@ -34,11 +33,15 @@ class RouteDrawingBottomCard extends StatelessWidget {
       bottom: bottomPadding + 16,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.15),
+            width: 0.8,
+          ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.black.withAlpha(25),
+              color: colorScheme.shadow.withValues(alpha: 0.12),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -49,14 +52,14 @@ class RouteDrawingBottomCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isLoading)
-              const LinearProgressIndicator(
+              LinearProgressIndicator(
                 minHeight: 3,
-                backgroundColor: AppColors.sMapLightTeal,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.sMapTeal),
+                backgroundColor: colorScheme.primary.withValues(alpha: 0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
               ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: _buildContent(context, style),
+              child: _buildContent(context, colorScheme),
             ),
           ],
         ),
@@ -64,29 +67,28 @@ class RouteDrawingBottomCard extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, AppStyle style) {
+  Widget _buildContent(BuildContext context, ColorScheme colorScheme) {
     if (pointCount == 0) {
       return Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: AppColors.sMapLightTeal,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const HeroIcon(
+            child: HeroIcon(
               HeroIcons.cursorArrowRays,
               size: 24,
-              color: AppColors.sMapTeal,
+              color: colorScheme.primary,
             ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               tr(LocaleKeys.route_drawing_ui_tap_prompt),
-              style: style.blackTextColor.textTheme.mediumStyle.copyWith(
+              style: colorScheme.onSurface.textTheme.mediumStyle.copyWith(
                 fontSize: 14,
-                color: AppColors.grimReaper,
               ),
             ),
           ),
@@ -100,13 +102,13 @@ class RouteDrawingBottomCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.paleRobinEggBlue.withAlpha(50),
+              color: colorScheme.primary.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const HeroIcon(
+            child: HeroIcon(
               HeroIcons.mapPin,
               size: 24,
-              color: AppColors.sMapTeal,
+              color: colorScheme.primary,
             ),
           ),
           const SizedBox(width: 14),
@@ -117,17 +119,15 @@ class RouteDrawingBottomCard extends StatelessWidget {
               children: [
                 Text(
                   tr(LocaleKeys.route_drawing_ui_add_next_prompt),
-                  style: style.blackTextColor.textTheme.semiBoldStyle.copyWith(
+                  style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
                     fontSize: 14,
-                    color: AppColors.grimReaper,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   tr(LocaleKeys.route_drawing_ui_waypoints_count, args: ['1']),
-                  style: style.blackTextColor.textTheme.textStyle.copyWith(
+                  style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                     fontSize: 12,
-                    color: AppColors.sonicSilver,
                   ),
                 ),
               ],
@@ -149,27 +149,35 @@ class RouteDrawingBottomCard extends StatelessWidget {
             Expanded(
               child: _buildStatItem(
                 context,
-                style,
+                colorScheme,
                 icon: HeroIcons.mapPin,
                 value: '${distanceKm.toStringAsFixed(1)} km',
                 label: tr(LocaleKeys.routing_trip_distance),
               ),
             ),
-            Container(width: 1, height: 32, color: AppColors.plaster),
+            Container(
+              width: 1,
+              height: 32,
+              color: colorScheme.outline.withValues(alpha: 0.2),
+            ),
             Expanded(
               child: _buildStatItem(
                 context,
-                style,
+                colorScheme,
                 icon: HeroIcons.clock,
                 value: '$durationMinutes ${tr(LocaleKeys.routing_unit_minute)}',
                 label: tr(LocaleKeys.routing_trip_duration),
               ),
             ),
-            Container(width: 1, height: 32, color: AppColors.plaster),
+            Container(
+              width: 1,
+              height: 32,
+              color: colorScheme.outline.withValues(alpha: 0.2),
+            ),
             Expanded(
               child: _buildStatItem(
                 context,
-                style,
+                colorScheme,
                 icon: HeroIcons.flag,
                 value: pointCount.toString(),
                 label: tr(LocaleKeys.route_drawing_ui_waypoints_label),
@@ -186,21 +194,20 @@ class RouteDrawingBottomCard extends StatelessWidget {
                 key: const Key('route_drawing_save_button'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: const BorderSide(color: AppColors.sMapTeal, width: 1.5),
+                  side: BorderSide(color: colorScheme.primary, width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                icon: const HeroIcon(
+                icon: HeroIcon(
                   HeroIcons.bookmark,
                   size: 18,
-                  color: AppColors.sMapTeal,
+                  color: colorScheme.primary,
                 ),
                 label: Text(
                   tr(LocaleKeys.route_drawing_ui_save_route),
-                  style: style.blackTextColor.textTheme.semiBoldStyle.copyWith(
+                  style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
                     fontSize: 14,
-                    color: AppColors.sMapTeal,
                   ),
                 ),
                 onPressed: onSavePressed,
@@ -211,24 +218,23 @@ class RouteDrawingBottomCard extends StatelessWidget {
               child: ElevatedButton.icon(
                 key: const Key('route_drawing_navigate_button'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.sMapTeal,
-                  foregroundColor: AppColors.white,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                icon: const Icon(
+                icon: Icon(
                   Icons.navigation_rounded,
                   size: 18,
-                  color: AppColors.white,
+                  color: colorScheme.onPrimary,
                 ),
                 label: Text(
                   tr(LocaleKeys.route_drawing_ui_start_navigation),
-                  style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                  style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
                     fontSize: 14,
-                    color: AppColors.white,
                   ),
                 ),
                 onPressed: onNavigatePressed,
@@ -242,7 +248,7 @@ class RouteDrawingBottomCard extends StatelessWidget {
 
   Widget _buildStatItem(
     BuildContext context,
-    AppStyle style, {
+    ColorScheme colorScheme, {
     required HeroIcons icon,
     required String value,
     required String label,
@@ -253,13 +259,12 @@ class RouteDrawingBottomCard extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            HeroIcon(icon, size: 16, color: AppColors.sMapTeal),
+            HeroIcon(icon, size: 16, color: colorScheme.primary),
             const SizedBox(width: 4),
             Text(
               value,
-              style: style.blackTextColor.textTheme.boldStyle.copyWith(
+              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                 fontSize: 15,
-                color: AppColors.grimReaper,
               ),
             ),
           ],
@@ -267,9 +272,8 @@ class RouteDrawingBottomCard extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: style.blackTextColor.textTheme.textStyle.copyWith(
+          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
             fontSize: 11,
-            color: AppColors.sonicSilver,
           ),
         ),
       ],

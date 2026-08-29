@@ -81,8 +81,10 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
             prev.status != curr.status || prev.styleString != curr.styleString,
         builder: (context, mapState) {
           return MapView(
+            key: ValueKey('drawing_map_view_night_${mapState.isNightMode}'),
             styleString: mapState.styleString,
             onMapCreated: (controller) {
+
               _mapController = controller;
               displayCubit.onMapCreated();
             },

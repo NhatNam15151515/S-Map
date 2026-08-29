@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/screens/initial/widgets/widgets.dart';
 
 class InitialScreen extends StatefulWidget {
@@ -37,16 +37,18 @@ class _InitialScreenState extends State<InitialScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.sMapTealGradientStart,
-              AppColors.sMapTeal,
-              AppColors.sMapDarkTeal,
+              colorScheme.primary.withValues(alpha: 0.85),
+              colorScheme.primary,
+              colorScheme.primaryContainer,
             ],
           ),
         ),
@@ -64,7 +66,7 @@ class _InitialScreenState extends State<InitialScreen>
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.white.withAlpha(180),
+                      colorScheme.onPrimary.withValues(alpha: 0.7),
                     ),
                   ),
                 ),

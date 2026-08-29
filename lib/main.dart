@@ -25,6 +25,11 @@ void main() async {
   MapDisplayCubit.defaultLocationService = LocationService.instance;
   MapDisplayCubit.defaultCompassService = CompassService.instance;
   MapDisplayCubit.defaultMapStyleService = MapStyleService.instance;
+  MapDisplayCubit.defaultDarkModeResolver = () {
+    return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+        Brightness.dark;
+  };
+
   MapExploreCubit.defaultFireStoreService = FireStoreService.instance;
   FavoritesCubit.defaultFavoritesService = FavoritesServiceImpl.instance;
   AppCubit.defaultMessagingService = FirebaseMessagingService.instance;

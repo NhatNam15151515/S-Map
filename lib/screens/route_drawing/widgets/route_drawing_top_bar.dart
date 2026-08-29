@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class RouteDrawingTopBar extends StatelessWidget {
@@ -18,7 +17,7 @@ class RouteDrawingTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Positioned(
       top: topPadding + 10,
@@ -27,13 +26,17 @@ class RouteDrawingTopBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
+          border: Border.all(
+            color: colorScheme.outline.withAlpha(50),
+            width: 0.5,
+          ),
+          boxShadow: const [
             BoxShadow(
-              color: AppColors.black.withAlpha(15),
+              color: Color.fromRGBO(0, 0, 0, 0.12),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -41,10 +44,10 @@ class RouteDrawingTopBar extends StatelessWidget {
           children: [
             IconButton(
               key: const Key('route_drawing_back_button'),
-              icon: const HeroIcon(
+              icon: HeroIcon(
                 HeroIcons.chevronLeft,
                 size: 24,
-                color: AppColors.black,
+                color: colorScheme.onSurface,
               ),
               onPressed: () {
                 if (context.canPop()) {
@@ -59,9 +62,8 @@ class RouteDrawingTopBar extends StatelessWidget {
                 children: [
                   Text(
                     tr(LocaleKeys.route_drawing_ui_title),
-                    style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                    style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                       fontSize: 16,
-                      color: AppColors.black,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -70,25 +72,26 @@ class RouteDrawingTopBar extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.sMapLightTeal,
+                          color: colorScheme.primary.withAlpha(30),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.two_wheeler_rounded,
                               size: 12,
-                              color: AppColors.sMapDarkTeal,
+                              color: colorScheme.primary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               tr(LocaleKeys.route_drawing_ui_profile_moped),
-                              style: style.blackTextColor.textTheme.semiBoldStyle.copyWith(
+                              style: colorScheme.primary.textTheme.semiBoldStyle
+                                  .copyWith(
                                 fontSize: 10,
-                                color: AppColors.sMapDarkTeal,
                               ),
                             ),
                           ],
@@ -101,10 +104,10 @@ class RouteDrawingTopBar extends StatelessWidget {
             ),
             IconButton(
               key: const Key('route_drawing_saved_routes_button'),
-              icon: const HeroIcon(
+              icon: HeroIcon(
                 HeroIcons.bookmark,
                 size: 22,
-                color: AppColors.sMapTeal,
+                color: colorScheme.primary,
               ),
               tooltip: tr(LocaleKeys.route_drawing_ui_saved_routes_title),
               onPressed: onSavedRoutesPressed,

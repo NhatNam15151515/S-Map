@@ -6,24 +6,22 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
-/// Floating Top Banner hiển thị chỉ dẫn hướng rẽ, khoảng cách đến ngã rẽ và tên đường
+/// Top HUD Banner hiển thị chỉ dẫn điều hướng Turn-by-Turn (Khoảng cách, Icon rẽ, Tên đường, Preview bước tiếp theo)
 class NavigationTopPanel extends StatelessWidget {
-  final double topPadding;
+  final double? topPadding;
 
-  const NavigationTopPanel({
-    super.key,
-    required this.topPadding,
-  });
+  const NavigationTopPanel({super.key, this.topPadding});
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
 
     return BlocBuilder<NavigationBloc, NavigationState>(
       buildWhen: (prev, curr) =>
-          prev.distanceToNextInstruction != curr.distanceToNextInstruction ||
           prev.currentInstruction != curr.currentInstruction ||
           prev.nextInstruction != curr.nextInstruction ||
+          prev.distanceToNextInstruction != curr.distanceToNextInstruction ||
           prev.isPreAnnounced != curr.isPreAnnounced ||
           prev.isRerouting != curr.isRerouting ||
           prev.status != curr.status,
@@ -32,16 +30,22 @@ class NavigationTopPanel extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        final instruction = state.currentInstruction;
-        final icon = RouteFormatHelper.getInstructionIcon(state.instructionType);
+        final currentInstruction = state.currentInstruction;
+        if (currentInstruction == null) {
+          return const SizedBox.shrink();
+        }
+
+        final nextInstruction = state.nextInstruction;
+        final icon = RouteFormatHelper.getInstructionIcon(
+          currentInstruction.type,
+        );
+        final title = RouteFormatHelper.getInstructionTitle(currentInstruction);
         final distanceStr = RouteFormatHelper.formatDistance(
           state.distanceToNextInstruction,
         );
-        final title = RouteFormatHelper.getInstructionTitle(instruction);
-        final nextInstruction = state.nextInstruction;
 
         return Positioned(
-          top: topPadding + 8,
+          top: (topPadding ?? MediaQuery.paddingOf(context).top) + 8,
           left: 12,
           right: 12,
           child: Column(
@@ -54,33 +58,32 @@ class NavigationTopPanel extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.bleuDeFrance,
+                    color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color.fromRGBO(0, 0, 0, 0.2),
+                        color: colorScheme.shadow.withValues(alpha: 0.2),
                         blurRadius: 8,
-                        offset: Offset(0, 3),
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.0,
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(AppColors.white),
+                              AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         tr(LocaleKeys.routing_rerouting),
-                        style:
-                            style.whiteTextColor.textTheme.boldStyle.copyWith(
+                        style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
                           fontSize: 12,
                         ),
                       ),
@@ -91,19 +94,19 @@ class NavigationTopPanel extends StatelessWidget {
               // 2. Main Maneuver Banner
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.navDarkSurface,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: state.isPreAnnounced
-                        ? AppColors.navAccentGreen
-                        : AppColors.navCardBorder,
+                        ? themeColors.statsSuccess
+                        : colorScheme.outline.withAlpha(60),
                     width: state.isPreAnnounced ? 1.8 : 0.8,
                   ),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color.fromRGBO(0, 0, 0, 0.28),
+                      color: colorScheme.shadow.withValues(alpha: 0.15),
                       blurRadius: 16,
-                      offset: Offset(0, 6),
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -121,12 +124,12 @@ class NavigationTopPanel extends StatelessWidget {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: AppColors.navManeuverBg,
+                              color: colorScheme.primary.withAlpha(25),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
                               icon,
-                              color: AppColors.white,
+                              color: colorScheme.primary,
                               size: 36,
                             ),
                           ),
@@ -141,7 +144,7 @@ class NavigationTopPanel extends StatelessWidget {
                                   children: [
                                     Text(
                                       distanceStr,
-                                      style: style.whiteTextColor.textTheme
+                                      style: colorScheme.onSurface.textTheme
                                           .boldStyle
                                           .copyWith(
                                         fontSize: 22,
@@ -156,14 +159,14 @@ class NavigationTopPanel extends StatelessWidget {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.navAccentGreen
+                                          color: themeColors.statsSuccess
                                               .withAlpha(200),
                                           borderRadius:
                                               BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           tr(LocaleKeys.routing_prepare_turn),
-                                          style: style.whiteTextColor.textTheme
+                                          style: colorScheme.onPrimary.textTheme
                                               .semiBoldStyle
                                               .copyWith(fontSize: 10),
                                         ),
@@ -176,11 +179,10 @@ class NavigationTopPanel extends StatelessWidget {
                                   title,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: style.whiteTextColor.textTheme
+                                  style: colorScheme.onSurfaceVariant.textTheme
                                       .mediumStyle
                                       .copyWith(
                                     fontSize: 15,
-                                    color: AppColors.white.withAlpha(230),
                                   ),
                                 ),
                               ],
@@ -199,7 +201,7 @@ class NavigationTopPanel extends StatelessWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.black.withAlpha(80),
+                          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                           borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(15),
                           ),
@@ -208,17 +210,16 @@ class NavigationTopPanel extends StatelessWidget {
                           children: [
                             Text(
                               '${tr(LocaleKeys.routing_then_turn)}: ',
-                              style: style.whiteTextColor.textTheme.regularStyle
+                              style: colorScheme.onSurfaceVariant.textTheme.regularStyle
                                   .copyWith(
                                 fontSize: 12,
-                                color: AppColors.white.withAlpha(180),
                               ),
                             ),
                             Icon(
                               RouteFormatHelper.getInstructionIcon(
                                 nextInstruction.type,
                               ),
-                              color: AppColors.white.withAlpha(180),
+                              color: colorScheme.onSurfaceVariant,
                               size: 16,
                             ),
                             const SizedBox(width: 6),
@@ -229,11 +230,10 @@ class NavigationTopPanel extends StatelessWidget {
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: style.whiteTextColor.textTheme
+                                style: colorScheme.onSurface.textTheme
                                     .semiBoldStyle
                                     .copyWith(
                                   fontSize: 12,
-                                  color: AppColors.white,
                                 ),
                               ),
                             ),

@@ -27,13 +27,13 @@ class SearchResultsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
 
     if (isLoading) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(32),
-          child: CircularProgressIndicator(color: AppColors.sMapTeal),
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -54,11 +54,11 @@ class SearchResultsList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: hasResults ? results.length : suggestions.length,
-      separatorBuilder: (_, __) => const Divider(
+      separatorBuilder: (_, __) => Divider(
         height: 1,
         indent: 64,
         endIndent: 16,
-        color: AppColors.outlineVariant,
+        color: colorScheme.outline.withValues(alpha: 0.2),
       ),
       itemBuilder: (context, index) {
         if (hasResults) {
@@ -93,9 +93,8 @@ class SearchResultsList extends StatelessWidget {
             ),
             title: Text(
               poi.name,
-              style: style.blackTextColor.textTheme.boldStyle.copyWith(
+              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                 fontSize: 15,
-                color: AppColors.googleDarkText,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -105,7 +104,7 @@ class SearchResultsList extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       subtitleText,
-                      style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                      style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                         fontSize: 13,
                         fontWeight: AppFontWeight.regular.weight,
                       ),
@@ -114,10 +113,10 @@ class SearchResultsList extends StatelessWidget {
                     ),
                   )
                 : null,
-            trailing: const Icon(
+            trailing: Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,
-              color: AppColors.outlineVariant,
+              color: colorScheme.outline,
             ),
             onTap: () => onPoiTap(poi),
           );
@@ -129,29 +128,29 @@ class SearchResultsList extends StatelessWidget {
             leading: Container(
               width: 36,
               height: 36,
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceContainer,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.search_rounded,
-                color: AppColors.onSurfaceVariant,
+                color: colorScheme.onSurfaceVariant,
                 size: 20,
               ),
             ),
             title: Text(
               suggestion,
-              style: style.blackTextColor.textTheme.textStyle.copyWith(
+              style: colorScheme.onSurface.textTheme.textStyle.copyWith(
                 fontSize: 15,
                 fontWeight: AppFontWeight.regular.weight,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            trailing: const Icon(
+            trailing: Icon(
               Icons.north_west_rounded,
               size: 18,
-              color: AppColors.onSurfaceVariant,
+              color: colorScheme.onSurfaceVariant,
             ),
             onTap: () => onSuggestionTap(suggestion),
           );

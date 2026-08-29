@@ -16,9 +16,13 @@ class DefaultTheme extends AppStyle {
         onError: AppColors.white,
         surface: AppColors.white,
         onSurface: AppColors.googleDarkText,
+        surfaceContainer: AppColors.white,
         surfaceContainerHighest: AppColors.surfaceContainerHighest,
+        onSurfaceVariant: AppColors.onSurfaceVariant,
         outline: AppColors.outlineVariant,
+        outlineVariant: AppColors.outlineVariant,
       );
+
 
   @override
   InputBorder get defaultBorder => OutlineInputBorder(
@@ -61,10 +65,13 @@ class DefaultTheme extends AppStyle {
         brightness: Brightness.light,
         colorScheme: colorScheme,
         useMaterial3: true,
+        extensions: const [AppThemeColors.light],
         unselectedWidgetColor: AppColors.onSurfaceVariant,
         scaffoldBackgroundColor: AppColors.surfaceDim,
-        fontFamily: 'Montserrat',
+        fontFamilyFallback: const ['Montserrat', 'Roboto', 'sans-serif'],
+
         cardTheme: CardThemeData(
+
           elevation: 0.5,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

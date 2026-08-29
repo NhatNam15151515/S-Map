@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _mapCubit = MapDisplayCubit();
     _exploreCubit = MapExploreCubit()..watchExplorePlaces();
+
+
     _viewportBloc = ViewportSearchBloc();
     _routePreviewCubit = RoutePreviewCubit(
       routingRepository: AppReposProvider.instance.routingRepos,

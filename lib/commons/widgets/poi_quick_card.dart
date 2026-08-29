@@ -10,31 +10,40 @@ import 'package:s_map/models/models.dart';
 
 class PoiQuickCard extends StatelessWidget {
   final PoiModel poi;
+  final LatLng? userLocation;
   final VoidCallback onClose;
   final VoidCallback? onDirections;
 
   const PoiQuickCard({
     super.key,
     required this.poi,
+    this.userLocation,
     required this.onClose,
     this.onDirections,
   });
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     final icon = PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
     final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);
     final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
+    final categoryLabel = tr(PoiCategoryHelper.getCategoryLocaleKey(poi.category));
     final address = PoiCategoryHelper.formatAddress(poi);
-    final userLocation = context.select<MapDisplayCubit, LatLng?>(
-      (c) => c.state.currentPosition,
-    );
+
+    LatLng? effectiveLocation = userLocation;
+    try {
+      final mapDisplayState = context.watch<MapDisplayCubit>().state;
+      effectiveLocation ??= mapDisplayState.currentPosition;
+    } catch (_) {
+      // If MapDisplayCubit is not in context, keep userLocation
+    }
+
     String subtitleText = address;
-    if (userLocation != null) {
+    if (effectiveLocation != null) {
       final distKm = AppUtils.instance.calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
+        effectiveLocation.latitude,
+        effectiveLocation.longitude,
         poi.lat,
         poi.lon,
       );
@@ -42,27 +51,21 @@ class PoiQuickCard extends StatelessWidget {
       subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
     }
 
-    // Category label: ưu tiên subCategory, fallback category
-    final rawCat = poi.subCategory ?? poi.category ?? '';
-    final categoryLabel = rawCat.trim().isNotEmpty
-        ? rawCat.trim()[0].toUpperCase() + rawCat.trim().substring(1)
-        : '';
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outlineVariant.withAlpha(100),
+          color: colorScheme.outline.withAlpha(80),
           width: 0.8,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.12),
+            color: colorScheme.shadow.withValues(alpha: 0.12),
             blurRadius: 16,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -88,9 +91,8 @@ class PoiQuickCard extends StatelessWidget {
                   children: [
                     Text(
                       poi.name,
-                      style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                      style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                         fontSize: 16,
-                        color: AppColors.googleDarkText,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -99,7 +101,7 @@ class PoiQuickCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         categoryLabel,
-                        style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                        style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                           fontSize: 12,
                           fontWeight: AppFontWeight.regular.weight,
                         ),
@@ -111,7 +113,7 @@ class PoiQuickCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitleText,
-                        style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                        style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                           fontSize: 13,
                           fontWeight: AppFontWeight.regular.weight,
                         ),
@@ -135,8 +137,8 @@ class PoiQuickCard extends StatelessWidget {
                           : Icons.bookmark_outline_rounded,
                       size: 22,
                       color: isFav
-                          ? AppColors.sMapTeal
-                          : AppColors.onSurfaceVariant,
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
                     ),
                     onPressed: () => cubit.toggleFavorite(poi),
                     tooltip: tr(LocaleKeys.savedPlaces),
@@ -144,10 +146,10 @@ class PoiQuickCard extends StatelessWidget {
                 },
               ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
                   size: 20,
-                  color: AppColors.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 onPressed: onClose,
                 tooltip: tr(LocaleKeys.cancel),
@@ -161,22 +163,20 @@ class PoiQuickCard extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: onDirections,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.directions_rounded,
                       size: 18,
-                      color: AppColors.white,
+                      color: colorScheme.onPrimary,
                     ),
                     label: Text(
                       tr(LocaleKeys.directions),
-                      style: const TextStyle(
+                      style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
                         fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.white,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.sMapTeal,
-                      foregroundColor: AppColors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

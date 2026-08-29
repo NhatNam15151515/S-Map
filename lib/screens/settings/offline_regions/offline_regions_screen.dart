@@ -5,13 +5,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
-import 'package:s_map/routers/app_routes.dart';
+import 'widgets/offline_storage_summary_card.dart';
 
 class OfflineRegionsScreen extends StatefulWidget {
-  static const String path = AppRoutes.offlineRegions;
-
   const OfflineRegionsScreen({super.key});
 
   @override
@@ -48,6 +45,8 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return BlocConsumer<DownloadRegionCubit, DownloadRegionState>(
       listener: _handleMessage,
       builder: (context, state) {
@@ -65,18 +64,22 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
             ),
           ),
           body: state.isLoading && state.regions.isEmpty
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.sMapTeal))
+              ? const Center(child: CircularProgressIndicator())
               : RefreshIndicator(
                   onRefresh: () =>
                       context.read<DownloadRegionCubit>().loadRegions(),
-                  color: AppColors.sMapTeal,
+                  color: context.colorScheme.primary,
                   child: ListView(
                     padding:
                         EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
                     children: [
-                      // Header Card: Tổng dung lượng bộ nhớ & thống kê
-                      _buildStorageSummaryCard(context, state),
+                      // Header Card: Storage summary
+                      OfflineStorageSummaryCard(
+                        state: state,
+                        onCheckUpdates: () {
+                          context.read<DownloadRegionCubit>().checkForUpdates();
+                        },
+                      ),
 
                       SizedBox(height: 20.h),
 
@@ -86,12 +89,12 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
                         children: [
                           Text(
                             tr(LocaleKeys.offline_maps_available_regions),
-                            style: AppColors.googleDarkText.textTheme.boldStyle
+                            style: colorScheme.onSurface.textTheme.boldStyle
                                 .copyWith(fontSize: 16.sp),
                           ),
                           Text(
                             '${state.downloadedRegionsCount}/${state.regions.length}',
-                            style: AppColors.sMapTeal.textTheme.semiBoldStyle
+                            style: colorScheme.primary.textTheme.semiBoldStyle
                                 .copyWith(fontSize: 14.sp),
                           ),
                         ],
@@ -132,77 +135,6 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
                 ),
         );
       },
-    );
-  }
-
-  Widget _buildStorageSummaryCard(
-    BuildContext context,
-    DownloadRegionState state,
-  ) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: AppColors.sMapTeal,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.blackOpa25,
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: const BoxDecoration(
-              color: AppColors.sMapLightTeal,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.cloud_download_outlined,
-              color: AppColors.sMapDarkTeal,
-              size: 26.sp,
-            ),
-          ),
-          SizedBox(width: 14.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr(LocaleKeys.offline_maps_storage_used),
-                  style: AppColors.white.textTheme.mediumStyle
-                      .copyWith(fontSize: 13.sp),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  state.formattedTotalStorage,
-                  style: AppColors.white.textTheme.boldStyle
-                      .copyWith(fontSize: 20.sp),
-                ),
-              ],
-            ),
-          ),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.white),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r)),
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-            ),
-            onPressed: () {
-              context.read<DownloadRegionCubit>().checkForUpdates();
-            },
-            child: Text(
-              tr(LocaleKeys.offline_maps_check_updates),
-              style: AppColors.white.textTheme.semiBoldStyle
-                  .copyWith(fontSize: 12.sp),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

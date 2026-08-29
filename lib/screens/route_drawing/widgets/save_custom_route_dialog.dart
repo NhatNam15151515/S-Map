@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class SaveCustomRouteDialog extends StatefulWidget {
@@ -66,10 +65,10 @@ class _SaveCustomRouteDialogState extends State<SaveCustomRouteDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Dialog(
-      backgroundColor: AppColors.white,
+      backgroundColor: colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -81,35 +80,40 @@ class _SaveCustomRouteDialogState extends State<SaveCustomRouteDialog> {
             children: [
               Text(
                 tr(LocaleKeys.route_drawing_ui_save_dialog_title),
-                style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                   fontSize: 18,
-                  color: AppColors.grimReaper,
                 ),
               ),
               const SizedBox(height: 16),
               // Route Name Field
               Text(
                 tr(LocaleKeys.route_drawing_ui_route_name_label),
-                style: style.blackTextColor.textTheme.semiBoldStyle.copyWith(
+                style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle
+                    .copyWith(
                   fontSize: 13,
-                  color: AppColors.sonicSilver,
                 ),
               ),
               const SizedBox(height: 6),
               TextFormField(
                 key: const Key('save_route_name_input'),
                 controller: _nameController,
-                style: style.blackTextColor.textTheme.textStyle.copyWith(fontSize: 14),
+                style: colorScheme.onSurface.textTheme.textStyle
+                    .copyWith(fontSize: 14),
                 decoration: InputDecoration(
                   hintText: tr(LocaleKeys.route_drawing_ui_route_name_hint),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  hintStyle: colorScheme.onSurfaceVariant.textTheme.textStyle
+                      .copyWith(fontSize: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.outlineVariant),
+                    borderSide:
+                        BorderSide(color: colorScheme.outline.withAlpha(80)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.sMapTeal, width: 1.5),
+                    borderSide:
+                        BorderSide(color: colorScheme.primary, width: 1.5),
                   ),
                 ),
                 validator: (val) {
@@ -123,9 +127,9 @@ class _SaveCustomRouteDialogState extends State<SaveCustomRouteDialog> {
               // Description Field
               Text(
                 tr(LocaleKeys.route_drawing_ui_route_desc_label),
-                style: style.blackTextColor.textTheme.semiBoldStyle.copyWith(
+                style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle
+                    .copyWith(
                   fontSize: 13,
-                  color: AppColors.sonicSilver,
                 ),
               ),
               const SizedBox(height: 6),
@@ -133,17 +137,23 @@ class _SaveCustomRouteDialogState extends State<SaveCustomRouteDialog> {
                 key: const Key('save_route_desc_input'),
                 controller: _descController,
                 maxLines: 2,
-                style: style.blackTextColor.textTheme.textStyle.copyWith(fontSize: 14),
+                style: colorScheme.onSurface.textTheme.textStyle
+                    .copyWith(fontSize: 14),
                 decoration: InputDecoration(
                   hintText: tr(LocaleKeys.route_drawing_ui_route_desc_hint),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  hintStyle: colorScheme.onSurfaceVariant.textTheme.textStyle
+                      .copyWith(fontSize: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.outlineVariant),
+                    borderSide:
+                        BorderSide(color: colorScheme.outline.withAlpha(80)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.sMapTeal, width: 1.5),
+                    borderSide:
+                        BorderSide(color: colorScheme.primary, width: 1.5),
                   ),
                 ),
               ),
@@ -156,9 +166,9 @@ class _SaveCustomRouteDialogState extends State<SaveCustomRouteDialog> {
                     onPressed: () => Navigator.of(context).pop(),
                     child: Text(
                       tr(LocaleKeys.cancel),
-                      style: style.blackTextColor.textTheme.mediumStyle.copyWith(
+                      style: colorScheme.onSurfaceVariant.textTheme.mediumStyle
+                          .copyWith(
                         fontSize: 14,
-                        color: AppColors.sonicSilver,
                       ),
                     ),
                   ),
@@ -166,20 +176,20 @@ class _SaveCustomRouteDialogState extends State<SaveCustomRouteDialog> {
                   ElevatedButton(
                     key: const Key('save_route_submit_button'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.sMapTeal,
-                      foregroundColor: AppColors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
                     ),
                     onPressed: _handleSave,
                     child: Text(
                       tr(LocaleKeys.confirm),
-                      style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                      style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
                         fontSize: 14,
-                        color: AppColors.white,
                       ),
                     ),
                   ),

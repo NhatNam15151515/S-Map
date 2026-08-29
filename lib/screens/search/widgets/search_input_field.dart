@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class SearchInputField extends StatelessWidget {
@@ -26,37 +25,38 @@ class SearchInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       height: 52,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: AppColors.outlineVariant.withAlpha(120),
+          color: colorScheme.outline.withAlpha(50),
           width: 0.8,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.06),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 12,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.02),
+            color: colorScheme.shadow.withValues(alpha: 0.02),
             blurRadius: 4,
-            offset: Offset(0, 1),
+            offset: const Offset(0, 1),
           ),
         ],
+
       ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
-              color: AppColors.googleDarkText,
+              color: colorScheme.onSurface,
               size: 22,
             ),
             onPressed: onBackPressed,
@@ -70,13 +70,14 @@ class SearchInputField extends StatelessWidget {
               textInputAction: TextInputAction.search,
               onChanged: onQueryChanged,
               onSubmitted: onSubmitted,
-              style: style.blackTextColor.textTheme.textStyle.copyWith(
+              style: colorScheme.onSurface.textTheme.textStyle.copyWith(
                 fontSize: 15,
                 fontWeight: AppFontWeight.regular.weight,
               ),
               decoration: InputDecoration(
                 hintText: tr(LocaleKeys.search_input_hint),
-                hintStyle: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                hintStyle:
+                    colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                   fontSize: 15,
                   fontWeight: AppFontWeight.regular.weight,
                 ),
@@ -90,9 +91,9 @@ class SearchInputField extends StatelessWidget {
           ),
           if (controller.text.isNotEmpty)
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.close_rounded,
-                color: AppColors.onSurfaceVariant,
+                color: colorScheme.onSurfaceVariant,
                 size: 20,
               ),
               onPressed: onClear,
@@ -100,9 +101,9 @@ class SearchInputField extends StatelessWidget {
             )
           else ...[
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.mic_none_rounded,
-                color: AppColors.googleDarkText,
+                color: colorScheme.onSurface,
                 size: 22,
               ),
               onPressed: onVoicePressed ?? () {},

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -31,6 +30,7 @@ class OnboardingRegionPickerView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
     final availableRegions = _availableRegions;
 
     return Padding(
@@ -42,19 +42,19 @@ class OnboardingRegionPickerView extends StatelessWidget {
           Text(
             tr(LocaleKeys.onboarding_region_title),
             style:
-                AppColors.white.textTheme.boldStyle.copyWith(fontSize: 24.sp),
+                colorScheme.onPrimary.textTheme.boldStyle.copyWith(fontSize: 24.sp),
           ),
           SizedBox(height: 8.h),
           Text(
             tr(LocaleKeys.onboarding_region_subtitle),
-            style: AppColors.white.textTheme.regularStyle
+            style: colorScheme.onPrimary.textTheme.regularStyle
                 .copyWith(fontSize: 14.sp),
           ),
           SizedBox(height: 24.h),
           Expanded(
             child: state.isLoading && state.regions.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.white))
+                ? Center(
+                    child: CircularProgressIndicator(color: colorScheme.onPrimary))
                 : availableRegions.isEmpty
                     ? Center(
                         child: Column(
@@ -65,13 +65,13 @@ class OnboardingRegionPickerView extends StatelessWidget {
                                     ? Icons.check_circle_outline_rounded
                                     : Icons.wifi_off_rounded,
                                 size: 48.r,
-                                color: AppColors.white),
+                                color: colorScheme.onPrimary),
                             SizedBox(height: 12.h),
                             Text(
                               state.regions.isNotEmpty
                                   ? tr(LocaleKeys.offline_maps_all_downloaded)
                                   : tr(LocaleKeys.offline_maps_error),
-                              style: AppColors.white.textTheme.mediumStyle
+                              style: colorScheme.onPrimary.textTheme.mediumStyle
                                   .copyWith(fontSize: 14.sp),
                               textAlign: TextAlign.center,
                             ),
@@ -81,11 +81,11 @@ class OnboardingRegionPickerView extends StatelessWidget {
                                 onPressed: onRetry,
                                 child: Text(
                                   tr(LocaleKeys.onboarding_retry_btn),
-                                  style: AppColors.white.textTheme.boldStyle
+                                  style: colorScheme.onPrimary.textTheme.boldStyle
                                       .copyWith(
                                     fontSize: 14.sp,
                                     decoration: TextDecoration.underline,
-                                    decorationColor: AppColors.white,
+                                    decorationColor: colorScheme.onPrimary,
                                   ),
                                 ),
                               ),
@@ -116,10 +116,10 @@ class OnboardingRegionPickerView extends StatelessWidget {
               onPressed: onSkip,
               child: Text(
                 tr(LocaleKeys.onboarding_skip_btn),
-                style: AppColors.white.textTheme.semiBoldStyle.copyWith(
+                style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
                   fontSize: 14.sp,
                   decoration: TextDecoration.underline,
-                  decorationColor: AppColors.white,
+                  decorationColor: colorScheme.onPrimary,
                 ),
               ),
             ),

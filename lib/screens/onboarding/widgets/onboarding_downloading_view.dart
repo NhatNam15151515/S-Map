@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class OnboardingDownloadingView extends StatelessWidget {
@@ -18,6 +17,7 @@ class OnboardingDownloadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
     final regionId = state.currentlyDownloadingRegionId;
     final region = state.regions.where((r) => r.id == regionId).firstOrNull;
     final progress = state.getProgress(regionId ?? '');
@@ -30,18 +30,18 @@ class OnboardingDownloadingView extends StatelessWidget {
           Icon(
             Icons.cloud_download_rounded,
             size: 100.r,
-            color: AppColors.white,
+            color: colorScheme.onPrimary,
           ),
           SizedBox(height: 32.h),
           Text(
             tr(LocaleKeys.onboarding_downloading_title),
             style:
-                AppColors.white.textTheme.boldStyle.copyWith(fontSize: 24.sp),
+                colorScheme.onPrimary.textTheme.boldStyle.copyWith(fontSize: 24.sp),
           ),
           SizedBox(height: 16.h),
           Text(
             region?.name ?? tr(LocaleKeys.onboarding_downloading_region_fallback),
-            style: AppColors.white.textTheme.semiBoldStyle
+            style: colorScheme.onPrimary.textTheme.semiBoldStyle
                 .copyWith(fontSize: 18.sp),
           ),
           SizedBox(height: 32.h),
@@ -49,8 +49,8 @@ class OnboardingDownloadingView extends StatelessWidget {
             value: (progress.isNaN || progress.isInfinite)
                 ? 0.0
                 : progress.clamp(0.0, 1.0).toDouble(),
-            backgroundColor: AppColors.white.withAlpha(50),
-            color: AppColors.white,
+            backgroundColor: colorScheme.onPrimary.withValues(alpha: 0.2),
+            color: colorScheme.onPrimary,
             minHeight: 8.h,
             borderRadius: BorderRadius.circular(4.r),
           ),
@@ -70,17 +70,17 @@ class OnboardingDownloadingView extends StatelessWidget {
               return "$percent%";
             }(),
             style:
-                AppColors.white.textTheme.boldStyle.copyWith(fontSize: 16.sp),
+                colorScheme.onPrimary.textTheme.boldStyle.copyWith(fontSize: 16.sp),
           ),
           SizedBox(height: 24.h),
           TextButton(
             onPressed: onCancel,
             child: Text(
               tr(LocaleKeys.offline_maps_cancel_btn),
-              style: AppColors.white.textTheme.semiBoldStyle.copyWith(
+              style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
                 fontSize: 14.sp,
                 decoration: TextDecoration.underline,
-                decorationColor: AppColors.white,
+                decorationColor: colorScheme.onPrimary,
               ),
             ),
           ),

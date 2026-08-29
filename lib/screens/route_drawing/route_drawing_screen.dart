@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
@@ -12,9 +11,8 @@ import 'package:s_map/routers/app_routes.dart';
 import 'widgets/widgets.dart';
 
 class RouteDrawingScreen extends StatefulWidget {
-  static const String path = AppRoutes.routeDrawing;
-
   final RouteDrawingBloc? drawingBloc;
+
   final SavedRoutesCubit? savedRoutesCubit;
   final MapDisplayCubit? mapDisplayCubit;
 
@@ -95,7 +93,8 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
 
     final rawPoints = state.fullPolyline.map((p) => [p.lat, p.lon]).toList();
     final customName = tr(LocaleKeys.route_drawing_ui_custom_route_name);
-    final followInstruction = tr(LocaleKeys.route_drawing_ui_follow_custom_route);
+    final followInstruction =
+        tr(LocaleKeys.route_drawing_ui_follow_custom_route);
     final instructions = <RouteInstruction>[
       RouteInstruction(
         text: followInstruction,
@@ -149,7 +148,6 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         BlocProvider<SavedRoutesCubit>.value(value: _savedRoutesCubit),
       ],
       child: Scaffold(
-        backgroundColor: AppColors.white,
         body: BlocBuilder<RouteDrawingBloc, RouteDrawingState>(
           builder: (context, state) {
             return Stack(
@@ -172,10 +170,13 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                   canRedo: state.canRedo,
                   canClear: state.points.isNotEmpty,
                   hasPoints: state.points.isNotEmpty,
-                  onUndo: () => _drawingBloc.add(const RouteDrawingUndoLastPoint()),
+                  onUndo: () =>
+                      _drawingBloc.add(const RouteDrawingUndoLastPoint()),
                   onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
-                  onClear: () => _drawingBloc.add(const RouteDrawingClearRoute()),
-                  onFitBounds: () => _mapLayerKey.currentState?.fitRouteBounds(),
+                  onClear: () =>
+                      _drawingBloc.add(const RouteDrawingClearRoute()),
+                  onFitBounds: () =>
+                      _mapLayerKey.currentState?.fitRouteBounds(),
                 ),
 
                 // 4. Bottom Summary & Action Card
