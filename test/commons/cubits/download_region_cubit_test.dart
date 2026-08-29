@@ -32,6 +32,12 @@ class MockRegionRepository implements IRegionRepository {
   final Set<String> cancelledIds = {};
   bool shouldThrow = false;
 
+  void emitProgress(Map<String, double> progress) {
+    if (!_progressController.isClosed) {
+      _progressController.add(progress);
+    }
+  }
+
   @override
   Stream<Map<String, double>> get downloadProgressStream =>
       _progressController.stream;
@@ -119,7 +125,9 @@ void main() {
   });
 
   group('DownloadRegionCubit Tests', () {
-    test('initial state and loadRegions loads available regions and storage usage', () async {
+    test(
+        'initial state and loadRegions loads available regions and storage usage',
+        () async {
       expect(cubit.state.status, equals(DownloadRegionStatus.loaded));
       expect(cubit.state.regions.length, equals(2));
       expect(cubit.state.totalStorageBytes, equals(0));
@@ -127,7 +135,9 @@ void main() {
       expect(cubit.state.formattedTotalStorage, equals('0 MB'));
     });
 
-    test('downloadRegion triggers downloading state, progress stream updates and completes with success', () async {
+    test(
+        'downloadRegion triggers downloading state, progress stream updates and completes with success',
+        () async {
       final states = <DownloadRegionState>[];
       final sub = cubit.stream.listen(states.add);
 
@@ -142,7 +152,8 @@ void main() {
       expect(cubit.state.getRegion('metro_hcm')?.isDownloaded, isTrue);
     });
 
-    test('deleteRegion removes downloaded region and updates storage', () async {
+    test('deleteRegion removes downloaded region and updates storage',
+        () async {
       await cubit.downloadRegion('metro_hcm');
       expect(cubit.state.downloadedRegionsCount, equals(1));
 
@@ -159,7 +170,9 @@ void main() {
       expect(region?.hasUpdate, isTrue);
     });
 
-    test('cancelDownload cancels active download and clears downloading region and keeps loaded state', () async {
+    test(
+        'cancelDownload cancels active download and clears downloading region and keeps loaded state',
+        () async {
       final downloadFuture = cubit.downloadRegion('metro_hcm');
       await Future.delayed(const Duration(milliseconds: 1));
       expect(cubit.state.currentlyDownloadingRegionId, equals('metro_hcm'));
@@ -172,13 +185,43 @@ void main() {
       expect(cubit.state.isDownloading('metro_hcm'), isFalse);
     });
 
-    test('downloadRegion handles exception gracefully and emits error state', () async {
+    test('downloadRegion handles exception gracefully and emits error state',
+        () async {
       mockRepository.shouldThrow = true;
 
       await cubit.downloadRegion('metro_hcm');
       expect(cubit.state.status, equals(DownloadRegionStatus.error));
       expect(cubit.state.errorMessage, isNotNull);
       expect(cubit.state.isDownloadingAny, isFalse);
+    });
+    test(
+        '[DLR-08] isClosed guard — progress stream emit after close does not throw',
+        () async {
+      await cubit.loadRegions();
+      expect(cubit.state.status, equals(DownloadRegionStatus.loaded));
+
+      await cubit.close();
+
+      // Emitting on the progress stream after cubit is closed should NOT throw
+      mockRepository.emitProgress({'metro_hcm': 0.5});
+      await pumpEventQueue();
+
+      // If we reach here, no StateError was thrown
+      expect(cubit.isClosed, isTrue);
+    });
+
+    test('[DLR-09] NaN progress value does not crash the cubit', () async {
+      await cubit.loadRegions();
+      expect(cubit.state.status, equals(DownloadRegionStatus.loaded));
+
+      // Emit NaN progress — app should NOT crash
+      mockRepository.emitProgress({'metro_hcm': double.nan});
+      await pumpEventQueue();
+
+      // The cubit should still be alive and state should reflect the progress map
+      expect(cubit.state.progressMap.containsKey('metro_hcm'), isTrue);
+      // Value is NaN but cubit didn't crash
+      expect(cubit.state.progressMap['metro_hcm']?.isNaN, isTrue);
     });
   });
 }

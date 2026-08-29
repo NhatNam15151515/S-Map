@@ -11,7 +11,9 @@ class FakeRoutingRepository implements IRoutingRepository {
   Duration delay = Duration.zero;
   bool shouldThrow = false;
   RouteResult? customResult;
-  Future<RouteResult> Function(double fromLat, double fromLon, double toLat, double toLon)? customRouteHandler;
+  Future<RouteResult> Function(
+          double fromLat, double fromLon, double toLat, double toLon)?
+      customRouteHandler;
   int callCount = 0;
   String? lastProfile;
 
@@ -88,7 +90,8 @@ class FakeLocationService implements ILocationService {
   Position get position => mockPosition;
 
   @override
-  (double, double) get latLng => (mockPosition.latitude, mockPosition.longitude);
+  (double, double) get latLng =>
+      (mockPosition.latitude, mockPosition.longitude);
 
   @override
   Stream<Position> get positionStream => Stream.value(mockPosition);
@@ -103,10 +106,12 @@ class FakeLocationService implements ILocationService {
   Future<bool> isLocationServiceEnabled() async => true;
 
   @override
-  Future<LocationPermission> checkPermission() async => LocationPermission.always;
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.always;
 
   @override
-  Future<LocationPermission> requestPermission() async => LocationPermission.always;
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.always;
 
   @override
   Future<bool> openLocationSettings() async => true;
@@ -134,6 +139,50 @@ class FakeLocationService implements ILocationService {
 
   @override
   Future<bool> requestNotificationPermission() async => true;
+}
+
+class _ThrowingLocationService implements ILocationService {
+  @override
+  Position get position => throw UnimplementedError();
+  @override
+  (double, double) get latLng => throw UnimplementedError();
+  @override
+  Stream<Position> get positionStream => const Stream.empty();
+  @override
+  Future<Position> getCurrentPosition() async =>
+      throw const PermissionDeniedException('Test: permission denied');
+  @override
+  Future<Position?> getLastKnownPosition() async =>
+      throw const PermissionDeniedException('Test: permission denied');
+  @override
+  Future<bool> isLocationServiceEnabled() async => false;
+  @override
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.denied;
+  @override
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.denied;
+  @override
+  Future<bool> openLocationSettings() async => false;
+  @override
+  Future<bool> openAppSettings() async => false;
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) =>
+      const Stream.empty();
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async => false;
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async => false;
+  @override
+  Future<bool> requestNotificationPermission() async => false;
 }
 
 void main() {
@@ -176,7 +225,9 @@ void main() {
       expect(cubit.state.profile, equals(RoutingConstants.profileMopedVn));
     });
 
-    test('previewRouteToPoi resolves GPS location and calculates route seamlessly', () async {
+    test(
+        'previewRouteToPoi resolves GPS location and calculates route seamlessly',
+        () async {
       const poi = PoiModel(
         id: 1,
         name: 'Phở Bát Đàn',
@@ -195,7 +246,9 @@ void main() {
       expect(fakeRepo.callCount, equals(1));
     });
 
-    test('previewRouteToCoordinate resolves GPS and calculates route for map click', () async {
+    test(
+        'previewRouteToCoordinate resolves GPS and calculates route for map click',
+        () async {
       await cubit.previewRouteToCoordinate(const LatLng(21.0400, 105.8500));
 
       expect(cubit.state.status, equals(RoutePreviewStatus.success));
@@ -205,7 +258,8 @@ void main() {
       expect(fakeRepo.callCount, equals(1));
     });
 
-    test('getRoute successfully fetches route and emits loading then success', () async {
+    test('getRoute successfully fetches route and emits loading then success',
+        () async {
       final future = cubit.getRoute(
         origin: origin,
         destination: destination,
@@ -229,7 +283,8 @@ void main() {
       expect(fakeRepo.lastProfile, equals(RoutingConstants.profileMopedVn));
     });
 
-    test('getRoute emits error when repository returns failure RouteResult', () async {
+    test('getRoute emits error when repository returns failure RouteResult',
+        () async {
       fakeRepo.customResult = RouteResult.failure('No valid route found');
 
       await cubit.getRoute(origin: origin, destination: destination);
@@ -240,18 +295,21 @@ void main() {
       expect(cubit.state.routeResult, isNull);
     });
 
-    test('getRoute handles exceptions gracefully and emits error state', () async {
+    test('getRoute handles exceptions gracefully and emits error state',
+        () async {
       fakeRepo.shouldThrow = true;
 
       await cubit.getRoute(origin: origin, destination: destination);
 
       expect(cubit.state.status, equals(RoutePreviewStatus.error));
       expect(cubit.state.isError, isTrue);
-      expect(cubit.state.errorMessageKey, equals(LocaleKeys.routing_error_generic));
+      expect(cubit.state.errorMessageKey,
+          equals(LocaleKeys.routing_error_generic));
       expect(cubit.state.routeResult, isNull);
     });
 
-    test('clearRoute resets state to initial and clears route result', () async {
+    test('clearRoute resets state to initial and clears route result',
+        () async {
       await cubit.getRoute(origin: origin, destination: destination);
       expect(cubit.state.isSuccess, isTrue);
 
@@ -263,7 +321,9 @@ void main() {
       expect(cubit.state.destination, isNull);
     });
 
-    test('Ignores stale response when newer request is dispatched (Generation protection)', () async {
+    test(
+        'Ignores stale response when newer request is dispatched (Generation protection)',
+        () async {
       fakeRepo.customRouteHandler = (fromLat, fromLon, toLat, toLon) async {
         if (toLat == 21.0350) {
           // Request 1 takes longer (60ms)
@@ -277,11 +337,13 @@ void main() {
       };
 
       // Start Request 1 (will resolve AFTER Request 2)
-      final req1 = cubit.getRoute(origin: origin, destination: destination, destinationName: 'Điểm 1');
+      final req1 = cubit.getRoute(
+          origin: origin, destination: destination, destinationName: 'Điểm 1');
 
       // Immediately start Request 2 with different destination
       const dest2 = RoutePoint(lat: 21.05, lon: 105.80);
-      final req2 = cubit.getRoute(origin: origin, destination: dest2, destinationName: 'Điểm 2');
+      final req2 = cubit.getRoute(
+          origin: origin, destination: dest2, destinationName: 'Điểm 2');
 
       await Future.wait([req1, req2]);
 
@@ -290,6 +352,78 @@ void main() {
       expect(cubit.state.destination, equals(dest2));
       expect(cubit.state.routeResult?.distance, equals(2000.0));
       expect(cubit.state.requestGeneration, equals(2));
+    });
+    test('[RTP-02] GPS fallback to defaultLocation when LocationService throws',
+        () async {
+      final failingRepo = FakeRoutingRepository();
+      final failingLocationService = FakeLocationService();
+      // Override to always throw on position requests
+      failingLocationService.mockPosition = Position(
+        latitude: 0,
+        longitude: 0,
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+      );
+
+      // Create a custom location service that throws
+      final throwingCubit = RoutePreviewCubit(
+        routingRepository: failingRepo,
+        locationService: _ThrowingLocationService(),
+      );
+
+      const poi = PoiModel(
+        id: 1,
+        name: 'Test POI',
+        nameAscii: 'Test POI',
+        lat: 21.0350,
+        lon: 105.8450,
+        category: 'food',
+      );
+
+      await throwingCubit.previewRouteToPoi(poi);
+
+      // Should use MapConstants.defaultLocation as origin (fallback)
+      expect(throwingCubit.state.origin?.lat,
+          equals(MapConstants.defaultLocation.latitude));
+      expect(throwingCubit.state.origin?.lon,
+          equals(MapConstants.defaultLocation.longitude));
+      expect(throwingCubit.state.destination?.lat, equals(21.0350));
+      expect(failingRepo.callCount, equals(1));
+
+      await throwingCubit.close();
+    });
+
+    test('[RTP-05] changeProfile auto-recalculates route when profile changes',
+        () async {
+      await cubit.getRoute(origin: origin, destination: destination);
+      expect(cubit.state.isSuccess, isTrue);
+      expect(fakeRepo.callCount, equals(1));
+
+      await cubit.changeProfile('car');
+
+      expect(cubit.state.profile, equals('car'));
+      expect(fakeRepo.callCount, equals(2));
+      expect(fakeRepo.lastProfile, equals('car'));
+    });
+
+    test(
+        '[RTP-06] changeProfile does NOT recalculate if same profile and route exists',
+        () async {
+      await cubit.getRoute(origin: origin, destination: destination);
+      expect(cubit.state.isSuccess, isTrue);
+      expect(fakeRepo.callCount, equals(1));
+
+      // Same profile → should NOT call API again
+      await cubit.changeProfile(RoutingConstants.profileMopedVn);
+
+      expect(fakeRepo.callCount, equals(1),
+          reason: 'Should not recalculate for same profile');
     });
   });
 }

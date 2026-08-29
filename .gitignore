@@ -68,3 +68,6 @@ data/*.zip
 # OS generated
 Thumbs.db
 *.DS_Store
+
+# Coverage
+coverage/

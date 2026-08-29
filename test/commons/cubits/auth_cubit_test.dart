@@ -88,7 +88,9 @@ void main() {
   });
 
   group('AuthCubit Tests - signInWithGoogle', () {
-    test('signInWithGoogle success returns true and emits LoadingAuth then Authenticated', () async {
+    test(
+        'signInWithGoogle success returns true and emits LoadingAuth then Authenticated',
+        () async {
       final mockUser = User(
         id: '123',
         email: 'test@example.com',
@@ -116,7 +118,8 @@ void main() {
       await cubit.close();
     });
 
-    test('signInWithGoogle returns false and handles exception gracefully', () async {
+    test('signInWithGoogle returns false and handles exception gracefully',
+        () async {
       final mockRepos = MockAuthRepos(shouldThrow: true);
       final cubit = AuthCubit(authRepos: mockRepos);
 
@@ -129,7 +132,9 @@ void main() {
   });
 
   group('AuthCubit Tests - signInAnonymously', () {
-    test('signInAnonymously success sets authenticated state with anonymous user', () async {
+    test(
+        'signInAnonymously success sets authenticated state with anonymous user',
+        () async {
       final mockRepos = MockAuthRepos(
         mockAnonUser: User(id: 'anon_test_99', username: 'Khách_test_99'),
       );
@@ -144,7 +149,9 @@ void main() {
       await cubit.close();
     });
 
-    test('signInAnonymously handles exception gracefully and emits unAuthenticated', () async {
+    test(
+        'signInAnonymously handles exception gracefully and emits unAuthenticated',
+        () async {
       final mockRepos = MockAuthRepos(shouldThrow: true);
       final cubit = AuthCubit(authRepos: mockRepos);
 
@@ -152,7 +159,8 @@ void main() {
 
       expect(result, isFalse);
       expect(cubit.state.isUnAuthenticated, isTrue);
-      expect(cubit.state.errorMessage, contains('Firebase auth anonymous error'));
+      expect(
+          cubit.state.errorMessage, contains('Firebase auth anonymous error'));
       await cubit.close();
     });
   });
@@ -169,7 +177,9 @@ void main() {
       await cubit.close();
     });
 
-    test('onAppStarted falls back to onboarding when getOnboardingCompleted throws', () async {
+    test(
+        'onAppStarted falls back to onboarding when getOnboardingCompleted throws',
+        () async {
       final mockPrefs = FailingSharedPreferences();
       final cubit = AuthCubit(sharedPreferences: mockPrefs);
 
@@ -180,7 +190,9 @@ void main() {
       await cubit.close();
     });
 
-    test('onAppStarted emits unAuthenticated when onboarding is already completed', () async {
+    test(
+        'onAppStarted emits unAuthenticated when onboarding is already completed',
+        () async {
       final mockPrefs = NoOpSharedPreferences();
       await mockPrefs.saveOnboardingCompleted(true);
       final cubit = AuthCubit(sharedPreferences: mockPrefs);
@@ -192,7 +204,8 @@ void main() {
       await cubit.close();
     });
 
-    test('completeOnboarding saves flag and transitions to authenticated guest', () async {
+    test('completeOnboarding saves flag and transitions to authenticated guest',
+        () async {
       final mockPrefs = NoOpSharedPreferences();
       final cubit = AuthCubit(sharedPreferences: mockPrefs);
 
@@ -203,7 +216,9 @@ void main() {
       await cubit.close();
     });
 
-    test('completeOnboarding transitions to authenticated guest even when saveOnboardingCompleted throws', () async {
+    test(
+        'completeOnboarding transitions to authenticated guest even when saveOnboardingCompleted throws',
+        () async {
       final mockPrefs = SaveFailingSharedPreferences();
       final cubit = AuthCubit(sharedPreferences: mockPrefs);
 
@@ -213,5 +228,31 @@ void main() {
       await cubit.close();
     });
   });
-}
 
+  group('AuthCubit Tests - isClosed Guard', () {
+    test(
+        '[AUT-07] emit guard prevents state emission after cubit is closed during async',
+        () async {
+      final mockPrefs = NoOpSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+      await cubit.close();
+
+      // Calling methods on a closed cubit should not throw
+      await cubit.onAppStarted();
+      expect(cubit.isClosed, isTrue);
+    });
+
+    test('[AUT-09] signInWithGoogle on closed cubit does not throw', () async {
+      final mockRepos = MockAuthRepos(
+        mockGoogleUser: User(id: '1', username: 'test'),
+      );
+      final cubit = AuthCubit(authRepos: mockRepos);
+      await cubit.close();
+
+      // Should not throw even though cubit is closed
+      final result = await cubit.signInWithGoogle();
+      expect(result, isFalse);
+      expect(cubit.isClosed, isTrue);
+    });
+  });
+}
