@@ -2,12 +2,11 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/onboarding/widgets/widgets.dart';
-
-enum OnboardingStep { welcome, regionPicker, downloading, ready }
 
 class OnboardingScreen extends StatefulWidget {
   static const String path = AppRoutes.onboarding;

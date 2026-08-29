@@ -16,3 +16,10 @@ enum NotificationType {
   const NotificationType(this.id);
 }
 
+enum OnboardingStep {
+  welcome,
+  regionPicker,
+  downloading,
+  ready,
+}
+
