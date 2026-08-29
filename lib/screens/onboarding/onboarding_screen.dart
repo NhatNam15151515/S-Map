@@ -31,6 +31,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
   }
 
   void _goToPage(int page) {
+    if (!mounted) return;
     _currentPageIndex = page;
     if (_pageController.hasClients) {
       _pageController.animateToPage(
@@ -68,8 +69,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
           ),
           child: SafeArea(
             child: BlocConsumer<DownloadRegionCubit, DownloadRegionState>(
+              listenWhen: (previous, current) =>
+                  previous.status != current.status ||
+                  previous.currentlyDownloadingRegionId !=
+                      current.currentlyDownloadingRegionId,
               listener: (context, state) {
-                if (state.status == DownloadRegionStatus.downloading) {
+                if (state.status == DownloadRegionStatus.downloading &&
+                    state.currentlyDownloadingRegionId != null) {
                   // Jump to downloading page if currently on region picker
                   if (_currentPageIndex == 1) {
                     _nextPage();
