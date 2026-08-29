@@ -66,7 +66,10 @@ class AuthCubit extends Cubit<AuthState> {
         .getOnboardingCompleted()
         .catchError((_) => false);
 
+    if (isClosed) return;
+
     final authToken = await _secureStorage.getStoredAuthToken();
+    if (isClosed) return;
     final profile = await _secureStorage.getStoredProfile();
 
     if (authToken != null && profile != null) {
