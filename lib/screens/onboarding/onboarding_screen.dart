@@ -21,6 +21,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
   final PageController _pageController = PageController();
+  int _currentPageIndex = 0;
 
   @override
   void dispose() {
@@ -62,20 +63,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
             child: BlocConsumer<DownloadRegionCubit, DownloadRegionState>(
               listener: (context, state) {
                 if (state.status == DownloadRegionStatus.downloading) {
-                  // Jump to downloading page if not already there
-                  if (_pageController.page?.round() == 1) {
+                  // Jump to downloading page if currently on region picker
+                  if (_currentPageIndex == 1) {
                     _nextPage();
                   }
                 } else if (state.isSuccess) {
                   // Jump to Ready page when done
-                  if (_pageController.page?.round() == 2) {
+                  if (_currentPageIndex == 2) {
                     _nextPage();
                   }
                 } else if (state.isError) {
                   showError(tr(LocaleKeys.offline_maps_error));
                   // Go back to region picker if error during download
-                  if (_pageController.page?.round() == 2) {
-                    _pageController.previousPage(
+                  if (_currentPageIndex == 2 && _pageController.hasClients) {
+                    _pageController.animateToPage(
+                      1,
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
                     );
@@ -85,6 +87,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
               builder: (context, state) {
                 return PageView(
                   controller: _pageController,
+                  onPageChanged: (index) => _currentPageIndex = index,
                   physics:
                       const NeverScrollableScrollPhysics(), // Prevent manual swipe
                   children: [
@@ -189,35 +192,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
             child: state.isLoading && state.regions.isEmpty
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.white))
-                : ListView.separated(
-                    itemCount: state.regions.length,
-                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                    itemBuilder: (context, index) {
-                      final region = state.regions[index];
-                      // Hide already downloaded ones in onboarding (or just show them normally)
-                      if (region.isDownloaded) {
-                        return const SizedBox
-                            .shrink(); // Ideally shouldn't happen on fresh install
-                      }
-                      return RegionCard(
-                        region: region,
-                        progress: state.getProgress(region.id),
-                        isCurrentlyDownloading:
-                            state.currentlyDownloadingRegionId == region.id,
-                        onDownload: () {
-                          context
-                              .read<DownloadRegionCubit>()
-                              .downloadRegion(region.id);
-                        },
-                        onDelete: () {}, // Not needed in onboarding
-                        onCancel: () {
-                          context
-                              .read<DownloadRegionCubit>()
-                              .cancelDownload(region.id);
-                        },
-                      );
-                    },
-                  ),
+                : () {
+                    final availableRegions =
+                        state.regions.where((r) => !r.isDownloaded).toList();
+                    return ListView.separated(
+                      itemCount: availableRegions.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                      itemBuilder: (context, index) {
+                        final region = availableRegions[index];
+                        return RegionCard(
+                          region: region,
+                          progress: state.getProgress(region.id),
+                          isCurrentlyDownloading:
+                              state.currentlyDownloadingRegionId == region.id,
+                          onDownload: () {
+                            context
+                                .read<DownloadRegionCubit>()
+                                .downloadRegion(region.id);
+                          },
+                          onDelete: () {}, // Not needed in onboarding
+                          onCancel: () {
+                            context
+                                .read<DownloadRegionCubit>()
+                                .cancelDownload(region.id);
+                          },
+                        );
+                      },
+                    );
+                  }(),
           ),
           SizedBox(height: 16.h),
           Center(
@@ -249,9 +251,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_download_rounded,
-            size: 100,
+            size: 100.r,
             color: AppColors.white,
           ),
           SizedBox(height: 32.h),
@@ -321,9 +323,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
               color: AppColors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_circle_rounded,
-              size: 80,
+              size: 80.r,
               color: AppColors.sMapTeal,
             ),
           ),
