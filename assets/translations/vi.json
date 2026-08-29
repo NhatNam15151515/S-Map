@@ -297,6 +297,7 @@
   "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
   "offline_maps_download_success": "Tải dữ liệu vùng thành công",
   "offline_maps_error": "Đã xảy ra lỗi khi xử lý dữ liệu bản đồ ngoại tuyến",
+  "offline_maps_all_downloaded": "Tất cả vùng bản đồ đã được tải xuống",
   "offline_maps_cancel_btn": "Hủy",
   "onboarding_welcome_title": "Chào mừng đến với S-Map",
   "onboarding_welcome_subtitle": "Bản đồ ngoại tuyến của người Việt.\nKhông cần mạng, không lo lạc đường.",

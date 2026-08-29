@@ -297,6 +297,7 @@
   "offline_maps_delete_success": "Region data deleted successfully",
   "offline_maps_download_success": "Region data downloaded successfully",
   "offline_maps_error": "An error occurred while processing offline map data",
+  "offline_maps_all_downloaded": "All map regions have been downloaded",
   "offline_maps_cancel_btn": "Cancel",
   "onboarding_welcome_title": "Welcome to S-Map",
   "onboarding_welcome_subtitle": "The offline map for Vietnamese.\nNo internet required, no more getting lost.",

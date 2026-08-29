@@ -60,28 +60,36 @@ class OnboardingRegionPickerView extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.wifi_off_rounded,
-                                size: 48.r, color: AppColors.white),
+                            Icon(
+                                state.regions.isNotEmpty
+                                    ? Icons.check_circle_outline_rounded
+                                    : Icons.wifi_off_rounded,
+                                size: 48.r,
+                                color: AppColors.white),
                             SizedBox(height: 12.h),
                             Text(
-                              tr(LocaleKeys.offline_maps_error),
+                              state.regions.isNotEmpty
+                                  ? tr(LocaleKeys.offline_maps_all_downloaded)
+                                  : tr(LocaleKeys.offline_maps_error),
                               style: AppColors.white.textTheme.mediumStyle
                                   .copyWith(fontSize: 14.sp),
                               textAlign: TextAlign.center,
                             ),
-                            SizedBox(height: 12.h),
-                            TextButton(
-                              onPressed: onRetry,
-                              child: Text(
-                                tr(LocaleKeys.onboarding_retry_btn),
-                                style: AppColors.white.textTheme.boldStyle
-                                    .copyWith(
-                                  fontSize: 14.sp,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: AppColors.white,
+                            if (state.regions.isEmpty) ...[
+                              SizedBox(height: 12.h),
+                              TextButton(
+                                onPressed: onRetry,
+                                child: Text(
+                                  tr(LocaleKeys.onboarding_retry_btn),
+                                  style: AppColors.white.textTheme.boldStyle
+                                      .copyWith(
+                                    fontSize: 14.sp,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: AppColors.white,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ]
                           ],
                         ),
                       )
