@@ -92,12 +92,15 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       ]);
 
       const candidateDirNames = [
+        'regions/vietnam',
+        'regions/vietnam/graphhopper',
         'vietnam-latest-gh',
         'hcm-latest-gh',
         'graphhopper',
       ];
 
       const candidateFileNames = [
+        'regions/vietnam/vietnam.ghz',
         'vietnam.ghz',
         'vietnam_sample.ghz',
         'hcm.ghz',

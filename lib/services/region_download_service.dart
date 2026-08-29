@@ -14,7 +14,7 @@ typedef RegionDownloadService = IRegionDownloadService;
 class RegionDownloadServiceImpl implements IRegionDownloadService {
   static const String boxName = 'offline_regions_box';
   static const String basePackageUrl =
-      'https://raw.githubusercontent.com/NhatNam15151515/S-Map/dev-w2/data-pipeline/data/output_packages';
+      'https://github.com/NhatNam15151515/S-Map/releases/download/map-data-v1.0.0';
 
   final Box<dynamic>? _customBox;
   final HttpClient? _customHttpClient;
@@ -34,57 +34,13 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
 
   static const List<RegionModel> defaultRegions = [
     RegionModel(
-      id: 'metro_hcm',
-      name: 'Vùng TP.HCM',
-      description: 'TP.HCM, Bình Dương, Đồng Nai, Long An',
-      bbox: [106.10, 10.35, 107.25, 11.35],
-      downloadUrl: '$basePackageUrl/metro_hcm.zip',
-      sizeBytes: 4509903,
-      version: '1.0.0',
-    ),
-    RegionModel(
-      id: 'metro_hn',
-      name: 'Vùng Hà Nội',
-      description: 'Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc',
-      bbox: [105.30, 20.60, 106.30, 21.40],
-      downloadUrl: '$basePackageUrl/metro_hn.zip',
-      sizeBytes: 4718592,
-      version: '1.0.0',
-    ),
-    RegionModel(
-      id: 'mien_nam',
-      name: 'Miền Nam',
-      description: 'Đông Nam Bộ và Tây Nam Bộ',
-      bbox: [104.40, 8.50, 107.80, 12.00],
-      downloadUrl: '$basePackageUrl/mien_nam.zip',
-      sizeBytes: 15728640,
-      version: '1.0.0',
-    ),
-    RegionModel(
-      id: 'mien_trung',
-      name: 'Miền Trung',
-      description: 'Bắc Trung Bộ, Nam Trung Bộ và Tây Nguyên',
-      bbox: [105.00, 11.50, 109.50, 19.50],
-      downloadUrl: '$basePackageUrl/mien_trung.zip',
-      sizeBytes: 20971520,
-      version: '1.0.0',
-    ),
-    RegionModel(
-      id: 'mien_bac',
-      name: 'Miền Bắc',
-      description: 'Đông Bắc, Tây Bắc và Đồng bằng Sông Hồng',
-      bbox: [102.10, 19.50, 108.00, 23.40],
-      downloadUrl: '$basePackageUrl/mien_bac.zip',
-      sizeBytes: 23068672,
-      version: '1.0.0',
-    ),
-    RegionModel(
       id: 'vietnam',
-      name: 'Toàn quốc Việt Nam',
-      description: 'Toàn bộ 63 tỉnh thành Việt Nam',
+      name: 'Bản đồ Toàn quốc Việt Nam',
+      description:
+          'Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn bộ 63 tỉnh thành',
       bbox: [102.10, 8.50, 109.50, 23.40],
       downloadUrl: '$basePackageUrl/vietnam.zip',
-      sizeBytes: 52428800,
+      sizeBytes: 13842758,
       version: '1.0.0',
     ),
   ];
@@ -122,10 +78,46 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     return regionsDir.path;
   }
 
+  /// Dọn dẹp các tệp tạm / tệp mồ côi còn sót lại từ các lượt tải trước
+  Future<void> cleanupStaleTempFiles([String? regionId]) async {
+    try {
+      final baseDir = await _getRegionsStorageDirectory();
+      final dir = Directory(baseDir);
+      if (!dir.existsSync()) return;
+
+      if (regionId != null) {
+        final tempZip = File(p.join(baseDir, '${regionId}_temp.zip'));
+        if (tempZip.existsSync()) tempZip.deleteSync();
+        final staging = Directory(p.join(baseDir, '${regionId}_staging'));
+        if (staging.existsSync()) staging.deleteSync(recursive: true);
+        final backup = Directory(p.join(baseDir, '$regionId.backup'));
+        if (backup.existsSync()) backup.deleteSync(recursive: true);
+      } else {
+        await for (final entity in dir.list(followLinks: false)) {
+          final name = p.basename(entity.path);
+          if (name.endsWith('_temp.zip') ||
+              name.endsWith('_staging') ||
+              name.endsWith('.backup')) {
+            try {
+              if (entity is File) {
+                entity.deleteSync();
+              } else if (entity is Directory) {
+                entity.deleteSync(recursive: true);
+              }
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      DLog.warning('⚠️ [RegionDownloadService] Không thể dọn dẹp file tạm: $e');
+    }
+  }
+
   @override
   Future<List<RegionModel>> getAvailableRegions() async {
     try {
       final box = await _getBox();
+      final regionsBaseDir = await _getRegionsStorageDirectory();
       final regions = <RegionModel>[];
 
       for (final defaultRegion in defaultRegions) {
@@ -133,13 +125,33 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         if (raw != null && raw is Map) {
           final map = Map<String, dynamic>.from(raw);
           final local = RegionModel.fromMap(map);
-          regions.add(defaultRegion.copyWith(
-            status: local.status,
-            localVersion: local.localVersion,
-            downloadProgress: local.downloadProgress,
-            downloadedAt: local.downloadedAt,
-            localPath: local.localPath,
-          ));
+
+          // Kiểm tra tính toàn vẹn dữ liệu thực tế trên đĩa
+          final regionDir = Directory(p.join(regionsBaseDir, defaultRegion.id));
+          final bool hasValidFiles = regionDir.existsSync() &&
+              (File(p.join(regionDir.path, '${defaultRegion.id}_poi.db'))
+                      .existsSync() ||
+                  File(p.join(regionDir.path, 'version.json')).existsSync() ||
+                  File(p.join(regionDir.path, '${defaultRegion.id}.ghz'))
+                      .existsSync());
+
+          if (local.isDownloaded && !hasValidFiles) {
+            // Dữ liệu cũ bị thiếu hoặc đã bị xóa ngoài luồng -> reset trạng thái để người dùng tải lại
+            DLog.warning(
+                '⚠️ [RegionDownloadService] Vùng ${defaultRegion.id} thiếu tệp trên đĩa, tự động reset trạng thái.');
+            final resetRegion = defaultRegion.copyWith(
+                status: RegionDownloadStatus.notDownloaded);
+            await box.put(defaultRegion.id, resetRegion.toMap());
+            regions.add(resetRegion);
+          } else {
+            regions.add(defaultRegion.copyWith(
+              status: local.status,
+              localVersion: local.localVersion,
+              downloadProgress: local.downloadProgress,
+              downloadedAt: local.downloadedAt,
+              localPath: local.localPath ?? regionDir.path,
+            ));
+          }
         } else {
           regions.add(defaultRegion);
         }
@@ -171,7 +183,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       if (!dir.existsSync()) return 0;
 
       int totalBytes = 0;
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity
+          in dir.list(recursive: true, followLinks: false)) {
         if (entity is File) {
           totalBytes += await entity.length();
         }
@@ -204,7 +217,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     final url = customDownloadUrl ?? region.downloadUrl;
     final regionsBaseDir = await _getRegionsStorageDirectory();
     final targetDir = Directory(p.join(regionsBaseDir, region.id));
-    final stagingDir = Directory(p.join(regionsBaseDir, '${region.id}_staging'));
+    final stagingDir =
+        Directory(p.join(regionsBaseDir, '${region.id}_staging'));
     final tempZipFile = File(p.join(regionsBaseDir, '${region.id}_temp.zip'));
 
     final bool ownsClient = _customHttpClient == null;
@@ -221,7 +235,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       yield 0.05;
       onProgress?.call(0.05);
 
-      final request = await client.getUrl(Uri.parse(url)).timeout(requestTimeout);
+      final request =
+          await client.getUrl(Uri.parse(url)).timeout(requestTimeout);
       final response = await request.close().timeout(requestTimeout);
 
       if (response.statusCode != HttpStatus.ok) {
@@ -231,7 +246,9 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
         );
       }
 
-      final totalBytes = response.contentLength > 0 ? response.contentLength : region.sizeBytes;
+      final totalBytes = response.contentLength > 0
+          ? response.contentLength
+          : region.sizeBytes;
       int receivedBytes = 0;
 
       final activeSink = tempZipFile.openWrite();
@@ -359,7 +376,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
 
       yield 1.0;
       onProgress?.call(1.0);
-      DLog.info('✅ [RegionDownloadService] Đã tải và giải nén thành công vùng: ${region.name}');
+      DLog.info(
+          '✅ [RegionDownloadService] Đã tải và giải nén thành công vùng: ${region.name}');
     } catch (e) {
       if (e is! DownloadCancelledException) {
         DLog.error('❌ [RegionDownloadService] Lỗi tải vùng ${region.name}: $e');
@@ -379,7 +397,9 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
             backupDir.renameSync(targetDir.path);
           } catch (_) {}
         }
-      } else if (stagingPromoted && !metadataCommitted && targetDir.existsSync()) {
+      } else if (stagingPromoted &&
+          !metadataCommitted &&
+          targetDir.existsSync()) {
         // Lần tải đầu tiên không có backup: xóa targetDir để không để lại rác trên đĩa
         try {
           targetDir.deleteSync(recursive: true);
@@ -411,7 +431,10 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
           backupDir.deleteSync(recursive: true);
         } catch (_) {}
       }
-      if (stagingPromoted && !metadataCommitted && targetDir.existsSync() && !backupDir.existsSync()) {
+      if (stagingPromoted &&
+          !metadataCommitted &&
+          targetDir.existsSync() &&
+          !backupDir.existsSync()) {
         try {
           targetDir.deleteSync(recursive: true);
         } catch (_) {}

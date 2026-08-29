@@ -104,7 +104,8 @@ class FakeHttpClientRequest implements HttpClientRequest {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResponse {
+class FakeHttpClientResponse extends Stream<List<int>>
+    implements HttpClientResponse {
   final Uint8List zipBytes;
   @override
   final int statusCode;
@@ -158,10 +159,12 @@ Uint8List createSampleZipArchive() {
   final dbBytes = Uint8List.fromList([9, 10, 11, 12]);
   final versionBytes = Uint8List.fromList('{"version": "1.0.0"}'.codeUnits);
 
-  archive.addFile(ArchiveFile('metro_hcm.pmtiles', pmtilesBytes.length, pmtilesBytes));
-  archive.addFile(ArchiveFile('metro_hcm.ghz', ghzBytes.length, ghzBytes));
-  archive.addFile(ArchiveFile('metro_hcm_poi.db', dbBytes.length, dbBytes));
-  archive.addFile(ArchiveFile('version.json', versionBytes.length, versionBytes));
+  archive.addFile(
+      ArchiveFile('vietnam.pmtiles', pmtilesBytes.length, pmtilesBytes));
+  archive.addFile(ArchiveFile('vietnam.ghz', ghzBytes.length, ghzBytes));
+  archive.addFile(ArchiveFile('vietnam_poi.db', dbBytes.length, dbBytes));
+  archive
+      .addFile(ArchiveFile('version.json', versionBytes.length, versionBytes));
 
   final encoded = ZipEncoder().encode(archive);
   return Uint8List.fromList(encoded);
@@ -196,24 +199,21 @@ void main() {
   });
 
   group('RegionDownloadServiceImpl Tests', () {
-    test('getAvailableRegions returns default regions when box is empty', () async {
+    test('getAvailableRegions returns default regions when box is empty',
+        () async {
       final regions = await service.getAvailableRegions();
 
-      expect(regions.length, 6);
-      expect(regions.map((r) => r.id), containsAll([
-        'metro_hcm',
-        'metro_hn',
-        'mien_nam',
-        'mien_trung',
-        'mien_bac',
-        'vietnam',
-      ]));
-      expect(regions.every((r) => r.status == RegionDownloadStatus.notDownloaded), isTrue);
+      expect(regions.length, 1);
+      expect(regions.first.id, equals('vietnam'));
+      expect(
+          regions.every((r) => r.status == RegionDownloadStatus.notDownloaded),
+          isTrue);
     });
 
-    test('downloadAndExtractRegion downloads, extracts zip and saves metadata', () async {
+    test('downloadAndExtractRegion downloads, extracts zip and saves metadata',
+        () async {
       final regions = await service.getAvailableRegions();
-      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+      final targetRegion = regions.firstWhere((r) => r.id == 'vietnam');
 
       final progressEvents = <double>[];
       await for (final progress in service.downloadAndExtractRegion(
@@ -227,25 +227,27 @@ void main() {
       expect(progressEvents, isNotEmpty);
       expect(progressEvents.last, equals(1.0));
 
-      final extractedDir = Directory('${tempDir.path}/metro_hcm');
+      final extractedDir = Directory('${tempDir.path}/vietnam');
       expect(extractedDir.existsSync(), isTrue);
-      expect(File('${extractedDir.path}/metro_hcm.pmtiles').existsSync(), isTrue);
-      expect(File('${extractedDir.path}/metro_hcm.ghz').existsSync(), isTrue);
-      expect(File('${extractedDir.path}/metro_hcm_poi.db').existsSync(), isTrue);
+      expect(File('${extractedDir.path}/vietnam.pmtiles').existsSync(), isTrue);
+      expect(File('${extractedDir.path}/vietnam.ghz').existsSync(), isTrue);
+      expect(File('${extractedDir.path}/vietnam_poi.db').existsSync(), isTrue);
       expect(File('${extractedDir.path}/version.json').existsSync(), isTrue);
 
-      final savedData = fakeBox.get('metro_hcm');
+      final savedData = fakeBox.get('vietnam');
       expect(savedData, isNotNull);
       expect(savedData['status'], equals(RegionDownloadStatus.downloaded.name));
       expect(savedData['localVersion'], equals('1.0.0'));
 
       final downloaded = await service.getDownloadedRegions();
       expect(downloaded.length, 1);
-      expect(downloaded.first.id, equals('metro_hcm'));
+      expect(downloaded.first.id, equals('vietnam'));
       expect(downloaded.first.isDownloaded, isTrue);
     });
 
-    test('downloadAndExtractRegion throws HttpException on non-200 HTTP response', () async {
+    test(
+        'downloadAndExtractRegion throws HttpException on non-200 HTTP response',
+        () async {
       final errorHttpClient = FakeHttpClient(
         zipBytes: sampleZipBytes,
         statusCode: HttpStatus.notFound,
@@ -256,17 +258,18 @@ void main() {
         customBaseDir: tempDir.path,
       );
       final regions = await errorService.getAvailableRegions();
-      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+      final targetRegion = regions.firstWhere((r) => r.id == 'vietnam');
 
       expect(
         errorService.downloadAndExtractRegion(targetRegion).drain(),
         throwsA(isA<HttpException>()),
       );
-      expect(fakeBox.get('metro_hcm'), isNull);
-      expect(File('${tempDir.path}/metro_hcm_temp.zip').existsSync(), isFalse);
+      expect(fakeBox.get('vietnam'), isNull);
+      expect(File('${tempDir.path}/vietnam_temp.zip').existsSync(), isFalse);
     });
 
-    test('cancelDownload cancels download stream and cleans temp zip file', () async {
+    test('cancelDownload cancels download stream and cleans temp zip file',
+        () async {
       final delayedHttpClient = FakeHttpClient(
         zipBytes: sampleZipBytes,
         chunkDelay: const Duration(milliseconds: 50),
@@ -277,40 +280,42 @@ void main() {
         customBaseDir: tempDir.path,
       );
       final regions = await cancelService.getAvailableRegions();
-      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+      final targetRegion = regions.firstWhere((r) => r.id == 'vietnam');
 
       final stream = cancelService.downloadAndExtractRegion(targetRegion);
       final future = expectLater(stream.drain(), throwsA(isA<Exception>()));
       await Future.delayed(const Duration(milliseconds: 10));
-      await cancelService.cancelDownload('metro_hcm');
+      await cancelService.cancelDownload('vietnam');
 
       await future;
-      expect(File('${tempDir.path}/metro_hcm_temp.zip').existsSync(), isFalse);
-      expect(fakeBox.get('metro_hcm'), isNull);
+      expect(File('${tempDir.path}/vietnam_temp.zip').existsSync(), isFalse);
+      expect(fakeBox.get('vietnam'), isNull);
     });
 
-    test('deleteRegion removes local directory and deletes Hive record', () async {
+    test('deleteRegion removes local directory and deletes Hive record',
+        () async {
       final regions = await service.getAvailableRegions();
-      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+      final targetRegion = regions.firstWhere((r) => r.id == 'vietnam');
 
       await service.downloadAndExtractRegion(targetRegion).drain();
 
-      final extractedDir = Directory('${tempDir.path}/metro_hcm');
+      final extractedDir = Directory('${tempDir.path}/vietnam');
       expect(extractedDir.existsSync(), isTrue);
-      expect(fakeBox.get('metro_hcm'), isNotNull);
+      expect(fakeBox.get('vietnam'), isNotNull);
 
-      await service.deleteRegion('metro_hcm');
+      await service.deleteRegion('vietnam');
 
       expect(extractedDir.existsSync(), isFalse);
-      expect(fakeBox.get('metro_hcm'), isNull);
+      expect(fakeBox.get('vietnam'), isNull);
 
       final downloaded = await service.getDownloadedRegions();
       expect(downloaded, isEmpty);
     });
 
-    test('getTotalOfflineStorageUsage calculates bytes of extracted files', () async {
+    test('getTotalOfflineStorageUsage calculates bytes of extracted files',
+        () async {
       final regions = await service.getAvailableRegions();
-      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+      final targetRegion = regions.firstWhere((r) => r.id == 'vietnam');
 
       await service.downloadAndExtractRegion(targetRegion).drain();
 
@@ -318,13 +323,14 @@ void main() {
       expect(storageBytes, greaterThan(0));
     });
 
-    test('preserves existing region data via backup rollback when update fails', () async {
+    test('preserves existing region data via backup rollback when update fails',
+        () async {
       final regions = await service.getAvailableRegions();
-      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+      final targetRegion = regions.firstWhere((r) => r.id == 'vietnam');
 
       // First successful download
       await service.downloadAndExtractRegion(targetRegion).drain();
-      final originalPmtiles = File('${tempDir.path}/metro_hcm/metro_hcm.pmtiles');
+      final originalPmtiles = File('${tempDir.path}/vietnam/vietnam.pmtiles');
       expect(originalPmtiles.existsSync(), isTrue);
       originalPmtiles.writeAsStringSync('original_content');
 
@@ -338,12 +344,14 @@ void main() {
       // Verify original data was restored from backup
       expect(originalPmtiles.existsSync(), isTrue);
       expect(originalPmtiles.readAsStringSync(), equals('original_content'));
-      expect(Directory('${tempDir.path}/metro_hcm_staging').existsSync(), isFalse);
+      expect(
+          Directory('${tempDir.path}/vietnam_staging').existsSync(), isFalse);
     });
 
-    test('cleans promoted targetDir when first download fails to save metadata', () async {
+    test('cleans promoted targetDir when first download fails to save metadata',
+        () async {
       final regions = await service.getAvailableRegions();
-      final targetRegion = regions.firstWhere((r) => r.id == 'metro_hcm');
+      final targetRegion = regions.firstWhere((r) => r.id == 'vietnam');
 
       fakeBox.shouldThrow = true;
       expect(
@@ -351,15 +359,16 @@ void main() {
         throwsA(isA<Exception>()),
       );
 
-      expect(Directory('${tempDir.path}/metro_hcm').existsSync(), isFalse);
-      expect(Directory('${tempDir.path}/metro_hcm_staging').existsSync(), isFalse);
-      expect(File('${tempDir.path}/metro_hcm_temp.zip').existsSync(), isFalse);
+      expect(Directory('${tempDir.path}/vietnam').existsSync(), isFalse);
+      expect(
+          Directory('${tempDir.path}/vietnam_staging').existsSync(), isFalse);
+      expect(File('${tempDir.path}/vietnam_temp.zip').existsSync(), isFalse);
     });
 
     test('checkRegionVersion returns region model', () async {
-      final region = await service.checkRegionVersion('metro_hn');
+      final region = await service.checkRegionVersion('vietnam');
       expect(region, isNotNull);
-      expect(region!.name, equals('Vùng Hà Nội'));
+      expect(region!.name, contains('Việt Nam'));
 
       final nonExistent = await service.checkRegionVersion('non_existent');
       expect(nonExistent, isNull);
@@ -367,15 +376,17 @@ void main() {
   });
 
   group('NoOpRegionDownloadService Tests', () {
-    test('NoOpRegionDownloadService functions correctly without throwing', () async {
+    test('NoOpRegionDownloadService functions correctly without throwing',
+        () async {
       final noOp = NoOpRegionDownloadService();
       final regions = await noOp.getAvailableRegions();
-      expect(regions.length, 6);
+      expect(regions.length, 1);
 
-      final progress = await noOp.downloadAndExtractRegion(regions.first).toList();
+      final progress =
+          await noOp.downloadAndExtractRegion(regions.first).toList();
       expect(progress, containsAllInOrder([0.5, 1.0]));
 
-      await noOp.deleteRegion('metro_hcm');
+      await noOp.deleteRegion('vietnam');
       final usage = await noOp.getTotalOfflineStorageUsage();
       expect(usage, equals(0));
     });

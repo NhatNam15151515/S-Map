@@ -27,18 +27,4 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
 
 | Vùng địa lý | Tên File | Số lượng POI | Dung lượng file | Thời gian Query FTS5 |
 | ----------- | -------- | ------------ | --------------- | -------------------- |
-| Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | `metro_hcm_poi.db` | 39,807 địa điểm | 10.49 MB | < 20 ms |
-
-## 📦 Bảng thống kê Gói Zip Dữ Liệu Vùng (Offline Region Packages)
-
-| ID Vùng | Tên Vùng | File Zip Đóng Gói | Dung Lượng Zip | Nội Dung Bên Trong | Status |
-|---|---|---|---|---|---|
-| `metro_hcm` | Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | `metro_hcm.zip` | **4.30 MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |
-
-<!-- START_ZIP_TABLE_METRICS -->
-## 📦 Bảng thống kê Gói Zip Dữ Liệu Vùng (Offline Region Packages)
-
-| ID Vùng | Tên Vùng | File Zip Đóng Gói | Dung Lượng Zip | Nội Dung Bên Trong | Status |
-|---|---|---|---|---|---|
-| `metro_hcm` | Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | `metro_hcm.zip` | **4.30 MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |
-<!-- END_ZIP_TABLE_METRICS -->
+| Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc) | `metro_hn_poi.db` | 36,314 địa điểm | 10.14 MB | < 20 ms |
