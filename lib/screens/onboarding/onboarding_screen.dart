@@ -7,6 +7,8 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/onboarding/widgets/widgets.dart';
 
+enum OnboardingStep { welcome, regionPicker, downloading, ready }
+
 class OnboardingScreen extends StatefulWidget {
   static const String path = AppRoutes.onboarding;
 
@@ -58,8 +60,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => DownloadRegionCubit()..loadRegions(),
-      child: Scaffold(
-        body: Container(
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_currentPageIndex > 0 &&
+              _currentPageIndex != OnboardingStep.downloading.index) {
+            _goToPage(_currentPageIndex - 1);
+          }
+        },
+        child: Scaffold(
+          body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -81,20 +92,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                 if (state.status == DownloadRegionStatus.downloading &&
                     state.currentlyDownloadingRegionId != null) {
                   // Navigate directly to downloading view (index 2)
-                  if (_currentPageIndex != 2) _goToPage(2);
+                  if (_currentPageIndex != OnboardingStep.downloading.index) {
+                    _goToPage(OnboardingStep.downloading.index);
+                  }
                 } else if (state.isSuccess &&
                     state.successMessage ==
                         DownloadRegionMessages.downloadSuccess) {
                   // Navigate directly to Ready view (index 3)
-                  if (_currentPageIndex != 3) _goToPage(3);
+                  if (_currentPageIndex != OnboardingStep.ready.index) {
+                    _goToPage(OnboardingStep.ready.index);
+                  }
                 } else if (state.status == DownloadRegionStatus.loaded &&
                     state.currentlyDownloadingRegionId == null) {
                   // Go back to region picker (index 1) if cancelled/loaded
-                  if (_currentPageIndex == 2) _goToPage(1);
+                  if (_currentPageIndex == OnboardingStep.downloading.index) {
+                    _goToPage(OnboardingStep.regionPicker.index);
+                  }
                 } else if (state.isError) {
                   showError(tr(LocaleKeys.offline_maps_error));
                   // Go back to region picker (index 1) on error
-                  if (_currentPageIndex != 1) _goToPage(1);
+                  if (_currentPageIndex != OnboardingStep.regionPicker.index) {
+                    _goToPage(OnboardingStep.regionPicker.index);
+                  }
                 }
               },
               builder: (context, state) {
@@ -142,6 +161,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
           ),
         ),
       ),
+    ),
     );
   }
 }
