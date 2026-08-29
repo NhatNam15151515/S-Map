@@ -54,7 +54,16 @@ class OnboardingDownloadingView extends StatelessWidget {
           ),
           SizedBox(height: 16.h),
           Text(
-            "${(progress * 100).toStringAsFixed(1)}%",
+            () {
+              final percent = (progress * 100).toStringAsFixed(1);
+              if (region != null && region.sizeBytes > 0) {
+                final downloadedBytes = (region.sizeBytes * progress).toInt();
+                final downloadedMb =
+                    (downloadedBytes / (1024 * 1024)).toStringAsFixed(1);
+                return "$percent% ($downloadedMb MB / ${region.formattedSize})";
+              }
+              return "$percent%";
+            }(),
             style:
                 AppColors.white.textTheme.boldStyle.copyWith(fontSize: 16.sp),
           ),
