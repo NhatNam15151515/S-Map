@@ -175,7 +175,12 @@ class RegionCard extends StatelessWidget {
                       style: AppColors.sMapTeal.textTheme.mediumStyle.copyWith(fontSize: 12.sp),
                     ),
                     Text(
-                      '${(progress * 100).toInt()}%',
+                      () {
+                        final safeProgress = (progress.isNaN || progress.isInfinite)
+                            ? 0.0
+                            : progress.clamp(0.0, 1.0);
+                        return '${(safeProgress * 100).toInt()}%';
+                      }(),
                       style: AppColors.sMapTeal.textTheme.boldStyle.copyWith(fontSize: 12.sp),
                     ),
                   ],

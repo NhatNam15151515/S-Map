@@ -45,13 +45,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
     _goToPage(_currentPageIndex + 1);
   }
 
-  void _finishOnboarding(BuildContext context) {
+  Future<void> _finishOnboarding(BuildContext context) async {
     final cubit = context.read<DownloadRegionCubit>();
     final downloadingId = cubit.state.currentlyDownloadingRegionId;
     if (downloadingId != null) {
-      cubit.cancelDownload(downloadingId);
+      await cubit.cancelDownload(downloadingId);
     }
-    context.read<AuthCubit>().completeOnboarding();
+    if (!context.mounted) return;
+    await context.read<AuthCubit>().completeOnboarding();
   }
 
   @override
@@ -81,16 +82,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                 if (state.status == DownloadRegionStatus.downloading &&
                     state.currentlyDownloadingRegionId != null) {
                   // Navigate directly to downloading view (index 2)
-                  _goToPage(2);
+                  if (_currentPageIndex != 2) _goToPage(2);
                 } else if (state.isSuccess &&
                     state.successMessage ==
                         DownloadRegionMessages.downloadSuccess) {
                   // Navigate directly to Ready view (index 3)
-                  _goToPage(3);
+                  if (_currentPageIndex != 3) _goToPage(3);
                 } else if (state.isError) {
                   showError(tr(LocaleKeys.offline_maps_error));
                   // Go back to region picker (index 1) on error
-                  _goToPage(1);
+                  if (_currentPageIndex != 1) _goToPage(1);
                 }
               },
               builder: (context, state) {
