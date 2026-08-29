@@ -75,7 +75,8 @@ void main() {
       cubit.close();
     });
 
-    test('Initial state loads empty favorites successfully and helper getters work',
+    test(
+        'Initial state loads empty favorites successfully and helper getters work',
         () async {
       await Future.delayed(const Duration(milliseconds: 10));
       expect(cubit.state.status, equals(FavoritesStatus.success));
@@ -138,6 +139,31 @@ void main() {
       expect(failingCubit.state.status, equals(FavoritesStatus.error));
 
       await failingCubit.close();
+    });
+    test('[FAV-05] isFavorite uses Set for O(1) lookup accuracy', () async {
+      await cubit.toggleFavorite(poi1);
+      await cubit.toggleFavorite(poi2);
+
+      // Verify correct identification
+      expect(cubit.state.isFavorite(cubit.getPoiKey(poi1)), isTrue);
+      expect(cubit.state.isFavorite(cubit.getPoiKey(poi2)), isTrue);
+      expect(cubit.state.isFavorite('nonexistent_key'), isFalse);
+
+      // favoriteIds should be a Set with exactly 2 elements
+      expect(cubit.state.favoriteIds.length, equals(2));
+    });
+
+    test('[FAV-guard] emit guard prevents StateError after cubit is closed',
+        () async {
+      await cubit.toggleFavorite(poi1);
+      await cubit.close();
+
+      // Should NOT throw Bad state: Cannot emit after calling close
+      cubit.emit(cubit.state.copyWith(
+        favorites: const [],
+        favoriteIds: const {},
+      ));
+      expect(cubit.isClosed, isTrue);
     });
   });
 }

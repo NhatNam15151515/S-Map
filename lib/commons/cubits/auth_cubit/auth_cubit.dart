@@ -125,9 +125,11 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<bool> signInWithGoogle() async {
+    if (isClosed) return false;
     emit(state.copyWith(type: AuthStateType.loading, clearError: true));
     try {
       final user = await _authRepos.signInWithGoogle();
+      if (isClosed) return false;
       if (user != null) {
         await onLoggedIn(user);
         return true;
@@ -137,6 +139,7 @@ class AuthCubit extends Cubit<AuthState> {
       }
     } catch (e) {
       DLog.error('Lỗi đăng nhập Google: $e');
+      if (isClosed) return false;
       emit(state.copyWith(
         type: AuthStateType.unAuthenticated,
         errorMessage: e.toString(),
@@ -146,9 +149,11 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<bool> signInAnonymously() async {
+    if (isClosed) return false;
     emit(state.copyWith(type: AuthStateType.loading, clearError: true));
     try {
       final user = await _authRepos.signInAnonymously();
+      if (isClosed) return false;
       if (user != null) {
         await onLoggedIn(user);
         return true;
@@ -158,6 +163,7 @@ class AuthCubit extends Cubit<AuthState> {
       }
     } catch (e) {
       DLog.error('Lỗi đăng nhập ẩn danh: $e');
+      if (isClosed) return false;
       emit(state.copyWith(
         type: AuthStateType.unAuthenticated,
         errorMessage: e.toString(),
