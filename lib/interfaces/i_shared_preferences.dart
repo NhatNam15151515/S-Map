@@ -16,4 +16,10 @@ abstract class ISharedPreferences {
 
   /// Saves theme mode preference ('system', 'light', 'dark').
   Future<void> saveThemeMode(String mode);
+
+  /// Returns true if the user has completed the initial onboarding flow.
+  Future<bool> getOnboardingCompleted();
+
+  /// Saves the onboarding completed status.
+  Future<void> saveOnboardingCompleted(bool value);
 }

@@ -87,7 +87,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
         regions: updatedRegions,
         totalStorageBytes: updatedStorage,
         clearDownloadingRegion: true,
-        successMessage: 'DOWNLOAD_SUCCESS',
+        successMessage: DownloadRegionMessages.downloadSuccess,
       ));
     } on DownloadCancelledException {
       DLog.info('ℹ️ [DownloadRegionCubit] Tải vùng $regionId đã bị hủy');
@@ -115,7 +115,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
       emit(state.copyWith(
         status: DownloadRegionStatus.error,
         regions: updatedRegions,
-        errorMessage: 'DOWNLOAD_ERROR',
+        errorMessage: DownloadRegionMessages.downloadError,
         clearDownloadingRegion: true,
       ));
     }
@@ -138,13 +138,13 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
         regions: updatedRegions,
         totalStorageBytes: updatedStorage,
         clearSuccess: true,
-        successMessage: 'DELETE_SUCCESS',
+        successMessage: DownloadRegionMessages.deleteSuccess,
       ));
     } catch (e) {
       DLog.error('❌ [DownloadRegionCubit] Lỗi xóa vùng $regionId: $e');
       emit(state.copyWith(
         status: DownloadRegionStatus.error,
-        errorMessage: 'DELETE_ERROR',
+        errorMessage: DownloadRegionMessages.deleteError,
       ));
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,6 +44,20 @@ class MockAuthRepos implements IAuthRepos {
 
   @override
   Future<bool> logout() async => true;
+}
+
+class FailingSharedPreferences extends NoOpSharedPreferences {
+  @override
+  Future<bool> getOnboardingCompleted() async {
+    throw Exception('Native storage read failure');
+  }
+}
+
+class SaveFailingSharedPreferences extends NoOpSharedPreferences {
+  @override
+  Future<void> saveOnboardingCompleted(bool value) async {
+    throw Exception('Native storage write failure');
+  }
 }
 
 void main() {
@@ -138,6 +153,63 @@ void main() {
       expect(result, isFalse);
       expect(cubit.state.isUnAuthenticated, isTrue);
       expect(cubit.state.errorMessage, contains('Firebase auth anonymous error'));
+      await cubit.close();
+    });
+  });
+
+  group('AuthCubit Tests - Onboarding Flow', () {
+    test('onAppStarted emits onboarding on fresh install', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.onAppStarted();
+
+      expect(cubit.state.isOnboarding, isTrue);
+      expect(cubit.state.type, AuthStateType.onboarding);
+      await cubit.close();
+    });
+
+    test('onAppStarted falls back to onboarding when getOnboardingCompleted throws', () async {
+      final mockPrefs = FailingSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.onAppStarted();
+
+      expect(cubit.state.isOnboarding, isTrue);
+      expect(cubit.state.type, AuthStateType.onboarding);
+      await cubit.close();
+    });
+
+    test('onAppStarted emits unAuthenticated when onboarding is already completed', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      await mockPrefs.saveOnboardingCompleted(true);
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.onAppStarted();
+
+      expect(cubit.state.isOnboarding, isFalse);
+      expect(cubit.state.type, AuthStateType.unAuthenticated);
+      await cubit.close();
+    });
+
+    test('completeOnboarding saves flag and transitions to authenticated guest', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.completeOnboarding();
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(await mockPrefs.getOnboardingCompleted(), isTrue);
+      await cubit.close();
+    });
+
+    test('completeOnboarding transitions to authenticated guest even when saveOnboardingCompleted throws', () async {
+      final mockPrefs = SaveFailingSharedPreferences();
+      final cubit = AuthCubit(sharedPreferences: mockPrefs);
+
+      await cubit.completeOnboarding();
+
+      expect(cubit.state.isAuthenticated, isTrue);
       await cubit.close();
     });
   });

@@ -62,16 +62,30 @@ class AuthCubit extends Cubit<AuthState> {
       await _sharedPreferences.save1stInstall();
     }
 
+    final hasCompletedOnboarding = await _sharedPreferences
+        .getOnboardingCompleted()
+        .catchError((_) => false);
+
+    if (isClosed) return;
+
     final authToken = await _secureStorage.getStoredAuthToken();
+    if (isClosed) return;
     final profile = await _secureStorage.getStoredProfile();
 
     if (authToken != null && profile != null) {
+      if (isClosed) return;
       final reqAuth = await _secureStorage.getReqAuth();
+      if (isClosed) return;
       faceIdAcceptStream.value = reqAuth;
       await onAuthenticated(profile);
     } else {
+      if (isClosed) return;
       if (state.isInitial) {
-        emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        if (!hasCompletedOnboarding) {
+          emit(state.copyWith(type: AuthStateType.onboarding));
+        } else {
+          emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        }
       }
     }
     FlutterNativeSplash.remove();
@@ -89,6 +103,12 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> onLoggedIn(User user) async {
     faceIdAcceptStream.value = false;
     await onAuthenticated(user);
+  }
+
+  Future<void> completeOnboarding() async {
+    await _sharedPreferences.saveOnboardingCompleted(true).catchError((_) {});
+    if (isClosed) return;
+    await loginGuest();
   }
 
   Future<void> loginGuest({String? username}) async {

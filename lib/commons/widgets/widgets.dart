@@ -15,3 +15,4 @@ export 'search_this_area_button.dart';
 export 'shimmers.dart';
 export 'update_popup.dart';
 export 'user_avatar.dart';
+export 'region_card.dart';

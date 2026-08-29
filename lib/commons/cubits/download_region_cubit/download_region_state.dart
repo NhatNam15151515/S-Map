@@ -10,6 +10,13 @@ enum DownloadRegionStatus {
   error,
 }
 
+abstract final class DownloadRegionMessages {
+  static const String downloadSuccess = 'DOWNLOAD_SUCCESS';
+  static const String downloadError = 'DOWNLOAD_ERROR';
+  static const String deleteSuccess = 'DELETE_SUCCESS';
+  static const String deleteError = 'DELETE_ERROR';
+}
+
 class DownloadRegionState extends Equatable {
   final DownloadRegionStatus status;
   final List<RegionModel> regions;

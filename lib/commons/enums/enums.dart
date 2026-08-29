@@ -3,6 +3,7 @@ enum AuthStateType {
   unAuthenticated,
   initial,
   loading,
+  onboarding,
 }
 
 enum NotificationType {
@@ -13,5 +14,12 @@ enum NotificationType {
   final int id;
 
   const NotificationType(this.id);
+}
+
+enum OnboardingStep {
+  welcome,
+  regionPicker,
+  downloading,
+  ready,
 }
 

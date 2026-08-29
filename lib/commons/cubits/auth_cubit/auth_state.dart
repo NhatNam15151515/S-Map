@@ -18,6 +18,7 @@ class AuthState extends Equatable {
   bool get isAuthenticated => type == AuthStateType.authenticated;
   bool get isUnAuthenticated => type == AuthStateType.unAuthenticated;
   bool get isInitial => type == AuthStateType.initial;
+  bool get isOnboarding => type == AuthStateType.onboarding;
   bool get isLoading => type == AuthStateType.loading;
   bool get isError => errorMessage != null;
 

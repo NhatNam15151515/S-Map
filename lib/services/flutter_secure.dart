@@ -113,4 +113,18 @@ class AppSharedPreferences implements ISharedPreferences {
     await initComplete.future;
     await prefs.setString(themeModeKey, mode);
   }
+
+  static const String onboardingCompletedKey = "onboarding_completed";
+
+  @override
+  Future<bool> getOnboardingCompleted() async {
+    await initComplete.future;
+    return prefs.getBool(onboardingCompletedKey) ?? false;
+  }
+
+  @override
+  Future<void> saveOnboardingCompleted(bool value) async {
+    await initComplete.future;
+    await prefs.setBool(onboardingCompletedKey, value);
+  }
 }

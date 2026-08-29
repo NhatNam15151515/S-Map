@@ -8,7 +8,6 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/routers/app_routes.dart';
-import 'package:s_map/screens/settings/offline_regions/widgets/region_card.dart';
 
 class OfflineRegionsScreen extends StatefulWidget {
   static const String path = AppRoutes.offlineRegions;
