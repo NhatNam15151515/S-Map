@@ -12,13 +12,14 @@ class AppBarContainer extends StatelessWidget with AppMixin {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: style.colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: AppColors.outlineVariant.withAlpha(128),
+            color: AppColors.outlineVariant.withAlpha(60),
             width: 0.5,
           ),
         ),
@@ -30,6 +31,7 @@ class AppBarContainer extends StatelessWidget with AppMixin {
     );
   }
 }
+
 
 class TitleAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   final String title;

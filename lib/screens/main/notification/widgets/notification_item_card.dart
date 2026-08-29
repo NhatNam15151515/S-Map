@@ -15,12 +15,16 @@ class NotificationItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final style = AppStyle.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outlineVariant.withAlpha(128),
+          color: (isDark ? AppColors.darkOutline : AppColors.outlineVariant)
+              .withAlpha(128),
           width: 0.5,
         ),
       ),
@@ -38,7 +42,9 @@ class NotificationItemCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.sMapLightTeal,
+                    color: isDark
+                        ? AppColors.sMapTeal.withAlpha(40)
+                        : AppColors.sMapLightTeal,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
@@ -51,8 +57,7 @@ class NotificationItemCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     "${item.content}",
-                    style:
-                        AppColors.googleDarkText.textTheme.textStyle.copyWith(
+                    style: style.blackTextColor.textTheme.textStyle.copyWith(
                       fontSize: 14,
                       height: 1.4,
                     ),
@@ -67,4 +72,5 @@ class NotificationItemCard extends StatelessWidget {
       ),
     );
   }
+
 }

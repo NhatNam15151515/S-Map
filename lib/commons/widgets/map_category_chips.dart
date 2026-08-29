@@ -63,6 +63,9 @@ class MapCategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final style = AppStyle.of(context);
+
     return RepaintBoundary(
       child: SizedBox(
         height: 38,
@@ -84,19 +87,27 @@ class MapCategoryChips extends StatelessWidget {
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.sMapLightTeal : AppColors.white,
+                    color: isSelected
+                        ? (isDark
+                            ? AppColors.sMapTeal.withAlpha(50)
+                            : AppColors.sMapLightTeal)
+                        : (isDark
+                            ? AppColors.darkSurfaceContainer
+                            : AppColors.white),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isSelected
                           ? AppColors.sMapTeal
-                          : AppColors.outlineVariant.withAlpha(120),
+                          : (isDark
+                              ? AppColors.darkOutline.withAlpha(60)
+                              : AppColors.outlineVariant.withAlpha(120)),
                       width: isSelected ? 1.2 : 0.8,
                     ),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color.fromRGBO(0, 0, 0, 0.05),
+                        color: Colors.black.withAlpha(isDark ? 40 : 12),
                         blurRadius: 6,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -112,11 +123,16 @@ class MapCategoryChips extends StatelessWidget {
                       Text(
                         labelText,
                         style: isSelected
-                            ? AppColors.sMapDarkTeal.textTheme.textStyle.copyWith(
-                                fontSize: 13,
-                                fontWeight: AppFontWeight.semiBold.weight,
-                              )
-                            : AppColors.googleDarkText.textTheme.textStyle.copyWith(
+                            ? (isDark
+                                    ? AppColors.sMapTeal
+                                    : AppColors.sMapDarkTeal)
+                                .textTheme
+                                .textStyle
+                                .copyWith(
+                                  fontSize: 13,
+                                  fontWeight: AppFontWeight.semiBold.weight,
+                                )
+                            : style.blackTextColor.textTheme.textStyle.copyWith(
                                 fontSize: 13,
                                 fontWeight: AppFontWeight.medium.weight,
                               ),
@@ -131,4 +147,5 @@ class MapCategoryChips extends StatelessWidget {
       ),
     );
   }
+
 }

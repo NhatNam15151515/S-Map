@@ -30,19 +30,22 @@ class SavedPoiCard extends StatelessWidget {
         subCategory: poi.subCategory);
     final address = PoiCategoryHelper.formatAddress(poi);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outlineVariant.withAlpha(100),
+          color: (isDark ? AppColors.darkOutline : AppColors.outlineVariant)
+              .withAlpha(100),
           width: 0.8,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.04),
+            color: Colors.black.withAlpha(isDark ? 40 : 10),
             blurRadius: 10,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -77,11 +80,11 @@ class SavedPoiCard extends StatelessWidget {
                         style:
                             style.blackTextColor.textTheme.boldStyle.copyWith(
                           fontSize: 15,
-                          color: AppColors.googleDarkText,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+
                       if (address.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(

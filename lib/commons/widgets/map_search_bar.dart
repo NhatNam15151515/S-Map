@@ -30,28 +30,32 @@ class MapSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final style = AppStyle.of(context);
+
     return Semantics(
       label: tr(LocaleKeys.search_bar_title),
       button: true,
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
-            color: AppColors.outlineVariant.withAlpha(80),
+            color: (isDark ? AppColors.darkOutline : AppColors.outlineVariant)
+                .withAlpha(80),
             width: 0.5,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color.fromRGBO(0, 0, 0, 0.08),
+              color: Colors.black.withAlpha(isDark ? 60 : 20),
               blurRadius: 16,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
             BoxShadow(
-              color: Color.fromRGBO(0, 0, 0, 0.03),
+              color: Colors.black.withAlpha(isDark ? 40 : 8),
               blurRadius: 4,
-              offset: Offset(0, 1),
+              offset: const Offset(0, 1),
             ),
           ],
         ),
@@ -67,20 +71,20 @@ class MapSearchBar extends StatelessWidget {
                 children: [
                   if (showBackButton)
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.arrow_back_rounded,
-                        color: AppColors.googleDarkText,
+                        color: style.blackTextColor,
                         size: 22,
                       ),
                       onPressed: onBackPressed ?? () => context.pop(),
                       tooltip: tr(LocaleKeys.common_back),
                     )
                   else
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Icon(
                         Icons.search_rounded,
-                        color: AppColors.googleDarkText,
+                        color: style.blackTextColor,
                         size: 22,
                       ),
                     ),
@@ -91,7 +95,7 @@ class MapSearchBar extends StatelessWidget {
                           ? activeSearchText!
                           : tr(LocaleKeys.search_bar_placeholder),
                       style: _hasActiveSearch
-                          ? AppColors.googleDarkText.textTheme.textStyle
+                          ? style.blackTextColor.textTheme.textStyle
                               .copyWith(
                               fontSize: 15,
                               fontWeight: AppFontWeight.medium.weight,
@@ -107,9 +111,9 @@ class MapSearchBar extends StatelessWidget {
                   ),
                   if (_hasActiveSearch)
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close_rounded,
-                        color: AppColors.googleDarkText,
+                        color: style.blackTextColor,
                         size: 20,
                       ),
                       onPressed: onClearSearch,
@@ -119,9 +123,9 @@ class MapSearchBar extends StatelessWidget {
                     )
                   else
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.mic_none_rounded,
-                        color: AppColors.googleDarkText,
+                        color: style.blackTextColor,
                         size: 22,
                       ),
                       onPressed: () {},
@@ -142,4 +146,5 @@ class MapSearchBar extends StatelessWidget {
       ),
     );
   }
+
 }

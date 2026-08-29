@@ -16,6 +16,7 @@ class AppMainBottomBar extends StatefulWidget {
 class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return Container(
       margin: EdgeInsets.only(
@@ -24,16 +25,19 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
         bottom: bottomPadding + 8,
       ),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
         borderRadius: BorderRadius.circular(28),
+        border: isDark
+            ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withAlpha(isDark ? 80 : 20),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.black.withAlpha(8),
+            color: Colors.black.withAlpha(isDark ? 50 : 8),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -43,23 +47,23 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
       child: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: _buildNavItem(HeroIcons.mapPin, false),
-            activeIcon: _buildNavItem(HeroIcons.mapPin, true),
+            icon: _buildNavItem(HeroIcons.mapPin, false, isDark),
+            activeIcon: _buildNavItem(HeroIcons.mapPin, true, isDark),
             label: tr(LocaleKeys.home),
           ),
           BottomNavigationBarItem(
-            icon: _buildNavItem(HeroIcons.bookmark, false),
-            activeIcon: _buildNavItem(HeroIcons.bookmark, true),
+            icon: _buildNavItem(HeroIcons.bookmark, false, isDark),
+            activeIcon: _buildNavItem(HeroIcons.bookmark, true, isDark),
             label: tr(LocaleKeys.location),
           ),
           BottomNavigationBarItem(
-            icon: _buildNavItem(HeroIcons.bell, false),
-            activeIcon: _buildNavItem(HeroIcons.bell, true),
+            icon: _buildNavItem(HeroIcons.bell, false, isDark),
+            activeIcon: _buildNavItem(HeroIcons.bell, true, isDark),
             label: tr(LocaleKeys.notification),
           ),
           BottomNavigationBarItem(
-            icon: _buildNavItem(HeroIcons.userCircle, false),
-            activeIcon: _buildNavItem(HeroIcons.userCircle, true),
+            icon: _buildNavItem(HeroIcons.userCircle, false, isDark),
+            activeIcon: _buildNavItem(HeroIcons.userCircle, true, isDark),
             label: tr(LocaleKeys.account),
           ),
         ],
@@ -76,20 +80,25 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
     );
   }
 
-  Widget _buildNavItem(HeroIcons icon, bool selected) {
+  Widget _buildNavItem(HeroIcons icon, bool selected, bool isDark) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: selected ? AppColors.sMapLightTeal : Colors.transparent,
+        color: selected
+            ? (isDark ? AppColors.sMapTeal.withAlpha(50) : AppColors.sMapLightTeal)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
       ),
       child: HeroIcon(
         icon,
         size: 24,
         style: selected ? HeroIconStyle.solid : HeroIconStyle.outline,
-        color: selected ? AppColors.sMapTeal : AppColors.onSurfaceVariant,
+        color: selected
+            ? AppColors.sMapTeal
+            : (isDark ? const Color(0xFF9AA0A6) : AppColors.onSurfaceVariant),
       ),
     );
   }
+
 }

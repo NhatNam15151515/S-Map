@@ -32,11 +32,14 @@ class MapControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = AppStyle.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool showCompass = onToggleOrientation != null && rotation.abs() > 0.05;
+
     return RepaintBoundary(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (onToggleOrientation != null) ...[
+          if (showCompass) ...[
             MapCompassButton(
               rotation: rotation,
               orientationMode: orientationMode,
@@ -57,24 +60,51 @@ class MapControls extends StatelessWidget {
             },
           ),
           const SizedBox(height: 10),
-          _buildControlButton(
-            context: context,
-            icon: Icons.add_rounded,
-            tooltip: tr(LocaleKeys.map_zoom_in),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              onZoomIn();
-            },
-          ),
-          const SizedBox(height: 8),
-          _buildControlButton(
-            context: context,
-            icon: Icons.remove_rounded,
-            tooltip: tr(LocaleKeys.map_zoom_out),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              onZoomOut();
-            },
+          // Compact Zoom Pill
+          Container(
+            width: 44,
+            decoration: BoxDecoration(
+              color: style.colorScheme.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: isDark
+                  ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(isDark ? 60 : 12),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.add_rounded, color: style.blackTextColor, size: 20),
+                  tooltip: tr(LocaleKeys.map_zoom_in),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onZoomIn();
+                  },
+                  padding: EdgeInsets.zero,
+                ),
+                Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  color: isDark ? AppColors.darkOutline : AppColors.outlineVariant.withAlpha(120),
+                ),
+                IconButton(
+                  icon: Icon(Icons.remove_rounded, color: style.blackTextColor, size: 20),
+                  tooltip: tr(LocaleKeys.map_zoom_out),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onZoomOut();
+                  },
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           FloatingActionButton(
@@ -86,7 +116,7 @@ class MapControls extends StatelessWidget {
             },
             backgroundColor: style.colorScheme.surface,
             foregroundColor: AppColors.googleBlue,
-            elevation: 4,
+            elevation: 3,
             shape: const CircleBorder(),
             child: const Icon(Icons.my_location_rounded, size: 24),
           ),
@@ -102,17 +132,21 @@ class MapControls extends StatelessWidget {
     required VoidCallback onPressed,
   }) {
     final style = AppStyle.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
         color: style.colorScheme.surface,
         shape: BoxShape.circle,
-        boxShadow: const [
+        border: isDark
+            ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
+            : null,
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.08),
+            color: Colors.black.withAlpha(isDark ? 60 : 12),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -124,4 +158,5 @@ class MapControls extends StatelessWidget {
       ),
     );
   }
+
 }

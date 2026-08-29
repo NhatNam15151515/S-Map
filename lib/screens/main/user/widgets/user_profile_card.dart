@@ -26,16 +26,22 @@ class UserProfileCard extends StatelessWidget {
             args: [appName],
           );
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final style = AppStyle.of(context);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
         borderRadius: BorderRadius.circular(20),
+        border: isDark
+            ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(10),
+            color: Colors.black.withAlpha(isDark ? 40 : 10),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -47,7 +53,7 @@ class UserProfileCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             displayName,
-            style: AppColors.googleDarkText.textTheme.subTitleStyle.copyWith(
+            style: style.blackTextColor.textTheme.subTitleStyle.copyWith(
               fontSize: 20,
             ),
           ),
@@ -63,6 +69,7 @@ class UserProfileCard extends StatelessWidget {
           ),
         ],
       ),
+
     );
   }
 }

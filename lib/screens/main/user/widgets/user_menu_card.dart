@@ -18,8 +18,9 @@ class UserMenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     final color =
-        isDestructive ? AppColors.googleRed : AppColors.googleDarkText;
+        isDestructive ? AppColors.googleRed : style.blackTextColor;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -75,11 +76,15 @@ class UserMenuCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: isDark ? AppColors.darkSurfaceContainer : AppColors.white,
         borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? Border.all(color: AppColors.darkOutline.withAlpha(60), width: 0.5)
+            : null,
       ),
       child: Column(
         children: children,
@@ -87,3 +92,4 @@ class UserMenuCard extends StatelessWidget {
     );
   }
 }
+

@@ -17,9 +17,11 @@ class SavedScreen extends StatefulWidget {
 class _SavedScreenState extends State<SavedScreen> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.white,
       appBar: TitleAppBar(
+
         title: tr(LocaleKeys.savedPlaces),
         rightWidget: IconButton(
           icon: const Icon(

@@ -19,6 +19,7 @@ class EmptyWidget extends StatelessWidget with AppMixin {
   @override
   Widget build(BuildContext context) {
     final style = AppStyle.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       alignment: Alignment.center,
@@ -28,8 +29,10 @@ class EmptyWidget extends StatelessWidget with AppMixin {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: AppColors.sMapLightTeal,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.sMapTeal.withAlpha(40)
+                  : AppColors.sMapLightTeal,
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -44,6 +47,7 @@ class EmptyWidget extends StatelessWidget with AppMixin {
               title!,
               style: style.blackTextColor.textTheme.subTitleStyle.copyWith(
                 fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
             ),
@@ -51,12 +55,18 @@ class EmptyWidget extends StatelessWidget with AppMixin {
             const SizedBox(height: 8),
             Text(
               subtitle!,
-              style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
-                fontSize: 14,
-              ),
+              style: (isDark
+                      ? const Color(0xFF9AA0A6)
+                      : AppColors.onSurfaceVariant)
+                  .textTheme
+                  .textStyle
+                  .copyWith(
+                    fontSize: 14,
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
+
           if (onRefresh != null)
             Padding(
               padding: const EdgeInsets.only(top: 20),
