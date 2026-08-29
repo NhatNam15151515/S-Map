@@ -313,7 +313,20 @@ class CodegenLoader extends AssetLoader{
   "offline_maps_delete_success": "Region data deleted successfully",
   "offline_maps_download_success": "Region data downloaded successfully",
   "offline_maps_error": "An error occurred while processing offline map data",
-  "offline_maps_cancel_btn": "Cancel"
+  "offline_maps_all_downloaded": "All map regions have been downloaded",
+  "offline_maps_cancel_btn": "Cancel",
+  "onboarding_welcome_title": "Welcome to S-Map",
+  "onboarding_welcome_subtitle": "The offline map for Vietnamese.\nNo internet required, no more getting lost.",
+  "onboarding_continue_btn": "Continue",
+  "onboarding_region_title": "Select a region",
+  "onboarding_region_subtitle": "Download a region now to use it without an internet connection.",
+  "onboarding_skip_btn": "Skip download (I will do it later)",
+  "onboarding_downloading_title": "Downloading map...",
+  "onboarding_downloading_region_fallback": "Map Region",
+  "onboarding_ready_title": "All done!",
+  "onboarding_ready_subtitle": "Your offline map is ready to use.",
+  "onboarding_lets_go_btn": "Let's Go!",
+  "onboarding_retry_btn": "Retry"
 };
 static const Map<String,dynamic> _vi = {
   "loginToYourAccount": "Đăng nhập vào tài khoản",
@@ -614,7 +627,20 @@ static const Map<String,dynamic> _vi = {
   "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
   "offline_maps_download_success": "Tải dữ liệu vùng thành công",
   "offline_maps_error": "Đã xảy ra lỗi khi xử lý dữ liệu bản đồ ngoại tuyến",
-  "offline_maps_cancel_btn": "Hủy"
+  "offline_maps_all_downloaded": "Tất cả vùng bản đồ đã được tải xuống",
+  "offline_maps_cancel_btn": "Hủy",
+  "onboarding_welcome_title": "Chào mừng đến với S-Map",
+  "onboarding_welcome_subtitle": "Bản đồ ngoại tuyến của người Việt.\nKhông cần mạng, không lo lạc đường.",
+  "onboarding_continue_btn": "Tiếp tục",
+  "onboarding_region_title": "Chọn vùng bản đồ",
+  "onboarding_region_subtitle": "Tải trước một vùng để sử dụng ngay khi không có kết nối Internet.",
+  "onboarding_skip_btn": "Bỏ qua tải xuống (Tôi sẽ tải sau)",
+  "onboarding_downloading_title": "Đang tải bản đồ...",
+  "onboarding_downloading_region_fallback": "Vùng bản đồ",
+  "onboarding_ready_title": "Hoàn tất!",
+  "onboarding_ready_subtitle": "Bản đồ của bạn đã sẵn sàng sử dụng ngoại tuyến.",
+  "onboarding_lets_go_btn": "Khám phá ngay",
+  "onboarding_retry_btn": "Thử lại"
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};
 }
