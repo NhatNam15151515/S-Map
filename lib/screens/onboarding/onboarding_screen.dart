@@ -29,13 +29,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
   void _goToPage(int page) {
     if (!mounted) return;
     _currentPageIndex = page;
-    if (_pageController.hasClients) {
-      _pageController.animateToPage(
-        page,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          page,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   void _nextPage() {
