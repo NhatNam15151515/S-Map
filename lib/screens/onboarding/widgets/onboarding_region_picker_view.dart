@@ -1,0 +1,95 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/models/models.dart';
+
+class OnboardingRegionPickerView extends StatelessWidget {
+  final DownloadRegionState state;
+  final VoidCallback onSkip;
+
+  const OnboardingRegionPickerView({
+    super.key,
+    required this.state,
+    required this.onSkip,
+  });
+
+  List<RegionModel> get _availableRegions =>
+      state.regions.where((r) => !r.isDownloaded).toList();
+
+  @override
+  Widget build(BuildContext context) {
+    final availableRegions = _availableRegions;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 32.h),
+          Text(
+            tr(LocaleKeys.onboarding_region_title),
+            style:
+                AppColors.white.textTheme.boldStyle.copyWith(fontSize: 24.sp),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            tr(LocaleKeys.onboarding_region_subtitle),
+            style: AppColors.white.textTheme.regularStyle
+                .copyWith(fontSize: 14.sp),
+          ),
+          SizedBox(height: 24.h),
+          Expanded(
+            child: state.isLoading && state.regions.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.white))
+                : ListView.separated(
+                    itemCount: availableRegions.length,
+                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                    itemBuilder: (context, index) {
+                      final region = availableRegions[index];
+                      return RegionCard(
+                        region: region,
+                        progress: state.getProgress(region.id),
+                        isCurrentlyDownloading:
+                            state.currentlyDownloadingRegionId == region.id,
+                        onDownload: () {
+                          context
+                              .read<DownloadRegionCubit>()
+                              .downloadRegion(region.id);
+                        },
+                        onDelete: () {},
+                        onCancel: () {
+                          context
+                              .read<DownloadRegionCubit>()
+                              .cancelDownload(region.id);
+                        },
+                      );
+                    },
+                  ),
+          ),
+          SizedBox(height: 16.h),
+          Center(
+            child: TextButton(
+              onPressed: onSkip,
+              child: Text(
+                tr(LocaleKeys.onboarding_skip_btn),
+                style: AppColors.white.textTheme.semiBoldStyle.copyWith(
+                  fontSize: 14.sp,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.white,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 24.h),
+        ],
+      ),
+    );
+  }
+}

@@ -70,10 +70,13 @@ class AuthCubit extends Cubit<AuthState> {
     final profile = await _secureStorage.getStoredProfile();
 
     if (authToken != null && profile != null) {
+      if (isClosed) return;
       final reqAuth = await _secureStorage.getReqAuth();
+      if (isClosed) return;
       faceIdAcceptStream.value = reqAuth;
       await onAuthenticated(profile);
     } else {
+      if (isClosed) return;
       if (state.isInitial) {
         if (!hasCompletedOnboarding) {
           emit(state.copyWith(type: AuthStateType.onboarding));
