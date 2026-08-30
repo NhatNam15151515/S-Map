@@ -268,6 +268,49 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   _symbolManager.loadMarkerAssets(_mapController);
                   _routeManager.loadMarkerAssets(_mapController, force: true);
                   displayCubit.onStyleLoaded();
+
+                  if (!mounted) return;
+
+                  // 1. Khôi phục POI markers và selected POI marker
+                  final viewportState = viewportBloc.state;
+                  if (viewportState.status == ViewportSearchStatus.success &&
+                      viewportState.pois.isNotEmpty) {
+                    _symbolManager.renderPoiList(_mapController, viewportState.pois);
+                  }
+                  if (displayCubit.state.selectedPoi != null) {
+                    setSelectedPoiMarker(displayCubit.state.selectedPoi!);
+                  }
+
+                  // 2. Khôi phục Route Preview nếu đang mở
+                  final previewState = routePreviewCubit.state;
+                  if (previewState.isSuccess &&
+                      previewState.routeResult != null &&
+                      previewState.origin != null &&
+                      previewState.destination != null) {
+                    _routeManager.drawRoute(
+                      controller: _mapController,
+                      routeResult: previewState.routeResult!,
+                      origin: previewState.origin!,
+                      destination: previewState.destination!,
+                      destinationName: previewState.destinationName,
+                    );
+                  }
+
+                  // 3. Khôi phục Navigation Polyline nếu đang dẫn đường
+                  final navState = context.read<NavigationBloc>().state;
+                  if (navState.isNavigating &&
+                      navState.currentRoute != null &&
+                      navState.origin != null &&
+                      navState.destination != null) {
+                    _routeManager.drawRoute(
+                      controller: _mapController,
+                      routeResult: navState.currentRoute!,
+                      origin: navState.origin!,
+                      destination: navState.destination!,
+                      destinationName: navState.destinationName,
+                    );
+                    _renderedNavRoute = navState.currentRoute;
+                  }
                 },
                 onCameraTrackingDismissed:
                     displayCubit.onCameraTrackingDismissed,
