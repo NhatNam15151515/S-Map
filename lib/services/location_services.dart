@@ -1,10 +1,22 @@
 import 'dart:async';
-
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart' as loc_pkg;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 
-class LocationService {
+/// LocationService implements [ILocationService] combining:
+/// 1. [Geolocator] for high-performance position streaming, permission checks, and background coordinates with Android Foreground Service.
+/// 2. [loc_pkg.Location] exclusively for triggering Google Play Services' native system dialog
+///    (`requestService()`), giving users a seamless 1-tap "Bật" prompt without leaving the app.
+/// 3. [PermissionHandler] for managing battery optimization exemptions and notification permissions.
+class LocationService implements ILocationService {
+  final loc_pkg.Location _nativeLocation;
 
-  LocationService() {
+  LocationService({loc_pkg.Location? nativeLocation})
+      : _nativeLocation = nativeLocation ?? loc_pkg.Location() {
     _init();
   }
 
@@ -12,58 +24,154 @@ class LocationService {
 
   final Completer<bool> initCompleter = Completer();
 
+  @override
   Position get position => _position;
+  @override
   (double, double) get latLng => (_position.latitude, _position.longitude);
 
+  @override
+  Stream<Position> get positionStream => getPositionStream();
+
+  @override
+  Stream<Position> getPositionStream({
+    LocationAccuracy accuracy = LocationAccuracy.bestForNavigation,
+    int distanceFilter = 0,
+    Duration? intervalDuration,
+    bool enableBackground = false,
+    String? notificationTitle,
+    String? notificationText,
+    bool enableWakeLock = true,
+  }) {
+    LocationSettings locationSettings;
+
+    if (enableBackground &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android) {
+      locationSettings = AndroidSettings(
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
+        intervalDuration: intervalDuration ?? const Duration(seconds: 1),
+        foregroundNotificationConfig: ForegroundNotificationConfig(
+          notificationTitle: notificationTitle ?? 'S-Map Điều hướng',
+          notificationText:
+              notificationText ?? 'Đang theo dõi vị trí nền trong suốt chuyến đi...',
+          enableWakeLock: enableWakeLock,
+        ),
+      );
+    } else {
+      locationSettings = LocationSettings(
+        accuracy: accuracy,
+        distanceFilter: distanceFilter,
+      );
+    }
+
+    return Geolocator.getPositionStream(locationSettings: locationSettings);
+  }
+
+  @override
+  Future<Position> getCurrentPosition() => _determinePosition();
+  @override
+  Future<Position?> getLastKnownPosition() => Geolocator.getLastKnownPosition();
+
   static LocationService instance = LocationService();
+
+  @override
+  Future<bool> isLocationServiceEnabled() =>
+      Geolocator.isLocationServiceEnabled();
+  @override
+  Future<LocationPermission> checkPermission() => Geolocator.checkPermission();
+  @override
+  Future<LocationPermission> requestPermission() =>
+      Geolocator.requestPermission();
+  @override
+  Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
+  @override
+  Future<bool> openAppSettings() => Geolocator.openAppSettings();
+
+  @override
+  Future<bool> isBatteryOptimizationIgnored() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return true;
+    }
+    try {
+      final status = await Permission.ignoreBatteryOptimizations.status;
+      return status.isGranted;
+    } catch (e) {
+      DLog.error('Lỗi kiểm tra battery optimization: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimization() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return true;
+    }
+    try {
+      final status = await Permission.ignoreBatteryOptimizations.request();
+      return status.isGranted;
+    } catch (e) {
+      DLog.error('Lỗi yêu cầu ignore battery optimization: $e');
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> requestNotificationPermission() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return true;
+    }
+    try {
+      final status = await Permission.notification.status;
+      if (status.isGranted) return true;
+      final result = await Permission.notification.request();
+      return result.isGranted;
+    } catch (e) {
+      DLog.error('Lỗi yêu cầu notification permission: $e');
+      return false;
+    }
+  }
 
   void _init() async {
     try {
       _position = await _determinePosition();
       initCompleter.complete(true);
-    } on Exception catch(_) {
-
-    }
+    } on Exception catch (_) {}
   }
 
   /// Determine the current position of the device.
   ///
-  /// When the location services are not enabled or permissions
-  /// are denied the `Future` will return an error.
+  /// When location services are disabled, it automatically requests the OS
+  /// to show Google Play Services' native "Turn On Location" resolution prompt.
   Future<Position> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Location services are not enabled don't continue
-      // accessing the position and request users of the
-      // App to enable the location services.
-      return Future.error('Location services are disabled.');
+      try {
+        serviceEnabled = await _nativeLocation.requestService();
+      } catch (e) {
+        DLog.error('Lỗi yêu cầu bật dịch vụ vị trí hệ thống: $e');
+      }
+
+      if (!serviceEnabled) {
+        throw const LocationServiceDisabledException();
+      }
     }
 
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        // Permissions are denied, next time you could try
-        // requesting permissions again (this is also where
-        // Android's shouldShowRequestPermissionRationale
-        // returned true. According to Android guidelines
-        // your App should show an explanatory UI now.
-        return Future.error('Location permissions are denied');
+        throw const PermissionDeniedException(
+            'Location permissions are denied');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever, handle appropriately.
-      return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+      throw LocationPermissionDeniedForeverException(
+        'Location permissions are permanently denied, we cannot request permissions.',
+      );
     }
 
-    // When we reach here, permissions are granted and we can
-    // continue accessing the position of the device.
     return await Geolocator.getCurrentPosition();
   }
 }

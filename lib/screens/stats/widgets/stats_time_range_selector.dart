@@ -1,0 +1,76 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/models/models.dart';
+
+class StatsTimeRangeSelector extends StatelessWidget {
+  final StatsTimeRange selectedRange;
+  final ValueChanged<StatsTimeRange> onRangeSelected;
+
+  const StatsTimeRangeSelector({
+    super.key,
+    required this.selectedRange,
+    required this.onRangeSelected,
+  });
+
+  String _getRangeLabel(StatsTimeRange range) {
+    switch (range) {
+      case StatsTimeRange.today:
+        return tr(LocaleKeys.stats_dashboard_range_today);
+      case StatsTimeRange.thisWeek:
+        return tr(LocaleKeys.stats_dashboard_range_this_week);
+      case StatsTimeRange.thisMonth:
+        return tr(LocaleKeys.stats_dashboard_range_this_month);
+      case StatsTimeRange.thisYear:
+        return tr(LocaleKeys.stats_dashboard_range_this_year);
+      case StatsTimeRange.allTime:
+        return tr(LocaleKeys.stats_dashboard_range_all_time);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    const ranges = StatsTimeRange.values;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: ranges.map((range) {
+          final isSelected = range == selectedRange;
+          final labelColor = isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant;
+          final textStyle = isSelected
+              ? labelColor.textTheme.semiBoldStyle.copyWith(fontSize: 13)
+              : labelColor.textTheme.mediumStyle.copyWith(fontSize: 13);
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              key: Key('stats_range_${range.name}'),
+              label: Text(
+                _getRangeLabel(range),
+                style: textStyle,
+              ),
+              selected: isSelected,
+              selectedColor: colorScheme.primary,
+              backgroundColor: colorScheme.surfaceContainerHighest,
+              showCheckmark: false,
+              side: BorderSide(
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.outline.withValues(alpha: 0.2),
+                width: 1,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              onSelected: (_) => onRangeSelected(range),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}

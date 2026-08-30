@@ -1,196 +1,96 @@
-import 'dart:io';
-import 'package:boilerplate/commons/extensions/string.dart';
-import 'package:boilerplate/models/user.dart';
-import 'package:boilerplate/services/date_services.dart';
-import 'package:boilerplate/services/firebase_messaging_services.dart';
-import 'package:boilerplate/services/package_info_service.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/services/services.dart';
 
-import '../services/api_service/api_clients/api_client.dart';
-import '../services/api_service/api_response/base_api_response.dart';
-import '../services/api_service/api_routes/api_routes.dart';
+// Backward compatibility alias
+typedef AuthRepos = IAuthRepos;
 
-abstract class AuthRepos {
-  Future<User?> login(String username, String password);
-  Future<User?> signUp(String username, String email, String password, String fullName, DateTime? dob, String phone);
+class AuthReposImpl implements IAuthRepos {
+  final IFirebaseAuthService _authService;
+  final IFireStoreService _fireStore;
 
-  Future<User?> updateProfile(String? fullName, DateTime? dob, String? phone, String? email);
-  Future<User?> getProfile();
-  Future<bool?> logout();
-
-  Future changePassword(String password, String newPassword);
-  Future<bool?> forgotPassword(String email, String username);
-}
-
-class AuthReposImpl extends AuthRepos {
-  final BaseAPIClient apiClient;
-
-  AuthReposImpl(this.apiClient);
-
-  Future<Map<String, dynamic>> getDeviceInfoBody() async {
-
-
-    await PackageInfoService.instance.initCompleter.future;
-    final packageInfoService = PackageInfoService.instance;
-
-    final deviceInfoPlugin = DeviceInfoPlugin();
-    final token = await FirebaseMessagingService.instance.getToken();
-
-    final body = <String, dynamic> {};
-
-    if(Platform.isAndroid) {
-      final deviceInfo = await deviceInfoPlugin.androidInfo;
-      body.addAll({
-        "deviceCode": deviceInfo.id,
-        "deviceName": deviceInfo.device,
-        "tokenFirebase": token,
-        "devicePlatform": "android",
-        "deviceVersion": deviceInfo.version.release,
-        "appVersion": packageInfoService.version,
-      });
-    }
-
-    if(Platform.isIOS) {
-      final deviceInfo = await deviceInfoPlugin.iosInfo;
-      body.addAll({
-        "deviceCode": deviceInfo.identifierForVendor,
-        "deviceName": deviceInfo.name,
-        "tokenFirebase": token,
-        "devicePlatform": "ios",
-        "deviceVersion": deviceInfo.systemVersion,
-        "appVersion": packageInfoService.version,
-      });
-    }
-    return body;
-  }
+  AuthReposImpl({
+    IFirebaseAuthService? authService,
+    IFireStoreService? fireStore,
+  })  : _authService = authService ?? FirebaseAuthService.instance,
+        _fireStore = fireStore ?? FireStoreService();
 
   @override
   Future<User?> login(String username, String password) async {
-    final body = <String, dynamic> {
-      "username": username,
-      "password": password,
-    };
-
-    body.addAll(await getDeviceInfoBody());
-
-    final response = await apiClient.request<APIResponse<User>>(
-      body: body,
-      route: APIRoute(apiType: APIType.login),
-      create: (res) => APIResponse<User>(
-        response: res,
-        decodedData: User(),
-      ),
+    return User(
+      username: username.trim(),
     );
-    return response.decodedData;
+  }
+
+  @override
+  Future<User?> signInWithGoogle() async {
+    return await _authService.signInWithGoogle();
+  }
+
+  @override
+  Future<User?> signInAnonymously() async {
+    return await _authService.signInAnonymously();
   }
 
   @override
   Future<User?> getProfile() async {
-    final response = await apiClient.request<APIResponse<User>>(
-      route: APIRoute(apiType: APIType.getProfile),
-      create: (res) => APIResponse<User>(
-        response: res,
-        decodedData: User(),
-      ),
-    );
-    return response.decodedData;
-  }
-
-  @override
-  Future<User?> signUp(String username, String email, String password, String fullName, DateTime? dob, String phone) async {
-    final response = await apiClient.request<APIResponse<User>>(
-      body: <String, dynamic> {
-        "username": username,
-        "email": email,
-        "password": password,
-        "fullName": fullName,
-        if(phone.isNotEmpty) "phoneNumber": phone,
-        if(dob != null) "dob": DateFormatConstants.yyyyMMdd.dateFormat(dateTime: dob),
-      }..addAll(await getDeviceInfoBody()),
-      route: APIRoute(apiType: APIType.signUp),
-      create: (res) => APIResponse<User>(
-        response: res,
-        decodedData: User(),
-      ),
-    );
-    return response.decodedData;
-  }
-
-  @override
-  Future<User?> updateProfile(String? fullName, DateTime? dob, String? phone, String? email) async {
-    final body = {
-      "phoneNumber": phone,
-      "email": email,
-      "fullName": fullName,
-      "dob": dob != null ? DateFormatConstants.yyyyMMdd.dateFormat(dateTime: dob) : null,
-    }..removeWhere((key, value) => value == null);
-    final response = await apiClient.request<APIResponse<User>>(
-      body: body,
-      route: APIRoute(apiType: APIType.updateProfile),
-      create: (res) => APIResponse<User>(
-        response: res,
-        decodedData: User(),
-      ),
-    );
-    return response.decodedData;
-  }
-
-  @override
-  Future<bool?> logout() async {
-    final deviceInfoPlugin = DeviceInfoPlugin();
-    final body = <String, dynamic> {};
-
-    if(Platform.isAndroid) {
-      final deviceInfo = await deviceInfoPlugin.androidInfo;
-      body.addAll({
-        "deviceCode": deviceInfo.id,
-      });
+    final fbUser = _authService.currentUser;
+    if (fbUser != null) {
+      try {
+        final profile = await _fireStore.getUserProfile(fbUser.uid);
+        if (profile != null) return profile;
+      } catch (e) {
+        DLog.error("Firestore getProfile error: $e");
+      }
+      final suffix = fbUser.uid.length >= 6
+          ? fbUser.uid.substring(0, 6)
+          : fbUser.uid;
+      return User(
+        id: fbUser.uid,
+        username: fbUser.displayName ??
+            (fbUser.isAnonymous
+                ? 'guest_$suffix'
+                : fbUser.email?.split('@').first),
+        email: fbUser.email,
+        avatarUrl: fbUser.photoURL,
+      );
     }
-
-    if(Platform.isIOS) {
-      final deviceInfo = await deviceInfoPlugin.iosInfo;
-      body.addAll({
-        "deviceCode": deviceInfo.identifierForVendor,
-      });
-    }
-    final response = await apiClient.request<APIResponse<bool>>(
-      body: body,
-      route: APIRoute(apiType: APIType.logout),
-      create: (res) => APIResponse<bool>(
-        response: res,
-      ),
-    );
-    return response.decodedData;
+    return null;
   }
 
   @override
-  Future changePassword(String password, String newPassword) async {
-    final body = {
-      "currentPassword": password,
-      "password": newPassword,
-    };
-    final response = await apiClient.request<APIResponse>(
-      body: body,
-      route: APIRoute(apiType: APIType.changePassword),
-      create: (res) => APIResponse(
-        response: res,
-      ),
-    );
-    return response.decodedData;
+  Future<User?> updateProfile(User user) async {
+    await _fireStore.saveUserProfile(user);
+    return user;
   }
 
   @override
-  Future<bool?> forgotPassword(String email, String username) async {
-    final response = await apiClient.request<APIResponse<bool>>(
-      body: {
-        "email": email,
-        "userName": username,
-      },
-      route: APIRoute(apiType: APIType.forgotPassword),
-      create: (res) => APIResponse<bool>(
-        response: res,
-      ),
-    );
-    return response.decodedData;
+  Future<bool> logout() async {
+    await _authService.signOut();
+    return true;
   }
+}
+
+/// Fallback implementation cho môi trường Testing hoặc Decoupled
+class NoOpAuthRepos implements IAuthRepos {
+  const NoOpAuthRepos();
+
+  @override
+  Future<User?> login(String username, String password) async => null;
+
+  @override
+  Future<User?> signInWithGoogle() async => null;
+
+  @override
+  Future<User?> signInAnonymously() async => null;
+
+  @override
+  Future<User?> getProfile() async => null;
+
+  @override
+  Future<User?> updateProfile(User user) async => user;
+
+  @override
+  Future<bool> logout() async => true;
 }

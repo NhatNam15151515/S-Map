@@ -33,8 +33,7 @@ class AppColors {
   static const victorianGreenhouse = Color(0xFF00B592); //
   static const victorianGreenhouse_1 = Color(0xFF00B492); //
   static const maltedMintMadness = Color(0xFF11D3AE);
-  static const porcelainGreen
-  = Color(0xFF0E9278);
+  static const porcelainGreen = Color(0xFF0E9278);
 
   static const white = Color(0xFFFFFFFF);
   static const doctor = Color(0xFFF9F9F9);
@@ -152,9 +151,95 @@ class AppColors {
   static const sonicBlue = Color(0xFF17569b);
   static const coarseWool = Color(0xFF181b26);
 
+  // Google Maps Theme Colors
+  static const googleBlue = Color(0xFF1A73E8);
+  static const googleGreen = Color(0xFF34A853);
+  static const googleRed = Color(0xFFEA4335);
+  static const googleYellow = Color(0xFFFBBC04);
+  static const googleDarkText = Color(0xFF3C4043);
+  static const googleGreyText = Color(0xFF70757A);
+  static const googleLightBg = Color(0xFFF8F9FA);
 
+  // S-Map Brand Colors
+  static const sMapTeal = Color(0xFF00B996);
+  static const sMapDarkTeal = Color(0xFF006653);
+  static const sMapLightTeal = Color(0xFFE0F7F3);
+  static const sMapTealSurface = Color(0xFFF0FBF8);
+  static const sMapTealGradientStart = Color(0xFF00D4AA);
+  static const sMapTealGradientEnd = Color(0xFF006653);
+
+  // Semantic Surface Colors (Material 3 inspired)
+  static const surface = white;
+  static const surfaceContainer = Color(0xFFF1F3F4);
+  static const surfaceVariant = surfaceContainer;
+  static const surfaceContainerHigh = Color(0xFFE8EAED);
+  static const surfaceContainerHighest = Color(0xFFDFE1E5);
+  static const outline = Color(0xFFDADCE0);
+  static const outlineVariant = Color(0xFFDADCE0);
+  static const surfaceDim = Color(0xFFF8F9FA);
+  static const onSurface = googleDarkText;
+  static const onSurfaceVariant = Color(0xFF5F6368);
+  static const error = heroicRed;
+
+  // Dark Theme Semantic Colors
+  static const darkBackground = Color(0xFF121212);
+  static const darkSurface = Color(0xFF1E1E1E);
+  static const darkSurfaceContainer = Color(0xFF242424);
+  static const darkSurfaceContainerHighest = Color(0xFF2D2D2D);
+  static const darkOnSurface = Color(0xFFE8EAED);
+  static const darkOnSurfaceVariant = Color(0xFF9AA0A6);
+  static const darkOutline = Color(0xFF3C4043);
+  static const darkOutlineVariant = Color(0xFF3C4043);
+  static const darkUnselected = Color(0xFF9AA0A6);
+  static const darkGrey1 = Color(0xFF9AA0A6);
+  static const darkGrey2 = Color(0xFF80868B);
+  static const darkGrey3 = Color(0xFF5F6368);
+  static const darkGrey4 = Color(0xFF3C4043);
+  static const darkGrey5 = Color(0xFF202124);
+
+
+  // Map Symbol & Route Colors
+  static const mapSymbolText = Color(0xFF0F172A);
+  static const mapSymbolHalo = Color(0xFFFFFFFF);
+  static const routeMainColor = googleBlue;
+  static const routeCasingColor = Color(0xFF1557B0);
+  static const routeDimmedColor = Color(0xFF9AA0A6);
+
+  // Navigation Panel UI Colors
+  static const navDarkSurface = Color(0xFF202124);
+  static const navManeuverBg = Color(0xFF137333);
+  static const navAccentGreen = Color(0xFF1E8E3E);
+  static const navAlertRed = Color(0xFFD93025);
+  static const navCardBorder = Color(0xFF3C4043);
+
+  // Stats Dashboard Indicator Colors
+  static const statsOrange = Color(0xFFE65100);
+  static const statsBlue = Color(0xFF1565C0);
+  static const statsPink = Color(0xFFC2185B);
+  static const statsSuccess = Color(0xFF2E7D32);
+  static const statsSuccessBg = Color(0xFFE8F5E9);
+  static const statsWarningBg = Color(0xFFFFF8E1);
+
+  // Dark Theme Indicator Colors
+  static const darkStatsOrange = Color(0xFFFFB74D);
+  static const darkStatsBlue = Color(0xFF64B5F6);
+  static const darkStatsPink = Color(0xFFF06292);
+  static const darkStatsSuccess = Color(0xFF81C784);
+  static const darkStatsSuccessBg = Color(0xFF1B5E20);
+  static const darkWarning = Color(0xFFFFD54F);
+  static const darkWarningBg = Color(0xFF5D4037);
 }
 
-extension ToTextStyle on Color {
+
+extension ColorExtension on Color {
   TextStyle get toTextStyle => TextStyle(color: this);
+
+  /// Chuyển đổi Color sang chuỗi Hex '#RRGGBB' (phù hợp cho MapLibre)
+  String get toHex {
+    final argb = toARGB32();
+    final rInt = ((argb >> 16) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final gInt = ((argb >> 8) & 0xFF).toRadixString(16).padLeft(2, '0');
+    final bInt = (argb & 0xFF).toRadixString(16).padLeft(2, '0');
+    return '#$rInt$gInt$bInt'.toUpperCase();
+  }
 }

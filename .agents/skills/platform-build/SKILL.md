@@ -149,10 +149,10 @@ LocalNotificationService.instance.showNotification(title, body);
 3. EasyLocalization.ensureInitialized()
 4. Firebase.initializeApp()
 5. FirebaseMessagingService.instance.init()
-6. LocalNotificationService.instance.init()
-7. BundleLoadService.instance.init()
-8. RemoteConfigService().initialize()
-9. Crashlytics setup
+6. RemoteConfigService().initialize()
+7. Crashlytics setup
+8. LocalNotificationService.instance.init()
+9. MapStyleService.instance.init()
 10. SystemChrome orientation & UI mode
 11. runApp(MyApp())
 ```

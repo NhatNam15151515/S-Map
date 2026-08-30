@@ -1,13 +1,20 @@
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../utils/app_colors.dart';
 import 'font_weight.dart';
+export 'font.dart';
+export 'font_weight.dart';
+export 'theme_extensions/app_theme_colors.dart';
+
+
+/// Typedef for a function that resolves [AppStyle] from [BuildContext].
+/// Injected at app startup to avoid circular imports between the styles
+/// layer and the cubits layer.
+typedef AppStyleResolver = AppStyle Function(BuildContext context);
 
 abstract class AppStyle {
-
   ThemeData get light;
+  ThemeData get dark => light;
   ColorScheme get colorScheme;
   Color get blackTextColor;
   Color get whiteTextColor;
@@ -22,9 +29,120 @@ abstract class AppStyle {
 
   ButtonStyle get whiteButton;
 
-  static AppStyle of(BuildContext context) {
-    return BlocProvider.of<AppCubit>(context).state.appStyle;
+  Color get success => AppColors.googleGreen;
+  Color get successContainer => AppColors.statsSuccessBg;
+  Color get warning => AppColors.macaw;
+  Color get warningContainer => AppColors.statsWarningBg;
+  Color get statsOrange => AppColors.statsOrange;
+  Color get statsBlue => AppColors.statsBlue;
+  Color get statsPink => AppColors.statsPink;
+  Color get statsSuccess => AppColors.statsSuccess;
+  Color get cardShadow => colorScheme.shadow.withAlpha(20);
+
+
+  // Static resolver & fallback style – injected from default_theme or AppCubit.
+  // This completely eliminates circular dependencies between styles and themes.
+  static AppStyleResolver? _resolver;
+  static AppStyle? defaultStyle;
+
+  /// Must be called once during app bootstrap (e.g., inside main.dart or AppCubit)
+  /// before any call to [AppStyle.of].
+  static void setResolver(AppStyleResolver resolver) {
+    _resolver = resolver;
   }
+
+  /// Returns the current [AppStyle] from the nearest AppCubit in the widget tree,
+  /// with a graceful fallback for widget tests and previews.
+  static AppStyle of(BuildContext context) {
+    if (_resolver != null) {
+      try {
+        return _resolver!(context);
+      } catch (_) {}
+    }
+    return defaultStyle ?? _fallbackInstance;
+  }
+
+  static final AppStyle _fallbackInstance = _FallbackAppStyle();
+}
+
+class _FallbackAppStyle extends AppStyle {
+  @override
+  ThemeData get light => ThemeData(
+        colorScheme: colorScheme,
+        useMaterial3: true,
+      );
+
+  @override
+  ColorScheme get colorScheme => const ColorScheme(
+        brightness: Brightness.light,
+        primary: AppColors.sMapTeal,
+        onPrimary: AppColors.white,
+        secondary: AppColors.sMapDarkTeal,
+        onSecondary: AppColors.white,
+        error: AppColors.googleRed,
+        onError: AppColors.white,
+        surface: AppColors.white,
+        onSurface: AppColors.googleDarkText,
+      );
+
+  @override
+  Color get blackTextColor => AppColors.googleDarkText;
+
+  @override
+  Color get whiteTextColor => AppColors.white;
+
+  @override
+  List<Color> get greysTextColor => const [
+        AppColors.onSurfaceVariant,
+        AppColors.argent,
+        AppColors.doveGrey,
+        AppColors.outlineVariant,
+        AppColors.whiteOut,
+      ];
+
+  @override
+  InputBorder get defaultBorder => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.outlineVariant),
+      );
+
+  @override
+  InputBorder get errorBorder => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.googleRed, width: 1.5),
+      );
+
+  @override
+  BoxDecoration get searchContainer => BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(28),
+      );
+
+  @override
+  ButtonStyle get buttonStyle => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(AppColors.sMapTeal),
+        foregroundColor: WidgetStateProperty.all(AppColors.white),
+      );
+
+  @override
+  ButtonStyle get outlineButtonStyle => ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(AppColors.white),
+        foregroundColor: WidgetStateProperty.all(AppColors.googleDarkText),
+        side: WidgetStateProperty.all(
+          const BorderSide(color: AppColors.outlineVariant),
+        ),
+      );
+
+  @override
+  ButtonStyle get textButtonStyle => ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(AppColors.sMapTeal),
+      );
+
+  @override
+  ButtonStyle get whiteButton => buttonStyle.copyWith(
+        backgroundColor: WidgetStateProperty.all(AppColors.white),
+        foregroundColor: WidgetStateProperty.all(AppColors.googleDarkText),
+      );
 }
 
 class AppTextTheme {
@@ -34,14 +152,45 @@ class AppTextTheme {
 
   TextStyle get mainStyle => const TextStyle().merge(color.toTextStyle);
 
-  TextStyle get textStyle => mainStyle.copyWith(fontWeight: AppFontWeight.regular.weight);
+  TextStyle get textStyle =>
+      mainStyle.copyWith(fontWeight: AppFontWeight.regular.weight);
 
-  TextStyle get boldStyle => mainStyle.copyWith(fontWeight: AppFontWeight.medium.weight);
+  TextStyle get regularStyle => textStyle;
+
+  TextStyle get boldStyle =>
+      mainStyle.copyWith(fontWeight: AppFontWeight.medium.weight);
+
+  TextStyle get mediumStyle => boldStyle;
 
   TextStyle get subTitleStyle =>
       mainStyle.copyWith(fontWeight: AppFontWeight.semiBold.weight);
 
-  TextStyle get textTitleStyle => mainStyle.copyWith(fontWeight: AppFontWeight.bold.weight);
+  TextStyle get semiBoldStyle => subTitleStyle;
+
+  TextStyle get textTitleStyle =>
+      mainStyle.copyWith(fontWeight: AppFontWeight.bold.weight);
+
+  // Extended text styles for Material 3 design
+  TextStyle get captionStyle => mainStyle.copyWith(
+        fontWeight: AppFontWeight.regular.weight,
+        fontSize: 12,
+      );
+
+  TextStyle get overlineStyle => mainStyle.copyWith(
+        fontWeight: AppFontWeight.medium.weight,
+        fontSize: 10,
+        letterSpacing: 1.5,
+      );
+
+  TextStyle get headlineStyle => mainStyle.copyWith(
+        fontWeight: AppFontWeight.bold.weight,
+        fontSize: 24,
+      );
+
+  TextStyle get displayStyle => mainStyle.copyWith(
+        fontWeight: AppFontWeight.bold.weight,
+        fontSize: 32,
+      );
 }
 
 extension ToAppTextTheme on Color {

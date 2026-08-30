@@ -1,26 +1,32 @@
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/constants/app_asset.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
 
-class ProfileAvatar extends StatelessWidget with AppMixin {
+class ProfileAvatar extends StatelessWidget {
   final double? size;
   final double borderWidth;
-  const ProfileAvatar({super.key, this.size, this.borderWidth = 1});
+  const ProfileAvatar({super.key, this.size, this.borderWidth = 1.5});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final effectiveSize = size ?? 36.0;
     return Container(
-      width: size,
-      height: size,
+      width: effectiveSize,
+      height: effectiveSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: styles.colorScheme.primary,
+          color: colorScheme.primary,
           width: borderWidth,
         ),
+        color: colorScheme.primary.withAlpha(25),
       ),
-      clipBehavior: Clip.hardEdge,
-      child: AppAsset.avatar.image.build(),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.person_rounded,
+        size: effectiveSize * 0.6,
+        color: colorScheme.primary,
+      ),
     );
   }
 }

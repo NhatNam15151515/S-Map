@@ -1,107 +1,236 @@
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_state.dart';
-import 'package:boilerplate/commons/log/log.dart';
-import 'package:boilerplate/models/user.dart';
-import 'package:boilerplate/services/firebase_analytics_service.dart';
-import 'package:boilerplate/services/flutter_secure.dart';
-import 'package:boilerplate/services/local_auth_service.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'notification_controller.dart';
-import 'user_controller.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_state.dart';
+import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
+import 'package:flutter/foundation.dart';
+import 'auth_fallbacks.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-
-  final AppCubit appCubit;
-
+  final IAuthRepos _authRepos;
+  final ISecureStorage _secureStorage;
+  final ISharedPreferences _sharedPreferences;
+  final ILocalAuthService _localAuthService;
+  final IFirebaseAnalyticsService _analyticsService;
   final ValueNotifier<bool> faceIdAcceptStream = ValueNotifier(false);
-  late final ProfileController profileController;
-  late final NotificationController notificationController;
 
-  AuthCubit(this.appCubit) : super(InitialAuth()) {
-    onAppStarted();
-    profileController = ProfileController(appCubit);
-    notificationController = NotificationController(appCubit);
+  /// Global service resolvers set during app bootstrap
+  static ISecureStorage? defaultSecureStorage;
+  static ISharedPreferences? defaultSharedPreferences;
+  static ILocalAuthService? defaultLocalAuthService;
+  static IFirebaseAnalyticsService? defaultAnalyticsService;
+
+  AuthCubit({
+    IAuthRepos? authRepos,
+    ISecureStorage? secureStorage,
+    ISharedPreferences? sharedPreferences,
+    ILocalAuthService? localAuthService,
+    IFirebaseAnalyticsService? analyticsService,
+  })  : _authRepos = authRepos ?? AuthReposImpl(),
+        _secureStorage =
+            secureStorage ?? defaultSecureStorage ?? NoOpSecureStorage(),
+        _sharedPreferences = sharedPreferences ??
+            defaultSharedPreferences ??
+            NoOpSharedPreferences(),
+        _localAuthService = localAuthService ??
+            defaultLocalAuthService ??
+            NoOpLocalAuthService(),
+        _analyticsService = analyticsService ??
+            defaultAnalyticsService ??
+            NoOpAnalyticsService(),
+        super(const AuthState());
+
+  User get currentProfile {
+    return state.loggedInProfile ?? User.getInit(init: true);
   }
 
-  User get _currentProfile => profileController.profileUpdateStream.value;
+  @override
+  void emit(AuthState state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
 
-
-  void onAppStarted() async {
-
-    /// checkpoint to get clear secure storage
-    if(await AppSharedPreferences().get1stInstall()) {
-      await AppSecureStorage.onLogOutClear();
-      await AppSharedPreferences().save1stInstall();
+  Future<void> onAppStarted() async {
+    // checkpoint to clear secure storage on 1st install
+    if (await _sharedPreferences.get1stInstall()) {
+      await _secureStorage.onLogOutClear();
+      await _sharedPreferences.save1stInstall();
     }
 
-    final authToken = await AppSecureStorage.getStoredAuthToken();
-    final profile = await AppSecureStorage.getStoredProfile();
+    final hasCompletedOnboarding = await _sharedPreferences
+        .getOnboardingCompleted()
+        .catchError((_) => false);
 
-    appCubit.initInterceptor(authToken, this);
+    if (isClosed) return;
 
-    if(authToken != null && profile != null) {
-      final reqAuth = await AppSecureStorage.getReqAuth();
+    // 1. Đọc profile người dùng đã lưu từ SecureStorage
+    User? profile = await _secureStorage.getStoredProfile();
+    if (isClosed) return;
+
+    // 2. Nếu SecureStorage chưa có, kiểm tra phiên đăng nhập từ Firebase
+    if (profile == null) {
+      try {
+        final fbProfile = await _authRepos.getProfile();
+        if (isClosed) return;
+        if (fbProfile != null &&
+            (fbProfile.id != null || fbProfile.username != null)) {
+          profile = fbProfile;
+        }
+      } catch (e) {
+        DLog.error('Lỗi khôi phục phiên người dùng: $e');
+      }
+    }
+
+    if (profile != null) {
+      if (isClosed) return;
+      final reqAuth = await _secureStorage.getReqAuth();
+      if (isClosed) return;
       faceIdAcceptStream.value = reqAuth;
       await onAuthenticated(profile);
     } else {
-      emit(UnAuthenticated());
+      if (isClosed) return;
+      if (state.isInitial) {
+        if (!hasCompletedOnboarding) {
+          emit(state.copyWith(type: AuthStateType.onboarding));
+        } else {
+          emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        }
+      }
     }
     FlutterNativeSplash.remove();
   }
 
-  Future onAuthenticated(User user) async {
-    await getLoggedInMetadata(user);
-    emit(Authenticated(user));
-    getAfterAuthStateEmitted();
+  Future<void> onAuthenticated(User user) async {
+    final token = user.id ?? 'token_${DateTime.now().millisecondsSinceEpoch}';
+    await _secureStorage.saveAuthToken(token);
+    await _secureStorage.saveProfile(user);
+    if (isClosed) return;
+    emit(state.copyWith(
+      type: AuthStateType.authenticated,
+      loggedInProfile: user,
+    ));
+    await getAfterAuthStateEmitted();
   }
 
-  void onLoggedIn(User user) async {
+  Future<void> onLoggedIn(User user) async {
     faceIdAcceptStream.value = false;
     await onAuthenticated(user);
   }
 
+  Future<void> completeOnboarding() async {
+    await _sharedPreferences.saveOnboardingCompleted(true).catchError((_) {});
+    if (isClosed) return;
+    await loginGuest();
+  }
+
+  Future<void> loginGuest({String? username}) async {
+    final user = User(username: username);
+    await onLoggedIn(user);
+  }
+
+  Future<void> loginWithCredentials({
+    required String username,
+    required String password,
+  }) async {
+    final user = User(username: username);
+    await onLoggedIn(user);
+  }
+
+  Future<bool> signInWithGoogle() async {
+    if (isClosed) return false;
+    emit(state.copyWith(type: AuthStateType.loading, clearError: true));
+    try {
+      final user = await _authRepos.signInWithGoogle();
+      if (isClosed) return false;
+      if (user != null) {
+        await onLoggedIn(user);
+        return true;
+      } else {
+        emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        return false;
+      }
+    } catch (e) {
+      DLog.error('Lỗi đăng nhập Google: $e');
+      if (isClosed) return false;
+      emit(state.copyWith(
+        type: AuthStateType.unAuthenticated,
+        errorMessage: e.toString(),
+      ));
+      return false;
+    }
+  }
+
+  Future<bool> signInAnonymously() async {
+    if (isClosed) return false;
+    emit(state.copyWith(type: AuthStateType.loading, clearError: true));
+    try {
+      final user = await _authRepos.signInAnonymously();
+      if (isClosed) return false;
+      if (user != null) {
+        await onLoggedIn(user);
+        return true;
+      } else {
+        emit(state.copyWith(type: AuthStateType.unAuthenticated));
+        return false;
+      }
+    } catch (e) {
+      DLog.error('Lỗi đăng nhập ẩn danh: $e');
+      if (isClosed) return false;
+      emit(state.copyWith(
+        type: AuthStateType.unAuthenticated,
+        errorMessage: e.toString(),
+      ));
+      return false;
+    }
+  }
+
+  Future<void> updateProfile(User user) async {
+    await _secureStorage.saveProfile(user);
+    emit(state.copyWith(
+      type: AuthStateType.authenticated,
+      loggedInProfile: user,
+    ));
+  }
+
+  Future<void> getProfile() async {
+    try {
+      final profile = await _authRepos.getProfile();
+      if (profile != null) {
+        await updateProfile(profile);
+      }
+    } on Exception catch (e) {
+      DLog.error('Lỗi tải thông tin cá nhân: $e');
+    }
+  }
+
   void toggleAuthWithFaceId(bool accepted) async {
-    final curState = state;
-    if(curState is Authenticated) {
-      final res = await FlutterLocalAuth.instance.authenticate();
-      if(res) {
-        await AppSecureStorage.saveReqAuth(accepted);
+    if (state.isAuthenticated) {
+      final res = await _localAuthService.authenticate();
+      if (res) {
+        await _secureStorage.saveReqAuth(accepted);
         faceIdAcceptStream.value = accepted;
       }
     }
   }
 
-  Future getAfterAuthStateEmitted(){
-    return Future.wait([
-      FirebaseAnalyticsService().resetUserDetail(profile: _currentProfile),
-      profileController.onUserUpdateStat(),
-    ]);
+  Future<void> getAfterAuthStateEmitted() async {
+    await _analyticsService.resetUserDetail(profile: currentProfile);
   }
 
-  Future<bool> getLoggedInMetadata(User user) async {
-    await profileController.setProfile(user);
-    await Future.wait([
-      profileController.getProfile(),
-    ]);
-    return true;
+  Future<void> onLogout({bool requestLogout = true}) async {
+    emit(const AuthState(type: AuthStateType.unAuthenticated));
+    await _secureStorage.onLogOutClear();
+    if (requestLogout) await _requestLogout();
   }
 
-  void onLogout({bool requestLogout = true}) async {
-    emit(UnAuthenticated());
-    profileController.onLogout();
-    await AppSecureStorage.onLogOutClear();
-    await AppSharedPreferences().onLogOutClear();
-    if(requestLogout) await _requestLogout();
-  }
-
-  Future _requestLogout() async {
-    if(state is! Authenticated) return;
+  Future<void> _requestLogout() async {
     try {
-      await appCubit.appReposProvider.authRepos.logout();
-    } on Exception catch(e) {
-      DLog.error(e.toString());
+      await _authRepos.logout();
+    } on Exception catch (e) {
+      DLog.error('Lỗi đăng xuất: $e');
     }
   }
 }

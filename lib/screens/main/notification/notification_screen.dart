@@ -1,101 +1,136 @@
-import 'package:boilerplate/commons/cubits/generic_list_cubit/generic_list_cubit.dart';
-import 'package:boilerplate/commons/cubits/generic_list_cubit/generic_list_cubit_helper.dart';
-import 'package:boilerplate/commons/enums/enums.dart';
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/mixin/auth_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/commons/styles/themes/default_theme.dart';
-import 'package:boilerplate/commons/widgets/app_bar.dart';
-import 'package:boilerplate/commons/widgets/empty_widget.dart';
-import 'package:boilerplate/commons/widgets/shimmers.dart';
-import 'package:boilerplate/models/notification_model.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/enums/enums.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/screens/main/notification/widgets/widgets.dart';
 
 class NotificationScreen extends StatefulWidget {
-  static const String path = '/NotificationScreen';
-
   const NotificationScreen({super.key});
 
   @override
   _NotificationScreenState createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> with AppMixin, ListenComingNotification {
+class _NotificationScreenState extends State<NotificationScreen>
+    with AppMixin, ListenComingNotification {
   NotificationTab filterPicked = NotificationTab.system;
-  late GenericListCubit<NotificationModel> systemNotiCubit;
-  late GenericListCubit<NotificationModel> customerNotiCubit;
+
+  final ScrollController _systemScrollController = ScrollController();
+  final ScrollController _customerScrollController = ScrollController();
 
   @override
   void initState() {
-
-    systemNotiCubit = GenericListCubit(
-      future: (page, limit) => appRepos.notiRepos.getSystemNotification(
-        page: page,
-        limit: limit,
-      ).then((value) {
-        authCubit.notificationController.applyStats(NotificationTab.system, value.$2);
-        return value.$1;
-      }),
-      limit: 10,
-    );
-    customerNotiCubit = GenericListCubit(
-      future: (page, limit) => appRepos.notiRepos.getCustomerNotification(
-        page: page,
-        limit: limit,
-      ).then((value) {
-        authCubit.notificationController.applyStats(NotificationTab.customer, value.$2);
-        return value.$1;
-      }),
-      limit: 10,
-    );
-    systemNotiCubit.request();
-    customerNotiCubit.request();
-
-    systemNotiCubit.listenToState(
-      onStateSuccess: (value) {
-
-      },
-      onStateError: (err) => showError(err?.message),
-    );
-
-    customerNotiCubit.listenToState(
-      onStateSuccess: (value) {
-
-      },
-      onStateError: (err) => showError(err?.message),
-    );
-
     super.initState();
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+    _systemScrollController.addListener(() {
+      if (_systemScrollController.position.pixels >=
+          _systemScrollController.position.maxScrollExtent - 200) {
+        notiCubit.loadMore(NotificationTab.system);
+      }
+    });
+
+    _customerScrollController.addListener(() {
+      if (_customerScrollController.position.pixels >=
+          _customerScrollController.position.maxScrollExtent - 200) {
+        notiCubit.loadMore(NotificationTab.customer);
+      }
+    });
+
+    notiCubit.loadSystemNotifications();
+    notiCubit.loadCustomerNotifications();
   }
 
   @override
   void dispose() {
-    systemNotiCubit.close();
-    customerNotiCubit.close();
+    _systemScrollController.dispose();
+    _customerScrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Scaffold(
       appBar: TitleAppBar(
-        title: locale.notification,
+        title: tr(LocaleKeys.notification),
       ),
       body: Column(
         children: [
-          filter(),
+          NotificationTabFilter(
+            selectedTab: filterPicked,
+            onTabChanged: (tab) => setState(() => filterPicked = tab),
+          ),
           Expanded(
-            child: IndexedStack(
-              index: filterPicked == NotificationTab.system ? 0 : 1,
-              children: [
-                _listBody(systemNotiCubit),
-                _listBody(customerNotiCubit),
-              ],
+            child: BlocConsumer<NotificationCubit, NotificationState>(
+              listener: (context, state) {
+                if (state.errorMessage != null) {
+                  showError(state.errorMessage!);
+                }
+              },
+              builder: (context, state) {
+                final isSystem = filterPicked == NotificationTab.system;
+                final items = isSystem
+                    ? state.systemNotifications
+                    : state.customerNotifications;
+                final isLoading = isSystem
+                    ? state.isSystemLoading && items.isEmpty
+                    : state.isCustomerLoading && items.isEmpty;
+                final scrollController = isSystem
+                    ? _systemScrollController
+                    : _customerScrollController;
+
+                if (isLoading) {
+                  return const DefaultListingShimmer();
+                }
+
+                if (items.isEmpty) {
+                  return RefreshIndicator(
+                    color: colorScheme.primary,
+                    onRefresh: () => notiCubit.refresh(filterPicked),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: MediaQuery.sizeOf(context).height * 0.6,
+                        child: EmptyWidget(
+                          title: tr(LocaleKeys.noNotification),
+                          subtitle: tr(LocaleKeys.noNotificationSubtitle),
+                          icon: Icons.notifications_none_rounded,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  color: colorScheme.primary,
+                  onRefresh: () => notiCubit.refresh(filterPicked),
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return NotificationItemCard(item: item);
+                      },
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: items.length,
+                      controller: scrollController,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -103,84 +138,10 @@ class _NotificationScreenState extends State<NotificationScreen> with AppMixin, 
     );
   }
 
-  Widget _listBody(GenericListCubit<NotificationModel> cubit) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        cubit.refresh();
-      },
-      child: cubit.blocBuilder(
-        builder: (context, state) {
-          if(cubit.isLoadingInitial) {
-            return const DefaultListingShimmer();
-          }
-          final list = state.value;
-
-          if(list.isEmpty) {
-            return const EmptyWidget(
-              title: "Bạn không có thông báo mới",
-            );
-          }
-          return MediaQuery.removePadding(
-            context: context,
-            removeTop: true,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              separatorBuilder: (context, index) {
-                return Container(
-                  height: 6,
-                );
-              },
-              itemBuilder: (context, index) {
-                final item = list[index];
-                return Text(
-                  "${item.content}",
-                );
-              },
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: list.length,
-              controller: cubit.scrollController,
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget filter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.0),
-      child: Row(
-        children: NotificationTab.values.map((e) {
-          final picked = filterPicked == e;
-          return Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: ElevatedButton(
-              style: styles.buttonStyle.mergeBackgroundColor(picked ? null : Colors.transparent),
-              onPressed: () {
-                setState(() {
-                  filterPicked = e;
-                });
-              },
-              child: Text(
-                e.title,
-                style: (picked ? styles.greysTextColor.last : styles.blackTextColor).textTheme.boldStyle.copyWith(
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
   @override
   void onComingNotification(NotificationModel? event) {
-    if(event?.notiType == NotificationType.system) {
-      systemNotiCubit.refresh();
+    if (event?.notiType == NotificationType.system) {
+      notiCubit.refresh(NotificationTab.system);
     }
   }
 }

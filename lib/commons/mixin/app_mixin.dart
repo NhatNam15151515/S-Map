@@ -1,15 +1,12 @@
-import 'package:boilerplate/commons/cubits/app_cubit/app_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/notification_controller.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/commons/utils/app_utils.dart';
-import 'package:boilerplate/commons/utils/popup_utils.dart';
-import 'package:boilerplate/commons/validators/validator.dart';
-import 'package:boilerplate/generated/locale_keys.g.dart';
-import 'package:boilerplate/models/user.dart';
-import 'package:boilerplate/routers/routers.dart';
-import 'package:boilerplate/services/firebase_analytics_service.dart';
-import 'package:boilerplate/services/firebase_firestore_service.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/popup_utils.dart';
+import 'package:s_map/commons/validators/validator.dart';
+export 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/repos/repos.dart';
+import 'package:s_map/routers/routers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -22,17 +19,22 @@ mixin AppMixin {
 
   AuthCubit get authCubit => appUtils.getCubit<AuthCubit>(appContext);
 
+  NotificationCubit get notiCubit =>
+      appUtils.getCubit<NotificationCubit>(appContext);
+
   AppStyle get styles => appCubit.state.appStyle;
+
+  String get appName => appCubit.state.appName;
 
   Validator get validatorUtils => Validator.instance;
 
-  AppReposProvider get appRepos => appCubit.appReposProvider;
-  NotificationController get notiController => authCubit.notificationController;
+  AppReposProvider get appRepos => AppReposProvider.instance;
+
+  static IFirebaseAnalyticsService? analyticsService;
+  static IFireStoreService? defaultFireStoreService;
 
   void unFocus() =>
       WidgetsBinding.instance.focusManager.primaryFocus?.unfocus();
-
-  LocaleKeys get locale => LocaleKeys();
 
   Future showSuccess(String? text) {
     if (text != null) {
@@ -78,10 +80,10 @@ mixin AppMixin {
 
   double get bottomNavigationBarHeight => 110;
 
-
   Future showCopied(String copiedContent, {BuildContext? buildContext}) {
     return Clipboard.setData(ClipboardData(text: copiedContent)).then((_) {
-      ScaffoldMessenger.of(buildContext ?? appContext).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(buildContext ?? appContext)
+          .showSnackBar(const SnackBar(
         duration: Duration(milliseconds: 300),
         content: Text(
           "Đã sao chép vào khay nhớ tạm",
@@ -90,34 +92,9 @@ mixin AppMixin {
     });
   }
 
-  Future logFA(String name, {Map<String, dynamic>? params}) => FirebaseAnalyticsService().logEvent(name, params ?? {});
+  Future logFA(String name, {Map<String, dynamic>? params}) =>
+      analyticsService?.logEvent(name, params ?? {}) ?? Future.value();
 
   bool get isAuthenticated => authCubit.state.isAuthenticated;
-  FireStoreService get fireStoreService => FireStoreService();
-}
-
-
-extension PlaySoundFunction on Function {
-  void onPlay() {
-    SystemSound.play(SystemSoundType.click);
-    this.call();
-  }
-}
-
-extension PlaySoundFuture<T> on Future<T> {
-  Future<T> onPlay() {
-    SystemSound.play(SystemSoundType.click);
-    return this;
-  }
-}
-
-extension AuthExtension on AuthCubit {
-  User get currentProfile => profileController.current;
-}
-
-mixin SizeMixin {
-  bool get tablet {
-    var shortestSide = MediaQuery.of(Routes.instance.context).size.shortestSide;
-    return shortestSide >= 550;
-  }
+  IFireStoreService? get fireStoreService => defaultFireStoreService;
 }

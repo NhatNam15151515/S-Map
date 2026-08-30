@@ -1,97 +1,159 @@
-import 'package:boilerplate/commons/styles/themes/default_theme.dart';
-import 'package:boilerplate/repos/notification_repos.dart';
-import 'package:boilerplate/services/api_service/interceptors/firestore_cache_interceptor.dart';
-import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/localizations/app_localization.dart';
-import 'package:boilerplate/repos/auth_repos.dart';
-import 'package:boilerplate/routers/routers.dart';
-import 'package:boilerplate/services/api_service/interceptors/hive_cache_interceptor.dart';
-
-import '../../../services/api_service/api_clients/api_client.dart';
-import '../../../services/api_service/interceptors/auth_interceptor.dart';
-import '../../../services/api_service/interceptors/error_interceptor.dart';
-import '../../../services/api_service/interceptors/log_interceptor.dart';
+import 'package:s_map/commons/cubits/auth_cubit/auth_fallbacks.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/styles/themes/dark_theme.dart';
+import 'package:s_map/commons/styles/themes/default_theme.dart';
+import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/localizations/app_localization.dart';
+import 'package:s_map/routers/routers.dart';
 import 'app_state.dart';
 
-class AppReposProvider {
-  final BaseAPIClient apiClient;
-  final BaseAPIClient cacheApiClient;
-  final BaseAPIClient fireStoreCacheAPIClient;
+class AppCubit extends Cubit<AppState> with WidgetsBindingObserver {
+  final ISharedPreferences _sharedPreferences;
 
-  AppReposProvider(this.apiClient, this.cacheApiClient, this.fireStoreCacheAPIClient);
+  /// Global service resolvers set during app initialization
+  static IPackageInfoService? defaultPackageInfoService;
+  static IFirebaseMessagingService? defaultMessagingService;
+  static ISharedPreferences? defaultSharedPreferences;
 
-  AuthRepos get authRepos => AuthReposImpl(apiClient);
-  NotificationRepos get notiRepos => NotificationReposImpl(apiClient);
-}
-
-class AppCubit extends Cubit<AppState> {
-  APIClient apiClient = APIClient();
-  APIClient refreshTokenAPIClient = APIClient();
-  APIClient cacheAPIClient = APIClient();
-  APIClient fireStoreCacheAPIClient = APIClient();
-
-  late AppReposProvider appReposProvider;
-
-  AppCubit() : super(AppState(type: AppStateType.initial, appStyle: DefaultTheme(), supportedLocale: SupportedLocale.vi)) {
-    appReposProvider = AppReposProvider(apiClient, cacheAPIClient, fireStoreCacheAPIClient);
+  AppCubit({
+    String? appName,
+    IPackageInfoService? packageInfoService,
+    ISharedPreferences? sharedPreferences,
+    ThemeMode initialThemeMode = ThemeMode.system,
+  })  : _sharedPreferences = sharedPreferences ??
+            defaultSharedPreferences ??
+            NoOpSharedPreferences(),
+        super(AppState(
+          type: AppStateType.initial,
+          appStyle: getInitialStyle(initialThemeMode),
+          themeMode: initialThemeMode,
+          appName: appName ??
+              (packageInfoService ?? defaultPackageInfoService)?.appName ??
+              'S-Map',
+          supportedLocale: SupportedLocale.vi,
+        )) {
+    try {
+      WidgetsBinding.instance.addObserver(this);
+    } catch (_) {}
+    AppStyle.setResolver(
+      (context) => BlocProvider.of<AppCubit>(context).state.appStyle,
+    );
   }
 
-  BuildContext get appContext => Routes.instance.context;
-
-  void initInterceptor(AuthToken? authToken, AuthCubit authCubit) async {
-    apiClient.initInterceptors(interceptors: [
-      AuthInterceptor(refreshTokenAPIClient, onUnAuthenticated: () {
-        authCubit.onLogout(requestLogout: true);
-      }, token: authToken),
-      PrintInterceptor(),
-      ErrorInterceptor(apiClient, onErrorCallback: _onErrorCallback),
-    ]);
-    cacheAPIClient.initInterceptors(
-      interceptors: [
-        await HiveCacheInterceptor.init(),
-        PrintInterceptor(),
-        ErrorInterceptor(cacheAPIClient, onErrorCallback: _onErrorCallback),
-      ],
-    );
-
-    fireStoreCacheAPIClient.initInterceptors(
-      interceptors: [
-        FireStoreCacheInterceptor(),
-        PrintInterceptor(),
-        ErrorInterceptor(cacheAPIClient, onErrorCallback: _onErrorCallback),
-      ],
-    );
-
+  @override
+  Future<void> close() {
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
+    return super.close();
   }
 
-  void _onErrorCallback(DioException error, ErrorInterceptorHandler handler) {}
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    if (state.themeMode == ThemeMode.system) {
+      _updateStyleForMode(ThemeMode.system);
+    }
+  }
 
-  void initMetaData() async {
-    // final locale = find(appContext.locale);
-    final locale = state.supportedLocale.locale;
-    await appContext.setLocale(locale);
+  @override
+  void emit(AppState state) {
+    if (isClosed) return;
+    super.emit(state);
+  }
 
+  static AppStyle getInitialStyle(ThemeMode mode) {
+    if (mode == ThemeMode.dark) return DarkTheme.instance;
+    if (mode == ThemeMode.light) return DefaultTheme.instance;
+    try {
+      final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+      return isPlatformDark ? DarkTheme.instance : DefaultTheme.instance;
+    } catch (_) {
+      return DefaultTheme.instance;
+    }
+  }
+
+  void onChangeThemeMode(ThemeMode mode) {
+    _updateStyleForMode(mode);
+    _sharedPreferences.saveThemeMode(_themeModeToString(mode));
+  }
+
+  void _updateStyleForMode(ThemeMode mode) {
+    AppStyle style;
+    if (mode == ThemeMode.dark) {
+      style = DarkTheme.instance;
+    } else if (mode == ThemeMode.light) {
+      style = DefaultTheme.instance;
+    } else {
+      try {
+        final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+        style = isPlatformDark ? DarkTheme.instance : DefaultTheme.instance;
+      } catch (_) {
+        style = DefaultTheme.instance;
+      }
+    }
     emit(state.copyWith(
-      supportedLocale: SupportedLocale.vi,
-      type: AppStateType.loaded,
+      themeMode: mode,
+      appStyle: style,
     ));
-    await Routes.instance.showMaintenanceAppDialog();
-    Routes.instance.showUpdateAppDialog();
   }
 
-  void changeLocale(SupportedLocale supportedLocale) async {
-    await appContext.setLocale(supportedLocale.locale);
+  void toggleDarkMode(bool isDark) {
+    onChangeThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  static ThemeMode parseThemeMode(String modeStr) {
+    switch (modeStr) {
+      case 'dark':
+        return ThemeMode.dark;
+      case 'light':
+        return ThemeMode.light;
+      case 'system':
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  static String _themeModeToString(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.dark:
+        return 'dark';
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.system:
+        return 'system';
+    }
+  }
+
+  void onChangeLocale(SupportedLocale supportedLocale,
+      [BuildContext? context]) {
     emit(state.copyWith(supportedLocale: supportedLocale));
-    WidgetsFlutterBinding.ensureInitialized().performReassemble();
+    if (context != null) {
+      context.setLocale(supportedLocale.locale);
+    } else {
+      try {
+        final ctx = Routes.instance.rootNavigatorKey.currentContext;
+        if (ctx != null) {
+          ctx.setLocale(supportedLocale.locale);
+        }
+      } catch (_) {}
+    }
   }
 
-  void changeStyle(AppStyle appStyle) {
-    emit(state.copyWith(appStyle: appStyle));
-    WidgetsFlutterBinding.ensureInitialized().performReassemble();
+  Future<void> initMetaData() async {
+    await Routes.instance.showMaintenanceAppDialog();
+  }
+
+  void onMainScreenMounted({IFirebaseMessagingService? messagingService}) {
+    final service = messagingService ?? defaultMessagingService;
+    if (service != null) {
+      if (!service.fmsCompleter.isCompleted) {
+        service.fmsCompleter.complete(true);
+      }
+      service.onAppStartedWithNotification();
+    }
   }
 }

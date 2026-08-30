@@ -7,10 +7,10 @@ plugins {
 }
 
 def env = [
-        DISPLAY_NAME: 'Boilerplate',
+        DISPLAY_NAME: 'S-Map',
         FLUTTER_BUILD_NAME: '1.0.0',
         FLUTTER_BUILD_NUMBER_ANDROID: '1',
-        BUNDLE_ID: 'com.aarontech.boilerplate.dev',
+        BUNDLE_ID: 'com.vnsmap.app',
         FLAVOR: 'dev',
 ]
 
@@ -48,13 +48,25 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.aarontech.boilerplate"
+    namespace = "com.vnsmap.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    androidResources {
+        noCompress 'ghz', 'pmtiles', 'db'
+    }
+
+    aaptOptions {
+        noCompress 'ghz', 'pmtiles', 'db'
     }
 
     sourceSets {
@@ -75,16 +87,26 @@ android {
 
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-            storePassword keystoreProperties['storePassword']
+            if (keystoreProperties['storeFile'] != null && file(keystoreProperties['storeFile']).exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            } else {
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+                storeFile file("${System.getProperty('user.home')}/.android/debug.keystore")
+                storePassword 'android'
+            }
         }
     }
 
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -100,3 +122,79 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    implementation('com.graphhopper:graphhopper-core:8.0') {
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+    }
+    implementation 'org.slf4j:slf4j-android:1.7.36'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core:1.15.0'
+        force 'androidx.core:core-ktx:1.15.0'
+    }
+}
+
+tasks.register('autoPushGraphData') {
+    doLast {
+        def sdkDir = android.sdkDirectory.path
+        def adbExecutable = new File(sdkDir, "platform-tools/adb" + (org.gradle.internal.os.OperatingSystem.current().isWindows() ? ".exe" : ""))
+        if (!adbExecutable.exists()) return
+
+        try {
+            def devicesOutput = new ByteArrayOutputStream()
+            exec {
+                commandLine adbExecutable.path, 'devices'
+                standardOutput = devicesOutput
+                ignoreExitValue = true
+            }
+            def outputStr = devicesOutput.toString()
+            if (outputStr.contains("\tdevice")) {
+                println "📱 [S-Map Gradle] Checking GraphHopper Vietnam map data on connected device..."
+                
+                def checkOutput = new ByteArrayOutputStream()
+                exec {
+                    commandLine adbExecutable.path, 'shell', 'ls /sdcard/Android/data/com.vnsmap.app/files/regions/vietnam/nodes /sdcard/Android/data/com.vnsmap.app/files/vietnam_extracted/nodes /sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted/nodes 2>/dev/null'
+                    standardOutput = checkOutput
+                    ignoreExitValue = true
+                }
+                
+                if (!checkOutput.toString().contains("nodes")) {
+                    println "⚠️ [S-Map Gradle] Vietnam GraphHopper data MISSING on device! Checking local cache to push..."
+                    def graphDir = file("../../data-pipeline/data/graph-cache/vietnam")
+                    if (!graphDir.exists()) {
+                        graphDir = file("../../data-pipeline/data/graph-cache/metro_hcm")
+                    }
+                    if (graphDir.exists()) {
+                        exec {
+                            commandLine adbExecutable.path, 'shell', 'mkdir -p /sdcard/Android/data/com.vnsmap.app/files/regions/vietnam'
+                            ignoreExitValue = true
+                        }
+                        exec {
+                            commandLine adbExecutable.path, 'push', "${graphDir.path}/.", '/sdcard/Android/data/com.vnsmap.app/files/regions/vietnam/'
+                        }
+                        println "✅ [S-Map Gradle] GraphHopper Vietnam data successfully pushed to device at /regions/vietnam/!"
+                    } else {
+                        println "💡 [S-Map Gradle] Note: Offline map will be loaded in-app (Vietnam package: vietnam.zip or bundled asset)."
+                    }
+                } else {
+                    println "✅ [S-Map Gradle] GraphHopper map data already exists on device."
+                }
+            }
+        } catch (Exception e) {
+            println "⚠️ [S-Map Gradle] autoPushGraphData warning: ${e.message}"
+        }
+    }
+}
+
+tasks.matching { it.name.startsWith("assemble") || it.name.startsWith("install") }.configureEach {
+    finalizedBy 'autoPushGraphData'
+}
+
+

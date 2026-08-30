@@ -1,15 +1,10 @@
-import 'package:boilerplate/commons/utils/app_image.dart';
+import 'package:s_map/commons/utils/app_image.dart';
 
 enum AppAsset {
   avatar("avatar.png"),
   logo("logo.png"),
-  addToCart("add_to_cart.png"),
-  consignment("consignment.png"),
-  taobao("taobao.png"),
-  p1688("1688.png"),
-  tmall("tmall.png"),
-  pinduoduo("pinduoduo.png"),
-
+  google("google_ic.svg"),
+  redMarker("red_marker.png"),
   ;
 
   const AppAsset(this.source);
