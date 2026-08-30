@@ -74,6 +74,7 @@ class AuthCubit extends Cubit<AuthState> {
     if (profile == null) {
       try {
         final fbProfile = await _authRepos.getProfile();
+        if (isClosed) return;
         if (fbProfile != null &&
             (fbProfile.id != null || fbProfile.username != null)) {
           profile = fbProfile;

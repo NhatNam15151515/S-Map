@@ -171,7 +171,10 @@ class Routes extends NavigatorObserver {
 
     void handleState(AuthState event) async {
       await routeMounted.future;
-      switch (event.type) {
+      final currentState = authCubit.state;
+      if (currentState.type != event.type) return;
+
+      switch (currentState.type) {
         case AuthStateType.unAuthenticated:
           if (context.mounted) context.go(AppRoutes.login);
           break;

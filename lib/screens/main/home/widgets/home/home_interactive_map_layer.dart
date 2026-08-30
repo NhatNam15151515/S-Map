@@ -39,6 +39,15 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
   RoutePreviewCubit get routePreviewCubit => context.read<RoutePreviewCubit>();
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (displayCubit.state.isNightMode != isDark) {
+      displayCubit.updateThemeMode(isDark);
+    }
+  }
+
   /// Kích hoạt tìm kiếm theo danh mục trong khung nhìn hiện tại (đồng bộ từ UI)
   void searchByCategory(String category) {
     _cameraController.executeInVisibleRegion(_mapController, (bounds) {

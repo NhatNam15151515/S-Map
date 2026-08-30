@@ -70,6 +70,10 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     }
   }
 
+  void updateThemeMode(bool isDarkMode) {
+    updateMapTheme(isDarkMode: isDarkMode);
+  }
+
   void toggleNightMode() {
     updateMapTheme(isDarkMode: !state.isNightMode);
   }
