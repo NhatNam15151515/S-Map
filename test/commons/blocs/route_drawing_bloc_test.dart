@@ -300,14 +300,14 @@ void main() {
     });
 
     test(
-        'Auto-connect failure emits warning state with message and retains point',
+        'Auto-connect failure seamlessly connects direct segment and emits routeUpdated',
         () async {
       // Point 1
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
 
-      // Route failure for point 2
+      // Route failure for point 2 (e.g. unindexed alley / path)
       mockRepository.nextCalculateResult =
           RouteResult.failure(RoutingConstants.errNoRouteFound);
 
@@ -317,10 +317,11 @@ void main() {
           predicate<RouteDrawingState>(
               (s) => s.status == RouteDrawingStatus.loading),
           predicate<RouteDrawingState>((s) =>
-              s.status == RouteDrawingStatus.warning &&
+              s.status == RouteDrawingStatus.routeUpdated &&
               s.points.length == 2 &&
-              s.segments.isEmpty &&
-              s.warningMessageKey == RoutingConstants.errNoRouteFound),
+              s.segments.length == 1 &&
+              s.fullPolyline.length == 2 &&
+              s.totalDistance > 0),
         ]),
       );
 
@@ -438,19 +439,19 @@ void main() {
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
 
-      // P3 fails to connect -> warning, 3 points, still 1 segment
+      // P3 fallback segment connection -> routeUpdated, 3 points, 2 segments
       mockRepository.nextCalculateResult =
           RouteResult.failure(RoutingConstants.errNoRouteFound);
 
       bloc.add(const RouteDrawingPointTapped(lat: 10.7800, lon: 106.7080));
       await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.warning);
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated && s.points.length == 3);
 
       expect(bloc.state.points.length, 3);
-      expect(bloc.state.segments.length, 1);
-      expect(bloc.state.totalDistance, 1200.0);
+      expect(bloc.state.segments.length, 2);
+      expect(bloc.state.totalDistance, greaterThan(1200.0));
 
-      // Undo P3: Should NOT pop segment 1
+      // Undo P3: Should pop segment 2
       final streamExpectationUndo = expectLater(
         bloc.stream,
         emits(predicate<RouteDrawingState>((s) =>
@@ -463,21 +464,20 @@ void main() {
             s.canRedo == true &&
             s.redoPoints.length == 1 &&
             s.redoSegments.length == 1 &&
-            s.redoSegments.first == null)),
+            s.redoSegments.first != null)),
       );
 
       bloc.add(const RouteDrawingUndoLastPoint());
       await streamExpectationUndo;
 
-      // Redo P3: Should restore P3 without adding a segment
+      // Redo P3: Should restore P3 and segment 2
       final streamExpectationRedo = expectLater(
         bloc.stream,
         emits(predicate<RouteDrawingState>((s) =>
             s.status == RouteDrawingStatus.routeUpdated &&
             s.points.length == 3 &&
-            s.segments.length == 1 &&
-            s.totalDistance == 1200.0 &&
-            s.totalTime == 150000 &&
+            s.segments.length == 2 &&
+            s.totalDistance > 1200.0 &&
             s.canUndo == true &&
             s.canRedo == false)),
       );

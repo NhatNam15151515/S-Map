@@ -7,6 +7,7 @@ export 'poi_model.dart';
 export 'routing/active_trip_snapshot.dart';
 export 'routing/custom_route_model.dart';
 export 'routing/instruction_progress.dart';
+export 'routing/route_drawing_payload.dart';
 export 'routing/route_instruction.dart';
 export 'routing/route_point.dart';
 export 'routing/route_result.dart';

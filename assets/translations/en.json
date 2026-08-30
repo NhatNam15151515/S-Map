@@ -228,7 +228,10 @@
     "delete_confirm_desc": "Are you sure you want to delete route \"{}\"?",
     "profile_moped": "Motorcycle",
     "profile_car": "Car",
-    "profile_foot": "Walking"
+    "profile_foot": "Walking",
+    "use_my_location_origin": "My Location (Origin)",
+    "use_selected_destination": "Selected Marker (Destination)",
+    "custom_route_drawing": "Custom Route"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",

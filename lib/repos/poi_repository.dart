@@ -35,14 +35,58 @@ class PoiRepositoryImpl implements IPoiRepository {
     return query.replaceAll(RegExp(r'''[*"'-\:()^~{}\[\]\\]'''), ' ').trim();
   }
 
+  static const List<PoiModel> _sovereignPois = [
+    PoiModel(
+      id: 999901,
+      name: 'Quần đảo Hoàng Sa (Việt Nam)',
+      nameAscii: 'Quan dao Hoang Sa (Viet Nam)',
+      lat: 16.5367,
+      lon: 112.3394,
+      category: 'island',
+      address: 'Thành phố Đà Nẵng, Việt Nam',
+    ),
+    PoiModel(
+      id: 999902,
+      name: 'Quần đảo Trường Sa (Việt Nam)',
+      nameAscii: 'Quan dao Truong Sa (Viet Nam)',
+      lat: 8.6433,
+      lon: 111.9197,
+      category: 'island',
+      address: 'Tỉnh Khánh Hòa, Việt Nam',
+    ),
+    PoiModel(
+      id: 999903,
+      name: 'Biển Đông',
+      nameAscii: 'Bien Dong',
+      lat: 13.5000,
+      lon: 113.5000,
+      category: 'sea',
+      address: 'Việt Nam',
+    ),
+  ];
+
+  List<PoiModel> _matchSovereignPois(String query) {
+    final lower = query.toLowerCase().trim();
+    if (lower.isEmpty) return [];
+    return _sovereignPois.where((p) {
+      final nameLower = p.name.toLowerCase();
+      if (nameLower.contains(lower)) return true;
+      if ((lower.contains('hoang sa') || lower.contains('hoàng sa')) && p.id == 999901) return true;
+      if ((lower.contains('truong sa') || lower.contains('trường sa')) && p.id == 999902) return true;
+      if ((lower.contains('bien dong') || lower.contains('biển đông')) && p.id == 999903) return true;
+      return false;
+    }).toList();
+  }
+
   @override
   Future<List<PoiModel>> searchByName(String query, {int limit = 20}) async {
     if (!Validator.instance.isValidSearchQuery(query)) {
       return [];
     }
 
+    final matchedSovereign = _matchSovereignPois(query);
     final cleanQuery = _sanitizeFtsQuery(query);
-    if (cleanQuery.isEmpty) return [];
+    if (cleanQuery.isEmpty) return matchedSovereign;
 
     final db = await _getDb();
     final ftsPattern = '"$cleanQuery"*';
@@ -59,7 +103,8 @@ class PoiRepositoryImpl implements IPoiRepository {
         [ftsPattern, limit],
       );
 
-      return results.map(PoiModel.fromMap).toList();
+      final dbPois = results.map(PoiModel.fromMap).toList();
+      return [...matchedSovereign, ...dbPois].take(limit).toList();
     } catch (_) {
       // Fallback tìm kiếm LIKE nếu FTS5 có vấn đề về cú pháp token
       final fallbackResults = await db.query(
@@ -68,7 +113,8 @@ class PoiRepositoryImpl implements IPoiRepository {
         whereArgs: ['%$cleanQuery%'],
         limit: limit,
       );
-      return fallbackResults.map(PoiModel.fromMap).toList();
+      final dbPois = fallbackResults.map(PoiModel.fromMap).toList();
+      return [...matchedSovereign, ...dbPois].take(limit).toList();
     }
   }
 
@@ -79,9 +125,10 @@ class PoiRepositoryImpl implements IPoiRepository {
       return [];
     }
 
+    final matchedSovereign = _matchSovereignPois(query);
     final asciiQuery = AppUtils.instance.toAscii(query);
     final cleanQuery = _sanitizeFtsQuery(asciiQuery);
-    if (cleanQuery.isEmpty) return [];
+    if (cleanQuery.isEmpty) return matchedSovereign;
 
     final db = await _getDb();
     final ftsPattern = 'name_ascii: "$cleanQuery"*';
@@ -98,7 +145,8 @@ class PoiRepositoryImpl implements IPoiRepository {
         [ftsPattern, limit],
       );
 
-      return results.map(PoiModel.fromMap).toList();
+      final dbPois = results.map(PoiModel.fromMap).toList();
+      return [...matchedSovereign, ...dbPois].take(limit).toList();
     } catch (_) {
       // Fallback tìm kiếm LIKE trên cột name_ascii
       final fallbackResults = await db.query(
@@ -107,7 +155,8 @@ class PoiRepositoryImpl implements IPoiRepository {
         whereArgs: ['%$cleanQuery%'],
         limit: limit,
       );
-      return fallbackResults.map(PoiModel.fromMap).toList();
+      final dbPois = fallbackResults.map(PoiModel.fromMap).toList();
+      return [...matchedSovereign, ...dbPois].take(limit).toList();
     }
   }
 
@@ -144,6 +193,40 @@ class PoiRepositoryImpl implements IPoiRepository {
     }
   }
 
+  List<String> _getCategoryKeywords(String category) {
+    final lower = category.toLowerCase().trim();
+    switch (lower) {
+      case 'coffee':
+      case 'cafe':
+      case 'cà phê':
+      case 'ca phe':
+        return ['coffee', 'cafe', 'cà phê', 'ca phe'];
+      case 'food':
+      case 'nhà hàng':
+      case 'quán ăn':
+        return ['food', 'restaurant', 'fast_food', 'nhà hàng', 'nha hang', 'quán ăn', 'quan an'];
+      case 'gas':
+      case 'fuel':
+      case 'xăng':
+      case 'cây xăng':
+        return ['gas', 'fuel', 'xăng', 'xang', 'petrol'];
+      case 'hotel':
+      case 'khách sạn':
+      case 'nhà nghỉ':
+        return ['hotel', 'motel', 'guest_house', 'khách sạn', 'khach san', 'nhà nghỉ', 'nha nghi'];
+      case 'atm':
+      case 'ngân hàng':
+      case 'bank':
+        return ['atm', 'bank', 'ngân hàng', 'ngan hang'];
+      case 'hospital':
+      case 'bệnh viện':
+      case 'y tế':
+        return ['hospital', 'clinic', 'pharmacy', 'bệnh viện', 'benh vien', 'phòng khám', 'phong kham', 'nhà thuốc', 'nha thuoc'];
+      default:
+        return [lower];
+    }
+  }
+
   @override
   Future<List<PoiModel>> searchInBounds({
     required double minLat,
@@ -164,74 +247,44 @@ class PoiRepositoryImpl implements IPoiRepository {
         category.trim().toLowerCase() != 'all';
     final cleanCategory = hasCategory ? category.trim().toLowerCase() : '';
 
+    final whereClauses = <String>[
+      'lat >= ? AND lat <= ?',
+      'lon >= ? AND lon <= ?',
+    ];
+    final whereArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
+
+    if (cleanQuery.isNotEmpty) {
+      whereClauses.add(
+          '(name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ?)');
+      whereArgs.addAll([
+        '%$cleanQuery%',
+        '%$cleanAscii%',
+        '%$cleanQuery%',
+        '%$cleanQuery%',
+      ]);
+    }
+
+    if (hasCategory) {
+      final keywords = _getCategoryKeywords(cleanCategory);
+      final catOrClauses = keywords
+          .map((_) => '(LOWER(category) LIKE ? OR LOWER(sub_category) LIKE ? OR LOWER(name) LIKE ? OR LOWER(name_ascii) LIKE ?)')
+          .join(' OR ');
+      whereClauses.add('($catOrClauses)');
+      for (final kw in keywords) {
+        whereArgs.addAll(['%$kw%', '%$kw%', '%$kw%', '%$kw%']);
+      }
+    }
+
     try {
-      final whereClauses = <String>[
-        'r.min_lat >= ? AND r.max_lat <= ?',
-        'r.min_lon >= ? AND r.max_lon <= ?',
-      ];
-      final whereArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
-
-      if (cleanQuery.isNotEmpty) {
-        whereClauses.add(
-            '(p.name LIKE ? OR p.name_ascii LIKE ? OR p.category LIKE ? OR p.sub_category LIKE ?)');
-        whereArgs.addAll([
-          '%$cleanQuery%',
-          '%$cleanAscii%',
-          '%$cleanQuery%',
-          '%$cleanQuery%',
-        ]);
-      }
-
-      if (hasCategory) {
-        whereClauses.add('(LOWER(p.category) LIKE ? OR LOWER(p.sub_category) LIKE ?)');
-        whereArgs.addAll(['%$cleanCategory%', '%$cleanCategory%']);
-      }
-
-      whereArgs.add(limit);
-
-      final List<Map<String, dynamic>> results = await db.rawQuery(
-        '''
-        SELECT p.*
-        FROM poi_rtree r
-        JOIN poi p ON r.id = p.id
-        WHERE ${whereClauses.join(' AND ')}
-        LIMIT ?
-        ''',
-        whereArgs,
-      );
-
-      return results.map(PoiModel.fromMap).toList();
-    } catch (_) {
-      // Fallback query bảng poi thông thường nếu R*Tree không khả dụng
-      final whereClauses = <String>[
-        'lat >= ? AND lat <= ?',
-        'lon >= ? AND lon <= ?',
-      ];
-      final whereArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
-
-      if (cleanQuery.isNotEmpty) {
-        whereClauses.add(
-            '(name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ?)');
-        whereArgs.addAll([
-          '%$cleanQuery%',
-          '%$cleanAscii%',
-          '%$cleanQuery%',
-          '%$cleanQuery%',
-        ]);
-      }
-
-      if (hasCategory) {
-        whereClauses.add('(LOWER(category) LIKE ? OR LOWER(sub_category) LIKE ?)');
-        whereArgs.addAll(['%$cleanCategory%', '%$cleanCategory%']);
-      }
-
-      final fallbackResults = await db.query(
+      final results = await db.query(
         'poi',
         where: whereClauses.join(' AND '),
         whereArgs: whereArgs,
         limit: limit,
       );
-      return fallbackResults.map(PoiModel.fromMap).toList();
+      return results.map(PoiModel.fromMap).toList();
+    } catch (_) {
+      return [];
     }
   }
 

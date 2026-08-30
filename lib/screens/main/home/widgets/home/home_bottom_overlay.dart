@@ -10,6 +10,7 @@ class HomeBottomOverlay extends StatelessWidget {
   final ValueChanged<dynamic> onPlaceTap;
   final VoidCallback onClosePoiCard;
   final VoidCallback onDirections;
+  final VoidCallback? onCustomRoute;
 
   const HomeBottomOverlay({
     super.key,
@@ -18,6 +19,7 @@ class HomeBottomOverlay extends StatelessWidget {
     required this.onPlaceTap,
     required this.onClosePoiCard,
     required this.onDirections,
+    this.onCustomRoute,
   });
 
   @override
@@ -36,6 +38,7 @@ class HomeBottomOverlay extends StatelessWidget {
               userLocation: mapDisplayState.currentPosition,
               onClose: onClosePoiCard,
               onDirections: onDirections,
+              onCustomRoute: onCustomRoute,
             );
           },
         ),

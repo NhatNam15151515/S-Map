@@ -1,19 +1,30 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/main/user/widgets/widgets.dart';
 
-class UserScreen extends StatefulWidget {
+class UserScreen extends StatelessWidget with AppMixin, AuthMixin {
   const UserScreen({super.key});
 
-  @override
-  _UserScreenState createState() => _UserScreenState();
-}
+  void _shareLocation(BuildContext context) {
+    final mapCubit = context.read<MapDisplayCubit>();
+    final pos = mapCubit.state.currentPosition;
+    final message = pos != null
+        ? 'Vị trí hiện tại: https://maps.google.com/?q=${pos.latitude},${pos.longitude}'
+        : 'Mở ứng dụng S-Map để khám phá và dẫn đường ngoại tuyến!';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
-class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,20 +35,20 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
         padding: EdgeInsets.only(bottom: marginBottomDefault),
         child: Column(
           children: [
-            // Profile header card
+            // 1. Profile header card
             UserProfileCard(
               username: currentProfile.username,
               appName: appName,
-              onViewProfile: () {},
+              onViewProfile: () => UserProfileDetailDialog.show(context, currentProfile),
             ),
 
-            // Navigation menu items
+            // 2. Navigation menu items
             UserMenuCard(
               children: [
                 UserMenuTile(
                   icon: Icons.bookmark_rounded,
                   title: tr(LocaleKeys.savedPlaces),
-                  onTap: () {},
+                  onTap: () => context.go(AppRoutes.saved),
                 ),
                 UserMenuTile(
                   icon: Icons.history_rounded,
@@ -47,37 +58,37 @@ class _UserScreenState extends State<UserScreen> with AppMixin, AuthMixin {
                 UserMenuTile(
                   icon: Icons.share_rounded,
                   title: tr(LocaleKeys.shareLocation),
-                  onTap: () {},
+                  onTap: () => _shareLocation(context),
                 ),
               ],
             ),
 
             const SizedBox(height: 8),
 
-            // Settings and About
+            // 3. Settings and About
             UserMenuCard(
               children: [
                 UserMenuTile(
                   icon: Icons.settings_rounded,
                   title: tr(LocaleKeys.settings),
-                  onTap: () {},
+                  onTap: () => context.push(AppRoutes.settings),
                 ),
                 UserMenuTile(
                   icon: Icons.help_outline_rounded,
                   title: tr(LocaleKeys.helpAndFeedback),
-                  onTap: () {},
+                  onTap: () => HelpFeedbackDialog.show(context),
                 ),
                 UserMenuTile(
                   icon: Icons.info_outline_rounded,
                   title: tr(LocaleKeys.about),
-                  onTap: () {},
+                  onTap: () => context.push(AppRoutes.settings),
                 ),
               ],
             ),
 
             const SizedBox(height: 8),
 
-            // Logout action
+            // 4. Logout action
             UserMenuCard(
               children: [
                 UserMenuTile(

@@ -8,11 +8,13 @@ import 'package:s_map/generated/locale_keys.g.dart';
 
 class RoutePreviewBottomSheet extends StatelessWidget {
   final VoidCallback? onStartNavigation;
+  final VoidCallback? onCustomRoute;
   final VoidCallback onClose;
 
   const RoutePreviewBottomSheet({
     super.key,
     this.onStartNavigation,
+    this.onCustomRoute,
     required this.onClose,
   });
 
@@ -181,10 +183,11 @@ class RoutePreviewBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // 2. Action: Start Navigation Button
+              // 2. Action: Start Navigation & Custom Route Buttons
               Row(
                 children: [
                   Expanded(
+                    flex: 5,
                     child: ElevatedButton.icon(
                       onPressed: onStartNavigation,
                       icon: Icon(
@@ -209,6 +212,37 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onCustomRoute != null) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 4,
+                      child: OutlinedButton.icon(
+                        onPressed: onCustomRoute,
+                        icon: Icon(
+                          Icons.gesture_rounded,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
+                        label: Text(
+                          tr(LocaleKeys.route_drawing_ui_custom_route_drawing),
+                          style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: colorScheme.primary,
+                          side: BorderSide(
+                            color: colorScheme.primary.withAlpha(120),
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],

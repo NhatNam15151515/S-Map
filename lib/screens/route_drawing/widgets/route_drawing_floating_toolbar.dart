@@ -9,10 +9,15 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   final bool canRedo;
   final bool canClear;
   final bool hasPoints;
+  final bool isMyLocationOrigin;
+  final bool isMarkerDestination;
+  final bool hasMarkerDestination;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
   final VoidCallback onClear;
   final VoidCallback onFitBounds;
+  final VoidCallback? onToggleMyLocationOrigin;
+  final VoidCallback? onToggleMarkerDestination;
 
   const RouteDrawingFloatingToolbar({
     super.key,
@@ -20,10 +25,15 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     required this.canRedo,
     required this.canClear,
     required this.hasPoints,
+    this.isMyLocationOrigin = false,
+    this.isMarkerDestination = false,
+    this.hasMarkerDestination = false,
     required this.onUndo,
     required this.onRedo,
     required this.onClear,
     required this.onFitBounds,
+    this.onToggleMyLocationOrigin,
+    this.onToggleMarkerDestination,
   });
 
   void _showClearConfirmDialog(BuildContext context) {
@@ -103,6 +113,30 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (onToggleMyLocationOrigin != null) ...[
+              _buildToolbarButton(
+                context: context,
+                key: const Key('route_drawing_my_location_origin_button'),
+                icon: HeroIcons.mapPin,
+                tooltip: tr(LocaleKeys.route_drawing_ui_use_my_location_origin),
+                isEnabled: true,
+                isActive: isMyLocationOrigin,
+                onPressed: onToggleMyLocationOrigin!,
+              ),
+              const SizedBox(height: 6),
+            ],
+            if (hasMarkerDestination && onToggleMarkerDestination != null) ...[
+              _buildToolbarButton(
+                context: context,
+                key: const Key('route_drawing_marker_destination_button'),
+                icon: HeroIcons.flag,
+                tooltip: tr(LocaleKeys.route_drawing_ui_use_selected_destination),
+                isEnabled: true,
+                isActive: isMarkerDestination,
+                onPressed: onToggleMarkerDestination!,
+              ),
+              const SizedBox(height: 6),
+            ],
             _buildToolbarButton(
               context: context,
               key: const Key('route_drawing_undo_button'),
@@ -127,6 +161,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
               icon: HeroIcons.viewfinderCircle,
               tooltip: tr(LocaleKeys.route_drawing_ui_fit_bounds),
               isEnabled: hasPoints,
+              isPrimary: true,
               onPressed: onFitBounds,
             ),
             const SizedBox(height: 6),
@@ -160,22 +195,43 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     required bool isEnabled,
     required VoidCallback onPressed,
     bool isDestructive = false,
+    bool isPrimary = false,
+    bool isActive = false,
   }) {
     final colorScheme = context.colorScheme;
     Color iconColor;
+    Color? backgroundColor;
+
     if (!isEnabled) {
-      iconColor = colorScheme.outline.withValues(alpha: 0.4);
+      iconColor = colorScheme.onSurface.withValues(alpha: 0.3);
+    } else if (isActive) {
+      iconColor = colorScheme.onPrimary;
+      backgroundColor = colorScheme.primary;
     } else if (isDestructive) {
       iconColor = colorScheme.error;
+    } else if (isPrimary) {
+      iconColor = colorScheme.primary;
     } else {
       iconColor = colorScheme.onSurface;
     }
 
-    return IconButton(
+    Widget button = IconButton(
       key: key,
       icon: HeroIcon(icon, size: 20, color: iconColor),
       tooltip: tooltip,
       onPressed: isEnabled ? onPressed : null,
     );
+
+    if (backgroundColor != null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          shape: BoxShape.circle,
+        ),
+        child: button,
+      );
+    }
+
+    return button;
   }
 }

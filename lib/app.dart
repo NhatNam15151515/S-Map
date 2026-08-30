@@ -2,10 +2,12 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/themes/themes.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/localizations/app_localization.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:s_map/routers/routers.dart';
 
 class MyApp extends StatefulWidget {
@@ -21,6 +23,8 @@ class _MyAppState extends State<MyApp> {
   late AuthCubit authCubit;
   late NotificationCubit notificationCubit;
   late FavoritesCubit favoritesCubit;
+  late SavedRoutesCubit savedRoutesCubit;
+  late NavigationBloc navigationBloc;
 
   @override
   void initState() {
@@ -29,6 +33,11 @@ class _MyAppState extends State<MyApp> {
     authCubit = AuthCubit();
     notificationCubit = NotificationCubit();
     favoritesCubit = FavoritesCubit();
+    savedRoutesCubit = SavedRoutesCubit();
+    navigationBloc = NavigationBloc(
+      routingRepository: AppReposProvider.instance.routingRepos,
+      tripRepository: AppReposProvider.instance.tripRepos,
+    );
     Routes.instance.applyWithAuthState(authCubit);
     authCubit.onAppStarted();
   }
@@ -36,6 +45,8 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     favoritesCubit.close();
+    savedRoutesCubit.close();
+    navigationBloc.close();
     super.dispose();
   }
 
@@ -47,6 +58,8 @@ class _MyAppState extends State<MyApp> {
         BlocProvider.value(value: authCubit),
         BlocProvider.value(value: notificationCubit),
         BlocProvider.value(value: favoritesCubit),
+        BlocProvider.value(value: savedRoutesCubit),
+        BlocProvider.value(value: navigationBloc),
       ],
       child: BlocBuilder<AppCubit, AppState>(
         bloc: appCubit,

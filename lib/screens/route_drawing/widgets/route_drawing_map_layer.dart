@@ -23,6 +23,17 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
   RouteDrawingBloc get drawingBloc => context.read<RouteDrawingBloc>();
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && displayCubit.state.isNightMode != isDark) {
+        displayCubit.updateThemeMode(isDark);
+      }
+    });
+  }
+
   void fitRouteBounds() {
     final state = drawingBloc.state;
     _routeManager.fitRouteBounds(
@@ -90,6 +101,8 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
             },
             onStyleLoadedCallback: () async {
               await _routeManager.loadMarkerAssets(_mapController);
+              final symbolManager = MapSymbolManager();
+              await symbolManager.renderSovereigntySymbols(_mapController);
               final drawState = drawingBloc.state;
               if (drawState.points.isNotEmpty || drawState.fullPolyline.isNotEmpty) {
                 await _routeManager.drawCustomRoute(

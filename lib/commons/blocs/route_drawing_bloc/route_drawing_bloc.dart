@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
+import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -80,6 +81,24 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         lon: event.lon,
       );
 
+      // 1. Kiểm tra Snap to Road:
+      // Nếu không snap được hoặc khoảng cách snap > 25m (đang chấm trong hẻm nhưng bị hút ra mặt đường lớn),
+      // ưu tiên giữ nguyên vị trí chạm chính xác của người dùng trong hẻm.
+      final SnappedRoadPoint effectiveSnapped;
+      if (snapped.isSnapped && snapped.distanceToRoad <= 25.0) {
+        effectiveSnapped = snapped;
+      } else {
+        effectiveSnapped = SnappedRoadPoint(
+          originalLat: event.lat,
+          originalLon: event.lon,
+          snappedLat: event.lat,
+          snappedLon: event.lon,
+          isSnapped: true,
+          streetName: snapped.streetName.isNotEmpty ? snapped.streetName : '',
+          distanceToRoad: 0.0,
+        );
+      }
+
       // Guard: kiểm tra emitter hoặc generation có bị thay đổi (bởi tap mới, undo, clear)
       if (isClosed || emit.isDone || generation != _currentGeneration) {
         DLog.info(
@@ -90,10 +109,10 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       if (state.points.isEmpty) {
         // Điểm đầu tiên (Origin Waypoint)
         DLog.info(
-            '🏁 [RouteDrawingBloc] Added origin point: (${snapped.snappedLat}, ${snapped.snappedLon})');
+            '🏁 [RouteDrawingBloc] Added origin point: (${effectiveSnapped.snappedLat}, ${effectiveSnapped.snappedLon})');
         emit(state.copyWith(
           status: RouteDrawingStatus.pointAdded,
-          points: [snapped],
+          points: [effectiveSnapped],
           segments: const [],
           fullPolyline: const [],
           totalDistance: 0.0,
@@ -109,13 +128,13 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       // Đã có ít nhất 1 điểm trước đó -> Tự động tính toán nối đoạn đường (Auto-connect)
       final prevPoint = state.points.last;
       DLog.info(
-          '🔄 [RouteDrawingBloc] Auto-connecting segment from (${prevPoint.snappedLat}, ${prevPoint.snappedLon}) to (${snapped.snappedLat}, ${snapped.snappedLon})');
+          '🔄 [RouteDrawingBloc] Auto-connecting segment from (${prevPoint.snappedLat}, ${prevPoint.snappedLon}) to (${effectiveSnapped.snappedLat}, ${effectiveSnapped.snappedLon})');
 
       final routeResult = await _routingRepository.calculateRoute(
         fromLat: prevPoint.snappedLat,
         fromLon: prevPoint.snappedLon,
-        toLat: snapped.snappedLat,
-        toLon: snapped.snappedLon,
+        toLat: effectiveSnapped.snappedLat,
+        toLon: effectiveSnapped.snappedLon,
         vehicleProfile: state.profile,
       );
 
@@ -132,7 +151,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         return;
       }
 
-      final newPoints = [...state.points, snapped];
+      final newPoints = [...state.points, effectiveSnapped];
 
       if (routeResult.isSuccess) {
         final newSegments = [...state.segments, routeResult];
@@ -156,15 +175,45 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           clearError: true,
         ));
       } else {
-        DLog.warning(
-            '⚠️ [RouteDrawingBloc] Failed to connect segment: ${routeResult.errorMessage}');
+        // Fallback: Khi đường hẻm nhỏ hoặc lối đi nội bộ không có trên đồ thị tự động của OSM,
+        // tự động tạo segment nối trực tiếp (Direct Connection) để người dùng vẽ thông suốt mọi ngõ ngách!
+        final distKm = AppUtils.instance.calculateDistance(
+          prevPoint.snappedLat,
+          prevPoint.snappedLon,
+          effectiveSnapped.snappedLat,
+          effectiveSnapped.snappedLon,
+        );
+        final distMeters = distKm * 1000.0;
+        final estTimeMs = ((distMeters / (15.0 / 3.6)) * 1000).round();
+
+        final fallbackSegment = RouteResult(
+          isSuccess: true,
+          distance: distMeters,
+          time: estTimeMs,
+          points: [
+            [prevPoint.snappedLat, prevPoint.snappedLon],
+            [effectiveSnapped.snappedLat, effectiveSnapped.snappedLon],
+          ],
+        );
+        final newSegments = [...state.segments, fallbackSegment];
+        final newPolyline = _buildFullPolyline(newSegments);
+        final newDistance = state.totalDistance + distMeters;
+        final newTime = state.totalTime + estTimeMs;
+
+        DLog.info(
+            '🔗 [RouteDrawingBloc] Direct segment connected into alley: +${distMeters.toStringAsFixed(1)}m, total=${newDistance.toStringAsFixed(1)}m');
+
         emit(state.copyWith(
-          status: RouteDrawingStatus.warning,
+          status: RouteDrawingStatus.routeUpdated,
           points: newPoints,
-          warningMessageKey:
-              routeResult.errorMessage ?? LocaleKeys.routing_error_generic,
+          segments: newSegments,
+          fullPolyline: newPolyline,
+          totalDistance: newDistance,
+          totalTime: newTime,
           redoPoints: const [],
           redoSegments: const [],
+          clearWarning: true,
+          clearError: true,
         ));
       }
     } catch (e, stack) {

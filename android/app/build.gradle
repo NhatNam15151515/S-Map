@@ -61,6 +61,14 @@ android {
         jvmTarget = "17"
     }
 
+    androidResources {
+        noCompress 'ghz', 'pmtiles', 'db'
+    }
+
+    aaptOptions {
+        noCompress 'ghz', 'pmtiles', 'db'
+    }
+
     sourceSets {
         main.res.srcDirs = ['src/'+ env.FLAVOR + '/res', 'src/main/res']
     }

@@ -13,6 +13,7 @@ class PoiQuickCard extends StatelessWidget {
   final LatLng? userLocation;
   final VoidCallback onClose;
   final VoidCallback? onDirections;
+  final VoidCallback? onCustomRoute;
 
   const PoiQuickCard({
     super.key,
@@ -20,6 +21,7 @@ class PoiQuickCard extends StatelessWidget {
     this.userLocation,
     required this.onClose,
     this.onDirections,
+    this.onCustomRoute,
   });
 
   @override
@@ -85,9 +87,13 @@ class PoiQuickCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: bgColor,
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: iconColor, size: 24),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -96,7 +102,7 @@ class PoiQuickCard extends StatelessWidget {
                   children: [
                     Text(
                       poi.name,
-                      style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
+                      style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
                         fontSize: 16,
                       ),
                       maxLines: 1,
@@ -106,9 +112,8 @@ class PoiQuickCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         categoryLabel,
-                        style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+                        style: colorScheme.primary.textTheme.mediumStyle.copyWith(
                           fontSize: 12,
-                          fontWeight: AppFontWeight.regular.weight,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -161,35 +166,68 @@ class PoiQuickCard extends StatelessWidget {
               ),
             ],
           ),
-          if (onDirections != null) ...[
+          if (onDirections != null || onCustomRoute != null) ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onDirections,
-                    icon: Icon(
-                      Icons.directions_rounded,
-                      size: 18,
-                      color: colorScheme.onPrimary,
-                    ),
-                    label: Text(
-                      tr(LocaleKeys.directions),
-                      style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
-                        fontSize: 14,
+                if (onDirections != null)
+                  Expanded(
+                    flex: 5,
+                    child: ElevatedButton.icon(
+                      onPressed: onDirections,
+                      icon: Icon(
+                        Icons.directions_rounded,
+                        size: 18,
+                        color: colorScheme.onPrimary,
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      label: Text(
+                        tr(LocaleKeys.directions),
+                        style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
+                          fontSize: 14,
+                        ),
                       ),
-                      elevation: 0,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
                     ),
                   ),
-                ),
+                if (onDirections != null && onCustomRoute != null)
+                  const SizedBox(width: 8),
+                if (onCustomRoute != null)
+                  Expanded(
+                    flex: 4,
+                    child: OutlinedButton.icon(
+                      onPressed: onCustomRoute,
+                      icon: Icon(
+                        Icons.gesture_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      label: Text(
+                        tr(LocaleKeys.route_drawing_ui_custom_route_drawing),
+                        style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.primary,
+                        side: BorderSide(
+                          color: colorScheme.primary.withAlpha(120),
+                          width: 1.2,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],

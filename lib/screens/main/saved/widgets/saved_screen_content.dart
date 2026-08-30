@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -20,8 +19,11 @@ class SavedScreenContent extends StatelessWidget {
     context.go(AppRoutes.home);
   }
 
-  void _onDirections(PoiModel poi) {
-    AppUtils.instance.openLocation(poi.lat, poi.lon);
+  void _onDirections(BuildContext context, PoiModel poi) {
+    try {
+      context.read<MapDisplayCubit>().selectPoi(poi);
+    } catch (_) {}
+    context.go(AppRoutes.home);
   }
 
   void _onRemoveFavorite(BuildContext context, PoiModel poi) {
@@ -59,7 +61,7 @@ class SavedScreenContent extends StatelessWidget {
               return SavedPoiCard(
                 poi: poi,
                 onTap: () => _onPoiTap(context, poi),
-                onDirections: () => _onDirections(poi),
+                onDirections: () => _onDirections(context, poi),
                 onRemove: () => _onRemoveFavorite(context, poi),
               );
             },

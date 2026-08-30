@@ -223,6 +223,9 @@ abstract class  LocaleKeys {
   static const route_drawing_ui_profile_moped = 'route_drawing_ui.profile_moped';
   static const route_drawing_ui_profile_car = 'route_drawing_ui.profile_car';
   static const route_drawing_ui_profile_foot = 'route_drawing_ui.profile_foot';
+  static const route_drawing_ui_use_my_location_origin = 'route_drawing_ui.use_my_location_origin';
+  static const route_drawing_ui_use_selected_destination = 'route_drawing_ui.use_selected_destination';
+  static const route_drawing_ui_custom_route_drawing = 'route_drawing_ui.custom_route_drawing';
   static const route_drawing_ui = 'route_drawing_ui';
   static const stats_dashboard_title = 'stats_dashboard.title';
   static const stats_dashboard_range_today = 'stats_dashboard.range_today';

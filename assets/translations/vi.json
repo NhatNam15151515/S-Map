@@ -228,7 +228,10 @@
     "delete_confirm_desc": "Bạn có chắc muốn xóa lộ trình \"{}\" không?",
     "profile_moped": "Xe máy",
     "profile_car": "Ô tô",
-    "profile_foot": "Đi bộ"
+    "profile_foot": "Đi bộ",
+    "use_my_location_origin": "Vị trí của tôi (Điểm xuất phát)",
+    "use_selected_destination": "Điểm đến đã chọn (Điểm kết thúc)",
+    "custom_route_drawing": "Tự vẽ lộ trình"
   },
   "stats_dashboard": {
     "title": "Thống kê chuyến đi",

@@ -88,7 +88,12 @@ class Routes extends NavigatorObserver {
         ),
         GoRoute(
           path: AppRoutes.routeDrawing,
-          builder: (context, state) => const RouteDrawingScreen(),
+          builder: (context, state) {
+            final payload = state.extra is RouteDrawingPayload
+                ? state.extra as RouteDrawingPayload
+                : null;
+            return RouteDrawingScreen(payload: payload);
+          },
         ),
         GoRoute(
           path: AppRoutes.stats,
