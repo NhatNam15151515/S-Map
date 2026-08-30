@@ -1,6 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/route_format_helper.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -82,7 +81,8 @@ class StatsTripHistoryList extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.error,
               foregroundColor: colorScheme.onError,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
               dialogContext.safePop(true);
@@ -140,8 +140,10 @@ class StatsTripHistoryList extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  tr(LocaleKeys.stats_dashboard_history_count, args: ['${trips.length}']),
-                  style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
+                  tr(LocaleKeys.stats_dashboard_history_count,
+                      args: ['${trips.length}']),
+                  style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle
+                      .copyWith(
                     fontSize: 11,
                   ),
                 ),
@@ -196,7 +198,8 @@ class StatsTripHistoryList extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             tr(LocaleKeys.stats_dashboard_history_empty_title),
-            style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
+            style:
+                colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
               fontSize: 13,
             ),
           ),
@@ -291,7 +294,8 @@ class _TripItemTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
+                          style: colorScheme.onSurface.textTheme.semiBoldStyle
+                              .copyWith(
                             fontSize: 13,
                           ),
                           maxLines: 1,
@@ -301,7 +305,9 @@ class _TripItemTile extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         dateStr,
-                        style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
+                        style: colorScheme
+                            .onSurfaceVariant.textTheme.captionStyle
+                            .copyWith(
                           fontSize: 10,
                         ),
                       ),
@@ -313,7 +319,9 @@ class _TripItemTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '$distanceStr • $durationStr',
-                          style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
+                          style: colorScheme
+                              .onSurfaceVariant.textTheme.mediumStyle
+                              .copyWith(
                             fontSize: 11,
                           ),
                           maxLines: 1,
@@ -323,28 +331,35 @@ class _TripItemTile extends StatelessWidget {
                       const SizedBox(width: 4),
                       if (trip.hasArrived)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
-                            color: themeColors.statsSuccess.withValues(alpha: 0.15),
+                            color: themeColors.statsSuccess
+                                .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             tr(LocaleKeys.stats_dashboard_status_completed),
-                            style: themeColors.statsSuccess.textTheme.semiBoldStyle.copyWith(
+                            style: themeColors
+                                .statsSuccess.textTheme.semiBoldStyle
+                                .copyWith(
                               fontSize: 9,
                             ),
                           ),
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
                           decoration: BoxDecoration(
                             color: colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             tr(LocaleKeys.stats_dashboard_status_stopped),
-                            style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
+                            style: colorScheme
+                                .onSurfaceVariant.textTheme.semiBoldStyle
+                                .copyWith(
                               fontSize: 9,
                             ),
                           ),

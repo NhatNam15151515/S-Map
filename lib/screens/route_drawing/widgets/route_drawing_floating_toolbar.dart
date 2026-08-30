@@ -1,6 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -42,7 +41,8 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
         ),
         content: Text(
           tr(LocaleKeys.route_drawing_ui_clear_confirm_desc),
-          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(fontSize: 14),
+          style: colorScheme.onSurfaceVariant.textTheme.textStyle
+              .copyWith(fontSize: 14),
         ),
         actions: [
           TextButton(
