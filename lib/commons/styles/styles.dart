@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../utils/app_colors.dart';
 import 'font_weight.dart';
+export 'font.dart';
 export 'font_weight.dart';
 export 'theme_extensions/app_theme_colors.dart';
 
@@ -29,14 +30,14 @@ abstract class AppStyle {
   ButtonStyle get whiteButton;
 
   Color get success => AppColors.googleGreen;
-  Color get successContainer => const Color(0xFFE8F5E9);
+  Color get successContainer => AppColors.statsSuccessBg;
   Color get warning => AppColors.macaw;
-  Color get warningContainer => const Color(0xFFFFF8E1);
+  Color get warningContainer => AppColors.statsWarningBg;
   Color get statsOrange => AppColors.statsOrange;
   Color get statsBlue => AppColors.statsBlue;
   Color get statsPink => AppColors.statsPink;
   Color get statsSuccess => AppColors.statsSuccess;
-  Color get cardShadow => Colors.black.withAlpha(20);
+  Color get cardShadow => colorScheme.shadow.withAlpha(20);
 
 
   // Static resolver & fallback style – injected from default_theme or AppCubit.

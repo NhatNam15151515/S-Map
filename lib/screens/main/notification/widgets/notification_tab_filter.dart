@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/models/models.dart';
 
 class NotificationTabFilter extends StatelessWidget {
@@ -13,13 +14,18 @@ class NotificationTabFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: NotificationTab.values.map((e) {
           final picked = selectedTab == e;
+          final labelColor = picked ? colorScheme.primary : colorScheme.onSurfaceVariant;
+          final textStyle = picked
+              ? labelColor.textTheme.semiBoldStyle.copyWith(fontSize: 13)
+              : labelColor.textTheme.regularStyle.copyWith(fontSize: 13);
+
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
@@ -29,13 +35,7 @@ class NotificationTabFilter extends StatelessWidget {
               },
               label: Text(
                 e.title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: picked ? FontWeight.w600 : FontWeight.w400,
-                  color: picked
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                ),
+                style: textStyle,
               ),
               selectedColor: colorScheme.primary.withAlpha(35),
               backgroundColor: colorScheme.surface,

@@ -88,8 +88,16 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
               _mapController = controller;
               displayCubit.onMapCreated();
             },
-            onStyleLoadedCallback: () {
-              _routeManager.loadMarkerAssets(_mapController);
+            onStyleLoadedCallback: () async {
+              await _routeManager.loadMarkerAssets(_mapController);
+              final drawState = drawingBloc.state;
+              if (drawState.points.isNotEmpty || drawState.fullPolyline.isNotEmpty) {
+                await _routeManager.drawCustomRoute(
+                  controller: _mapController,
+                  points: drawState.points,
+                  fullPolyline: drawState.fullPolyline,
+                );
+              }
               displayCubit.onStyleLoaded();
             },
             onCameraTrackingDismissed: displayCubit.onCameraTrackingDismissed,

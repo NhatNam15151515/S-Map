@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/route_format_helper.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -58,25 +59,22 @@ class StatsTripHistoryList extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           tr(LocaleKeys.stats_dashboard_delete_trip_title),
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
+          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
             fontSize: 16,
-            color: colorScheme.onSurface,
           ),
         ),
         content: Text(
           tr(LocaleKeys.stats_dashboard_delete_trip_desc),
-          style: TextStyle(
+          style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
             fontSize: 13,
-            color: colorScheme.onSurfaceVariant,
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => dialogContext.safePop(false),
             child: Text(
               tr(LocaleKeys.cancel),
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
+              style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
             ),
           ),
           ElevatedButton(
@@ -87,12 +85,12 @@ class StatsTripHistoryList extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
-              Navigator.of(dialogContext).pop(true);
+              dialogContext.safePop(true);
               onDeleteTrip(trip.id);
             },
             child: Text(
               tr(LocaleKeys.stats_dashboard_delete_trip_btn),
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: colorScheme.onError.textTheme.semiBoldStyle,
             ),
           ),
         ],
@@ -127,10 +125,8 @@ class StatsTripHistoryList extends StatelessWidget {
               Expanded(
                 child: Text(
                   tr(LocaleKeys.stats_dashboard_history_title),
-                  style: TextStyle(
+                  style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -145,10 +141,8 @@ class StatsTripHistoryList extends StatelessWidget {
                 ),
                 child: Text(
                   tr(LocaleKeys.stats_dashboard_history_count, args: ['${trips.length}']),
-                  style: TextStyle(
+                  style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -202,19 +196,16 @@ class StatsTripHistoryList extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             tr(LocaleKeys.stats_dashboard_history_empty_title),
-            style: TextStyle(
+            style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             tr(LocaleKeys.stats_dashboard_history_empty_desc),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
               fontSize: 11,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
             ),
           ),
         ],
@@ -249,7 +240,10 @@ class _TripItemTile extends StatelessWidget {
             : DateFormat('HH:mm - dd/MM/yyyy').format(trip.startTime));
 
     final durationStr = RouteFormatHelper.formatTripDuration(trip.duration);
-    final distanceStr = '${trip.distanceKm.toStringAsFixed(1)} km';
+    final distanceStr = tr(
+      LocaleKeys.stats_dashboard_distance_value,
+      args: [trip.distanceKm.toStringAsFixed(1)],
+    );
     final dateStr = DateFormat('HH:mm, dd/MM').format(trip.startTime);
 
     return InkWell(
@@ -297,10 +291,8 @@ class _TripItemTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: TextStyle(
+                          style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
                             fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -309,9 +301,8 @@ class _TripItemTile extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         dateStr,
-                        style: TextStyle(
+                        style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
                           fontSize: 10,
-                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -322,10 +313,8 @@ class _TripItemTile extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '$distanceStr • $durationStr',
-                          style: TextStyle(
+                          style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                             fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -341,10 +330,8 @@ class _TripItemTile extends StatelessWidget {
                           ),
                           child: Text(
                             tr(LocaleKeys.stats_dashboard_status_completed),
-                            style: TextStyle(
+                            style: themeColors.statsSuccess.textTheme.semiBoldStyle.copyWith(
                               fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: themeColors.statsSuccess,
                             ),
                           ),
                         )
@@ -357,10 +344,8 @@ class _TripItemTile extends StatelessWidget {
                           ),
                           child: Text(
                             tr(LocaleKeys.stats_dashboard_status_stopped),
-                            style: TextStyle(
+                            style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                               fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),

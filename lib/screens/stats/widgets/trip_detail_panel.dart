@@ -100,18 +100,14 @@ class TripDetailPanel extends StatelessWidget {
                       children: [
                         Text(
                           tr(LocaleKeys.stats_dashboard_detail_title),
-                          style: TextStyle(
+                          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                             fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           _getVehicleName(trip.vehicleProfile),
-                          style: TextStyle(
+                          style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                             fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -127,10 +123,8 @@ class TripDetailPanel extends StatelessWidget {
                       ),
                       child: Text(
                         tr(LocaleKeys.stats_dashboard_status_completed),
-                        style: TextStyle(
+                        style: themeColors.statsSuccess.textTheme.semiBoldStyle.copyWith(
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: themeColors.statsSuccess,
                         ),
                       ),
                     )
@@ -144,10 +138,8 @@ class TripDetailPanel extends StatelessWidget {
                       ),
                       child: Text(
                         tr(LocaleKeys.stats_dashboard_status_stopped),
-                        style: TextStyle(
+                        style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -180,9 +172,8 @@ class TripDetailPanel extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         dateFormatted,
-                        style: TextStyle(
+                        style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
                           fontSize: 11,
-                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],

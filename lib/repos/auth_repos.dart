@@ -50,7 +50,7 @@ class AuthReposImpl implements IAuthRepos {
         id: fbUser.uid,
         username: fbUser.displayName ??
             (fbUser.isAnonymous
-                ? 'Khách_$suffix'
+                ? 'guest_$suffix'
                 : fbUser.email?.split('@').first),
         email: fbUser.email,
         avatarUrl: fbUser.photoURL,

@@ -18,8 +18,9 @@ class MapRouteManager {
   int _lastPassedSegmentIndex = -1;
 
   /// Nạp icon marker vào engine MapLibre
-  Future<void> loadMarkerAssets(MapLibreMapController? controller) async {
-    if (controller == null || _isAssetLoaded) return;
+  Future<void> loadMarkerAssets(MapLibreMapController? controller, {bool force = false}) async {
+    if (controller == null) return;
+    if (_isAssetLoaded && !force) return;
     try {
       final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
       final bytes = byteData.buffer.asUint8List();
@@ -29,6 +30,10 @@ class MapRouteManager {
     } catch (e, stack) {
       DLog.warning('⚠️ [MapRouteManager] Failed to load marker asset: $e', stack);
     }
+  }
+
+  void resetAssetLoaded() {
+    _isAssetLoaded = false;
   }
 
   /// Chuyển đổi danh sách [lat, lon] sang List<LatLng> an toàn

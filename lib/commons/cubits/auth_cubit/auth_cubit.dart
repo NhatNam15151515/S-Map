@@ -41,9 +41,7 @@ class AuthCubit extends Cubit<AuthState> {
         _analyticsService = analyticsService ??
             defaultAnalyticsService ??
             NoOpAnalyticsService(),
-        super(const AuthState()) {
-    onAppStarted();
-  }
+        super(const AuthState());
 
   User get currentProfile {
     return state.loggedInProfile ?? User.getInit(init: true);
@@ -220,7 +218,7 @@ class AuthCubit extends Cubit<AuthState> {
     await _analyticsService.resetUserDetail(profile: currentProfile);
   }
 
-  void onLogout({bool requestLogout = true}) async {
+  Future<void> onLogout({bool requestLogout = true}) async {
     emit(const AuthState(type: AuthStateType.unAuthenticated));
     await _secureStorage.onLogOutClear();
     if (requestLogout) await _requestLogout();

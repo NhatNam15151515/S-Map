@@ -33,7 +33,7 @@ class GoogleSignInButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(25),
           ),
           elevation: 0.5,
-          shadowColor: const Color.fromRGBO(0, 0, 0, 0.08),
+          shadowColor: colorScheme.shadow.withValues(alpha: 0.08),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

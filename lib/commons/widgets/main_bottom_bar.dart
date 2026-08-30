@@ -34,12 +34,12 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(35),
+            color: colorScheme.shadow.withAlpha(35),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.black.withAlpha(15),
+            color: colorScheme.shadow.withAlpha(15),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),

@@ -83,7 +83,7 @@ class StatsSummaryCards extends StatelessWidget {
                   value: '${stats.avgSpeedKmh.round()}',
                   unit: 'km/h',
                   subtitle:
-                      '${tr(LocaleKeys.stats_dashboard_kpi_top_speed)}: ${stats.topSpeedKmh.round()} km/h',
+                      '${tr(LocaleKeys.stats_dashboard_kpi_top_speed)}: ${tr(LocaleKeys.stats_dashboard_speed_unit, args: ['${stats.topSpeedKmh.round()}'])}',
                 ),
               ),
             ],
@@ -116,7 +116,7 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -158,10 +158,8 @@ class _KpiCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             title,
-            style: TextStyle(
+            style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
               fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: colorScheme.onSurfaceVariant,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -174,10 +172,8 @@ class _KpiCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   value,
-                  style: TextStyle(
+                  style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -187,10 +183,8 @@ class _KpiCard extends StatelessWidget {
                 const SizedBox(width: 3),
                 Text(
                   unit!,
-                  style: TextStyle(
+                  style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -200,10 +194,8 @@ class _KpiCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: TextStyle(
+              style: iconColor.textTheme.captionStyle.copyWith(
                 fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: iconColor,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

@@ -283,9 +283,6 @@ void main() {
       final mockPrefs = NoOpSharedPreferences();
       await mockPrefs.saveOnboardingCompleted(true);
       final mockStorage = NoOpSecureStorage();
-      final mockRepos = MockAuthRepos(
-        mockGoogleUser: User(id: 'g456', username: 'Google Nam', email: 'nam.google@example.com'),
-      );
 
       final cubit = AuthCubit(
         sharedPreferences: mockPrefs,
@@ -335,7 +332,7 @@ void main() {
         secureStorage: mockStorage,
       );
 
-      cubit.onLogout(requestLogout: false);
+      await cubit.onLogout(requestLogout: false);
 
       expect(cubit.state.isUnAuthenticated, isTrue);
       expect(await mockStorage.getStoredProfile(), isNull);

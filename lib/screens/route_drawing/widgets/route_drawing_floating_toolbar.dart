@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -46,7 +47,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
         actions: [
           TextButton(
             key: const Key('route_drawing_clear_cancel_btn'),
-            onPressed: () => Navigator.of(dialogCtx).pop(),
+            onPressed: () => dialogCtx.safePop(),
             child: Text(
               tr(LocaleKeys.cancel),
               style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,

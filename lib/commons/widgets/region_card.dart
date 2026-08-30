@@ -43,7 +43,7 @@ class RegionCard extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: dialogContext.pop,
+              onPressed: () => dialogContext.safePop(),
               child: Text(
                 tr(LocaleKeys.offline_maps_cancel_btn),
                 style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(fontSize: 14.sp),
@@ -56,7 +56,7 @@ class RegionCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
               ),
               onPressed: () {
-                dialogContext.pop();
+                dialogContext.safePop();
                 onDelete();
               },
               child: Text(
@@ -119,12 +119,16 @@ class RegionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      region.name,
+                      region.id == 'vietnam'
+                          ? tr(LocaleKeys.offline_maps_vietnam_name)
+                          : region.name,
                       style: colorScheme.onSurface.textTheme.boldStyle.copyWith(fontSize: 16.sp),
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      region.description,
+                      region.id == 'vietnam'
+                          ? tr(LocaleKeys.offline_maps_vietnam_desc)
+                          : region.description,
                       style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(fontSize: 13.sp),
                     ),
                   ],

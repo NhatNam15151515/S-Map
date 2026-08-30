@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -15,7 +16,7 @@ class StatsDistanceChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -56,10 +57,8 @@ class StatsDistanceChart extends StatelessWidget {
               Expanded(
                 child: Text(
                   tr(LocaleKeys.stats_dashboard_chart_title),
-                  style: TextStyle(
+                  style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -72,11 +71,12 @@ class StatsDistanceChart extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${chartData.totalDistanceKm} km',
-                    style: TextStyle(
+                    tr(
+                      LocaleKeys.stats_dashboard_distance_value,
+                      args: ['${chartData.totalDistanceKm}'],
+                    ),
+                    style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.primary,
                     ),
                   ),
                 ),
@@ -107,19 +107,16 @@ class StatsDistanceChart extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             tr(LocaleKeys.stats_dashboard_chart_empty_title),
-            style: TextStyle(
+            style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             tr(LocaleKeys.stats_dashboard_chart_empty_desc),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
               fontSize: 11,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
             ),
           ),
         ],
@@ -161,10 +158,8 @@ class StatsDistanceChart extends StatelessWidget {
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       final bar = bars[group.x.toInt()];
                       return BarTooltipItem(
-                        '${bar.distanceKm} km\n',
-                        TextStyle(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w700,
+                        '${tr(LocaleKeys.stats_dashboard_distance_value, args: ['${bar.distanceKm}'])} \n',
+                        colorScheme.onSurface.textTheme.boldStyle.copyWith(
                           fontSize: 12,
                         ),
                         children: [
@@ -173,9 +168,7 @@ class StatsDistanceChart extends StatelessWidget {
                               LocaleKeys.stats_dashboard_chart_trip_count,
                               args: ['${bar.tripCount}'],
                             ),
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w500,
+                            style: colorScheme.primary.textTheme.mediumStyle.copyWith(
                               fontSize: 10,
                             ),
                           ),
@@ -201,10 +194,8 @@ class StatsDistanceChart extends StatelessWidget {
                         }
                         return Text(
                           '${value.toInt()}',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
+                          style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                             fontSize: 10,
-                            fontWeight: FontWeight.w500,
                           ),
                         );
                       },
@@ -222,10 +213,8 @@ class StatsDistanceChart extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(
                             bars[index].label,
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
+                            style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                               fontSize: 10,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         );

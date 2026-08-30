@@ -6,9 +6,11 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/routers/app_routes.dart';
 import 'widgets/offline_storage_summary_card.dart';
 
 class OfflineRegionsScreen extends StatefulWidget {
+  static const String path = AppRoutes.offlineRegions;
   const OfflineRegionsScreen({super.key});
 
   @override

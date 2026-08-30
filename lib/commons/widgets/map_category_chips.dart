@@ -97,11 +97,11 @@ class MapCategoryChips extends StatelessWidget {
                           : colorScheme.outline.withAlpha(50),
                       width: isSelected ? 1.2 : 0.8,
                     ),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color.fromRGBO(0, 0, 0, 0.08),
+                        color: colorScheme.shadow.withValues(alpha: 0.08),
                         blurRadius: 6,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),

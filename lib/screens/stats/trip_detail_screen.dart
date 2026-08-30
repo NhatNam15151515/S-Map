@@ -4,18 +4,21 @@ import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/utils/map_drawing_route_manager.dart';
 import 'package:s_map/constants/map_constants.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/stats/widgets/trip_detail_panel.dart';
 import 'package:s_map/services/map_style_service.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final TripRecordModel trip;
+  final IMapStyleService? mapStyleService;
   final Widget Function(
       BuildContext context, MapLibreMapController? controller)? mapLayerBuilder;
 
   const TripDetailScreen({
     super.key,
     required this.trip,
+    this.mapStyleService,
     this.mapLayerBuilder,
   });
 
@@ -43,13 +46,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     _drawTripPolyline();
   }
 
-  void _drawTripPolyline() {
+  Future<void> _drawTripPolyline() async {
     if (_mapController == null || !_isMapReady) return;
 
     final rawPolyline = widget.trip.polyline;
     if (rawPolyline == null || rawPolyline.length < 2) return;
 
-    _routeManager.clear(_mapController);
+    await _routeManager.clear(_mapController);
 
     final latLngs = rawPolyline.map((p) => LatLng(p[0], p[1])).toList();
     final waypoints = [
@@ -73,13 +76,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         .map((l) => RoutePoint(lat: l.latitude, lon: l.longitude))
         .toList();
 
-    _routeManager.drawCustomRoute(
+    await _routeManager.drawCustomRoute(
       controller: _mapController,
       points: waypoints,
       fullPolyline: routePoints,
     );
 
-    _routeManager.fitRouteBounds(
+    await _routeManager.fitRouteBounds(
       controller: _mapController,
       points: waypoints,
     );
@@ -105,7 +108,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             child: widget.mapLayerBuilder != null
                 ? widget.mapLayerBuilder!(context, _mapController)
                 : MapLibreMap(
-                    styleString: MapStyleService.instance.getStyleJson(
+                    styleString: (widget.mapStyleService ?? MapStyleService.instance)
+                        .getStyleJson(
                       isDarkMode: colorScheme.brightness == Brightness.dark,
                     ),
                     initialCameraPosition: CameraPosition(

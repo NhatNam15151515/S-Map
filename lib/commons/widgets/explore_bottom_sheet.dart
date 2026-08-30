@@ -236,10 +236,8 @@ class ExploreBottomSheet extends StatelessWidget {
                             if (place.rating != null) ...[
                               Text(
                                 "${place.rating} ★${place.reviewCount != null ? ' (${place.reviewCount})' : ''}",
-                                style: TextStyle(
+                                style: themeColors.statsOrange.textTheme.semiBoldStyle.copyWith(
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: themeColors.statsOrange,
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -247,9 +245,8 @@ class ExploreBottomSheet extends StatelessWidget {
                             if (place.category != null)
                               Text(
                                 "• ${place.category}",
-                                style: TextStyle(
+                                style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
                                   fontSize: 12,
-                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                           ],

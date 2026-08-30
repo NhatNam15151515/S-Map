@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:s_map/models/models.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../mixin/app_mixin.dart';
 import 'dart:math' show cos, sqrt, asin;
 export 'poi_category_helper.dart';
+
+extension SafePopBuildContext on BuildContext {
+  void safePop<T>([T? result]) {
+    try {
+      pop(result);
+    } catch (_) {
+      Navigator.of(this).pop(result);
+    }
+  }
+}
 
 class AppUtils with AppMixin {
   static final AppUtils instance = AppUtils();

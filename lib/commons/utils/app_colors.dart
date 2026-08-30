@@ -218,6 +218,16 @@ class AppColors {
   static const statsPink = Color(0xFFC2185B);
   static const statsSuccess = Color(0xFF2E7D32);
   static const statsSuccessBg = Color(0xFFE8F5E9);
+  static const statsWarningBg = Color(0xFFFFF8E1);
+
+  // Dark Theme Indicator Colors
+  static const darkStatsOrange = Color(0xFFFFB74D);
+  static const darkStatsBlue = Color(0xFF64B5F6);
+  static const darkStatsPink = Color(0xFFF06292);
+  static const darkStatsSuccess = Color(0xFF81C784);
+  static const darkStatsSuccessBg = Color(0xFF1B5E20);
+  static const darkWarning = Color(0xFFFFD54F);
+  static const darkWarningBg = Color(0xFF5D4037);
 }
 
 

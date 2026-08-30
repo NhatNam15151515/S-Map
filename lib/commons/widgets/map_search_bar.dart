@@ -44,16 +44,16 @@ class MapSearchBar extends StatelessWidget {
             color: colorScheme.outline.withAlpha(50),
             width: 0.5,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color.fromRGBO(0, 0, 0, 0.12),
+              color: colorScheme.shadow.withValues(alpha: 0.12),
               blurRadius: 16,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
             BoxShadow(
-              color: Color.fromRGBO(0, 0, 0, 0.04),
+              color: colorScheme.shadow.withValues(alpha: 0.04),
               blurRadius: 4,
-              offset: Offset(0, 1),
+              offset: const Offset(0, 1),
             ),
           ],
         ),

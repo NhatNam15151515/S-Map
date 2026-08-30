@@ -69,11 +69,11 @@ class MapControls extends StatelessWidget {
                 color: colorScheme.outline.withAlpha(50),
                 width: 0.5,
               ),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.15),
+                  color: colorScheme.shadow.withValues(alpha: 0.15),
                   blurRadius: 8,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -144,11 +144,11 @@ class MapControls extends StatelessWidget {
           color: colorScheme.outline.withAlpha(50),
           width: 0.5,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.15),
+            color: colorScheme.shadow.withValues(alpha: 0.15),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),

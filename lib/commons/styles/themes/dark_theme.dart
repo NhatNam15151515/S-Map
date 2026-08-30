@@ -96,6 +96,7 @@ class DarkTheme extends AppStyle {
         extensions: const [AppThemeColors.dark],
         unselectedWidgetColor: AppColors.darkUnselected,
         scaffoldBackgroundColor: AppColors.darkBackground,
+        fontFamily: AppFont.currentFont,
         fontFamilyFallback: const ['Montserrat', 'Roboto', 'sans-serif'],
 
         cardTheme: CardThemeData(

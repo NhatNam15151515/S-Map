@@ -166,7 +166,7 @@ class NavigationTopPanel extends StatelessWidget {
                                         ),
                                         child: Text(
                                           tr(LocaleKeys.routing_prepare_turn),
-                                          style: colorScheme.onPrimary.textTheme
+                                          style: themeColors.onStatsSuccess.textTheme
                                               .semiBoldStyle
                                               .copyWith(fontSize: 10),
                                         ),

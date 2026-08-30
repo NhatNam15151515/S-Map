@@ -68,6 +68,7 @@ class DefaultTheme extends AppStyle {
         extensions: const [AppThemeColors.light],
         unselectedWidgetColor: AppColors.onSurfaceVariant,
         scaffoldBackgroundColor: AppColors.surfaceDim,
+        fontFamily: AppFont.currentFont,
         fontFamilyFallback: const ['Montserrat', 'Roboto', 'sans-serif'],
 
         cardTheme: CardThemeData(

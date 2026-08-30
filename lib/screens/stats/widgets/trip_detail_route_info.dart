@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -13,7 +14,7 @@ class TripDetailRouteInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final firstPoint =
         trip.polyline?.isNotEmpty == true ? trip.polyline!.first : null;
     final lastPoint =
@@ -82,7 +83,7 @@ class _LocationPoint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,18 +114,14 @@ class _LocationPoint extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
+                style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
                   fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
                 address,
-                style: TextStyle(
+                style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

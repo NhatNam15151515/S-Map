@@ -18,9 +18,18 @@ class TripDetailKpiGrid extends StatelessWidget {
     final colorScheme = context.colorScheme;
     final themeColors = context.themeColors;
     final durationStr = RouteFormatHelper.formatTripDuration(trip.duration);
-    final distanceStr = '${trip.distanceKm.toStringAsFixed(1)} km';
-    final avgSpeedStr = '${trip.avgSpeedKmh.toStringAsFixed(0)} km/h';
-    final topSpeedStr = '${trip.topSpeedKmh.toStringAsFixed(0)} km/h';
+    final distanceStr = tr(
+      LocaleKeys.stats_dashboard_distance_value,
+      args: [trip.distanceKm.toStringAsFixed(1)],
+    );
+    final avgSpeedStr = tr(
+      LocaleKeys.stats_dashboard_avg_speed_value,
+      args: [trip.avgSpeedKmh.toStringAsFixed(0)],
+    );
+    final topSpeedStr = tr(
+      LocaleKeys.stats_dashboard_top_speed_value,
+      args: [trip.topSpeedKmh.toStringAsFixed(0)],
+    );
 
     return GridView.count(
       crossAxisCount: 2,
@@ -74,7 +83,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -103,20 +112,16 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
+                  style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
                     fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   value,
-                  style: TextStyle(
+                  style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

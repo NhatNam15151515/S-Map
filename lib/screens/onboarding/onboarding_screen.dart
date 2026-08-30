@@ -4,9 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/onboarding/widgets/widgets.dart';
 
 class OnboardingScreen extends StatefulWidget {
+  static const String path = AppRoutes.onboarding;
   const OnboardingScreen({super.key});
 
   @override
@@ -24,18 +26,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
   }
 
   void _goToPage(int page) {
-    if (!mounted) return;
+    if (!mounted || !_pageController.hasClients) return;
     _currentPageIndex = page;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          page,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
+    _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _nextPage() {
@@ -48,7 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
     if (downloadingId != null) {
       cubit.cancelDownload(downloadingId);
     }
-    context.read<AuthCubit>().completeOnboarding();
+    authCubit.completeOnboarding();
   }
 
   @override
@@ -59,8 +56,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
-          if (_currentPageIndex > 0 &&
-              _currentPageIndex != OnboardingStep.downloading.index) {
+          if (_currentPageIndex > 0) {
             _goToPage(_currentPageIndex - 1);
           }
         },
@@ -71,9 +67,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.85),
                   Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.primaryContainer,
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primary,
                 ],
               ),
             ),

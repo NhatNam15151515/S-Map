@@ -30,6 +30,7 @@ class _MyAppState extends State<MyApp> {
     notificationCubit = NotificationCubit();
     favoritesCubit = FavoritesCubit();
     Routes.instance.applyWithAuthState(authCubit);
+    authCubit.onAppStarted();
   }
 
   @override

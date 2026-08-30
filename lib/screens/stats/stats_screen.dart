@@ -66,7 +66,7 @@ class _StatsScreenState extends State<StatsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => dialogContext.safePop(false),
             child: Text(
               tr(LocaleKeys.cancel),
               style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
@@ -80,7 +80,7 @@ class _StatsScreenState extends State<StatsScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => dialogContext.safePop(true),
             child: Text(
               tr(LocaleKeys.stats_dashboard_clear_all_btn),
               style: colorScheme.onError.textTheme.semiBoldStyle,

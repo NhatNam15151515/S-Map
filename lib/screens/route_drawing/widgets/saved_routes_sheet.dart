@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
@@ -26,11 +27,11 @@ class SavedRoutesSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => BlocProvider.value(
+      builder: (ctx) => BlocProvider.value(
         value: context.read<SavedRoutesCubit>(),
         child: SavedRoutesSheet(
           onRouteSelected: (route) {
-            Navigator.of(sheetCtx).pop();
+            ctx.pop();
             onRouteSelected(route);
           },
           onRouteDeleted: onRouteDeleted,
@@ -60,7 +61,7 @@ class SavedRoutesSheet extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
+            onPressed: () => dialogCtx.safePop(),
             child: Text(
               tr(LocaleKeys.cancel),
               style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,

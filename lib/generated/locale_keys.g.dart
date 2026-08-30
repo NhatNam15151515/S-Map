@@ -272,7 +272,13 @@ abstract class  LocaleKeys {
   static const stats_dashboard_all_trips_cleared_success = 'stats_dashboard.all_trips_cleared_success';
   static const stats_dashboard_invalid_trip_data = 'stats_dashboard.invalid_trip_data';
   static const stats_dashboard_speed_unit = 'stats_dashboard.speed_unit';
+  static const stats_dashboard_distance_value = 'stats_dashboard.distance_value';
+  static const stats_dashboard_avg_speed_value = 'stats_dashboard.avg_speed_value';
+  static const stats_dashboard_top_speed_value = 'stats_dashboard.top_speed_value';
   static const stats_dashboard = 'stats_dashboard';
+  static const auth_guest_name = 'auth_guest_name';
+  static const offline_maps_vietnam_name = 'offline_maps_vietnam_name';
+  static const offline_maps_vietnam_desc = 'offline_maps_vietnam_desc';
   static const offline_maps_title = 'offline_maps_title';
   static const offline_maps_subtitle = 'offline_maps_subtitle';
   static const offline_maps_storage_used = 'offline_maps_storage_used';

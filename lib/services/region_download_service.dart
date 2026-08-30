@@ -126,14 +126,18 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
           final map = Map<String, dynamic>.from(raw);
           final local = RegionModel.fromMap(map);
 
-          // Kiểm tra tính toàn vẹn dữ liệu thực tế trên đĩa
+          // Kiểm tra tính toàn vẹn dữ liệu thực tế trên đĩa (yêu cầu đủ bộ tệp cần thiết)
           final regionDir = Directory(p.join(regionsBaseDir, defaultRegion.id));
+          final requiredFiles = [
+            '${defaultRegion.id}.pmtiles',
+            '${defaultRegion.id}.ghz',
+            '${defaultRegion.id}_poi.db',
+            'version.json',
+          ];
           final bool hasValidFiles = regionDir.existsSync() &&
-              (File(p.join(regionDir.path, '${defaultRegion.id}_poi.db'))
-                      .existsSync() ||
-                  File(p.join(regionDir.path, 'version.json')).existsSync() ||
-                  File(p.join(regionDir.path, '${defaultRegion.id}.ghz'))
-                      .existsSync());
+              requiredFiles.every(
+                (name) => File(p.join(regionDir.path, name)).existsSync(),
+              );
 
           if (local.isDownloaded && !hasValidFiles) {
             // Dữ liệu cũ bị thiếu hoặc đã bị xóa ngoài luồng -> reset trạng thái để người dùng tải lại

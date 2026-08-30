@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class StatsVehicleFilterChips extends StatelessWidget {
@@ -31,7 +32,7 @@ class StatsVehicleFilterChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final filters = [
       (
@@ -86,12 +87,9 @@ class StatsVehicleFilterChips extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 12,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w500,
-                    ),
+                    style: isSelected
+                        ? textColor.textTheme.semiBoldStyle.copyWith(fontSize: 12)
+                        : textColor.textTheme.mediumStyle.copyWith(fontSize: 12),
                   ),
                   if (count > 0) ...[
                     const SizedBox(width: 4),
@@ -106,13 +104,9 @@ class StatsVehicleFilterChips extends StatelessWidget {
                       ),
                       child: Text(
                         '$count',
-                        style: TextStyle(
-                          color: isSelected
-                              ? colorScheme.onPrimary
-                              : colorScheme.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: isSelected
+                            ? colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(fontSize: 10)
+                            : colorScheme.primary.textTheme.semiBoldStyle.copyWith(fontSize: 10),
                       ),
                     ),
                   ],

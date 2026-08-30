@@ -257,7 +257,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 },
                 onStyleLoadedCallback: () {
                   _symbolManager.loadMarkerAssets(_mapController);
-                  _routeManager.loadMarkerAssets(_mapController);
+                  _routeManager.loadMarkerAssets(_mapController, force: true);
                   displayCubit.onStyleLoaded();
                 },
                 onCameraTrackingDismissed:

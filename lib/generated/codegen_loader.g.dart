@@ -294,8 +294,14 @@ class CodegenLoader extends AssetLoader{
     "trip_deleted_success": "Trip deleted successfully",
     "all_trips_cleared_success": "All trip history cleared",
     "invalid_trip_data": "Invalid trip data",
-    "speed_unit": "{} km/h"
+    "speed_unit": "{} km/h",
+    "distance_value": "{} km",
+    "avg_speed_value": "{} km/h",
+    "top_speed_value": "{} km/h"
   },
+  "auth_guest_name": "Guest_{}",
+  "offline_maps_vietnam_name": "Vietnam Nationwide Map",
+  "offline_maps_vietnam_desc": "Offline map, search & routing data for all 63 provinces",
   "offline_maps_title": "Offline Maps",
   "offline_maps_subtitle": "Manage downloaded data for offline navigation",
   "offline_maps_storage_used": "Storage Used",
@@ -608,8 +614,14 @@ static const Map<String,dynamic> _vi = {
     "trip_deleted_success": "Đã xóa chuyến đi thành công",
     "all_trips_cleared_success": "Đã xóa toàn bộ lịch sử chuyến đi",
     "invalid_trip_data": "Dữ liệu chuyến đi không hợp lệ",
-    "speed_unit": "{} km/h"
+    "speed_unit": "{} km/h",
+    "distance_value": "{} km",
+    "avg_speed_value": "{} km/h",
+    "top_speed_value": "{} km/h"
   },
+  "auth_guest_name": "Khách_{}",
+  "offline_maps_vietnam_name": "Bản đồ Toàn quốc Việt Nam",
+  "offline_maps_vietnam_desc": "Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn bộ 63 tỉnh thành",
   "offline_maps_title": "Bản đồ ngoại tuyến",
   "offline_maps_subtitle": "Quản lý dữ liệu tải về để dẫn đường không cần mạng",
   "offline_maps_storage_used": "Bộ nhớ đã dùng",

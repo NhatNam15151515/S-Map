@@ -32,11 +32,11 @@ class RouteDrawingTopBar extends StatelessWidget {
             color: colorScheme.outline.withAlpha(50),
             width: 0.5,
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color.fromRGBO(0, 0, 0, 0.12),
+              color: colorScheme.shadow.withValues(alpha: 0.12),
               blurRadius: 10,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
