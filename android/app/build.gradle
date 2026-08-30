@@ -148,32 +148,35 @@ tasks.register('autoPushGraphData') {
             }
             def outputStr = devicesOutput.toString()
             if (outputStr.contains("\tdevice")) {
-                println "📱 [S-Map Gradle] Checking GraphHopper map data on connected device..."
+                println "📱 [S-Map Gradle] Checking GraphHopper Vietnam map data on connected device..."
                 
                 def checkOutput = new ByteArrayOutputStream()
                 exec {
-                    commandLine adbExecutable.path, 'shell', 'ls /sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted/nodes 2>/dev/null'
+                    commandLine adbExecutable.path, 'shell', 'ls /sdcard/Android/data/com.vnsmap.app/files/regions/vietnam/nodes /sdcard/Android/data/com.vnsmap.app/files/vietnam_extracted/nodes /sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted/nodes 2>/dev/null'
                     standardOutput = checkOutput
                     ignoreExitValue = true
                 }
                 
                 if (!checkOutput.toString().contains("nodes")) {
-                    println "⚠️ [S-Map Gradle] GraphHopper data MISSING on device! Auto-pushing graph data..."
-                    def graphDir = file("../../data-pipeline/data/graph-cache/metro_hcm")
+                    println "⚠️ [S-Map Gradle] Vietnam GraphHopper data MISSING on device! Checking local cache to push..."
+                    def graphDir = file("../../data-pipeline/data/graph-cache/vietnam")
+                    if (!graphDir.exists()) {
+                        graphDir = file("../../data-pipeline/data/graph-cache/metro_hcm")
+                    }
                     if (graphDir.exists()) {
                         exec {
-                            commandLine adbExecutable.path, 'shell', 'mkdir -p /sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted'
+                            commandLine adbExecutable.path, 'shell', 'mkdir -p /sdcard/Android/data/com.vnsmap.app/files/regions/vietnam'
                             ignoreExitValue = true
                         }
                         exec {
-                            commandLine adbExecutable.path, 'push', "${graphDir.path}/.", '/sdcard/Android/data/com.vnsmap.app/files/metro_hcm_extracted/'
+                            commandLine adbExecutable.path, 'push', "${graphDir.path}/.", '/sdcard/Android/data/com.vnsmap.app/files/regions/vietnam/'
                         }
-                        println "✅ [S-Map Gradle] GraphHopper data successfully pushed to device!"
+                        println "✅ [S-Map Gradle] GraphHopper Vietnam data successfully pushed to device at /regions/vietnam/!"
                     } else {
-                        println "⚠️ [S-Map Gradle] Graph data cache not found at ${graphDir.path}. Skipping auto-push."
+                        println "💡 [S-Map Gradle] Note: Offline map will be loaded in-app (Vietnam package: vietnam.zip or bundled asset)."
                     }
                 } else {
-                    println "✅ [S-Map Gradle] GraphHopper data already exists on device."
+                    println "✅ [S-Map Gradle] GraphHopper map data already exists on device."
                 }
             }
         } catch (Exception e) {

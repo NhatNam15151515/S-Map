@@ -207,11 +207,11 @@ void main() {
       expect(await repository.isEngineReady(), isFalse);
     });
 
-    test('calculateRoute fallback generates valid route when engine is uninitialized', () async {
+    test('calculateRoute returns failure when engine is uninitialized', () async {
       final failingService = MockRoutingService(initSuccess: false)..readyState = false;
       final failingRepo = RoutingRepositoryImpl(routingService: failingService);
 
-      final fallbackResult = await failingRepo.calculateRoute(
+      final result = await failingRepo.calculateRoute(
         fromLat: 10.7844,
         fromLon: 106.6456,
         toLat: 10.7705,
@@ -219,14 +219,8 @@ void main() {
       );
 
       expect(failingService.routeCalled, isFalse);
-      expect(fallbackResult.isSuccess, isTrue);
-      expect(fallbackResult.points.length, equals(13));
-      expect(fallbackResult.points.first, equals([10.7844, 106.6456]));
-      expect(fallbackResult.points.last, equals([10.7705, 106.6656]));
-      expect(fallbackResult.instructions, isEmpty);
-      expect(fallbackResult.calculationTimeMs, equals(1));
-      expect(fallbackResult.distance, greaterThan(0));
-      expect(fallbackResult.time, greaterThan(0));
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, equals(RoutingConstants.errServiceNotInitialized));
     });
 
     test('Acceptance Criteria: 20 consecutive route requests execution benchmark', () async {

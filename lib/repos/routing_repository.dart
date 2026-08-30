@@ -94,16 +94,17 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       const candidateDirNames = [
         'regions/vietnam',
         'regions/vietnam/graphhopper',
+        'vietnam_extracted',
         'vietnam-latest-gh',
-        'hcm-latest-gh',
         'graphhopper',
+        'metro_hcm_extracted',
       ];
 
       const candidateFileNames = [
         'regions/vietnam/vietnam.ghz',
         'vietnam.ghz',
         'vietnam_sample.ghz',
-        'hcm.ghz',
+        'metro_hcm.ghz',
         'map.ghz',
       ];
 
@@ -151,13 +152,18 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       }
 
       // 3. Nếu không tìm thấy ở bất kỳ đâu trên bộ nhớ thiết bị, tự nạp từ Bundled Asset trong APK
-      DLog.info(
-          '📦 [RoutingRepository] Attempting auto-init from bundled APK asset: "assets/map/metro_hcm.ghz"');
-      final assetSuccess = await tryInit('assets/map/metro_hcm.ghz');
-      DLog.info(
-          '🏁 [RoutingRepository] Bundled asset init outcome: success=$assetSuccess');
-      if (assetSuccess) {
-        return;
+      for (final bundledAsset in const [
+        'assets/map/vietnam.ghz',
+        'assets/map/metro_hcm.ghz',
+      ]) {
+        DLog.info(
+            '📦 [RoutingRepository] Attempting auto-init from bundled APK asset: "$bundledAsset"');
+        final assetSuccess = await tryInit(bundledAsset);
+        DLog.info(
+            '🏁 [RoutingRepository] Bundled asset init outcome ($bundledAsset): success=$assetSuccess');
+        if (assetSuccess) {
+          return;
+        }
       }
 
       DLog.warning(
@@ -193,56 +199,13 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       );
       DLog.info(
           '🏍️ [RoutingRepository] Native route result status: isSuccess=${nativeResult.isSuccess}, distance=${nativeResult.distance}m, points=${nativeResult.points.length}, error="${nativeResult.errorMessage}"');
-      if (nativeResult.isSuccess) {
-        return nativeResult;
-      }
+      return nativeResult;
     }
 
-    // Fallback: Khi máy chưa tải file .ghz hoặc engine chưa init, tạo route ước tính mượt mà
     DLog.warning(
-        '💡 [RoutingRepository] Native GraphHopper not ready -> Generating smart motorcycle route fallback');
-    return _generateFallbackRoute(fromLat, fromLon, toLat, toLon);
-  }
-
-  RouteResult _generateFallbackRoute(
-    double fromLat,
-    double fromLon,
-    double toLat,
-    double toLon,
-  ) {
-    final straightDistKm = AppUtils.instance.calculateDistance(
-      fromLat,
-      fromLon,
-      toLat,
-      toLon,
-    );
-
-    // Khoảng cách thực tế đường bộ đô thị (hệ số uốn khúc ~1.35)
-    final distanceMeters = (straightDistKm * 1000 * 1.35).clamp(50.0, 500000.0);
-
-    // Thời gian xe máy di chuyển đô thị (~30 km/h = 8.33 m/s)
-    final timeMillis = ((distanceMeters / 8.33) * 1000).round();
-
-    // Sinh 12 điểm trung gian nối mượt mà từ điểm xuất phát đến điểm đích
-    const steps = 12;
-    final points = <List<double>>[];
-    for (int i = 0; i <= steps; i++) {
-      final t = i / steps;
-      final lat = fromLat + (toLat - fromLat) * t;
-      final lon = fromLon + (toLon - fromLon) * t;
-      points.add([lat, lon]);
-    }
-
-    DLog.info(
-        '💡 [RoutingRepository] Fallback route generated: dist=${distanceMeters.toStringAsFixed(1)}m, time=${(timeMillis / 60000).toStringAsFixed(1)} mins, points=${points.length}');
-
-    return RouteResult(
-      isSuccess: true,
-      distance: distanceMeters,
-      time: timeMillis,
-      points: points,
-      instructions: const [],
-      calculationTimeMs: 1,
+        '⚠️ [RoutingRepository] Native GraphHopper not ready -> returning failure result');
+    return RouteResult.failure(
+      RoutingConstants.errServiceNotInitialized,
     );
   }
 
