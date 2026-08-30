@@ -174,15 +174,18 @@ class Routes extends NavigatorObserver {
       final currentState = authCubit.state;
       if (currentState.type != event.type) return;
 
+      final ctx = rootNavigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+
       switch (currentState.type) {
         case AuthStateType.unAuthenticated:
-          if (context.mounted) context.go(AppRoutes.login);
+          ctx.go(AppRoutes.login);
           break;
         case AuthStateType.onboarding:
-          if (context.mounted) context.go(AppRoutes.onboarding);
+          ctx.go(AppRoutes.onboarding);
           break;
         case AuthStateType.authenticated:
-          if (context.mounted) context.go(AppRoutes.home);
+          ctx.go(AppRoutes.home);
           break;
         default:
           break;

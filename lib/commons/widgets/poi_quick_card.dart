@@ -24,16 +24,19 @@ class PoiQuickCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    LatLng? effectiveLocation = userLocation;
-    if (effectiveLocation == null) {
-      try {
-        final mapDisplayState = context.watch<MapDisplayCubit>().state;
-        effectiveLocation = mapDisplayState.currentPosition;
-      } catch (_) {
-        // If MapDisplayCubit is not in context, keep null
-      }
+    if (userLocation != null) {
+      return _buildCard(context, userLocation);
     }
 
+    return BlocBuilder<MapDisplayCubit, MapDisplayState>(
+      buildWhen: (prev, curr) => prev.currentPosition != curr.currentPosition,
+      builder: (context, state) {
+        return _buildCard(context, state.currentPosition);
+      },
+    );
+  }
+
+  Widget _buildCard(BuildContext context, LatLng? effectiveLocation) {
     final colorScheme = context.colorScheme;
     final icon = PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
     final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);

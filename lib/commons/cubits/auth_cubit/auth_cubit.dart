@@ -107,6 +107,7 @@ class AuthCubit extends Cubit<AuthState> {
     final token = user.id ?? 'token_${DateTime.now().millisecondsSinceEpoch}';
     await _secureStorage.saveAuthToken(token);
     await _secureStorage.saveProfile(user);
+    if (isClosed) return;
     emit(state.copyWith(
       type: AuthStateType.authenticated,
       loggedInProfile: user,

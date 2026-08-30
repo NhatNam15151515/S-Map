@@ -44,7 +44,11 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     super.didChangeDependencies();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (displayCubit.state.isNightMode != isDark) {
-      displayCubit.updateThemeMode(isDark);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && displayCubit.state.isNightMode != isDark) {
+          displayCubit.updateThemeMode(isDark);
+        }
+      });
     }
   }
 
