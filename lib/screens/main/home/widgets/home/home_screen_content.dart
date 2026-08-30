@@ -2,12 +2,14 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeScreenContent extends StatefulWidget {
@@ -83,6 +85,26 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
         _selectedMarkerPoi = pois.first;
       }
     });
+  }
+
+  void _handleOpenCustomRouteDrawing({
+    PoiModel? poi,
+    LatLng? destination,
+    String? destinationName,
+  }) {
+    final myPos = displayCubit.state.currentPosition;
+    final destLatLng =
+        destination ?? (poi != null ? LatLng(poi.lat, poi.lon) : null);
+    final name = destinationName ?? poi?.name;
+
+    final payload = RouteDrawingPayload(
+      initialOrigin: myPos,
+      initialDestination: destLatLng,
+      destinationName: name,
+      destinationPoi: poi,
+    );
+
+    context.push(AppRoutes.routeDrawing, extra: payload);
   }
 
   void _handleDirections() {
@@ -226,8 +248,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
 
             return BlocBuilder<RoutePreviewCubit, RoutePreviewState>(
               builder: (context, routeState) {
-                final isRouteActive =
-                    !isNavigating && (routeState.isLoading || routeState.isSuccess);
+                final isRouteActive = !isNavigating &&
+                    (routeState.isLoading || routeState.isSuccess);
 
                 return Stack(
                   children: [
@@ -299,6 +321,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                           });
                         },
                         onDirections: _handleDirections,
+                        onCustomRoute: _selectedMarkerPoi != null
+                            ? () => _handleOpenCustomRouteDrawing(
+                                  poi: _selectedMarkerPoi,
+                                )
+                            : null,
                       ),
                     ],
 
@@ -312,9 +339,20 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                           top: false,
                           child: RoutePreviewBottomSheet(
                             onClose: () {
-                              DLog.info('❌ [HomeScreen] Close Route Preview tapped');
+                              DLog.info(
+                                  '❌ [HomeScreen] Close Route Preview tapped');
                               routePreviewCubit.clearRoute();
                             },
+                            onCustomRoute: routeState.destination != null
+                                ? () => _handleOpenCustomRouteDrawing(
+                                      destination: LatLng(
+                                        routeState.destination!.lat,
+                                        routeState.destination!.lon,
+                                      ),
+                                      destinationName:
+                                          routeState.destinationName,
+                                    )
+                                : null,
                             onStartNavigation: () {
                               if (routeState.currentRoute != null &&
                                   routeState.origin != null &&

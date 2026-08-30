@@ -17,9 +17,40 @@ class DarkTheme extends AppStyle {
         onError: AppColors.white,
         surface: AppColors.darkSurface,
         onSurface: AppColors.darkOnSurface,
+        surfaceContainer: AppColors.darkSurfaceContainer,
         surfaceContainerHighest: AppColors.darkSurfaceContainerHighest,
+        onSurfaceVariant: AppColors.darkOnSurfaceVariant,
         outline: AppColors.darkOutline,
+        outlineVariant: AppColors.darkOutlineVariant,
       );
+
+  @override
+  Color get success => const Color(0xFF81C784);
+
+  @override
+  Color get successContainer => const Color(0xFF1B5E20);
+
+  @override
+  Color get warning => const Color(0xFFFFD54F);
+
+  @override
+  Color get warningContainer => const Color(0xFF5D4037);
+
+  @override
+  Color get statsOrange => const Color(0xFFFFB74D);
+
+  @override
+  Color get statsBlue => const Color(0xFF64B5F6);
+
+  @override
+  Color get statsPink => const Color(0xFFF06292);
+
+  @override
+  Color get statsSuccess => const Color(0xFF81C784);
+
+  @override
+  Color get cardShadow => Colors.black.withAlpha(80);
+
 
   @override
   InputBorder get defaultBorder => OutlineInputBorder(
@@ -62,9 +93,12 @@ class DarkTheme extends AppStyle {
         brightness: Brightness.dark,
         colorScheme: colorScheme,
         useMaterial3: true,
-        unselectedWidgetColor: const Color(0xFF9AA0A6),
+        extensions: const [AppThemeColors.dark],
+        unselectedWidgetColor: AppColors.darkUnselected,
         scaffoldBackgroundColor: AppColors.darkBackground,
-        fontFamily: 'Montserrat',
+        fontFamily: AppFont.currentFont,
+        fontFamilyFallback: const ['Montserrat', 'Roboto', 'sans-serif'],
+
         cardTheme: CardThemeData(
           elevation: 0.5,
           shape: RoundedRectangleBorder(
@@ -76,7 +110,6 @@ class DarkTheme extends AppStyle {
         snackBarTheme: SnackBarThemeData(
           backgroundColor: AppColors.darkSurfaceContainerHighest,
           contentTextStyle: const TextStyle(
-            fontFamily: 'Montserrat',
             color: AppColors.darkOnSurface,
           ),
           behavior: SnackBarBehavior.floating,
@@ -90,7 +123,7 @@ class DarkTheme extends AppStyle {
           showUnselectedLabels: true,
           backgroundColor: AppColors.darkSurface,
           selectedItemColor: AppColors.sMapTeal,
-          unselectedItemColor: Color(0xFF9AA0A6),
+          unselectedItemColor: AppColors.darkUnselected,
           selectedLabelStyle: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -99,7 +132,7 @@ class DarkTheme extends AppStyle {
           unselectedLabelStyle: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: Color(0xFF9AA0A6),
+            color: AppColors.darkUnselected,
           ),
         ),
         textButtonTheme: TextButtonThemeData(
@@ -115,8 +148,7 @@ class DarkTheme extends AppStyle {
           filled: true,
           fillColor: AppColors.darkSurfaceContainer,
           hintStyle: const TextStyle(
-            fontFamily: 'Montserrat',
-            color: Color(0xFF9AA0A6),
+            color: AppColors.darkOnSurfaceVariant,
             fontSize: 14,
           ),
           contentPadding:
@@ -160,7 +192,6 @@ class DarkTheme extends AppStyle {
           backgroundColor: AppColors.darkSurfaceContainer,
           selectedColor: AppColors.sMapDarkTeal,
           labelStyle: const TextStyle(
-            fontFamily: 'Montserrat',
             fontWeight: FontWeight.w500,
             color: AppColors.darkOnSurface,
             fontSize: 13,
@@ -181,11 +212,11 @@ class DarkTheme extends AppStyle {
 
   @override
   List<Color> get greysTextColor => const [
-        Color(0xFF9AA0A6),
-        Color(0xFF80868B),
-        Color(0xFF5F6368),
-        Color(0xFF3C4043),
-        Color(0xFF202124),
+        AppColors.darkGrey1,
+        AppColors.darkGrey2,
+        AppColors.darkGrey3,
+        AppColors.darkGrey4,
+        AppColors.darkGrey5,
       ];
 
   @override

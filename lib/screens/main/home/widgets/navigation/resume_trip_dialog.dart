@@ -45,7 +45,7 @@ class ResumeTripDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     final destName = snapshot.destinationName?.trim().isNotEmpty == true
         ? snapshot.destinationName!
         : null;
@@ -64,7 +64,7 @@ class ResumeTripDialog extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
       ),
       elevation: 8,
-      backgroundColor: AppColors.white,
+      backgroundColor: colorScheme.surface,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -77,12 +77,12 @@ class ResumeTripDialog extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: AppColors.bleuDeFrance.withAlpha(25),
+                  color: colorScheme.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.restore_rounded,
-                  color: AppColors.bleuDeFrance,
+                  color: colorScheme.primary,
                   size: 32,
                 ),
               ),
@@ -93,9 +93,8 @@ class ResumeTripDialog extends StatelessWidget {
             Text(
               tr(LocaleKeys.routing_resume_trip_title),
               textAlign: TextAlign.center,
-              style: style.blackTextColor.textTheme.boldStyle.copyWith(
+              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                 fontSize: 20,
-                color: AppColors.googleDarkText,
               ),
             ),
             const SizedBox(height: 10),
@@ -104,9 +103,8 @@ class ResumeTripDialog extends StatelessWidget {
             Text(
               description,
               textAlign: TextAlign.center,
-              style: style.blackTextColor.textTheme.regularStyle.copyWith(
+              style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
                 fontSize: 14,
-                color: AppColors.googleGreyText,
                 height: 1.4,
               ),
             ),
@@ -117,9 +115,12 @@ class ResumeTripDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceDim,
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.outlineVariant, width: 0.8),
+                  border: Border.all(
+                    color: colorScheme.outline.withValues(alpha: 0.2),
+                    width: 0.8,
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -133,7 +134,7 @@ class ResumeTripDialog extends StatelessWidget {
                     Container(
                       width: 1,
                       height: 28,
-                      color: AppColors.outlineVariant,
+                      color: colorScheme.outline.withValues(alpha: 0.2),
                     ),
                     _buildStatItem(
                       context,
@@ -154,16 +155,17 @@ class ResumeTripDialog extends StatelessWidget {
                     onPressed: onDiscard,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.outlineVariant),
+                      side: BorderSide(
+                        color: colorScheme.outline.withValues(alpha: 0.3),
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: Text(
                       tr(LocaleKeys.routing_discard_btn),
-                      style: style.blackTextColor.textTheme.mediumStyle.copyWith(
+                      style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                         fontSize: 15,
-                        color: AppColors.googleGreyText,
                       ),
                     ),
                   ),
@@ -173,8 +175,8 @@ class ResumeTripDialog extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onResume,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.bleuDeFrance,
-                      foregroundColor: AppColors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -183,9 +185,8 @@ class ResumeTripDialog extends StatelessWidget {
                     ),
                     child: Text(
                       tr(LocaleKeys.routing_resume_btn),
-                      style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                      style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
                         fontSize: 15,
-                        color: AppColors.white,
                       ),
                     ),
                   ),
@@ -204,11 +205,11 @@ class ResumeTripDialog extends StatelessWidget {
     required String label,
     required String value,
   }) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: AppColors.bleuDeFrance),
+        Icon(icon, size: 18, color: colorScheme.primary),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,16 +217,14 @@ class ResumeTripDialog extends StatelessWidget {
           children: [
             Text(
               label,
-              style: style.blackTextColor.textTheme.regularStyle.copyWith(
+              style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
                 fontSize: 11,
-                color: AppColors.googleGreyText,
               ),
             ),
             Text(
               value,
-              style: style.blackTextColor.textTheme.boldStyle.copyWith(
+              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                 fontSize: 13,
-                color: AppColors.googleDarkText,
               ),
             ),
           ],

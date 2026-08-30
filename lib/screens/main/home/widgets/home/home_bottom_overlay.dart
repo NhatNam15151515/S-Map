@@ -10,6 +10,7 @@ class HomeBottomOverlay extends StatelessWidget {
   final ValueChanged<dynamic> onPlaceTap;
   final VoidCallback onClosePoiCard;
   final VoidCallback onDirections;
+  final VoidCallback? onCustomRoute;
 
   const HomeBottomOverlay({
     super.key,
@@ -18,6 +19,7 @@ class HomeBottomOverlay extends StatelessWidget {
     required this.onPlaceTap,
     required this.onClosePoiCard,
     required this.onDirections,
+    this.onCustomRoute,
   });
 
   @override
@@ -27,10 +29,18 @@ class HomeBottomOverlay extends StatelessWidget {
         left: 0,
         right: 0,
         bottom: 24,
-        child: PoiQuickCard(
-          poi: selectedMarkerPoi!,
-          onClose: onClosePoiCard,
-          onDirections: onDirections,
+        child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
+          buildWhen: (prev, curr) =>
+              prev.currentPosition != curr.currentPosition,
+          builder: (context, mapDisplayState) {
+            return PoiQuickCard(
+              poi: selectedMarkerPoi!,
+              userLocation: mapDisplayState.currentPosition,
+              onClose: onClosePoiCard,
+              onDirections: onDirections,
+              onCustomRoute: onCustomRoute,
+            );
+          },
         ),
       );
     }

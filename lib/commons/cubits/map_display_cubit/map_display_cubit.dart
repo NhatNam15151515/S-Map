@@ -24,11 +24,13 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
   static ILocationService? defaultLocationService;
   static ICompassService? defaultCompassService;
   static IMapStyleService? defaultMapStyleService;
+  static bool Function()? defaultDarkModeResolver;
 
   MapDisplayCubit({
     ILocationService? locationService,
     ICompassService? compassService,
     IMapStyleService? mapStyleService,
+    bool? isDarkMode,
   })  : _locationService = locationService ??
             defaultLocationService ??
             const NoOpLocationService(),
@@ -40,11 +42,15 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
             const NoOpMapStyleService(),
         super(MapDisplayState(
           status: MapDisplayStatus.initial,
+          isNightMode: isDarkMode ?? defaultDarkModeResolver?.call() ?? false,
           styleString: (mapStyleService ??
                   defaultMapStyleService ??
                   const NoOpMapStyleService())
-              .styleJson,
+              .getStyleJson(
+            isDarkMode: isDarkMode ?? defaultDarkModeResolver?.call() ?? false,
+          ),
         ));
+
 
   /// Safe emit guard rule mandatory for all Cubits/Blocs
   @override
@@ -62,6 +68,10 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
         isNightMode: isDarkMode,
       ));
     }
+  }
+
+  void updateThemeMode(bool isDarkMode) {
+    updateMapTheme(isDarkMode: isDarkMode);
   }
 
   void toggleNightMode() {

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../utils/app_colors.dart';
 import 'font_weight.dart';
+export 'font.dart';
 export 'font_weight.dart';
+export 'theme_extensions/app_theme_colors.dart';
+
 
 /// Typedef for a function that resolves [AppStyle] from [BuildContext].
 /// Injected at app startup to avoid circular imports between the styles
@@ -25,6 +28,17 @@ abstract class AppStyle {
   ButtonStyle get outlineButtonStyle;
 
   ButtonStyle get whiteButton;
+
+  Color get success => AppColors.googleGreen;
+  Color get successContainer => AppColors.statsSuccessBg;
+  Color get warning => AppColors.macaw;
+  Color get warningContainer => AppColors.statsWarningBg;
+  Color get statsOrange => AppColors.statsOrange;
+  Color get statsBlue => AppColors.statsBlue;
+  Color get statsPink => AppColors.statsPink;
+  Color get statsSuccess => AppColors.statsSuccess;
+  Color get cardShadow => colorScheme.shadow.withAlpha(20);
+
 
   // Static resolver & fallback style – injected from default_theme or AppCubit.
   // This completely eliminates circular dependencies between styles and themes.

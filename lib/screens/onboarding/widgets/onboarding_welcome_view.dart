@@ -2,7 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/app_asset.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -16,6 +15,8 @@ class OnboardingWelcomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: Column(
@@ -24,14 +25,14 @@ class OnboardingWelcomeView extends StatelessWidget {
           const Spacer(),
           Container(
             padding: EdgeInsets.all(20.r),
-            decoration: const BoxDecoration(
-              color: AppColors.white,
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.blackOpa25,
+                  color: colorScheme.shadow.withValues(alpha: 0.25),
                   blurRadius: 15,
-                  offset: Offset(0, 5),
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -40,14 +41,13 @@ class OnboardingWelcomeView extends StatelessWidget {
           SizedBox(height: 32.h),
           Text(
             tr(LocaleKeys.onboarding_welcome_title),
-            style:
-                AppColors.white.textTheme.boldStyle.copyWith(fontSize: 28.sp),
+            style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(fontSize: 28.sp),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 16.h),
           Text(
             tr(LocaleKeys.onboarding_welcome_subtitle),
-            style: AppColors.white.textTheme.regularStyle
+            style: colorScheme.onPrimary.textTheme.regularStyle
                 .copyWith(fontSize: 16.sp, height: 1.5),
             textAlign: TextAlign.center,
           ),
@@ -58,8 +58,8 @@ class OnboardingWelcomeView extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onContinue,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.white,
-                foregroundColor: AppColors.sMapTeal,
+                backgroundColor: colorScheme.surface,
+                foregroundColor: colorScheme.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28.r),
                 ),
@@ -67,7 +67,7 @@ class OnboardingWelcomeView extends StatelessWidget {
               ),
               child: Text(
                 tr(LocaleKeys.onboarding_continue_btn),
-                style: AppColors.sMapTeal.textTheme.boldStyle
+                style: colorScheme.primary.textTheme.boldStyle
                     .copyWith(fontSize: 18.sp),
               ),
             ),

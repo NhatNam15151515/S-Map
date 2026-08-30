@@ -2,8 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -31,12 +29,16 @@ class MapControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bool showCompass =
+        onToggleOrientation != null && rotation.abs() > 0.05;
+
     return RepaintBoundary(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (onToggleOrientation != null) ...[
+          if (showCompass) ...[
             MapCompassButton(
               rotation: rotation,
               orientationMode: orientationMode,
@@ -57,24 +59,54 @@ class MapControls extends StatelessWidget {
             },
           ),
           const SizedBox(height: 10),
-          _buildControlButton(
-            context: context,
-            icon: Icons.add_rounded,
-            tooltip: tr(LocaleKeys.map_zoom_in),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              onZoomIn();
-            },
-          ),
-          const SizedBox(height: 8),
-          _buildControlButton(
-            context: context,
-            icon: Icons.remove_rounded,
-            tooltip: tr(LocaleKeys.map_zoom_out),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              onZoomOut();
-            },
+          // Compact Zoom Pill
+          Container(
+            width: 44,
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: colorScheme.outline.withAlpha(50),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.add_rounded,
+                      color: colorScheme.onSurface, size: 20),
+                  tooltip: tr(LocaleKeys.map_zoom_in),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onZoomIn();
+                  },
+                  padding: EdgeInsets.zero,
+                ),
+                Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  color: colorScheme.outline.withAlpha(80),
+                ),
+                IconButton(
+                  icon: Icon(Icons.remove_rounded,
+                      color: colorScheme.onSurface, size: 20),
+                  tooltip: tr(LocaleKeys.map_zoom_out),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onZoomOut();
+                  },
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           FloatingActionButton(
@@ -84,9 +116,9 @@ class MapControls extends StatelessWidget {
               HapticFeedback.mediumImpact();
               onLocateMe();
             },
-            backgroundColor: style.colorScheme.surface,
-            foregroundColor: AppColors.googleBlue,
-            elevation: 4,
+            backgroundColor: colorScheme.surface,
+            foregroundColor: colorScheme.primary,
+            elevation: 3,
             shape: const CircleBorder(),
             child: const Icon(Icons.my_location_rounded, size: 24),
           ),
@@ -101,23 +133,27 @@ class MapControls extends StatelessWidget {
     required String tooltip,
     required VoidCallback onPressed,
   }) {
-    final style = AppStyle.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: style.colorScheme.surface,
+        color: colorScheme.surface,
         shape: BoxShape.circle,
-        boxShadow: const [
+        border: Border.all(
+          color: colorScheme.outline.withAlpha(50),
+          width: 0.5,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.08),
+            color: colorScheme.shadow.withValues(alpha: 0.15),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: IconButton(
-        icon: Icon(icon, color: style.blackTextColor, size: 20),
+        icon: Icon(icon, color: colorScheme.onSurface, size: 20),
         tooltip: tooltip,
         onPressed: onPressed,
         padding: EdgeInsets.zero,

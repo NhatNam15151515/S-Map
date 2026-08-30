@@ -3,14 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/stats/widgets/widgets.dart';
 
 class StatsScreen extends StatefulWidget {
-  static const String path = AppRoutes.stats;
   final RouteProfileCubit? cubit;
 
   const StatsScreen({
@@ -47,46 +46,44 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Future<void> _showClearAllDialog(BuildContext context) async {
+    final colorScheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        backgroundColor: colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           tr(LocaleKeys.stats_dashboard_clear_all_title),
-          style: const TextStyle(
-            fontFamily: 'Montserrat',
-            fontWeight: FontWeight.w700,
+          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
             fontSize: 16,
-            color: AppColors.onSurface,
           ),
         ),
         content: Text(
           tr(LocaleKeys.stats_dashboard_clear_all_desc),
-          style: const TextStyle(
-            fontFamily: 'Montserrat',
+          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
             fontSize: 13,
-            color: AppColors.onSurfaceVariant,
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
+            onPressed: () => dialogContext.safePop(false),
             child: Text(
               tr(LocaleKeys.cancel),
-              style: const TextStyle(fontFamily: 'Montserrat', color: AppColors.onSurfaceVariant),
+              style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
             ),
           ),
           ElevatedButton(
             key: const Key('confirm_clear_all_btn'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => dialogContext.safePop(true),
             child: Text(
               tr(LocaleKeys.stats_dashboard_clear_all_btn),
-              style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w600),
+              style: colorScheme.onError.textTheme.semiBoldStyle,
             ),
           ),
         ],
@@ -103,7 +100,6 @@ class _StatsScreenState extends State<StatsScreen> {
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
-        backgroundColor: AppColors.surfaceDim,
         appBar: TitleAppBar(
           title: tr(LocaleKeys.stats_dashboard_title),
           rightWidget: IconButton(
@@ -123,7 +119,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   content: Text(
                     state.errorMessage ?? tr(LocaleKeys.common_error),
                   ),
-                  backgroundColor: AppColors.error,
+                  backgroundColor: Theme.of(context).colorScheme.error,
                 ),
               );
             }
@@ -154,7 +150,8 @@ class _StatsScreenState extends State<StatsScreen> {
                       StatsVehicleFilterChips(
                         selectedProfile: state.profileFilter,
                         profileCounts: state.stats.tripsByProfile,
-                        onProfileSelected: (profile) => _cubit.setProfileFilter(profile),
+                        onProfileSelected: (profile) =>
+                            _cubit.setProfileFilter(profile),
                       ),
 
                       const SizedBox(height: 8),

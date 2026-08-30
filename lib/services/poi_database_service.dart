@@ -60,7 +60,13 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
     String dbPath = customPath ?? '';
     if (dbPath.isEmpty) {
       final appDir = await getApplicationDocumentsDirectory();
-      dbPath = p.join(appDir.path, 'poi.db');
+      final downloadedVietnamDb =
+          File(p.join(appDir.path, 'regions', 'vietnam', 'vietnam_poi.db'));
+      if (await downloadedVietnamDb.exists()) {
+        dbPath = downloadedVietnamDb.path;
+      } else {
+        dbPath = p.join(appDir.path, 'poi.db');
+      }
     }
 
     final file = File(dbPath);

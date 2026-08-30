@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/route_format_helper.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -15,8 +15,11 @@ class StatsSummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
     final durationStr = stats.totalDurationMs > 0
-        ? RouteFormatHelper.formatTripDuration(Duration(milliseconds: stats.totalDurationMs))
+        ? RouteFormatHelper.formatTripDuration(
+            Duration(milliseconds: stats.totalDurationMs))
         : '0 ${tr(LocaleKeys.routing_unit_minute)}';
 
     return Padding(
@@ -29,8 +32,8 @@ class StatsSummaryCards extends StatelessWidget {
                 child: _KpiCard(
                   key: const Key('kpi_card_distance'),
                   icon: Icons.route_rounded,
-                  iconColor: AppColors.sMapDarkTeal,
-                  backgroundColor: AppColors.sMapTeal.withValues(alpha: 0.08),
+                  iconColor: colorScheme.primary,
+                  backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
                   title: tr(LocaleKeys.stats_dashboard_kpi_total_distance),
                   value: stats.totalDistanceKm.toStringAsFixed(1),
                   unit: 'km',
@@ -41,8 +44,9 @@ class StatsSummaryCards extends StatelessWidget {
                 child: _KpiCard(
                   key: const Key('kpi_card_duration'),
                   icon: Icons.schedule_rounded,
-                  iconColor: const Color(0xFFE65100), // Amber-orange
-                  backgroundColor: const Color(0xFFFFF3E0),
+                  iconColor: themeColors.statsOrange,
+                  backgroundColor:
+                      themeColors.statsOrange.withValues(alpha: 0.12),
                   title: tr(LocaleKeys.stats_dashboard_kpi_total_duration),
                   value: durationStr,
                 ),
@@ -56,8 +60,9 @@ class StatsSummaryCards extends StatelessWidget {
                 child: _KpiCard(
                   key: const Key('kpi_card_trips'),
                   icon: Icons.flag_rounded,
-                  iconColor: const Color(0xFF2E7D32), // Green
-                  backgroundColor: const Color(0xFFE8F5E9),
+                  iconColor: themeColors.statsSuccess,
+                  backgroundColor:
+                      themeColors.statsSuccess.withValues(alpha: 0.12),
                   title: tr(LocaleKeys.stats_dashboard_kpi_total_trips),
                   value: '${stats.totalTrips}',
                   subtitle: tr(
@@ -71,12 +76,14 @@ class StatsSummaryCards extends StatelessWidget {
                 child: _KpiCard(
                   key: const Key('kpi_card_speed'),
                   icon: Icons.speed_rounded,
-                  iconColor: const Color(0xFF1565C0), // Blue
-                  backgroundColor: const Color(0xFFE3F2FD),
+                  iconColor: themeColors.statsBlue,
+                  backgroundColor:
+                      themeColors.statsBlue.withValues(alpha: 0.12),
                   title: tr(LocaleKeys.stats_dashboard_kpi_avg_speed),
                   value: '${stats.avgSpeedKmh.round()}',
                   unit: 'km/h',
-                  subtitle: '${tr(LocaleKeys.stats_dashboard_kpi_top_speed)}: ${stats.topSpeedKmh.round()} km/h',
+                  subtitle:
+                      '${tr(LocaleKeys.stats_dashboard_kpi_top_speed)}: ${tr(LocaleKeys.stats_dashboard_speed_unit, args: ['${stats.topSpeedKmh.round()}'])}',
                 ),
               ),
             ],
@@ -109,18 +116,20 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outline.withValues(alpha: 0.08),
+          color: colorScheme.outline.withValues(alpha: 0.12),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: colorScheme.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -149,11 +158,8 @@ class _KpiCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             title,
-            style: const TextStyle(
-              fontFamily: 'Montserrat',
+            style: colorScheme.onSurfaceVariant.textTheme.captionStyle.copyWith(
               fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: AppColors.onSurfaceVariant,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -166,11 +172,8 @@ class _KpiCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   value,
-                  style: const TextStyle(
-                    fontFamily: 'Montserrat',
+                  style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -180,11 +183,8 @@ class _KpiCard extends StatelessWidget {
                 const SizedBox(width: 3),
                 Text(
                   unit!,
-                  style: const TextStyle(
-                    fontFamily: 'Montserrat',
+                  style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -194,11 +194,8 @@ class _KpiCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: TextStyle(
-                fontFamily: 'Montserrat',
+              style: iconColor.textTheme.captionStyle.copyWith(
                 fontSize: 10,
-                fontWeight: FontWeight.w500,
-                color: iconColor,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

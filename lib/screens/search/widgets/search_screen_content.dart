@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 import 'search_input_field.dart';
@@ -91,7 +90,6 @@ class _SearchScreenContentState extends State<SearchScreenContent>
     final searchCubit = context.read<SearchCubit>();
 
     return Scaffold(
-      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -118,7 +116,9 @@ class _SearchScreenContentState extends State<SearchScreenContent>
                 listener: (context, state) {
                   final submitted = _submittedQuery;
                   _submittedQuery = null;
-                  if (state.isSuccess && state.results.isNotEmpty && submitted != null) {
+                  if (state.isSuccess &&
+                      state.results.isNotEmpty &&
+                      submitted != null) {
                     context.pop(
                       SearchResultPayload.all(
                         allResults: state.results,

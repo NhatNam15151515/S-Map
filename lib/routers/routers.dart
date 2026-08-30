@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
-import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/constants.dart';
@@ -89,7 +88,12 @@ class Routes extends NavigatorObserver {
         ),
         GoRoute(
           path: AppRoutes.routeDrawing,
-          builder: (context, state) => const RouteDrawingScreen(),
+          builder: (context, state) {
+            final payload = state.extra is RouteDrawingPayload
+                ? state.extra as RouteDrawingPayload
+                : null;
+            return RouteDrawingScreen(payload: payload);
+          },
         ),
         GoRoute(
           path: AppRoutes.stats,
@@ -165,45 +169,66 @@ class Routes extends NavigatorObserver {
     );
   }
 
+  StreamSubscription<AuthState>? _authSubscription;
+
   void applyWithAuthState(AuthCubit authCubit) {
-    authCubit.stream.listen((event) async {
+    _authSubscription?.cancel();
+
+    void handleState(AuthState event) async {
       await routeMounted.future;
-      switch (event.type) {
+      final currentState = authCubit.state;
+      if (currentState.type != event.type) return;
+
+      final ctx = rootNavigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+
+      switch (currentState.type) {
         case AuthStateType.unAuthenticated:
-          if (context.mounted) context.go(AppRoutes.login);
+          ctx.go(AppRoutes.login);
           break;
         case AuthStateType.onboarding:
-          if (context.mounted) context.go(AppRoutes.onboarding);
+          ctx.go(AppRoutes.onboarding);
           break;
         case AuthStateType.authenticated:
-          if (context.mounted) context.go(AppRoutes.home);
+          ctx.go(AppRoutes.home);
           break;
         default:
           break;
       }
-    });
+    }
+
+    if (!authCubit.state.isInitial) {
+      handleState(authCubit.state);
+    }
+    _authSubscription = authCubit.stream.listen(handleState);
   }
 
   OverlayState? get _appOverlayState => rootNavigatorKey.currentState?.overlay;
 
-  AppStyle get styles => AppStyle.of(context);
-
   OverlayEntry showLoadingOverlay() {
     OverlayEntry overlayEntry = OverlayEntry(builder: (context) {
+      final colorScheme = Theme.of(context).colorScheme;
       return Container(
-        color: Colors.transparent,
+        color: colorScheme.shadow.withValues(alpha: 0.2),
         alignment: Alignment.center,
         child: Container(
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.12),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Shimmer.fromColors(
-            baseColor: AppColors.white,
-            highlightColor: AppColors.white,
+            baseColor: colorScheme.primary,
+            highlightColor: colorScheme.primary.withValues(alpha: 0.4),
             child: AppAsset.logo.image.build(
-              size: const Size(35, 35),
-              // color: _styles.whiteColor,
+              size: const Size(40, 40),
             ),
           ),
         ),

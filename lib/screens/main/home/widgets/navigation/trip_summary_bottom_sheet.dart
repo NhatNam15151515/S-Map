@@ -18,7 +18,8 @@ class TripSummaryBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
 
     final title = summary.hasArrived
         ? tr(LocaleKeys.routing_trip_completed_title)
@@ -36,9 +37,9 @@ class TripSummaryBottomSheet extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -53,7 +54,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
+                  color: colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -66,9 +67,10 @@ class TripSummaryBottomSheet extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: summary.hasArrived
-                        ? AppColors.navAccentGreen.withAlpha(30)
-                        : AppColors.bleuDeFrance.withAlpha(30),
+                    color: (summary.hasArrived
+                            ? themeColors.statsSuccess
+                            : colorScheme.primary)
+                        .withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -76,8 +78,8 @@ class TripSummaryBottomSheet extends StatelessWidget {
                         ? Icons.emoji_events_rounded
                         : Icons.check_circle_rounded,
                     color: summary.hasArrived
-                        ? AppColors.navAccentGreen
-                        : AppColors.bleuDeFrance,
+                        ? themeColors.statsSuccess
+                        : colorScheme.primary,
                     size: 26,
                   ),
                 ),
@@ -88,10 +90,8 @@ class TripSummaryBottomSheet extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style:
-                            style.blackTextColor.textTheme.boldStyle.copyWith(
+                        style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                           fontSize: 18,
-                          color: AppColors.googleDarkText,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -99,10 +99,8 @@ class TripSummaryBottomSheet extends StatelessWidget {
                         destination,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            style.blackTextColor.textTheme.mediumStyle.copyWith(
+                        style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                           fontSize: 14,
-                          color: AppColors.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -120,7 +118,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                     icon: Icons.timer_outlined,
                     label: tr(LocaleKeys.routing_trip_duration),
                     value: durationStr,
-                    color: AppColors.bleuDeFrance,
+                    color: themeColors.statsBlue,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -129,7 +127,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                     icon: Icons.straighten_rounded,
                     label: tr(LocaleKeys.routing_trip_distance),
                     value: distanceStr,
-                    color: AppColors.macaw,
+                    color: themeColors.statsOrange,
                   ),
                 ),
               ],
@@ -142,7 +140,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                     icon: Icons.speed_rounded,
                     label: tr(LocaleKeys.routing_avg_speed),
                     value: avgSpeedStr,
-                    color: AppColors.navAccentGreen,
+                    color: themeColors.statsSuccess,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -151,7 +149,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
                     icon: Icons.bolt_rounded,
                     label: tr(LocaleKeys.routing_max_speed),
                     value: topSpeedStr,
-                    color: AppColors.constructionZone,
+                    color: themeColors.statsPink,
                   ),
                 ),
               ],
@@ -162,8 +160,8 @@ class TripSummaryBottomSheet extends StatelessWidget {
             ElevatedButton(
               onPressed: onDone,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.bleuDeFrance,
-                foregroundColor: AppColors.white,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -172,7 +170,7 @@ class TripSummaryBottomSheet extends StatelessWidget {
               ),
               child: Text(
                 tr(LocaleKeys.routing_done),
-                style: style.whiteTextColor.textTheme.boldStyle.copyWith(
+                style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
                   fontSize: 16,
                 ),
               ),
@@ -199,15 +197,15 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: AppColors.outlineVariant.withAlpha(80),
+          color: colorScheme.outline.withValues(alpha: 0.2),
           width: 0.8,
         ),
       ),
@@ -223,9 +221,8 @@ class _StatCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: style.blackTextColor.textTheme.mediumStyle.copyWith(
+                  style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                     fontSize: 11,
-                    color: AppColors.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -236,9 +233,8 @@ class _StatCard extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: style.blackTextColor.textTheme.boldStyle.copyWith(
+            style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
               fontSize: 15,
-              color: AppColors.googleDarkText,
             ),
           ),
         ],

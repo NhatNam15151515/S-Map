@@ -41,9 +41,7 @@ class AuthCubit extends Cubit<AuthState> {
         _analyticsService = analyticsService ??
             defaultAnalyticsService ??
             NoOpAnalyticsService(),
-        super(const AuthState()) {
-    onAppStarted();
-  }
+        super(const AuthState());
 
   User get currentProfile {
     return state.loggedInProfile ?? User.getInit(init: true);
@@ -68,11 +66,25 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (isClosed) return;
 
-    final authToken = await _secureStorage.getStoredAuthToken();
+    // 1. Đọc profile người dùng đã lưu từ SecureStorage
+    User? profile = await _secureStorage.getStoredProfile();
     if (isClosed) return;
-    final profile = await _secureStorage.getStoredProfile();
 
-    if (authToken != null && profile != null) {
+    // 2. Nếu SecureStorage chưa có, kiểm tra phiên đăng nhập từ Firebase
+    if (profile == null) {
+      try {
+        final fbProfile = await _authRepos.getProfile();
+        if (isClosed) return;
+        if (fbProfile != null &&
+            (fbProfile.id != null || fbProfile.username != null)) {
+          profile = fbProfile;
+        }
+      } catch (e) {
+        DLog.error('Lỗi khôi phục phiên người dùng: $e');
+      }
+    }
+
+    if (profile != null) {
       if (isClosed) return;
       final reqAuth = await _secureStorage.getReqAuth();
       if (isClosed) return;
@@ -92,7 +104,10 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> onAuthenticated(User user) async {
+    final token = user.id ?? 'token_${DateTime.now().millisecondsSinceEpoch}';
+    await _secureStorage.saveAuthToken(token);
     await _secureStorage.saveProfile(user);
+    if (isClosed) return;
     emit(state.copyWith(
       type: AuthStateType.authenticated,
       loggedInProfile: user,
@@ -205,7 +220,7 @@ class AuthCubit extends Cubit<AuthState> {
     await _analyticsService.resetUserDetail(profile: currentProfile);
   }
 
-  void onLogout({bool requestLogout = true}) async {
+  Future<void> onLogout({bool requestLogout = true}) async {
     emit(const AuthState(type: AuthStateType.unAuthenticated));
     await _secureStorage.onLogOutClear();
     if (requestLogout) await _requestLogout();

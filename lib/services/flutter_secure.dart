@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import '../models/user.dart';
 
@@ -9,6 +10,7 @@ class AppSecureStorage implements ISecureStorage {
   static const FlutterSecureStorage repos = FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
+      resetOnError: true,
     ),
   );
 
@@ -23,49 +25,77 @@ class AppSecureStorage implements ISecureStorage {
 
   @override
   Future<void> saveAuthToken(String token) async {
-    await repos.write(key: appAccessToken, value: token);
+    try {
+      await repos.write(key: appAccessToken, value: token);
+    } catch (e) {
+      DLog.error("AppSecureStorage saveAuthToken error: $e");
+    }
   }
 
   @override
   Future<String?> getStoredAuthToken() async {
-    final token = await repos.read(key: appAccessToken);
-    return token;
+    try {
+      final token = await repos.read(key: appAccessToken);
+      return token;
+    } catch (e) {
+      DLog.error("AppSecureStorage getStoredAuthToken error: $e");
+      return null;
+    }
   }
 
   @override
   Future<void> saveProfile(User user) async {
-    await repos.write(key: loggedInProfile, value: jsonEncode(user.toJson()));
+    try {
+      await repos.write(key: loggedInProfile, value: jsonEncode(user.toJson()));
+    } catch (e) {
+      DLog.error("AppSecureStorage saveProfile error: $e");
+    }
   }
 
   @override
   Future<User?> getStoredProfile() async {
-    final rawProfile = await repos.read(key: loggedInProfile);
-    if (rawProfile != null) {
-      try {
+    try {
+      final rawProfile = await repos.read(key: loggedInProfile);
+      if (rawProfile != null && rawProfile.isNotEmpty) {
         return User.fromJson(jsonDecode(rawProfile));
-      } catch (_) {}
+      }
+    } catch (e) {
+      DLog.error("AppSecureStorage getStoredProfile error: $e");
     }
     return null;
   }
 
   @override
   Future<void> saveReqAuth(bool value) async {
-    await repos.write(key: requestLocalAuth, value: value ? "1" : "0");
+    try {
+      await repos.write(key: requestLocalAuth, value: value ? "1" : "0");
+    } catch (e) {
+      DLog.error("AppSecureStorage saveReqAuth error: $e");
+    }
   }
 
   @override
   Future<bool> getReqAuth() async {
-    final raw = await repos.read(key: requestLocalAuth);
-    return raw == "1";
+    try {
+      final raw = await repos.read(key: requestLocalAuth);
+      return raw == "1";
+    } catch (e) {
+      DLog.error("AppSecureStorage getReqAuth error: $e");
+      return false;
+    }
   }
 
   @override
-  Future<void> onLogOutClear() {
-    return Future.wait([
-      repos.delete(key: appAccessToken),
-      repos.delete(key: loggedInProfile),
-      repos.delete(key: requestLocalAuth),
-    ]);
+  Future<void> onLogOutClear() async {
+    try {
+      await Future.wait([
+        repos.delete(key: appAccessToken),
+        repos.delete(key: loggedInProfile),
+        repos.delete(key: requestLocalAuth),
+      ]);
+    } catch (e) {
+      DLog.error("AppSecureStorage onLogOutClear error: $e");
+    }
   }
 }
 

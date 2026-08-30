@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/notification/widgets/widgets.dart';
@@ -26,7 +26,6 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   void initState() {
     super.initState();
-
 
     _systemScrollController.addListener(() {
       if (_systemScrollController.position.pixels >=
@@ -55,6 +54,8 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Scaffold(
       appBar: TitleAppBar(
         title: tr(LocaleKeys.notification),
@@ -90,7 +91,7 @@ class _NotificationScreenState extends State<NotificationScreen>
 
                 if (items.isEmpty) {
                   return RefreshIndicator(
-                    color: AppColors.sMapTeal,
+                    color: colorScheme.primary,
                     onRefresh: () => notiCubit.refresh(filterPicked),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -107,7 +108,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                 }
 
                 return RefreshIndicator(
-                  color: AppColors.sMapTeal,
+                  color: colorScheme.primary,
                   onRefresh: () => notiCubit.refresh(filterPicked),
                   child: MediaQuery.removePadding(
                     context: context,

@@ -187,7 +187,16 @@ class AppColors {
   static const darkSurfaceContainer = Color(0xFF242424);
   static const darkSurfaceContainerHighest = Color(0xFF2D2D2D);
   static const darkOnSurface = Color(0xFFE8EAED);
+  static const darkOnSurfaceVariant = Color(0xFF9AA0A6);
   static const darkOutline = Color(0xFF3C4043);
+  static const darkOutlineVariant = Color(0xFF3C4043);
+  static const darkUnselected = Color(0xFF9AA0A6);
+  static const darkGrey1 = Color(0xFF9AA0A6);
+  static const darkGrey2 = Color(0xFF80868B);
+  static const darkGrey3 = Color(0xFF5F6368);
+  static const darkGrey4 = Color(0xFF3C4043);
+  static const darkGrey5 = Color(0xFF202124);
+
 
   // Map Symbol & Route Colors
   static const mapSymbolText = Color(0xFF0F172A);
@@ -202,7 +211,25 @@ class AppColors {
   static const navAccentGreen = Color(0xFF1E8E3E);
   static const navAlertRed = Color(0xFFD93025);
   static const navCardBorder = Color(0xFF3C4043);
+
+  // Stats Dashboard Indicator Colors
+  static const statsOrange = Color(0xFFE65100);
+  static const statsBlue = Color(0xFF1565C0);
+  static const statsPink = Color(0xFFC2185B);
+  static const statsSuccess = Color(0xFF2E7D32);
+  static const statsSuccessBg = Color(0xFFE8F5E9);
+  static const statsWarningBg = Color(0xFFFFF8E1);
+
+  // Dark Theme Indicator Colors
+  static const darkStatsOrange = Color(0xFFFFB74D);
+  static const darkStatsBlue = Color(0xFF64B5F6);
+  static const darkStatsPink = Color(0xFFF06292);
+  static const darkStatsSuccess = Color(0xFF81C784);
+  static const darkStatsSuccessBg = Color(0xFF1B5E20);
+  static const darkWarning = Color(0xFFFFD54F);
+  static const darkWarningBg = Color(0xFF5D4037);
 }
+
 
 extension ColorExtension on Color {
   TextStyle get toTextStyle => TextStyle(color: this);

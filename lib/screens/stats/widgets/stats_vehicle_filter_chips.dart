@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class StatsVehicleFilterChips extends StatelessWidget {
@@ -33,11 +32,29 @@ class StatsVehicleFilterChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     final filters = [
-      (null, tr(LocaleKeys.stats_dashboard_filter_all), Icons.all_inclusive_rounded),
-      ('motorcycle', tr(LocaleKeys.stats_dashboard_filter_motorcycle), Icons.two_wheeler_rounded),
-      ('car', tr(LocaleKeys.stats_dashboard_filter_car), Icons.directions_car_rounded),
-      ('walking', tr(LocaleKeys.stats_dashboard_filter_walking), Icons.directions_walk_rounded),
+      (
+        null,
+        tr(LocaleKeys.stats_dashboard_filter_all),
+        Icons.all_inclusive_rounded
+      ),
+      (
+        'motorcycle',
+        tr(LocaleKeys.stats_dashboard_filter_motorcycle),
+        Icons.two_wheeler_rounded
+      ),
+      (
+        'car',
+        tr(LocaleKeys.stats_dashboard_filter_car),
+        Icons.directions_car_rounded
+      ),
+      (
+        'walking',
+        tr(LocaleKeys.stats_dashboard_filter_walking),
+        Icons.directions_walk_rounded
+      ),
     ];
 
     return SingleChildScrollView(
@@ -51,8 +68,10 @@ class StatsVehicleFilterChips extends StatelessWidget {
           final isSelected = profile == selectedProfile;
           final count = _getCountForProfile(profile);
 
-          final textColor = isSelected ? AppColors.white : AppColors.onSurface;
-          final badgeColor = isSelected ? AppColors.white : AppColors.sMapDarkTeal;
+          final textColor =
+              isSelected ? colorScheme.onPrimary : colorScheme.onSurface;
+          final iconColor =
+              isSelected ? colorScheme.onPrimary : colorScheme.primary;
 
           return Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -61,45 +80,46 @@ class StatsVehicleFilterChips extends StatelessWidget {
               avatar: Icon(
                 icon,
                 size: 16,
-                color: isSelected ? AppColors.white : AppColors.sMapDarkTeal,
+                color: iconColor,
               ),
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     label,
-                    style: textColor.textTheme.regularStyle.copyWith(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    ),
+                    style: isSelected
+                        ? textColor.textTheme.semiBoldStyle.copyWith(fontSize: 12)
+                        : textColor.textTheme.mediumStyle.copyWith(fontSize: 12),
                   ),
                   if (count > 0) ...[
                     const SizedBox(width: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.white.withValues(alpha: 0.25)
-                            : AppColors.sMapDarkTeal.withValues(alpha: 0.12),
+                            ? colorScheme.onPrimary.withValues(alpha: 0.25)
+                            : colorScheme.primary.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         '$count',
-                        style: badgeColor.textTheme.boldStyle.copyWith(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: isSelected
+                            ? colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(fontSize: 10)
+                            : colorScheme.primary.textTheme.semiBoldStyle.copyWith(fontSize: 10),
                       ),
                     ),
                   ],
                 ],
               ),
               selected: isSelected,
-              selectedColor: AppColors.sMapTeal,
-              backgroundColor: AppColors.surface,
+              selectedColor: colorScheme.primary,
+              backgroundColor: colorScheme.surface,
               showCheckmark: false,
               side: BorderSide(
-                color: isSelected ? AppColors.sMapTeal : AppColors.outline.withValues(alpha: 0.15),
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.outline.withValues(alpha: 0.2),
                 width: 1,
               ),
               shape: RoundedRectangleBorder(

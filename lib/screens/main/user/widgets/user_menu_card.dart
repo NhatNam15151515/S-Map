@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 
 class UserMenuTile extends StatelessWidget {
   final IconData icon;
@@ -18,8 +17,9 @@ class UserMenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
     final color =
-        isDestructive ? AppColors.googleRed : AppColors.googleDarkText;
+        isDestructive ? colorScheme.error : colorScheme.onSurface;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -32,16 +32,14 @@ class UserMenuTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color:
-                      (isDestructive ? AppColors.googleRed : AppColors.sMapTeal)
-                          .withAlpha(15),
+                  color: (isDestructive ? colorScheme.error : colorScheme.primary)
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color:
-                      isDestructive ? AppColors.googleRed : AppColors.sMapTeal,
+                  color: isDestructive ? colorScheme.error : colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 16),
@@ -52,9 +50,9 @@ class UserMenuTile extends StatelessWidget {
                 ),
               ),
               if (!isDestructive)
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
             ],
@@ -75,11 +73,16 @@ class UserMenuCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outline.withAlpha(50),
+          width: 0.5,
+        ),
       ),
       child: Column(
         children: children,

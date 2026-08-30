@@ -10,31 +10,47 @@ import 'package:s_map/models/models.dart';
 
 class PoiQuickCard extends StatelessWidget {
   final PoiModel poi;
+  final LatLng? userLocation;
   final VoidCallback onClose;
   final VoidCallback? onDirections;
+  final VoidCallback? onCustomRoute;
 
   const PoiQuickCard({
     super.key,
     required this.poi,
+    this.userLocation,
     required this.onClose,
     this.onDirections,
+    this.onCustomRoute,
   });
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    if (userLocation != null) {
+      return _buildCard(context, userLocation);
+    }
+
+    return BlocBuilder<MapDisplayCubit, MapDisplayState>(
+      buildWhen: (prev, curr) => prev.currentPosition != curr.currentPosition,
+      builder: (context, state) {
+        return _buildCard(context, state.currentPosition);
+      },
+    );
+  }
+
+  Widget _buildCard(BuildContext context, LatLng? effectiveLocation) {
+    final colorScheme = context.colorScheme;
     final icon = PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
     final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);
     final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
+    final categoryLabel = tr(PoiCategoryHelper.getCategoryLocaleKey(poi.category));
     final address = PoiCategoryHelper.formatAddress(poi);
-    final userLocation = context.select<MapDisplayCubit, LatLng?>(
-      (c) => c.state.currentPosition,
-    );
+
     String subtitleText = address;
-    if (userLocation != null) {
+    if (effectiveLocation != null) {
       final distKm = AppUtils.instance.calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
+        effectiveLocation.latitude,
+        effectiveLocation.longitude,
         poi.lat,
         poi.lon,
       );
@@ -42,27 +58,21 @@ class PoiQuickCard extends StatelessWidget {
       subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
     }
 
-    // Category label: ưu tiên subCategory, fallback category
-    final rawCat = poi.subCategory ?? poi.category ?? '';
-    final categoryLabel = rawCat.trim().isNotEmpty
-        ? rawCat.trim()[0].toUpperCase() + rawCat.trim().substring(1)
-        : '';
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outlineVariant.withAlpha(100),
+          color: colorScheme.outline.withAlpha(80),
           width: 0.8,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.12),
+            color: colorScheme.shadow.withValues(alpha: 0.12),
             blurRadius: 16,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -77,9 +87,13 @@ class PoiQuickCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: bgColor,
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: iconColor, size: 24),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -88,9 +102,8 @@ class PoiQuickCard extends StatelessWidget {
                   children: [
                     Text(
                       poi.name,
-                      style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                      style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
                         fontSize: 16,
-                        color: AppColors.googleDarkText,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -99,9 +112,8 @@ class PoiQuickCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         categoryLabel,
-                        style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                        style: colorScheme.primary.textTheme.mediumStyle.copyWith(
                           fontSize: 12,
-                          fontWeight: AppFontWeight.regular.weight,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -111,7 +123,7 @@ class PoiQuickCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitleText,
-                        style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                        style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                           fontSize: 13,
                           fontWeight: AppFontWeight.regular.weight,
                         ),
@@ -135,8 +147,8 @@ class PoiQuickCard extends StatelessWidget {
                           : Icons.bookmark_outline_rounded,
                       size: 22,
                       color: isFav
-                          ? AppColors.sMapTeal
-                          : AppColors.onSurfaceVariant,
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
                     ),
                     onPressed: () => cubit.toggleFavorite(poi),
                     tooltip: tr(LocaleKeys.savedPlaces),
@@ -144,47 +156,78 @@ class PoiQuickCard extends StatelessWidget {
                 },
               ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
                   size: 20,
-                  color: AppColors.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 onPressed: onClose,
                 tooltip: tr(LocaleKeys.cancel),
               ),
             ],
           ),
-          if (onDirections != null) ...[
+          if (onDirections != null || onCustomRoute != null) ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onDirections,
-                    icon: const Icon(
-                      Icons.directions_rounded,
-                      size: 18,
-                      color: AppColors.white,
-                    ),
-                    label: Text(
-                      tr(LocaleKeys.directions),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.white,
+                if (onDirections != null)
+                  Expanded(
+                    flex: 5,
+                    child: ElevatedButton.icon(
+                      onPressed: onDirections,
+                      icon: Icon(
+                        Icons.directions_rounded,
+                        size: 18,
+                        color: colorScheme.onPrimary,
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.sMapTeal,
-                      foregroundColor: AppColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      label: Text(
+                        tr(LocaleKeys.directions),
+                        style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
+                          fontSize: 14,
+                        ),
                       ),
-                      elevation: 0,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
                     ),
                   ),
-                ),
+                if (onDirections != null && onCustomRoute != null)
+                  const SizedBox(width: 8),
+                if (onCustomRoute != null)
+                  Expanded(
+                    flex: 4,
+                    child: OutlinedButton.icon(
+                      onPressed: onCustomRoute,
+                      icon: Icon(
+                        Icons.gesture_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      label: Text(
+                        tr(LocaleKeys.route_drawing_ui_custom_route_drawing),
+                        style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.primary,
+                        side: BorderSide(
+                          color: colorScheme.primary.withAlpha(120),
+                          width: 1.2,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],

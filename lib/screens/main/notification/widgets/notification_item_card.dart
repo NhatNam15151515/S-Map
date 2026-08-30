@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/models/models.dart';
 
 class NotificationItemCard extends StatelessWidget {
@@ -15,12 +14,14 @@ class NotificationItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.outlineVariant.withAlpha(128),
+          color: colorScheme.outline.withAlpha(50),
           width: 0.5,
         ),
       ),
@@ -38,21 +39,20 @@ class NotificationItemCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.sMapLightTeal,
+                    color: colorScheme.primary.withAlpha(35),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.notifications_rounded,
                     size: 20,
-                    color: AppColors.sMapTeal,
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     "${item.content}",
-                    style:
-                        AppColors.googleDarkText.textTheme.textStyle.copyWith(
+                    style: colorScheme.onSurface.textTheme.textStyle.copyWith(
                       fontSize: 14,
                       height: 1.4,
                     ),

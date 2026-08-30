@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/validators/validators.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -22,6 +21,8 @@ class LoginFormWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -61,25 +62,25 @@ class LoginFormWidget extends StatelessWidget {
                     if (res) onLogin();
                   },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.sMapTeal,
-              foregroundColor: AppColors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(25),
               ),
               elevation: 0,
             ),
             child: isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
                     ),
                   )
                 : Text(
                     tr(LocaleKeys.login),
-                    style: AppColors.white.textTheme.subTitleStyle.copyWith(
+                    style: colorScheme.onPrimary.textTheme.subTitleStyle.copyWith(
                       fontSize: 16,
                     ),
                   ),

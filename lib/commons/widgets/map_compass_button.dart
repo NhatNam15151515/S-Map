@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/styles/styles.dart';
 
 class MapCompassButton extends StatelessWidget {
   final double rotation;
@@ -18,21 +18,22 @@ class MapCompassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isHeadingUp = orientationMode == MapOrientationMode.headingUp;
+    final colorScheme = context.colorScheme;
 
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: colorScheme.surface,
         shape: BoxShape.circle,
         border: isHeadingUp
-            ? Border.all(color: AppColors.googleBlue, width: 2)
+            ? Border.all(color: colorScheme.primary, width: 2)
             : null,
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.12),
+            color: colorScheme.shadow.withValues(alpha: 0.12),
             blurRadius: 6,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -52,8 +53,8 @@ class MapCompassButton extends StatelessWidget {
                     Icons.navigation_rounded,
                     size: 22,
                     color: isHeadingUp
-                        ? AppColors.googleBlue
-                        : AppColors.googleRed,
+                        ? colorScheme.primary
+                        : colorScheme.error,
                   ),
                 ],
               ),

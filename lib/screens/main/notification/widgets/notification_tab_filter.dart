@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/models/models.dart';
 
 class NotificationTabFilter extends StatelessWidget {
@@ -14,11 +14,18 @@ class NotificationTabFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: NotificationTab.values.map((e) {
           final picked = selectedTab == e;
+          final labelColor = picked ? colorScheme.primary : colorScheme.onSurfaceVariant;
+          final textStyle = picked
+              ? labelColor.textTheme.semiBoldStyle.copyWith(fontSize: 13)
+              : labelColor.textTheme.regularStyle.copyWith(fontSize: 13);
+
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
@@ -28,19 +35,18 @@ class NotificationTabFilter extends StatelessWidget {
               },
               label: Text(
                 e.title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: picked ? FontWeight.w600 : FontWeight.w400,
-                  color: picked
-                      ? AppColors.sMapDarkTeal
-                      : AppColors.onSurfaceVariant,
-                ),
+                style: textStyle,
               ),
-              selectedColor: AppColors.sMapLightTeal,
-              backgroundColor: AppColors.surfaceContainer,
+              selectedColor: colorScheme.primary.withAlpha(35),
+              backgroundColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide.none,
+                side: BorderSide(
+                  color: picked
+                      ? colorScheme.primary
+                      : colorScheme.outline.withAlpha(50),
+                  width: 0.5,
+                ),
               ),
               showCheckmark: false,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

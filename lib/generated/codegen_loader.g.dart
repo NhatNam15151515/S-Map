@@ -294,8 +294,14 @@ class CodegenLoader extends AssetLoader{
     "trip_deleted_success": "Trip deleted successfully",
     "all_trips_cleared_success": "All trip history cleared",
     "invalid_trip_data": "Invalid trip data",
-    "speed_unit": "{} km/h"
+    "speed_unit": "{} km/h",
+    "distance_value": "{} km",
+    "avg_speed_value": "{} km/h",
+    "top_speed_value": "{} km/h"
   },
+  "auth_guest_name": "Guest_{}",
+  "offline_maps_vietnam_name": "Vietnam Nationwide Map",
+  "offline_maps_vietnam_desc": "Offline map, search & routing data for all 63 provinces",
   "offline_maps_title": "Offline Maps",
   "offline_maps_subtitle": "Manage downloaded data for offline navigation",
   "offline_maps_storage_used": "Storage Used",
@@ -313,7 +319,20 @@ class CodegenLoader extends AssetLoader{
   "offline_maps_delete_success": "Region data deleted successfully",
   "offline_maps_download_success": "Region data downloaded successfully",
   "offline_maps_error": "An error occurred while processing offline map data",
-  "offline_maps_cancel_btn": "Cancel"
+  "offline_maps_all_downloaded": "All map regions have been downloaded",
+  "offline_maps_cancel_btn": "Cancel",
+  "onboarding_welcome_title": "Welcome to S-Map",
+  "onboarding_welcome_subtitle": "The offline map for Vietnamese.\nNo internet required, no more getting lost.",
+  "onboarding_continue_btn": "Continue",
+  "onboarding_region_title": "Select a region",
+  "onboarding_region_subtitle": "Download a region now to use it without an internet connection.",
+  "onboarding_skip_btn": "Skip download (I will do it later)",
+  "onboarding_downloading_title": "Downloading map...",
+  "onboarding_downloading_region_fallback": "Map Region",
+  "onboarding_ready_title": "All done!",
+  "onboarding_ready_subtitle": "Your offline map is ready to use.",
+  "onboarding_lets_go_btn": "Let's Go!",
+  "onboarding_retry_btn": "Retry"
 };
 static const Map<String,dynamic> _vi = {
   "loginToYourAccount": "Đăng nhập vào tài khoản",
@@ -595,8 +614,14 @@ static const Map<String,dynamic> _vi = {
     "trip_deleted_success": "Đã xóa chuyến đi thành công",
     "all_trips_cleared_success": "Đã xóa toàn bộ lịch sử chuyến đi",
     "invalid_trip_data": "Dữ liệu chuyến đi không hợp lệ",
-    "speed_unit": "{} km/h"
+    "speed_unit": "{} km/h",
+    "distance_value": "{} km",
+    "avg_speed_value": "{} km/h",
+    "top_speed_value": "{} km/h"
   },
+  "auth_guest_name": "Khách_{}",
+  "offline_maps_vietnam_name": "Bản đồ Toàn quốc Việt Nam",
+  "offline_maps_vietnam_desc": "Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn bộ 63 tỉnh thành",
   "offline_maps_title": "Bản đồ ngoại tuyến",
   "offline_maps_subtitle": "Quản lý dữ liệu tải về để dẫn đường không cần mạng",
   "offline_maps_storage_used": "Bộ nhớ đã dùng",
@@ -614,7 +639,20 @@ static const Map<String,dynamic> _vi = {
   "offline_maps_delete_success": "Đã xóa dữ liệu vùng thành công",
   "offline_maps_download_success": "Tải dữ liệu vùng thành công",
   "offline_maps_error": "Đã xảy ra lỗi khi xử lý dữ liệu bản đồ ngoại tuyến",
-  "offline_maps_cancel_btn": "Hủy"
+  "offline_maps_all_downloaded": "Tất cả vùng bản đồ đã được tải xuống",
+  "offline_maps_cancel_btn": "Hủy",
+  "onboarding_welcome_title": "Chào mừng đến với S-Map",
+  "onboarding_welcome_subtitle": "Bản đồ ngoại tuyến của người Việt.\nKhông cần mạng, không lo lạc đường.",
+  "onboarding_continue_btn": "Tiếp tục",
+  "onboarding_region_title": "Chọn vùng bản đồ",
+  "onboarding_region_subtitle": "Tải trước một vùng để sử dụng ngay khi không có kết nối Internet.",
+  "onboarding_skip_btn": "Bỏ qua tải xuống (Tôi sẽ tải sau)",
+  "onboarding_downloading_title": "Đang tải bản đồ...",
+  "onboarding_downloading_region_fallback": "Vùng bản đồ",
+  "onboarding_ready_title": "Hoàn tất!",
+  "onboarding_ready_subtitle": "Bản đồ của bạn đã sẵn sàng sử dụng ngoại tuyến.",
+  "onboarding_lets_go_btn": "Khám phá ngay",
+  "onboarding_retry_btn": "Thử lại"
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};
 }

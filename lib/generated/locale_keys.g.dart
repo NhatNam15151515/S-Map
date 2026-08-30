@@ -223,6 +223,9 @@ abstract class  LocaleKeys {
   static const route_drawing_ui_profile_moped = 'route_drawing_ui.profile_moped';
   static const route_drawing_ui_profile_car = 'route_drawing_ui.profile_car';
   static const route_drawing_ui_profile_foot = 'route_drawing_ui.profile_foot';
+  static const route_drawing_ui_use_my_location_origin = 'route_drawing_ui.use_my_location_origin';
+  static const route_drawing_ui_use_selected_destination = 'route_drawing_ui.use_selected_destination';
+  static const route_drawing_ui_custom_route_drawing = 'route_drawing_ui.custom_route_drawing';
   static const route_drawing_ui = 'route_drawing_ui';
   static const stats_dashboard_title = 'stats_dashboard.title';
   static const stats_dashboard_range_today = 'stats_dashboard.range_today';
@@ -272,7 +275,13 @@ abstract class  LocaleKeys {
   static const stats_dashboard_all_trips_cleared_success = 'stats_dashboard.all_trips_cleared_success';
   static const stats_dashboard_invalid_trip_data = 'stats_dashboard.invalid_trip_data';
   static const stats_dashboard_speed_unit = 'stats_dashboard.speed_unit';
+  static const stats_dashboard_distance_value = 'stats_dashboard.distance_value';
+  static const stats_dashboard_avg_speed_value = 'stats_dashboard.avg_speed_value';
+  static const stats_dashboard_top_speed_value = 'stats_dashboard.top_speed_value';
   static const stats_dashboard = 'stats_dashboard';
+  static const auth_guest_name = 'auth_guest_name';
+  static const offline_maps_vietnam_name = 'offline_maps_vietnam_name';
+  static const offline_maps_vietnam_desc = 'offline_maps_vietnam_desc';
   static const offline_maps_title = 'offline_maps_title';
   static const offline_maps_subtitle = 'offline_maps_subtitle';
   static const offline_maps_storage_used = 'offline_maps_storage_used';

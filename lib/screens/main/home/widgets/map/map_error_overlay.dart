@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 
 class MapErrorOverlay extends StatelessWidget with AppMixin {
@@ -17,7 +16,7 @@ class MapErrorOverlay extends StatelessWidget with AppMixin {
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: Container(
-        color: AppColors.white,
+        color: Theme.of(context).colorScheme.surface,
         child: EmptyWidget(
           title: errorMessage,
           onRefresh: onRetry,

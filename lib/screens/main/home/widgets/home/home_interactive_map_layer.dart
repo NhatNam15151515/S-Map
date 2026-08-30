@@ -39,6 +39,19 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
   RoutePreviewCubit get routePreviewCubit => context.read<RoutePreviewCubit>();
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (displayCubit.state.isNightMode != isDark) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && displayCubit.state.isNightMode != isDark) {
+          displayCubit.updateThemeMode(isDark);
+        }
+      });
+    }
+  }
+
   /// Kích hoạt tìm kiếm theo danh mục trong khung nhìn hiện tại (đồng bộ từ UI)
   void searchByCategory(String category) {
     _cameraController.executeInVisibleRegion(_mapController, (bounds) {
@@ -242,8 +255,10 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           return Stack(
             children: [
               MapView(
+                key: const Key('map_view_main'),
                 styleString: state.styleString,
                 onMapCreated: (controller) {
+
                   _mapController = controller;
                   _mapController!.onSymbolTapped.add((symbol) {
                     final poi = _symbolManager.getPoiBySymbolId(symbol.id);
@@ -255,8 +270,52 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 },
                 onStyleLoadedCallback: () {
                   _symbolManager.loadMarkerAssets(_mapController);
-                  _routeManager.loadMarkerAssets(_mapController);
+                  _symbolManager.renderSovereigntySymbols(_mapController);
+                  _routeManager.loadMarkerAssets(_mapController, force: true);
                   displayCubit.onStyleLoaded();
+
+                  if (!mounted) return;
+
+                  // 1. Khôi phục POI markers và selected POI marker
+                  final viewportState = viewportBloc.state;
+                  if (viewportState.status == ViewportSearchStatus.success &&
+                      viewportState.pois.isNotEmpty) {
+                    _symbolManager.renderPoiList(_mapController, viewportState.pois);
+                  }
+                  if (displayCubit.state.selectedPoi != null) {
+                    setSelectedPoiMarker(displayCubit.state.selectedPoi!);
+                  }
+
+                  // 2. Khôi phục Route Preview nếu đang mở
+                  final previewState = routePreviewCubit.state;
+                  if (previewState.isSuccess &&
+                      previewState.routeResult != null &&
+                      previewState.origin != null &&
+                      previewState.destination != null) {
+                    _routeManager.drawRoute(
+                      controller: _mapController,
+                      routeResult: previewState.routeResult!,
+                      origin: previewState.origin!,
+                      destination: previewState.destination!,
+                      destinationName: previewState.destinationName,
+                    );
+                  }
+
+                  // 3. Khôi phục Navigation Polyline nếu đang dẫn đường
+                  final navState = context.read<NavigationBloc>().state;
+                  if (navState.isNavigating &&
+                      navState.currentRoute != null &&
+                      navState.origin != null &&
+                      navState.destination != null) {
+                    _routeManager.drawRoute(
+                      controller: _mapController,
+                      routeResult: navState.currentRoute!,
+                      origin: navState.origin!,
+                      destination: navState.destination!,
+                      destinationName: navState.destinationName,
+                    );
+                    _renderedNavRoute = navState.currentRoute;
+                  }
                 },
                 onCameraTrackingDismissed:
                     displayCubit.onCameraTrackingDismissed,

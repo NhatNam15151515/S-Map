@@ -17,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final MapExploreCubit _exploreCubit;
   late final ViewportSearchBloc _viewportBloc;
   late final RoutePreviewCubit _routePreviewCubit;
-  late final NavigationBloc _navigationBloc;
+  NavigationBloc? _localNavigationBloc;
 
   @override
   void initState() {
@@ -28,10 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _routePreviewCubit = RoutePreviewCubit(
       routingRepository: AppReposProvider.instance.routingRepos,
     );
-    _navigationBloc = NavigationBloc(
-      routingRepository: AppReposProvider.instance.routingRepos,
-      tripRepository: AppReposProvider.instance.tripRepos,
-    );
   }
 
   @override
@@ -40,19 +36,29 @@ class _HomeScreenState extends State<HomeScreen> {
     _exploreCubit.close();
     _viewportBloc.close();
     _routePreviewCubit.close();
-    _navigationBloc.close();
+    _localNavigationBloc?.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    NavigationBloc navBloc;
+    try {
+      navBloc = context.read<NavigationBloc>();
+    } catch (_) {
+      navBloc = _localNavigationBloc ??= NavigationBloc(
+        routingRepository: AppReposProvider.instance.routingRepos,
+        tripRepository: AppReposProvider.instance.tripRepos,
+      );
+    }
+
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _mapCubit),
         BlocProvider.value(value: _exploreCubit),
         BlocProvider.value(value: _viewportBloc),
         BlocProvider.value(value: _routePreviewCubit),
-        BlocProvider.value(value: _navigationBloc),
+        BlocProvider.value(value: navBloc),
       ],
       child: const HomeScreenContent(),
     );

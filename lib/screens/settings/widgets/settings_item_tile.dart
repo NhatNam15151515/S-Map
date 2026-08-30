@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 
 class SettingsItemTile extends StatelessWidget {
   final IconData icon;
@@ -20,7 +19,7 @@ class SettingsItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -33,10 +32,10 @@ class SettingsItemTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.sMapTeal.withAlpha(25),
+                  color: colorScheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 20, color: AppColors.sMapTeal),
+                child: Icon(icon, size: 20, color: colorScheme.primary),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -45,17 +44,14 @@ class SettingsItemTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: style.blackTextColor.textTheme.boldStyle
+                      style: colorScheme.onSurface.textTheme.boldStyle
                           .copyWith(fontSize: 15),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: (style.greysTextColor.isNotEmpty
-                                ? style.greysTextColor.first
-                                : AppColors.onSurfaceVariant)
-                            .textTheme
+                        style: colorScheme.onSurfaceVariant.textTheme
                             .captionStyle,
                       ),
                     ],
@@ -67,9 +63,7 @@ class SettingsItemTile extends StatelessWidget {
               else
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: style.greysTextColor.isNotEmpty
-                      ? style.greysTextColor.first
-                      : AppColors.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
             ],
@@ -90,10 +84,10 @@ class SettingsGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: style.colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(children: children),
@@ -106,12 +100,12 @@ class SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
     return Padding(
       padding: const EdgeInsets.only(left: 60),
       child: Divider(
         height: 0.5,
-        color: style.colorScheme.outline.withAlpha(128),
+        color: colorScheme.outline.withValues(alpha: 0.25),
       ),
     );
   }

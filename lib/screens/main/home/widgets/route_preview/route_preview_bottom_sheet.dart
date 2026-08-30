@@ -7,33 +7,36 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class RoutePreviewBottomSheet extends StatelessWidget {
-  final VoidCallback onClose;
   final VoidCallback? onStartNavigation;
+  final VoidCallback? onCustomRoute;
+  final VoidCallback onClose;
 
   const RoutePreviewBottomSheet({
     super.key,
-    required this.onClose,
     this.onStartNavigation,
+    this.onCustomRoute,
+    required this.onClose,
   });
 
   @override
   Widget build(BuildContext context) {
-    final style = AppStyle.of(context);
+    final colorScheme = context.colorScheme;
+    final themeColors = context.themeColors;
 
     return BlocBuilder<RoutePreviewCubit, RoutePreviewState>(
       builder: (context, state) {
         if (state.isLoading) {
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.12),
+                  color: colorScheme.shadow.withValues(alpha: 0.12),
                   blurRadius: 16,
-                  offset: Offset(0, 6),
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
@@ -48,17 +51,16 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                 Expanded(
                   child: Text(
                     tr(LocaleKeys.routing_calculating_moped_route),
-                    style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                    style: colorScheme.onSurface.textTheme.mediumStyle.copyWith(
                       fontSize: 14,
-                      color: AppColors.googleDarkText,
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
+                    color: colorScheme.onSurfaceVariant,
                     size: 20,
-                    color: AppColors.onSurfaceVariant,
                   ),
                   onPressed: onClose,
                   tooltip: tr(LocaleKeys.cancel),
@@ -68,56 +70,57 @@ class RoutePreviewBottomSheet extends StatelessWidget {
           );
         }
 
-        if (!state.isSuccess || state.routeResult == null) {
+        if (state.currentRoute == null) {
           return const SizedBox.shrink();
         }
 
-        final route = state.routeResult!;
+        final route = state.currentRoute!;
         final distanceStr = RouteFormatHelper.formatDistance(route.distance);
         final durationStr = RouteFormatHelper.formatDuration(route.time);
-        final destinationName = state.destinationName?.isNotEmpty == true
-            ? state.destinationName!
-            : tr(LocaleKeys.routing_destination_fallback);
+        final etaTimeStr = RouteFormatHelper.formatEtaClockTime(route.time);
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppColors.outlineVariant.withAlpha(100),
+              color: colorScheme.outline.withAlpha(50),
               width: 0.8,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.12),
-                blurRadius: 16,
-                offset: Offset(0, 6),
+                color: colorScheme.shadow.withValues(alpha: 0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Header: Xe máy icon + Duration + Distance + Close button
+              // 1. Info Header Row (Motorcycle Icon + Duration/Distance + Close Button)
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Phương tiện di chuyển Icon
                   Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.sMapTeal.withAlpha(25),
+                      color: colorScheme.primary.withAlpha(25),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      RouteFormatHelper.motorcycleIcon,
-                      color: AppColors.sMapTeal,
+                    child: Icon(
+                      Icons.two_wheeler_rounded,
+                      color: colorScheme.primary,
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
+
+                  // Thời gian & Khoảng cách & Tên điểm đến
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,69 +129,81 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                           children: [
                             Text(
                               durationStr,
-                              style: style.blackTextColor.textTheme.boldStyle.copyWith(
+                              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                                 fontSize: 18,
-                                color: AppColors.googleGreen,
+                                color: themeColors.statsSuccess,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               '($distanceStr)',
-                              style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
+                              style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
                                 fontSize: 14,
                                 fontWeight: AppFontWeight.regular.weight,
                               ),
                             ),
                           ],
                         ),
+                        if (state.destinationName != null &&
+                            state.destinationName!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            state.destinationName!,
+                            style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                         const SizedBox(height: 2),
                         Text(
-                          destinationName,
-                          style: AppColors.onSurfaceVariant.textTheme.textStyle.copyWith(
-                            fontSize: 13,
-                            color: AppColors.googleDarkText,
+                          '${tr(LocaleKeys.routing_remaining)}: $etaTimeStr',
+                          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+                            fontSize: 12,
+                            fontWeight: AppFontWeight.regular.weight,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+
+                  // Nút Đóng preview
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
+                      color: colorScheme.onSurfaceVariant,
                       size: 20,
-                      color: AppColors.onSurfaceVariant,
                     ),
                     onPressed: onClose,
                     tooltip: tr(LocaleKeys.cancel),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
 
-              const SizedBox(height: 14),
-
-              // 2. Action: Start Navigation Button
+              // 2. Action: Start Navigation & Custom Route Buttons
               Row(
                 children: [
                   Expanded(
+                    flex: 5,
                     child: ElevatedButton.icon(
                       onPressed: onStartNavigation,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.navigation_rounded,
                         size: 20,
-                        color: AppColors.white,
+                        color: colorScheme.onPrimary,
                       ),
                       label: Text(
                         tr(LocaleKeys.routing_start_navigation),
-                        style: style.whiteTextColor.textTheme.boldStyle.copyWith(
+                        style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
                           fontSize: 15,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.sMapTeal,
-                        foregroundColor: AppColors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -197,6 +212,37 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onCustomRoute != null) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 4,
+                      child: OutlinedButton.icon(
+                        onPressed: onCustomRoute,
+                        icon: Icon(
+                          Icons.gesture_rounded,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
+                        label: Text(
+                          tr(LocaleKeys.route_drawing_ui_custom_route_drawing),
+                          style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: colorScheme.primary,
+                          side: BorderSide(
+                            color: colorScheme.primary.withAlpha(120),
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],
