@@ -57,30 +57,8 @@
     {
       "if": "road_environment == TUNNEL",
       "multiply_by": 0.3
-    },
-
-    {
-      "if": "lanes > 4 && road_class == TRUNK",
-      "multiply_by": 0.0
-    },
-    {
-      "if": "lanes > 4 && road_class == PRIMARY",
-      "multiply_by": 0.3
-    },
-
-    {
-      "if": "surface == DIRT || surface == SAND",
-      "multiply_by": 0.3
-    },
-    {
-      "else_if": "surface == GRAVEL",
-      "multiply_by": 0.5
-    },
-
-    {
-      "if": "toll == ALL || toll == HGV",
-      "multiply_by": 0.1
     }
+
   ],
 
   "speed": [
@@ -115,16 +93,8 @@
     {
       "else_if": "road_class == TRACK",
       "limit_to": 15
-    },
-
-    {
-      "if": "surface == SAND",
-      "limit_to": 10
-    },
-    {
-      "else_if": "surface == GRAVEL || surface == DIRT",
-      "limit_to": 15
     }
+
   ],
 
   "distance_influence": 50

@@ -35,6 +35,184 @@ class PoiRepositoryImpl implements IPoiRepository {
     return query.replaceAll(RegExp(r'''[*"'-\:()^~{}\[\]\\]'''), ' ').trim();
   }
 
+  static final RegExp _searchTokenRegExp = RegExp(r'[^a-z0-9]+');
+  static final RegExp _containsNumberRegExp = RegExp(r'\d');
+  static const Set<String> _addressNoiseTokens = {
+    'so',
+    'number',
+    'no',
+    'duong',
+    'pho',
+    'street',
+    'road',
+  };
+
+  /// Chuẩn hóa query/địa chỉ thành các token ASCII để tìm được cả dữ liệu
+  /// tiếng Việt có dấu, không dấu và dấu tổ hợp từ OSM.
+  List<String> _tokenizeSearchText(String? text) {
+    final normalized = AppUtils.instance
+        .toAscii(text)
+        .replaceAll(_searchTokenRegExp, ' ')
+        .trim();
+    if (normalized.isEmpty) return [];
+
+    return normalized
+        .split(RegExp(r'\s+'))
+        .where((token) =>
+            token.isNotEmpty && !_addressNoiseTokens.contains(token))
+        .toList();
+  }
+
+  bool _matchesSearchTokens(
+    List<String> queryTokens,
+    List<String> candidateTokens,
+  ) {
+    return queryTokens.every((queryToken) {
+      return candidateTokens.any((candidateToken) {
+        if (candidateToken == queryToken) return true;
+        // Allow a house number prefix such as "141" to match "141a".
+        return queryToken.length >= 2 && candidateToken.startsWith(queryToken);
+      });
+    });
+  }
+
+  bool _matchesAddressCoreTokens(
+    List<String> queryTokens,
+    Map<String, dynamic> row,
+  ) {
+    final numberTokens = queryTokens
+        .where(_containsNumberRegExp.hasMatch)
+        .toList();
+    final candidateNumberTokens = _tokenizeSearchText(
+      [row['housenumber'], row['address']].whereType<String>().join(' '),
+    );
+    if (!_matchesSearchTokens(numberTokens, candidateNumberTokens)) return false;
+
+    final streetQueryTokens = queryTokens
+        .where((token) => !_containsNumberRegExp.hasMatch(token))
+        .toList();
+    final candidateStreetTokens = _tokenizeSearchText(
+      [row['street'], row['address']].whereType<String>().join(' '),
+    );
+
+    // Phần tên đường là khóa định vị chính; các token hành chính có thể
+    // khác nhau giữa địa chỉ trước và sau sáp nhập hoặc bị thiếu trong OSM.
+    return streetQueryTokens.any((queryToken) {
+      return candidateStreetTokens.any((candidateToken) {
+        if (candidateToken == queryToken) return true;
+        return queryToken.length >= 2 && candidateToken.startsWith(queryToken);
+      });
+    });
+  }
+
+  /// Tìm theo các trường địa chỉ đã có trong DB, kể cả khi DB cũ chưa có
+  /// cột address_ascii trong FTS index.
+  Future<List<PoiModel>> _searchAddressFields(
+    String query, {
+    int limit = 20,
+  }) async {
+    final queryTokens = _tokenizeSearchText(query);
+    if (queryTokens.isEmpty ||
+        !queryTokens.any(_containsNumberRegExp.hasMatch)) {
+      return [];
+    }
+
+    final numberTokens = queryTokens
+        .where(_containsNumberRegExp.hasMatch)
+        .toSet()
+        .toList();
+    final candidateClauses = <String>[];
+    final candidateArgs = <String>[];
+    for (final numberToken in numberTokens) {
+      for (final column in ['housenumber', 'address', 'street']) {
+        candidateClauses.add('$column LIKE ?');
+        candidateArgs.add('%$numberToken%');
+      }
+    }
+
+    final db = await _getDb();
+    try {
+      final rows = await db.query(
+        'poi',
+        where: candidateClauses.join(' OR '),
+        whereArgs: candidateArgs,
+      );
+
+      final exactMatches = <PoiModel>[];
+      final relaxedMatches = <PoiModel>[];
+      for (final row in rows) {
+        final addressText = [
+          row['address'],
+          row['street'],
+          row['housenumber'],
+          row['city'],
+          row['admin_aliases'],
+        ].whereType<String>().join(' ');
+        final addressTokens = _tokenizeSearchText(addressText);
+        if (_matchesSearchTokens(queryTokens, addressTokens)) {
+          exactMatches.add(PoiModel.fromMap(row));
+        } else if (_matchesAddressCoreTokens(queryTokens, row)) {
+          relaxedMatches.add(PoiModel.fromMap(row));
+        }
+      }
+      return [...exactMatches, ...relaxedMatches].take(limit).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Nếu người dùng nhập cả số nhà nhưng OSM chưa có bản ghi số nhà đó,
+  /// trả về chỉ mục đường tương ứng để vẫn tìm được vị trí gần đúng offline.
+  Future<List<PoiModel>> _searchStreetFallback(
+    String query, {
+    int limit = 20,
+  }) async {
+    final streetTokens = _tokenizeSearchText(query)
+        .where((token) => !_containsNumberRegExp.hasMatch(token))
+        .toList();
+    if (streetTokens.isEmpty) return [];
+
+    final db = await _getDb();
+    final ftsPattern = streetTokens
+        .map((token) => 'name_ascii: "$token"*')
+        .join(' AND ');
+    try {
+      final rows = await db.rawQuery(
+        '''
+        SELECT p.*
+        FROM poi_fts f
+        JOIN poi p ON f.rowid = p.id
+        WHERE poi_fts MATCH ? AND p.category = 'street'
+        LIMIT ?
+        ''',
+        [ftsPattern, limit],
+      );
+      return rows.map(PoiModel.fromMap).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<PoiModel> _mergeUniqueResults(
+    Iterable<PoiModel> primary,
+    Iterable<PoiModel> additional, {
+    int limit = 20,
+  }) {
+    final result = <PoiModel>[];
+    final seen = <String>{};
+
+    for (final poi in [...primary, ...additional]) {
+      final key = poi.id != null
+          ? 'id:${poi.id}'
+          : 'loc:${poi.lat}:${poi.lon}:${poi.name}';
+      if (seen.add(key)) {
+        result.add(poi);
+        if (result.length >= limit) break;
+      }
+    }
+    return result;
+  }
+
   static const List<PoiModel> _sovereignPois = [
     PoiModel(
       id: 999901,
@@ -109,8 +287,13 @@ class PoiRepositoryImpl implements IPoiRepository {
       // Fallback tìm kiếm LIKE nếu FTS5 có vấn đề về cú pháp token
       final fallbackResults = await db.query(
         'poi',
-        where: 'name LIKE ?',
-        whereArgs: ['%$cleanQuery%'],
+        where: 'name LIKE ? OR address LIKE ? OR street LIKE ? OR housenumber LIKE ?',
+        whereArgs: [
+          '%$cleanQuery%',
+          '%$cleanQuery%',
+          '%$cleanQuery%',
+          '%$cleanQuery%',
+        ],
         limit: limit,
       );
       final dbPois = fallbackResults.map(PoiModel.fromMap).toList();
@@ -131,7 +314,8 @@ class PoiRepositoryImpl implements IPoiRepository {
     if (cleanQuery.isEmpty) return matchedSovereign;
 
     final db = await _getDb();
-    final ftsPattern = 'name_ascii: "$cleanQuery"*';
+    final ftsPattern =
+        '(name_ascii: "$cleanQuery"* OR address: "$cleanQuery"* OR admin_aliases: "$cleanQuery"*)';
 
     try {
       final List<Map<String, dynamic>> results = await db.rawQuery(
@@ -148,13 +332,34 @@ class PoiRepositoryImpl implements IPoiRepository {
       final dbPois = results.map(PoiModel.fromMap).toList();
       return [...matchedSovereign, ...dbPois].take(limit).toList();
     } catch (_) {
-      // Fallback tìm kiếm LIKE trên cột name_ascii
-      final fallbackResults = await db.query(
-        'poi',
-        where: 'name_ascii LIKE ?',
-        whereArgs: ['%$cleanQuery%'],
-        limit: limit,
-      );
+      // Fallback vẫn hỗ trợ DB cũ chưa có cột admin_aliases.
+      List<Map<String, dynamic>> fallbackResults;
+      try {
+        fallbackResults = await db.query(
+          'poi',
+          where: 'name_ascii LIKE ? OR address LIKE ? OR street LIKE ? OR housenumber LIKE ? OR admin_aliases LIKE ?',
+          whereArgs: [
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+          ],
+          limit: limit,
+        );
+      } catch (_) {
+        fallbackResults = await db.query(
+          'poi',
+          where: 'name_ascii LIKE ? OR address LIKE ? OR street LIKE ? OR housenumber LIKE ?',
+          whereArgs: [
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+            '%$cleanQuery%',
+          ],
+          limit: limit,
+        );
+      }
       final dbPois = fallbackResults.map(PoiModel.fromMap).toList();
       return [...matchedSovereign, ...dbPois].take(limit).toList();
     }
@@ -171,25 +376,34 @@ class PoiRepositoryImpl implements IPoiRepository {
     if (hasDiacritics) {
       // Người dùng gõ có dấu: Ưu tiên FTS có dấu trước
       final exactResults = await searchByName(query, limit: limit);
-      if (exactResults.length >= limit) {
+      final addressResults = await _searchAddressFields(query, limit: limit);
+      if (exactResults.length >= limit && addressResults.isEmpty) {
         return exactResults;
       }
 
       // Nếu ít kết quả, tìm kiếm mở rộng bằng name_ascii để không bỏ sót
       final asciiResults = await searchByNameAscii(query, limit: limit);
-      final existingIds = exactResults.map((e) => e.id).toSet();
+      final streetResults = addressResults.isEmpty
+          ? await _searchStreetFallback(query, limit: limit)
+          : const <PoiModel>[];
 
-      final combined = [...exactResults];
-      for (final item in asciiResults) {
-        if (!existingIds.contains(item.id)) {
-          combined.add(item);
-          if (combined.length >= limit) break;
-        }
-      }
-      return combined;
+      return _mergeUniqueResults(
+        addressResults,
+        [...exactResults, ...asciiResults, ...streetResults],
+        limit: limit,
+      );
     } else {
       // Người dùng gõ không dấu: Tìm kiếm trực tiếp qua FTS5 name_ascii
-      return await searchByNameAscii(query, limit: limit);
+      final nameResults = await searchByNameAscii(query, limit: limit);
+      final addressResults = await _searchAddressFields(query, limit: limit);
+      final streetResults = addressResults.isEmpty
+          ? await _searchStreetFallback(query, limit: limit)
+          : const <PoiModel>[];
+      return _mergeUniqueResults(
+        addressResults,
+        [...nameResults, ...streetResults],
+        limit: limit,
+      );
     }
   }
 
@@ -255,10 +469,15 @@ class PoiRepositoryImpl implements IPoiRepository {
 
     if (cleanQuery.isNotEmpty) {
       whereClauses.add(
-          '(name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ?)');
+          '(name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ? OR address LIKE ? OR street LIKE ? OR housenumber LIKE ? OR city LIKE ? OR admin_aliases LIKE ?)');
       whereArgs.addAll([
         '%$cleanQuery%',
         '%$cleanAscii%',
+        '%$cleanQuery%',
+        '%$cleanQuery%',
+        '%$cleanQuery%',
+        '%$cleanQuery%',
+        '%$cleanQuery%',
         '%$cleanQuery%',
         '%$cleanQuery%',
       ]);
@@ -284,7 +503,25 @@ class PoiRepositoryImpl implements IPoiRepository {
       );
       return results.map(PoiModel.fromMap).toList();
     } catch (_) {
-      return [];
+      // DB tải từ phiên bản cũ chưa có admin_aliases vẫn phải xem được.
+      if (cleanQuery.isEmpty) return [];
+      final legacyClauses = whereClauses
+          .map((clause) => clause.replaceAll(' OR admin_aliases LIKE ?', ''))
+          .toList();
+      final legacyArgs = [...whereArgs];
+      // 4 tọa độ bbox + 8 trường cũ trước admin_aliases.
+      legacyArgs.removeAt(12);
+      try {
+        final results = await db.query(
+          'poi',
+          where: legacyClauses.join(' AND '),
+          whereArgs: legacyArgs,
+          limit: limit,
+        );
+        return results.map(PoiModel.fromMap).toList();
+      } catch (_) {
+        return [];
+      }
     }
   }
 
@@ -296,7 +533,8 @@ class PoiRepositoryImpl implements IPoiRepository {
     if (cleanQuery.isEmpty) return [];
 
     final db = await _getDb();
-    final ftsPattern = 'name_ascii: "$cleanQuery"*';
+    final ftsPattern =
+        '(name_ascii: "$cleanQuery"* OR admin_aliases: "$cleanQuery"*)';
 
     try {
       final List<Map<String, dynamic>> results = await db.rawQuery(

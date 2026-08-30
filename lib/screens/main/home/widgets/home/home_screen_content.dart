@@ -7,7 +7,9 @@ import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
@@ -26,6 +28,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
 
   bool _showSearchThisArea = false;
   PoiModel? _selectedMarkerPoi;
+  List<PoiModel> _searchResults = [];
   bool _isTripSummaryShown = false;
   String? _activeSearchText;
 
@@ -55,10 +58,17 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
 
   void _handleCategorySelected(String? cat) {
     if (cat == null) return;
+    if (_activeSearchText != null &&
+        exploreCubit.state.selectedCategory == cat) {
+      _handleClearSearch();
+      return;
+    }
+    final categoryTitle = tr(PoiCategoryHelper.getCategoryLocaleKey(cat));
     exploreCubit.selectCategory(cat);
     _mapLayerKey.currentState?.searchByCategory(cat);
     setState(() {
-      _activeSearchText = cat;
+      _activeSearchText = categoryTitle;
+      _showSearchThisArea = false;
     });
   }
 
@@ -69,7 +79,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
 
   void _handlePoiSelected(PoiModel poi) {
     displayCubit.selectPoi(poi);
-    _mapLayerKey.currentState?.setSelectedPoiMarker(poi);
     setState(() {
       _selectedMarkerPoi = poi;
       _activeSearchText = poi.name;
@@ -77,13 +86,39 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     });
   }
 
+  void _handleSearchResultPoiTap(PoiModel poi) {
+    displayCubit.selectPoi(poi);
+    setState(() {
+      _selectedMarkerPoi = poi;
+      _showSearchThisArea = false;
+    });
+  }
+
   void _handleSearchResults(List<PoiModel> pois, String? query) {
+    if (pois.isEmpty) {
+      _mapLayerKey.currentState?.clearAll();
+      displayCubit.clearSelectedPoi();
+      setState(() {
+        _searchResults = [];
+        _activeSearchText = query;
+        _selectedMarkerPoi = null;
+        _showSearchThisArea = false;
+      });
+      return;
+    }
+    if (pois.length == 1) {
+      setState(() {
+        _searchResults = pois;
+      });
+      _handlePoiSelected(pois.first);
+      return;
+    }
     _mapLayerKey.currentState?.showSearchResults(pois);
     setState(() {
+      _searchResults = pois;
       _activeSearchText = query;
-      if (pois.isNotEmpty) {
-        _selectedMarkerPoi = pois.first;
-      }
+      _selectedMarkerPoi = null; // Hiển thị danh sách tất cả các điểm trong bottom sheet
+      _showSearchThisArea = false;
     });
   }
 
@@ -123,10 +158,33 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     }
   }
 
+  void _handleClosePoiCard() {
+    _mapLayerKey.currentState?.clearSelectedPoiMarker();
+    displayCubit.clearSelectedPoi();
+    setState(() {
+      _selectedMarkerPoi = null;
+      _showSearchThisArea = false;
+      if (_searchResults.isEmpty) {
+        _activeSearchText = null;
+      }
+    });
+    // Nếu trước đó đang có danh sách tìm kiếm nhiều điểm, fit lại bounds bao quanh
+    if (_searchResults.length > 1) {
+      _mapLayerKey.currentState?.showSearchResults(_searchResults);
+    }
+  }
+
+  void _handleCloseSearchResults() {
+    _handleClearSearch();
+  }
+
   void _handleClearSearch() {
     _mapLayerKey.currentState?.clearAll();
     displayCubit.clearSelectedPoi();
+    exploreCubit.selectCategory(CategoryConstants.all);
+    viewportBloc.add(const ClearViewportSearch());
     setState(() {
+      _searchResults = [];
       _selectedMarkerPoi = null;
       _activeSearchText = null;
       _showSearchThisArea = false;
@@ -238,6 +296,25 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
               }
             },
           ),
+          BlocListener<ViewportSearchBloc, ViewportSearchState>(
+            listenWhen: (prev, curr) =>
+                prev.status != curr.status ||
+                prev.pois != curr.pois ||
+                prev.selectedCategory != curr.selectedCategory,
+            listener: (context, viewportState) {
+              if (viewportState.status == ViewportSearchStatus.success &&
+                  viewportState.selectedCategory != CategoryConstants.all) {
+                final categoryTitle = tr(PoiCategoryHelper.getCategoryLocaleKey(
+                    viewportState.selectedCategory));
+                _handleSearchResults(viewportState.pois, categoryTitle);
+              } else if (viewportState.status == ViewportSearchStatus.empty &&
+                  viewportState.selectedCategory != CategoryConstants.all) {
+                final categoryTitle = tr(PoiCategoryHelper.getCategoryLocaleKey(
+                    viewportState.selectedCategory));
+                _handleSearchResults(const [], categoryTitle);
+              }
+            },
+          ),
         ],
         child: BlocBuilder<NavigationBloc, NavigationState>(
           buildWhen: (prev, curr) =>
@@ -293,10 +370,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                         onPressed: _handleSearchThisArea,
                       ),
 
-                      // 5. Dynamic Bottom Overlay (Explore Sheet / POI Quick Card)
+                      // 5. Dynamic Bottom Overlay (Explore Sheet / Search Results Sheet / POI Quick Card)
                       HomeBottomOverlay(
                         sheetController: _sheetController,
                         selectedMarkerPoi: _selectedMarkerPoi,
+                        searchResults: _searchResults,
+                        searchQuery: _activeSearchText,
                         onPlaceTap: (place) {
                           if (place.latitude != null &&
                               place.longitude != null) {
@@ -312,14 +391,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                             _handlePoiSelected(poi);
                           }
                         },
-                        onClosePoiCard: () {
-                          _mapLayerKey.currentState?.clearSelectedPoiMarker();
-                          displayCubit.clearSelectedPoi();
-                          setState(() {
-                            _selectedMarkerPoi = null;
-                            _showSearchThisArea = false;
-                          });
-                        },
+                        onSearchResultPoiTap: _handleSearchResultPoiTap,
+                        onCloseSearchResults: _handleCloseSearchResults,
+                        onClosePoiCard: _handleClosePoiCard,
                         onDirections: _handleDirections,
                         onCustomRoute: _selectedMarkerPoi != null
                             ? () => _handleOpenCustomRouteDrawing(

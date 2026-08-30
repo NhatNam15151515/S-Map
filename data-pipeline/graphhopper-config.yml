@@ -7,7 +7,9 @@ graphhopper:
   profiles:
     - name: moped_vn
       vehicle: car
-      weighting: fastest
+      weighting: custom
+      custom_model_files:
+        - data-pipeline/custom_model_moped.json
 
   profiles_ch:
     - profile: moped_vn

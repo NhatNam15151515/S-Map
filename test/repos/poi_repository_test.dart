@@ -27,9 +27,11 @@ void main() {
         lat REAL NOT NULL,
         lon REAL NOT NULL,
         address TEXT,
+        address_ascii TEXT,
         street TEXT,
         housenumber TEXT,
-        city TEXT
+        city TEXT,
+        admin_aliases TEXT
       );
     ''');
 
@@ -40,6 +42,8 @@ void main() {
         name_ascii,
         category,
         address,
+        address_ascii,
+        admin_aliases,
         content='poi',
         content_rowid='id'
       );
@@ -48,8 +52,8 @@ void main() {
     // Trigger tự động đồng bộ sang FTS5
     await db.execute('''
       CREATE TRIGGER poi_ai AFTER INSERT ON poi BEGIN
-        INSERT INTO poi_fts(rowid, name, name_ascii, category, address)
-        VALUES (new.id, new.name, new.name_ascii, new.category, new.address);
+        INSERT INTO poi_fts(rowid, name, name_ascii, category, address, address_ascii, admin_aliases)
+        VALUES (new.id, new.name, new.name_ascii, new.category, new.address, new.address_ascii, new.admin_aliases);
       END;
     ''');
 
@@ -149,6 +153,34 @@ void main() {
         'street': 'Lê Lợi',
         'housenumber': '',
         'city': 'TP.HCM',
+        'admin_aliases': 'Thành phố Hồ Chí Minh | Ho Chi Minh City | Bình Dương | Tỉnh Bình Dương | Bà Rịa - Vũng Tàu',
+      },
+      {
+        'osm_id': 'w2001',
+        'name': '142 Nguyễn Huệ',
+        'name_ascii': AppUtils.instance.toAscii('142 Nguyễn Huệ'),
+        'category': 'address',
+        'sub_category': 'house_number',
+        'lat': 10.7759,
+        'lon': 106.7015,
+        'address': '142, Nguyễn Huệ, TP.HCM',
+        'street': 'Nguyễn Huệ',
+        'housenumber': '142',
+        'city': 'TP.HCM',
+        'admin_aliases': 'Thành phố Hồ Chí Minh | Ho Chi Minh City | Bình Dương | Tỉnh Bình Dương | Bà Rịa - Vũng Tàu',
+      },
+      {
+        'osm_id': 'street:nguyen suy:',
+        'name': 'Nguyễn Súy',
+        'name_ascii': AppUtils.instance.toAscii('Nguyễn Súy'),
+        'category': 'street',
+        'sub_category': 'residential',
+        'lat': 10.7950,
+        'lon': 106.6300,
+        'address': 'Nguyễn Súy',
+        'street': 'Nguyễn Súy',
+        'housenumber': '',
+        'city': 'TP.HCM',
       },
     ];
 
@@ -198,6 +230,51 @@ void main() {
       expect(namesWithAccents.contains('Phở Thìn Lò Đúc'), isTrue);
       expect(namesWithoutAccents.contains('Phở Thìn Lò Đúc'), isTrue);
       expect(namesWithoutAccents.contains('Phở Hòa Pasteur'), isTrue);
+    });
+
+    test('search should find a POI by house number and street with or without accents',
+        () async {
+      final accented = await poiRepo.search('141 Nguyễn Huệ');
+      final ascii = await poiRepo.search('141 Nguyen Hue');
+      final withAddressPrefix =
+          await poiRepo.search('số 201B đường Nguyen Chi Thanh');
+
+      expect(accented.any((e) => e.name == 'Khách sạn Rex Sài Gòn'), isTrue);
+      expect(ascii.any((e) => e.name == 'Khách sạn Rex Sài Gòn'), isTrue);
+      expect(withAddressPrefix.any((e) => e.name == 'Bệnh viện Chợ Rẫy'), isTrue);
+    });
+
+    test('search should find an address-only dataset record', () async {
+      final results = await poiRepo.search('142 Nguyen Hue');
+
+      expect(results.any((e) => e.category == 'address'), isTrue);
+      expect(results.any((e) => e.housenumber == '142'), isTrue);
+    });
+
+    test('search should resolve both pre- and post-merger province names',
+        () async {
+      final oldAddress = await poiRepo.search('142 Nguyen Hue Binh Duong');
+      final newAddress = await poiRepo.search('142 Nguyen Hue Ho Chi Minh');
+
+      expect(oldAddress.any((e) => e.housenumber == '142'), isTrue);
+      expect(newAddress.any((e) => e.housenumber == '142'), isTrue);
+      expect(oldAddress.first.lat, newAddress.first.lat);
+      expect(oldAddress.first.lon, newAddress.first.lon);
+    });
+
+    test('search should keep the address core when admin tokens are missing',
+        () async {
+      final results = await poiRepo.search('142 Nguyen Hue Quan 1');
+
+      expect(results.any((e) => e.name == '142 Nguyễn Huệ'), isTrue);
+    });
+
+    test('search should fall back to a street when the house number is missing',
+        () async {
+      final results = await poiRepo.search('142 Nguyen Suy');
+
+      expect(results.any((e) => e.category == 'street'), isTrue);
+      expect(results.any((e) => e.name == 'Nguyễn Súy'), isTrue);
     });
 
     test('search should return empty list for invalid or short query',

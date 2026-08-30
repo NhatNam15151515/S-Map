@@ -64,6 +64,11 @@ class AppUtils with AppMixin {
     for (final entry in _vietnameseRegExps) {
       result = result.replaceAll(entry.value, entry.key);
     }
+    // OSM address data can contain combining marks (for example
+    // "Nguyễn" instead of the precomposed "Nguyễn"). Remove them after
+    // replacing the common precomposed Vietnamese characters so both forms
+    // produce the same searchable ASCII text.
+    result = result.replaceAll(RegExp(r'[\u0300-\u036f]'), '');
     return result.toLowerCase().trim();
   }
 

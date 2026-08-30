@@ -20,6 +20,10 @@ void main() {
     test('toAscii should preserve standard alphanumeric characters', () {
       expect(AppUtils.instance.toAscii('Highlands Coffee 123'), 'highlands coffee 123');
     });
+
+    test('toAscii should normalize combining Vietnamese marks from OSM data', () {
+      expect(AppUtils.instance.toAscii('Nguyễn Huệ'), 'nguyen hue');
+    });
   });
 
   group('Validator - hasDiacritics Tests', () {

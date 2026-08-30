@@ -118,6 +118,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     ),
                     onMapCreated: _onMapCreated,
                     onStyleLoadedCallback: _onStyleLoaded,
+                    // Waypoint markers are GeoJSON symbol layers, not
+                    // draggable annotations. Keeping drag disabled avoids
+                    // the Android bitmap-atlas flicker during zoom.
+                    dragEnabled: false,
                     myLocationEnabled: false,
                     attributionButtonMargins: const Point(-100, -100),
                   ),

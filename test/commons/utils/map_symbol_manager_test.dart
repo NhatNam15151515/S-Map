@@ -40,15 +40,26 @@ void main() {
       expect(bounds.northeast.longitude, closeTo(106.7500, 0.0001));
     });
 
-    test('getPoiBySymbolId returns null for non-existent symbol', () {
+    test('getPoiBySymbolId returns null (GeoJSON mode)', () {
       final manager = MapSymbolManager();
       expect(manager.getPoiBySymbolId('unknown_id'), isNull);
     });
 
-    test('clearAll resets internal state', () {
+    test('getPoiAtLocation returns null when no POIs loaded', () {
       final manager = MapSymbolManager();
-      manager.clearAll(null);
+      expect(manager.getPoiAtLocation(10.77, 106.70), isNull);
+    });
+
+    test('clearAll resets internal state', () async {
+      final manager = MapSymbolManager();
+      await manager.clearAll(null);
+      expect(manager.selectedPoi, isNull);
       expect(manager.getPoiBySymbolId('any'), isNull);
+    });
+
+    test('selectedPoi starts as null', () {
+      final manager = MapSymbolManager();
+      expect(manager.selectedPoi, isNull);
     });
   });
 }

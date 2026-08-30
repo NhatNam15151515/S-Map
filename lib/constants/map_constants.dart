@@ -22,8 +22,8 @@ class MapConstants {
   /// Cấu hình hiển thị Marker Symbol trên bản đồ
   static const double symbolTextSize = 11.0;
   static const double symbolTextHaloWidth = 1.5;
-  static const double symbolIconSize = 1.1;
+  static const double symbolIconSize = 1.05;
   static const double selectedSymbolTextSize = 12.0;
-  static const double selectedSymbolIconSize = 1.2;
+  static const double selectedSymbolIconSize = 1.35;
   static const double selectedSymbolTextHaloWidth = 2.0;
 }

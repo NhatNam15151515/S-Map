@@ -7,15 +7,39 @@ import 'package:s_map/models/models.dart';
 
 class FakeMapController extends Fake implements MapLibreMapController {
   final List<LineOptions> addedLines = [];
-  final List<SymbolOptions> addedSymbols = [];
   final List<Line> removedLines = [];
-  final List<Symbol> removedSymbols = [];
   final Set<Line> activeLines = {};
-  final Set<Symbol> activeSymbols = {};
+  final Map<String, Map<String, dynamic>> geoJsonSources = {};
+  final List<String> addedSymbolLayers = [];
   int _nextId = 1;
 
   @override
   Future<void> addImage(String name, Uint8List bytes, [bool defer = false]) async {}
+
+  @override
+  Future<void> addGeoJsonSource(String sourceId, Map<String, dynamic> geojson, {String? promoteId}) async {
+    geoJsonSources[sourceId] = geojson;
+  }
+
+  @override
+  Future<void> setGeoJsonSource(String sourceId, Map<String, dynamic> geojson) async {
+    geoJsonSources[sourceId] = geojson;
+  }
+
+  @override
+  Future<void> addSymbolLayer(
+    String sourceId,
+    String layerId,
+    SymbolLayerProperties properties, {
+    String? belowLayerId,
+    String? sourceLayer,
+    double? minzoom,
+    double? maxzoom,
+    dynamic filter,
+    bool enableInteraction = true,
+  }) async {
+    addedSymbolLayers.add(layerId);
+  }
 
   @override
   Future<Line> addLine(LineOptions options, [Map<String, dynamic>? data]) async {
@@ -26,23 +50,9 @@ class FakeMapController extends Fake implements MapLibreMapController {
   }
 
   @override
-  Future<Symbol> addSymbol(SymbolOptions options, [Map<String, dynamic>? data]) async {
-    addedSymbols.add(options);
-    final symbol = Symbol('symbol_${_nextId++}', options);
-    activeSymbols.add(symbol);
-    return symbol;
-  }
-
-  @override
   Future<void> removeLine(Line line) async {
     activeLines.remove(line);
     removedLines.add(line);
-  }
-
-  @override
-  Future<void> removeSymbol(Symbol symbol) async {
-    activeSymbols.remove(symbol);
-    removedSymbols.add(symbol);
   }
 
   int animateCameraCalls = 0;
@@ -167,16 +177,20 @@ void main() {
       expect(result, isTrue);
       // 2 lines: casing line + main line
       expect(fakeController.addedLines.length, 2);
-      // 3 symbols for 3 waypoints: A, 1, B
-      expect(fakeController.addedSymbols.length, 3);
-      expect(fakeController.addedSymbols[0].textField, 'A');
-      expect(fakeController.addedSymbols[1].textField, '1');
-      expect(fakeController.addedSymbols[2].textField, 'B');
+      // 3 waypoints via GeoJSON source
+      final wpSource = fakeController.geoJsonSources['smap-drawing-waypoints-source'];
+      expect(wpSource, isNotNull);
+      final features = wpSource!['features'] as List;
+      expect(features.length, 3);
+      expect(features[0]['properties']['name'], 'A');
+      expect(features[1]['properties']['name'], '1');
+      expect(features[2]['properties']['name'], 'B');
 
       // Test clear removes all
       await manager.clear(fakeController);
       expect(fakeController.removedLines.length, 2);
-      expect(fakeController.removedSymbols.length, 3);
+      final clearedWpSource = fakeController.geoJsonSources['smap-drawing-waypoints-source'];
+      expect((clearedWpSource!['features'] as List), isEmpty);
     });
 
     test('drawCustomRoute cancels previous render when new render starts and cleans up orphaned lines', () async {

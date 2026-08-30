@@ -288,7 +288,7 @@
   },
   "auth_guest_name": "Guest_{}",
   "offline_maps_vietnam_name": "Vietnam Nationwide Map",
-  "offline_maps_vietnam_desc": "Offline map, search & routing data for all 63 provinces",
+  "offline_maps_vietnam_desc": "Offline map, search & routing data for all of Vietnam; supports pre- and post-merger addresses",
   "offline_maps_title": "Offline Maps",
   "offline_maps_subtitle": "Manage downloaded data for offline navigation",
   "offline_maps_storage_used": "Storage Used",

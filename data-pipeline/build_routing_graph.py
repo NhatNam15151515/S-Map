@@ -64,6 +64,7 @@ OUTPUT_DIR = DATA_DIR / "output_ghz"
 GRAPH_CACHE_DIR = DATA_DIR / "graph-cache"
 GH_JAR = Path("data-pipeline/graphhopper-web.jar")
 GH_CONFIG = Path("data-pipeline/graphhopper-config.yml")
+MIN_REAL_GHZ_BYTES = 1024 * 1024
 
 def format_size(size_bytes):
     """Chuyển bytes sang MB/KB dễ đọc"""
@@ -131,6 +132,31 @@ def zip_directory(src_dir, target_ghz):
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, src_dir)
                 ziph.write(file_path, arcname)
+
+
+def prepare_graphhopper_config(region_id, region_pbf, graph_cache):
+    """Tạo config import đúng PBF/cache của vùng đang build.
+
+    GraphHopper bản hiện tại nhận config bằng positional argument sau lệnh
+    ``import``; các tham số ``datareader.file=...`` cũ không còn hợp lệ.
+    """
+    if not GH_CONFIG.exists():
+        return None
+
+    config_path = DATA_DIR / f"{region_id}_graphhopper_config.yml"
+    pbf_path = region_pbf.resolve().as_posix()
+    graph_path = graph_cache.resolve().as_posix()
+    config_lines = []
+    for line in GH_CONFIG.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("datareader.file:"):
+            line = f"  datareader.file: {pbf_path}"
+        elif stripped.startswith("graph.location:"):
+            line = f"  graph.location: {graph_path}"
+        config_lines.append(line)
+
+    config_path.write_text("\n".join(config_lines) + "\n", encoding="utf-8")
+    return config_path
 
 def extract_region_pbf(region_id, region_info, has_osmium):
     """Trích xuất PBF cho 1 vùng bằng osmium hoặc skip nếu không có tool.
@@ -204,10 +230,18 @@ def build_graphhopper_graph(region_id, region_pbf, has_java):
     graph_cache = GRAPH_CACHE_DIR / region_id
     ghz_file = OUTPUT_DIR / f"{region_id}.ghz"
     
-    if ghz_file.exists():
+    if ghz_file.exists() and ghz_file.stat().st_size >= MIN_REAL_GHZ_BYTES:
         print(f"  [OK] File {ghz_file} đã tồn tại ({format_size(ghz_file.stat().st_size)}). Skip build.")
         return graph_cache
-    
+
+    if ghz_file.exists():
+        print(f"  [WARNING] File {ghz_file} là placeholder ({format_size(ghz_file.stat().st_size)}). Xóa để build lại.")
+        ghz_file.unlink()
+
+    if (graph_cache / "nodes").exists():
+        print(f"  [OK] Graph cache {graph_cache} đã có sẵn. Tái sử dụng để đóng gói.")
+        return graph_cache
+
     if not has_java:
         print(f"  [SKIP] Không có Java, không thể build GraphHopper graph cho {region_id}.")
         return None
@@ -227,16 +261,17 @@ def build_graphhopper_graph(region_id, region_pbf, has_java):
     
     print(f"  Đang build GraphHopper graph cho {region_id}...")
     try:
+        config_path = prepare_graphhopper_config(region_id, region_pbf, graph_cache)
+        if config_path is None:
+            print(f"  [SKIP] Không tìm thấy config GraphHopper ({GH_CONFIG}).")
+            return None
+
         cmd = [
             "java", "-Xmx2g",
             "-jar", str(GH_JAR),
             "import",
-            f"datareader.file={region_pbf}",
-            f"graph.location={graph_cache}",
+            str(config_path),
         ]
-        # Nếu có config file, thêm vào
-        if GH_CONFIG.exists():
-            cmd.append(f"config={GH_CONFIG}")
         
         subprocess.run(cmd, check=True, capture_output=True, text=True)
         print(f"  [OK] Build graph xong: {graph_cache}")
@@ -253,8 +288,11 @@ def package_ghz(region_id, graph_cache):
     """
     ghz_file = OUTPUT_DIR / f"{region_id}.ghz"
     
-    if ghz_file.exists():
+    if ghz_file.exists() and ghz_file.stat().st_size >= MIN_REAL_GHZ_BYTES:
         return ghz_file
+
+    if ghz_file.exists():
+        ghz_file.unlink()
     
     if graph_cache is None or not graph_cache.exists():
         return None
@@ -301,6 +339,17 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
     print(f"\n[OK] Đã cập nhật báo cáo dung lượng vào {report_path}")
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="S-Map Routing Graph Builder (.ghz)")
+    parser.add_argument(
+        "--region",
+        type=str,
+        default="all",
+        help="Vùng cần build: vietnam, metro_hcm, metro_hn, mien_nam, mien_trung, mien_bac, hoặc all",
+    )
+    args = parser.parse_args()
+
     print("=== S-Map Routing Graph Builder (.ghz) ===")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     GRAPH_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -310,7 +359,16 @@ def main():
     
     benchmark_results = {}
     
-    for region_id, region_info in REGIONS.items():
+    target_region = args.region.lower()
+    if target_region == "all":
+        regions_to_build = REGIONS.items()
+    elif target_region in REGIONS:
+        regions_to_build = [(target_region, REGIONS[target_region])]
+    else:
+        print(f"[ERROR] Vùng không hợp lệ: {target_region}")
+        sys.exit(1)
+
+    for region_id, region_info in regions_to_build:
         print(f"\n---> Đang xử lý vùng: {region_id} ({region_info['name']})")
         start_time = time.time()
         

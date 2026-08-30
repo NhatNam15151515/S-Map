@@ -1,6 +1,7 @@
 {
   "version": 8,
   "name": "S-Map OSM Dark (Raster Filter)",
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   "metadata": {
     "TODO": "Transition to Vector Tiles with a dedicated Night Style JSON to eliminate raster filter performance overhead and achieve stable 60fps on low-end Android devices."
   },

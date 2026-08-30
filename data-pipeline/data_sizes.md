@@ -7,12 +7,12 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
 
 | ID Vùng | Tên vùng | File PBF | File .ghz | Dung lượng | Thời gian build | Target MVP | Status |
 |---|---|---|---|---|---|---|---|
-| `vietnam` | Toàn quốc Việt Nam | 311.29 MB | `vietnam.ghz` | **N/A** | 0.0s | < 200MB | ⬜ Pending (thiếu tool) |
-| `metro_hcm` | Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | N/A | `metro_hcm.ghz` | **N/A** | 0.0s | < 50MB | ⬜ Pending (thiếu tool) |
-| `metro_hn` | Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc) | N/A | `metro_hn.ghz` | **N/A** | 0.0s | < 50MB | ⬜ Pending (thiếu tool) |
-| `mien_nam` | Miền Nam (Đông Nam Bộ + Tây Nam Bộ) | N/A | `mien_nam.ghz` | **N/A** | 0.0s | < 200MB | ⬜ Pending (thiếu tool) |
-| `mien_trung` | Miền Trung (Bắc Trung Bộ + Nam Trung Bộ + Tây Nguyên) | N/A | `mien_trung.ghz` | **N/A** | 0.0s | < 200MB | ⬜ Pending (thiếu tool) |
-| `mien_bac` | Miền Bắc (Đông Bắc + Tây Bắc + Đồng bằng Sông Hồng) | N/A | `mien_bac.ghz` | **N/A** | 0.0s | < 200MB | ⬜ Pending (thiếu tool) |
+| `vietnam` | Toàn quốc Việt Nam | 311.29 MB | `vietnam.ghz` | **301.16 MB** | 25.0s | < 200MB | ✅ Built |
+| `metro_hcm` | Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An) | N/A | `metro_hcm.ghz` | **N/A** | 0.0s | < 50MB | ⬜ Planned |
+| `metro_hn` | Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc) | N/A | `metro_hn.ghz` | **N/A** | 0.0s | < 50MB | ⬜ Planned |
+| `mien_nam` | Miền Nam (Đông Nam Bộ + Tây Nam Bộ) | N/A | `mien_nam.ghz` | **N/A** | 0.0s | < 200MB | ⬜ Planned |
+| `mien_trung` | Miền Trung (Bắc Trung Bộ + Nam Trung Bộ + Tây Nguyên) | N/A | `mien_trung.ghz` | **N/A** | 0.0s | < 200MB | ⬜ Planned |
+| `mien_bac` | Miền Bắc (Đông Bắc + Tây Bắc + Đồng bằng Sông Hồng) | N/A | `mien_bac.ghz` | **N/A** | 0.0s | < 200MB | ⬜ Planned |
 
 ---
 
@@ -25,6 +25,30 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
 
 ## POI SQLite Database (.db)
 
-| Vùng địa lý | Tên File | Số lượng POI | Dung lượng file | Thời gian Query FTS5 |
-| ----------- | -------- | ------------ | --------------- | -------------------- |
-| Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc) | `metro_hn_poi.db` | 36,314 địa điểm | 10.14 MB | < 20 ms |
+| Vùng địa lý | Tên File | Số lượng bản ghi | Số địa chỉ | Số đường | Dung lượng file | Nội dung |
+|---|---|---:|---:|---:|---:|---|
+| Toàn quốc Việt Nam | `vietnam_poi.db` | 274,570 | 49,252 | 77,309 | **100.59 MB** | Số nhà + đường + alias địa chỉ trước/sau sáp nhập |
+
+## 🗺️ Bảng thống kê Vector Tiles (.pmtiles)
+
+| ID Vùng | Tên vùng | File PMTiles | Dung lượng | Zoom Levels | Tiếng Việt | Status |
+|---|---|---|---|---|---|---|
+| `vietnam` | Toàn quốc Việt Nam | `vietnam.pmtiles` | **295.51 MB** | 0 - 14 | 100% UTF-8 | ✅ Pass |
+
+---
+
+## 🎨 Thông số kỹ thuật PMTiles Vector Tiles
+
+1. **Format**: PMTiles v3 (Single-file archive vector tile format cho MapLibre GL).
+2. **Schema**: OpenMapTiles schema v3.x (lớp đường, tên sông, poi, administrative boundary).
+3. **Tiếng Việt**: Hỗ trợ 100% ký tự UTF-8 Tiếng Việt có dấu từ tag `name` và `name:vi` trên OSM.
+4. **Hẻm nhỏ**: Các đường nhỏ (`highway=service`, `highway=residential`) xuất hiện ở Zoom 13-14.
+5. **Dung lượng**: Nhỏ hơn 15% so với định dạng MBTiles cũ, hỗ trợ HTTP Range Request cực nhanh.
+
+<!-- START_ZIP_TABLE_METRICS -->
+## 📦 Bảng thống kê Gói Zip Dữ Liệu Vùng (Offline Region Packages)
+
+| ID Vùng | Tên Vùng | File Zip Đóng Gói | Dung Lượng Zip | Nội Dung Bên Trong | Status |
+|---|---|---|---|---|---|
+| `vietnam` | Toàn quốc Việt Nam | `vietnam.zip` | **622.32 MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |
+<!-- END_ZIP_TABLE_METRICS -->

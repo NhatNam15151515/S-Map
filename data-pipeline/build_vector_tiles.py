@@ -34,6 +34,7 @@ from config import REGIONS, RAW_PBF, PMTILES_DIR as OUTPUT_DIR
 PLANETILER_JAR = Path("data-pipeline/tools/planetiler.jar")
 PLANETILER_URL = "https://github.com/onthegomap/planetiler/releases/download/v0.8.0/planetiler.jar"
 PLANETILER_SHA256 = "a2fc2d1efc495e635b014e3203d0b749bfee9155624242c4c2f33077f91f59ed"
+MIN_REAL_PMTILES_BYTES = 1024 * 1024
 
 def format_size(size_bytes):
     """Chuyển bytes sang MB/KB dễ đọc"""
@@ -160,6 +161,9 @@ def build_pmtiles(target_region="all"):
         
         # Nếu có Java & Planetiler, gọi command thực tế
         if PLANETILER_JAR.exists() and pbf_exists:
+            # Không để file placeholder cũ làm Planetiler từ chối ghi đè.
+            if pmtiles_file.exists() and pmtiles_file.stat().st_size < MIN_REAL_PMTILES_BYTES:
+                pmtiles_file.unlink()
             cmd = [
                 "java", "-Xmx2g", "-jar", str(PLANETILER_JAR),
                 f"--osm-path={RAW_PBF}",
@@ -167,7 +171,9 @@ def build_pmtiles(target_region="all"):
                 f"--bounds={region_info['bbox']}",
                 "--maxzoom=14",
                 "--minzoom=0",
-                "--download-threads=2"
+                "--download-threads=2",
+                "--download",
+                "--force"
             ]
             print(f"Executing: {' '.join(cmd)}")
             try:
@@ -175,14 +181,15 @@ def build_pmtiles(target_region="all"):
                 print(res.stdout[:500] if res.stdout else "Planetiler completed successfully.")
                 build_success = pmtiles_file.exists() and pmtiles_file.stat().st_size > 0
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                print(f"[ERROR] Build failed for {region_id}: {e}")
+                detail = getattr(e, "stderr", None) or str(e)
+                print(f"[ERROR] Build failed for {region_id}: {detail[:1000]}")
                 build_success = False
         else:
             if not PLANETILER_JAR.exists():
                 print(f"[WARNING] Thiếu {PLANETILER_JAR}, bỏ qua build.")
             if not pbf_exists:
                 print(f"[WARNING] Thiếu file OSM raw {RAW_PBF}, bỏ qua build.")
-            build_success = pmtiles_file.exists() and pmtiles_file.stat().st_size > 0
+            build_success = pmtiles_file.exists() and pmtiles_file.stat().st_size >= MIN_REAL_PMTILES_BYTES
             
         actual_size = pmtiles_file.stat().st_size if build_success and pmtiles_file.exists() else 0
             

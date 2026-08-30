@@ -29,6 +29,36 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 from config import REGIONS, RAW_PBF, PMTILES_DIR, GHZ_DIR, POI_DB_DIR, PACKAGES_DIR
 
+MIN_REAL_PMTILES_BYTES = 1024 * 1024
+MIN_REAL_GHZ_BYTES = 1024 * 1024
+MIN_REAL_POI_DB_BYTES = 1024 * 1024
+
+
+def _has_real_data_file(path: Path, minimum_bytes: int) -> bool:
+    return path.exists() and path.stat().st_size >= minimum_bytes
+
+
+def _has_address_search_data(path: Path) -> bool:
+    """Kiểm tra package có DB tìm kiếm số nhà và street index mới hay chưa."""
+    if not _has_real_data_file(path, MIN_REAL_POI_DB_BYTES):
+        return False
+    try:
+        import sqlite3
+
+        with sqlite3.connect(path) as conn:
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(poi)")}
+            if not {"housenumber", "street", "admin_aliases"}.issubset(columns):
+                return False
+            address_count = conn.execute(
+                "SELECT COUNT(*) FROM poi WHERE category = 'address'"
+            ).fetchone()[0]
+            street_count = conn.execute(
+                "SELECT COUNT(*) FROM poi WHERE category = 'street'"
+            ).fetchone()[0]
+            return address_count > 0 and street_count > 0
+    except (OSError, sqlite3.Error):
+        return False
+
 # Fix Unicode output trên Windows Terminal
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -69,13 +99,18 @@ def create_region_package(region_key: str) -> dict:
 
     # Fix Critical: Kiểm tra nghiêm ngặt sự tồn tại của file nhị phân, KHÔNG tạo file text giả (placeholder)
     missing_files = []
-    for file_path, label in [
-        (pmtiles_file, "Vector Tiles (.pmtiles)"),
-        (ghz_file, "Routing Graph (.ghz)"),
-        (poi_db_file, "POI Database (.db)"),
+    for file_path, label, minimum_bytes in [
+        (pmtiles_file, "Vector Tiles (.pmtiles)", MIN_REAL_PMTILES_BYTES),
+        (ghz_file, "Routing Graph (.ghz)", MIN_REAL_GHZ_BYTES),
     ]:
-        if not file_path.exists() or file_path.stat().st_size == 0:
+        if not _has_real_data_file(file_path, minimum_bytes):
             missing_files.append(f"  - {label}: {file_path}")
+
+    if not _has_address_search_data(poi_db_file):
+        missing_files.append(
+            "  - POI Database (.db) thiếu bảng số nhà/street index/alias hoặc là placeholder: "
+            f"{poi_db_file}"
+        )
 
     if missing_files:
         raise FileNotFoundError(
@@ -148,6 +183,21 @@ def update_data_sizes_md(results: list):
     """Fix Medium: Cập nhật an toàn báo cáo gói ZIP vào data_sizes.md bằng HTML Comment tags và Regex."""
     sizes_file = Path("data-pipeline/data_sizes.md")
 
+    # Khi đóng gói từng vùng, giữ lại các vùng đã có trong báo cáo thay vì
+    # xóa chúng. Điều này giúp số liệu HCM và toàn quốc luôn xuất hiện cùng nhau.
+    existing_rows = {}
+    existing_content = sizes_file.read_text(encoding="utf-8") if sizes_file.exists() else ""
+    existing_block = re.search(
+        r"<!-- START_ZIP_TABLE_METRICS -->.*?<!-- END_ZIP_TABLE_METRICS -->",
+        existing_content,
+        flags=re.DOTALL,
+    )
+    if existing_block:
+        for line in existing_block.group(0).splitlines():
+            row_match = re.match(r"\| `([^`]+)` \|", line)
+            if row_match:
+                existing_rows[row_match.group(1)] = line
+
     report_lines = [
         "<!-- START_ZIP_TABLE_METRICS -->",
         "## 📦 Bảng thống kê Gói Zip Dữ Liệu Vùng (Offline Region Packages)",
@@ -158,9 +208,12 @@ def update_data_sizes_md(results: list):
 
     for item in results:
         zip_mb = item["zip_size_bytes"] / (1024 * 1024)
-        report_lines.append(
+        existing_rows[item["region_key"]] = (
             f"| `{item['region_key']}` | {item['region_name']} | `{item['zip_name']}` | **{zip_mb:.2f} MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |"
         )
+
+    for row in existing_rows.values():
+        report_lines.append(row)
 
     report_lines.append("<!-- END_ZIP_TABLE_METRICS -->")
     new_table_str = "\n".join(report_lines)

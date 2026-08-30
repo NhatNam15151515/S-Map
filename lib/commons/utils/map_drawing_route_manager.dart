@@ -9,9 +9,12 @@ import 'package:s_map/models/models.dart';
 class MapDrawingRouteManager {
   Line? _routeLine;
   Line? _casingLine;
-  final List<Symbol> _waypointSymbols = [];
   int _renderGeneration = 0;
   bool _isAssetLoaded = false;
+  bool _wpLayerInitialized = false;
+
+  static const String _wpSourceId = 'smap-drawing-waypoints-source';
+  static const String _wpLayerId = 'smap-drawing-waypoints-layer';
 
   /// Nạp icon marker vào engine MapLibre
   Future<void> loadMarkerAssets(MapLibreMapController? controller) async {
@@ -28,6 +31,47 @@ class MapDrawingRouteManager {
           '⚠️ [MapDrawingRouteManager] Failed to load marker asset: $e', stack);
     }
   }
+
+  /// Reset asset/layer state after MapLibre replaces the style.
+  void resetAssetLoaded() {
+    _isAssetLoaded = false;
+    _wpLayerInitialized = false;
+  }
+
+  /// Khởi tạo GeoJSON source + Symbol layer cho waypoint markers
+  Future<void> _initWpLayer(MapLibreMapController controller) async {
+    if (_wpLayerInitialized) return;
+    try {
+      await controller.addGeoJsonSource(_wpSourceId, _emptyFC());
+      await controller.addSymbolLayer(
+        _wpSourceId,
+        _wpLayerId,
+        SymbolLayerProperties(
+          iconImage: RoutingConstants.markerImageKey,
+          iconSize: [Expressions.get, 'iconSize'],
+          iconAnchor: 'bottom',
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+          textField: [Expressions.get, 'name'],
+          textSize: 12.0,
+          textColor: AppColors.white.toHex,
+          textHaloColor: AppColors.mapSymbolText.toHex,
+          textHaloWidth: 1.5,
+          textOffset: const [0, -1.8],
+          textAnchor: 'center',
+          textAllowOverlap: true,
+          textIgnorePlacement: true,
+          symbolSortKey: [Expressions.get, 'zIndex'],
+        ),
+        enableInteraction: false,
+      );
+      _wpLayerInitialized = true;
+    } catch (e) {
+      DLog.warning('⚠️ [MapDrawingRouteManager] Failed to init waypoint layer: $e');
+    }
+  }
+
+  Map<String, dynamic> _emptyFC() => {'type': 'FeatureCollection', 'features': <Map<String, dynamic>>[]};
 
   /// Chuyển đổi danh sách [RoutePoint] sang List<LatLng> an toàn
   static List<LatLng> parseRoutePoints(List<RoutePoint> rawPoints) {
@@ -89,16 +133,10 @@ class MapDrawingRouteManager {
         }
       }
     }
-    if (_waypointSymbols.isNotEmpty) {
-      final symbolsToRemove = List<Symbol>.from(_waypointSymbols);
-      _waypointSymbols.clear();
-      for (final sym in symbolsToRemove) {
-        try {
-          await controller.removeSymbol(sym);
-        } catch (e) {
-          DLog.warning('⚠️ [MapDrawingRouteManager] Error removing symbol: $e');
-        }
-      }
+    if (_wpLayerInitialized) {
+      try {
+        await controller.setGeoJsonSource(_wpSourceId, _emptyFC());
+      } catch (_) {}
     }
   }
 
@@ -152,12 +190,11 @@ class MapDrawingRouteManager {
         _routeLine = mainLine;
       }
 
-      // 2. Vẽ Waypoint Symbols cho từng điểm
+      // 2. Vẽ Waypoint Symbols cho từng điểm via GeoJSON source
+      await _initWpLayer(controller);
+      final features = <Map<String, dynamic>>[];
       for (int i = 0; i < points.length; i++) {
-        if (generation != _renderGeneration) break;
         final pt = points[i];
-        final latLng = LatLng(pt.snappedLat, pt.snappedLon);
-
         String label;
         if (i == 0) {
           label = 'A';
@@ -166,30 +203,24 @@ class MapDrawingRouteManager {
         } else {
           label = '$i';
         }
-
-        final symbol = await controller.addSymbol(
-          SymbolOptions(
-            geometry: latLng,
-            iconImage: RoutingConstants.markerImageKey,
-            iconSize: i == 0 || i == points.length - 1 ? 0.75 : 0.6,
-            iconAnchor: 'bottom',
-            textField: label,
-            textSize: 12.0,
-            textColor: AppColors.white.toHex,
-            textHaloColor: AppColors.mapSymbolText.toHex,
-            textHaloWidth: 1.5,
-            textOffset: const Offset(0, -1.8),
-            textAnchor: 'center',
-          ),
-        );
-
-        if (generation == _renderGeneration) {
-          _waypointSymbols.add(symbol);
-        } else {
-          await controller.removeSymbol(symbol);
-          return false;
-        }
+        features.add({
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [pt.snappedLon, pt.snappedLat],
+          },
+          'properties': {
+            'name': label,
+            'iconSize': i == 0 || i == points.length - 1 ? 1.1 : 0.85,
+            'zIndex': i == 0 || i == points.length - 1 ? 10 : 5,
+          },
+        });
       }
+      if (generation != _renderGeneration) return false;
+      await controller.setGeoJsonSource(_wpSourceId, {
+        'type': 'FeatureCollection',
+        'features': features,
+      });
 
       return true;
     } catch (e, stack) {

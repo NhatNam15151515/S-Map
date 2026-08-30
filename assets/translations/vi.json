@@ -288,7 +288,7 @@
   },
   "auth_guest_name": "Khách_{}",
   "offline_maps_vietnam_name": "Bản đồ Toàn quốc Việt Nam",
-  "offline_maps_vietnam_desc": "Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn bộ 63 tỉnh thành",
+  "offline_maps_vietnam_desc": "Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn quốc; hỗ trợ địa chỉ trước và sau sáp nhập",
   "offline_maps_title": "Bản đồ ngoại tuyến",
   "offline_maps_subtitle": "Quản lý dữ liệu tải về để dẫn đường không cần mạng",
   "offline_maps_storage_used": "Bộ nhớ đã dùng",

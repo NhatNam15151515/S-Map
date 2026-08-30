@@ -1,6 +1,7 @@
 {
   "version": 8,
   "name": "S-Map OSM Standard",
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   "sources": {
     "osm-tiles": {
       "type": "raster",

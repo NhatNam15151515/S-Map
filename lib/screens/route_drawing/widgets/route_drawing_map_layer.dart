@@ -100,6 +100,7 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
               displayCubit.onMapCreated();
             },
             onStyleLoadedCallback: () async {
+              _routeManager.resetAssetLoaded();
               await _routeManager.loadMarkerAssets(_mapController);
               final symbolManager = MapSymbolManager();
               await symbolManager.renderSovereigntySymbols(_mapController);
