@@ -35,6 +35,9 @@ void main() async {
   AppCubit.defaultMessagingService = FirebaseMessagingService.instance;
   AppCubit.defaultSharedPreferences = AppSharedPreferences();
   AuthCubit.defaultSharedPreferences = AppSharedPreferences();
+  AuthCubit.defaultSecureStorage = AppSecureStorage.instance;
+  AuthCubit.defaultLocalAuthService = FlutterLocalAuth.instance;
+  AuthCubit.defaultAnalyticsService = FirebaseAnalyticsService();
   RoutePreviewCubit.defaultLocationService = LocationService.instance;
   NavigationBloc.defaultLocationService = LocationService.instance;
   NavigationBloc.defaultDeviceInfoService = DeviceInfoService.instance;

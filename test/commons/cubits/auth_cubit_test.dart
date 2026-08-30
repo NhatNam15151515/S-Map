@@ -4,6 +4,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockAuthRepos implements IAuthRepos {
@@ -255,4 +256,99 @@ void main() {
       expect(cubit.isClosed, isTrue);
     });
   });
+
+  group('AuthCubit Tests - Session Persistence & Restore', () {
+    test('onAppStarted restores authenticated state when user profile exists in secureStorage', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      await mockPrefs.saveOnboardingCompleted(true);
+      final mockStorage = NoOpSecureStorage();
+      final savedUser = User(id: 'u123', username: 'Nam Tran', email: 'nam@example.com');
+      await mockStorage.saveProfile(savedUser);
+
+      final cubit = AuthCubit(
+        sharedPreferences: mockPrefs,
+        secureStorage: mockStorage,
+      );
+
+      await cubit.onAppStarted();
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.loggedInProfile?.id, equals('u123'));
+      expect(cubit.state.loggedInProfile?.username, equals('Nam Tran'));
+      expect(await mockStorage.getStoredAuthToken(), isNotNull);
+      await cubit.close();
+    });
+
+    test('onAppStarted restores user from authRepos when secureStorage is empty', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      await mockPrefs.saveOnboardingCompleted(true);
+      final mockStorage = NoOpSecureStorage();
+      final mockRepos = MockAuthRepos(
+        mockGoogleUser: User(id: 'g456', username: 'Google Nam', email: 'nam.google@example.com'),
+      );
+
+      final cubit = AuthCubit(
+        sharedPreferences: mockPrefs,
+        secureStorage: mockStorage,
+        authRepos: _CustomMockAuthRepos(
+          profileUser: User(id: 'g456', username: 'Google Nam', email: 'nam.google@example.com'),
+        ),
+      );
+
+      await cubit.onAppStarted();
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.loggedInProfile?.id, equals('g456'));
+      expect(cubit.state.loggedInProfile?.username, equals('Google Nam'));
+      await cubit.close();
+    });
+
+    test('loginWithCredentials saves user profile and token in storage', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      final mockStorage = NoOpSecureStorage();
+      final cubit = AuthCubit(
+        sharedPreferences: mockPrefs,
+        secureStorage: mockStorage,
+      );
+
+      await cubit.loginWithCredentials(
+        username: 'nam_dev',
+        password: 'password123',
+      );
+
+      expect(cubit.state.isAuthenticated, isTrue);
+      expect(cubit.state.loggedInProfile?.username, equals('nam_dev'));
+      expect(await mockStorage.getStoredProfile(), isNotNull);
+      expect((await mockStorage.getStoredProfile())?.username, equals('nam_dev'));
+      expect(await mockStorage.getStoredAuthToken(), isNotNull);
+      await cubit.close();
+    });
+
+    test('onLogout clears secure storage and resets state to unAuthenticated', () async {
+      final mockPrefs = NoOpSharedPreferences();
+      final mockStorage = NoOpSecureStorage();
+      await mockStorage.saveProfile(User(id: 'u999', username: 'logout_user'));
+      await mockStorage.saveAuthToken('token_999');
+
+      final cubit = AuthCubit(
+        sharedPreferences: mockPrefs,
+        secureStorage: mockStorage,
+      );
+
+      cubit.onLogout(requestLogout: false);
+
+      expect(cubit.state.isUnAuthenticated, isTrue);
+      expect(await mockStorage.getStoredProfile(), isNull);
+      expect(await mockStorage.getStoredAuthToken(), isNull);
+      await cubit.close();
+    });
+  });
+}
+
+class _CustomMockAuthRepos extends NoOpAuthRepos {
+  final User? profileUser;
+  _CustomMockAuthRepos({this.profileUser});
+
+  @override
+  Future<User?> getProfile() async => profileUser;
 }

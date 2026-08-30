@@ -165,7 +165,7 @@ class Routes extends NavigatorObserver {
   }
 
   void applyWithAuthState(AuthCubit authCubit) {
-    authCubit.stream.listen((event) async {
+    void handleState(AuthState event) async {
       await routeMounted.future;
       switch (event.type) {
         case AuthStateType.unAuthenticated:
@@ -180,7 +180,12 @@ class Routes extends NavigatorObserver {
         default:
           break;
       }
-    });
+    }
+
+    if (!authCubit.state.isInitial) {
+      handleState(authCubit.state);
+    }
+    authCubit.stream.listen(handleState);
   }
 
   OverlayState? get _appOverlayState => rootNavigatorKey.currentState?.overlay;
