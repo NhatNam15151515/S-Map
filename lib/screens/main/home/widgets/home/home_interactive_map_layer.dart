@@ -242,7 +242,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           return Stack(
             children: [
               MapView(
-                key: ValueKey('map_view_night_${state.isNightMode}'),
+                key: const Key('map_view_main'),
                 styleString: state.styleString,
                 onMapCreated: (controller) {
 

@@ -164,7 +164,11 @@ class Routes extends NavigatorObserver {
     );
   }
 
+  StreamSubscription<AuthState>? _authSubscription;
+
   void applyWithAuthState(AuthCubit authCubit) {
+    _authSubscription?.cancel();
+
     void handleState(AuthState event) async {
       await routeMounted.future;
       switch (event.type) {
@@ -185,7 +189,7 @@ class Routes extends NavigatorObserver {
     if (!authCubit.state.isInitial) {
       handleState(authCubit.state);
     }
-    authCubit.stream.listen(handleState);
+    _authSubscription = authCubit.stream.listen(handleState);
   }
 
   OverlayState? get _appOverlayState => rootNavigatorKey.currentState?.overlay;

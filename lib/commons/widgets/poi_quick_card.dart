@@ -24,20 +24,22 @@ class PoiQuickCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    LatLng? effectiveLocation = userLocation;
+    if (effectiveLocation == null) {
+      try {
+        final mapDisplayState = context.watch<MapDisplayCubit>().state;
+        effectiveLocation = mapDisplayState.currentPosition;
+      } catch (_) {
+        // If MapDisplayCubit is not in context, keep null
+      }
+    }
+
     final colorScheme = context.colorScheme;
     final icon = PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
     final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);
     final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
     final categoryLabel = tr(PoiCategoryHelper.getCategoryLocaleKey(poi.category));
     final address = PoiCategoryHelper.formatAddress(poi);
-
-    LatLng? effectiveLocation = userLocation;
-    try {
-      final mapDisplayState = context.watch<MapDisplayCubit>().state;
-      effectiveLocation ??= mapDisplayState.currentPosition;
-    } catch (_) {
-      // If MapDisplayCubit is not in context, keep userLocation
-    }
 
     String subtitleText = address;
     if (effectiveLocation != null) {
