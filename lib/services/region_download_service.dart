@@ -237,6 +237,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     bool preservePartialDownload = false;
 
     try {
+      DLog.info('🚀 [RegionDownloadService] Bắt đầu tải dữ liệu vùng: "${region.name}" (id: ${region.id})\n   🌐 URL: $url\n   📁 Đích: ${targetDir.path}');
       yield 0.05;
       onProgress?.call(0.05);
 
@@ -439,8 +440,27 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
 
       yield 1.0;
       onProgress?.call(1.0);
-      DLog.info(
-          '✅ [RegionDownloadService] Đã tải và giải nén thành công vùng: ${region.name}');
+
+      // Đọc và in chi tiết các file trong package
+      try {
+        final fileList = targetDir.listSync();
+        final fileSummary = fileList.map((f) {
+          final sizeMb = (File(f.path).lengthSync() / (1024 * 1024)).toStringAsFixed(2);
+          return '${p.basename(f.path)} ($sizeMb MB)';
+        }).join(', ');
+
+        final versionFile = File(p.join(targetDir.path, 'version.json'));
+        String versionStr = '';
+        if (versionFile.existsSync()) {
+          versionStr = '\n   📋 Metadata: ${versionFile.readAsStringSync()}';
+        }
+
+        DLog.info(
+            '✅ [RegionDownloadService] Đã tải và giải nén thành công vùng: ${region.name}\n   📦 Files: $fileSummary$versionStr');
+      } catch (_) {
+        DLog.info(
+            '✅ [RegionDownloadService] Đã tải và giải nén thành công vùng: ${region.name}');
+      }
     } catch (e) {
       if (e is! DownloadCancelledException) {
         DLog.error('❌ [RegionDownloadService] Lỗi tải vùng ${region.name}: $e');

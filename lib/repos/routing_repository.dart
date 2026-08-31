@@ -126,6 +126,30 @@ class RoutingRepositoryImpl implements IRoutingRepository {
           if (exists) {
             final nodesFile = File(p.join(targetDir.path, 'nodes'));
             final hasNodes = await nodesFile.exists();
+            
+            // Đọc thông tin package version.json nếu có
+            final versionFile = File(p.join(targetDir.path, 'version.json'))
+                .existsSync() ? File(p.join(targetDir.path, 'version.json'))
+                : File(p.join(targetDir.parent.path, 'version.json'));
+            if (await versionFile.exists()) {
+              try {
+                final verContent = await versionFile.readAsString();
+                DLog.info('📋 [RoutingRepository] Found version.json: $verContent');
+              } catch (_) {}
+            }
+
+            // Đọc thông tin properties nếu có
+            final propsFile = File(p.join(targetDir.path, 'properties'));
+            if (await propsFile.exists()) {
+              try {
+                final propsBytes = await propsFile.readAsBytes();
+                final propsText = String.fromCharCodes(propsBytes);
+                final profileMatch = RegExp(r'profiles=([^\r\n\x00]+)').firstMatch(propsText);
+                final dateMatch = RegExp(r'datareader\.import\.date=([^\r\n\x00]+)').firstMatch(propsText);
+                DLog.info('📄 [RoutingRepository] Graph properties: profile=${profileMatch?.group(1) ?? 'N/A'}, importDate=${dateMatch?.group(1) ?? 'N/A'}');
+              } catch (_) {}
+            }
+
             DLog.info(
                 '📁 [RoutingRepository] Found candidate folder: "${targetDir.path}" (has nodes file: $hasNodes)');
             if (hasNodes) {
@@ -135,6 +159,7 @@ class RoutingRepositoryImpl implements IRoutingRepository {
               DLog.info(
                   '🏁 [RoutingRepository] Folder init outcome: success=$success');
               if (success) {
+                DLog.info('🎉 [RoutingRepository] GraphHopper READY & ROUTING ENABLED from: "${targetDir.path}"');
                 return;
               }
             }
@@ -147,12 +172,14 @@ class RoutingRepositoryImpl implements IRoutingRepository {
           final exists = await file.exists();
           if (exists) {
             final size = await file.length();
+            final sizeMb = (size / (1024 * 1024)).toStringAsFixed(2);
             DLog.info(
-                '📦 [RoutingRepository] Found candidate .ghz file: "${file.path}" (size: ${(size / (1024 * 1024)).toStringAsFixed(2)} MB)');
+                '📦 [RoutingRepository] Found candidate .ghz file: "${file.path}" (size: $sizeMb MB, modified: ${file.lastModifiedSync()})');
             final success = await tryInit(file.path);
             DLog.info(
                 '🏁 [RoutingRepository] .ghz file init outcome: success=$success');
             if (success) {
+              DLog.info('🎉 [RoutingRepository] GraphHopper READY & ROUTING ENABLED from archive: "${file.path}"');
               return;
             }
           }
@@ -169,6 +196,7 @@ class RoutingRepositoryImpl implements IRoutingRepository {
         DLog.info(
             '🏁 [RoutingRepository] Bundled asset init outcome ($bundledAsset): success=$assetSuccess');
         if (assetSuccess) {
+          DLog.info('🎉 [RoutingRepository] GraphHopper READY & ROUTING ENABLED from APK asset!');
           return;
         }
       }

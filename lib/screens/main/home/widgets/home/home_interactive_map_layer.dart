@@ -113,7 +113,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
   /// Xử lý tap trên bản đồ: kiểm tra xem có tap vào marker không
   Future<void> _onMapClick(Point<double> point, LatLng latLng) async {
-    final poi = _symbolManager.getPoiAtLocation(latLng.latitude, latLng.longitude);
+    final poi =
+        _symbolManager.getPoiAtLocation(latLng.latitude, latLng.longitude);
     if (poi != null && mounted) {
       widget.onPoiTapped(poi);
       return;
@@ -128,12 +129,14 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     }
   }
 
-  Future<PoiModel?> _queryRenderedPoi(Point<double> point, LatLng latLng) async {
+  Future<PoiModel?> _queryRenderedPoi(
+      Point<double> point, LatLng latLng) async {
     final controller = _mapController;
     if (controller == null) return null;
 
     try {
-      final features = await controller.queryRenderedFeatures(point, const [], null);
+      final features =
+          await controller.queryRenderedFeatures(point, const [], null);
       final candidates = <PoiModel>[];
       for (final rawFeature in features) {
         if (rawFeature is! Map) continue;
@@ -145,13 +148,14 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       }
 
       if (candidates.isNotEmpty) {
-        candidates.sort((a, b) => _poiFeatureScore(b).compareTo(_poiFeatureScore(a)));
+        candidates
+            .sort((a, b) => _poiFeatureScore(b).compareTo(_poiFeatureScore(a)));
         return await _enrichRenderedPoi(candidates.first);
       }
 
       // Một số tile chỉ chứa hình học/label, không mang đủ metadata POI.
       // Tra cứu thêm trong DB offline quanh vị trí chạm để lấy thông tin đầy đủ.
-      final delta = 0.0008; // khoảng 80–90 m quanh điểm chạm
+      const delta = 0.0008; // khoảng 80–90 m quanh điểm chạm
       final nearby = await _poiRepository.searchInBounds(
         minLat: latLng.latitude - delta,
         maxLat: latLng.latitude + delta,
@@ -160,10 +164,12 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
         limit: 10,
       );
       if (nearby.isEmpty) return null;
-      nearby.sort((a, b) => _distanceTo(a, latLng).compareTo(_distanceTo(b, latLng)));
+      nearby.sort(
+          (a, b) => _distanceTo(a, latLng).compareTo(_distanceTo(b, latLng)));
       return nearby.first;
     } catch (e, stack) {
-      DLog.warning('⚠️ [Map] Không đọc được feature tại vị trí chạm: $e', stack);
+      DLog.warning(
+          '⚠️ [Map] Không đọc được feature tại vị trí chạm: $e', stack);
       return null;
     }
   }
@@ -175,7 +181,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     String value(List<String> keys) {
       for (final key in keys) {
         final raw = properties[key];
-        if (raw != null && raw.toString().trim().isNotEmpty) return raw.toString();
+        if (raw != null && raw.toString().trim().isNotEmpty)
+          return raw.toString();
       }
       return '';
     }
@@ -191,7 +198,9 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       'public_transport',
       'place',
     ]);
-    if (name.isEmpty || (category.isEmpty && value(['address', 'addr:street', 'street']).isEmpty)) {
+    if (name.isEmpty ||
+        (category.isEmpty &&
+            value(['address', 'addr:street', 'street']).isEmpty)) {
       return null;
     }
 
@@ -248,7 +257,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
   /// Chuyển tiếp sự kiện chạm giữ (Long Press) trên bản đồ trực tiếp sang Cubit
   void _onMapLongClick(Point<double> point, LatLng latLng) {
-    DLog.info('👆 [Map] Long press detected at: (${latLng.latitude.toStringAsFixed(5)}, ${latLng.longitude.toStringAsFixed(5)})');
+    DLog.info(
+        '👆 [Map] Long press detected at: (${latLng.latitude.toStringAsFixed(5)}, ${latLng.longitude.toStringAsFixed(5)})');
     routePreviewCubit.previewRouteToCoordinate(latLng);
   }
 
@@ -267,7 +277,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
             }
             if (state.selectedPoi != null) {
               setSelectedPoiMarker(state.selectedPoi!);
-            } else if (state.selectedPoi == null && _symbolManager.selectedPoi != null) {
+            } else if (state.selectedPoi == null &&
+                _symbolManager.selectedPoi != null) {
               clearSelectedPoiMarker();
             }
             if (state.status == MapDisplayStatus.error &&
@@ -398,10 +409,12 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 onStyleLoadedCallback: () async {
                   _symbolManager.resetAssetLoaded();
                   _routeManager.resetAssetLoaded();
-                  await _symbolManager.loadMarkerAssets(_mapController, force: true);
+                  await _symbolManager.loadMarkerAssets(_mapController,
+                      force: true);
                   await _symbolManager.initLayers(_mapController);
                   await _symbolManager.renderSovereigntySymbols(_mapController);
-                  await _routeManager.loadMarkerAssets(_mapController, force: true);
+                  await _routeManager.loadMarkerAssets(_mapController,
+                      force: true);
                   displayCubit.onStyleLoaded();
 
                   if (!mounted) return;
@@ -411,7 +424,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   if (viewportState.status == ViewportSearchStatus.success &&
                       viewportState.selectedCategory != CategoryConstants.all &&
                       viewportState.pois.isNotEmpty) {
-                    _symbolManager.renderPoiList(_mapController, viewportState.pois);
+                    _symbolManager.renderPoiList(
+                        _mapController, viewportState.pois);
                   }
                   if (displayCubit.state.selectedPoi != null) {
                     setSelectedPoiMarker(displayCubit.state.selectedPoi!);

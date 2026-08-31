@@ -131,7 +131,23 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
 
         val propsFile = File(graphDirectory, "properties")
         if (propsFile.exists()) {
-            println("📄 [DefaultGraphHopperEngineFactory] Graph properties file content:\n${propsFile.readText()}")
+            try {
+                val lines = propsFile.readBytes()
+                    .toString(Charsets.ISO_8859_1)
+                    .split('\n')
+                    .map { it.trim().replace("\u0000", "") }
+                    .filter { it.contains("=") }
+                println("📄 [DefaultGraphHopperEngineFactory] Graph properties info:")
+                for (line in lines) {
+                    if (line.startsWith("profiles=") || line.startsWith("graph.profiles") ||
+                        line.startsWith("datareader.import.date") || line.startsWith("datareader.data.date") ||
+                        line.startsWith("graph.em.version")) {
+                        println("   🔹 $line")
+                    }
+                }
+            } catch (e: Exception) {
+                println("⚠️ [DefaultGraphHopperEngineFactory] Could not parse properties: ${e.message}")
+            }
         } else {
             println("⚠️ [DefaultGraphHopperEngineFactory] Graph properties file not found in ${graphDirectory.absolutePath}")
         }
@@ -141,17 +157,11 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             putObject(RoutingConstants.CONFIG_GRAPH_LOCATION, graphDirectory.absolutePath)
             putObject(RoutingConstants.CONFIG_DATAREADER_FILE, "")
             putObject(RoutingConstants.CONFIG_IMPORT_OSM_IGNORED_HIGHWAYS, "")
-            // Khớp với encoded-values đã được ghi trong graph/properties khi
-            // import data. Yêu cầu field không tồn tại làm profile hash lệch
-            // và GraphHopper từ chối load graph.
             putObject("graph.encoded_values", "road_class,road_environment,road_access,max_speed")
             setProfiles(listOf(
                 Profile("moped_vn")
                     .setVehicle("car")
                     .setWeighting("custom")
-                    // Phải nạp cùng custom model đã dùng lúc import graph. Nếu để
-                    // model rỗng, GraphHopper sẽ load được graph nhưng route native
-                    // sẽ quay về weighting mặc định và ưu tiên đường lớn.
                     .setCustomModel(Jackson.newObjectMapper().readValue(CUSTOM_MODEL_JSON, CustomModel::class.java))
             ))
             setCHProfiles(listOf(
@@ -159,10 +169,6 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             ))
         }
 
-        // Dùng GraphHopper weighting mặc định để profile `custom` thực sự áp dụng
-        // priority/speed/distance_influence của custom_model_moped.json.
-        // Trước đây factory bị override bằng FastestWeighting, làm mất toàn bộ
-        // ưu tiên hẻm nhỏ dù graph đã chứa các edge đó.
         val hopper = GraphHopper().init(config)
         val loadSuccess = try {
             hopper.load()
@@ -183,7 +189,11 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             throw IllegalStateException("${RoutingConstants.ERR_GRAPH_DATA_INCOMPLETE} at ${graphDirectory.absolutePath}")
         }
 
-        Log.i(TAG, "GraphHopper successfully loaded from ${graphDirectory.absolutePath}!")
+        val baseGraph = hopper.baseGraph
+        val nodeCount = baseGraph?.nodes ?: 0
+        val edgeCount = baseGraph?.edges ?: 0
+        Log.i(TAG, "GraphHopper successfully loaded from ${graphDirectory.absolutePath}! (Nodes: $nodeCount, Edges: $edgeCount)")
+        println("🎉 [DefaultGraphHopperEngineFactory] GraphHopper READY! Nodes: $nodeCount, Edges: $edgeCount")
         return GraphHopperEngineWrapper(hopper)
     }
 
@@ -316,9 +326,6 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                 val vehicleAccess = hopper.encodingManager.getBooleanEncodedValue(
                     com.graphhopper.routing.ev.VehicleAccess.key("car")
                 )
-                // Không snap vào footway/pedestrian/private edge mà xe máy không
-                // thể route; nếu không điểm trong hẻm dễ bị hút sang edge gần nhất
-                // nhưng không đi được.
                 val snap: Snap = locationIndex.findClosest(
                     lat,
                     lon,
