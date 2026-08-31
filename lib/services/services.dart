@@ -12,6 +12,7 @@ export 'local_auth_service.dart';
 export 'local_notification_service.dart';
 export 'location_services.dart';
 export 'map_style_service.dart';
+export 'map_style_theme_provider.dart';
 export 'package_info_service.dart';
 export 'poi_database_service.dart';
 export 'recent_search_service.dart';

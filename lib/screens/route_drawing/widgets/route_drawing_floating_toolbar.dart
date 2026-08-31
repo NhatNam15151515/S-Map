@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class RouteDrawingFloatingToolbar extends StatelessWidget {
@@ -10,6 +11,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   final bool canClear;
   final bool hasPoints;
   final bool isMyLocationOrigin;
+  final bool isResolvingMyLocation;
   final bool isMarkerDestination;
   final bool hasMarkerDestination;
   final VoidCallback? onLocateMe;
@@ -28,6 +30,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     required this.canClear,
     required this.hasPoints,
     this.isMyLocationOrigin = false,
+    this.isResolvingMyLocation = false,
     this.isMarkerDestination = false,
     this.hasMarkerDestination = false,
     this.onLocateMe,
@@ -118,13 +121,9 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (onLocateMe != null) ...[
-              _buildToolbarButton(
-                context: context,
+              MapLocateButton(
                 key: const Key('route_drawing_locate_me_button'),
-                icon: HeroIcons.cursorArrowRays,
-                tooltip: tr(LocaleKeys.map_current_location),
-                isEnabled: true,
-                isPrimary: true,
+                heroTag: 'route_drawing_locate_me_fab',
                 onPressed: onLocateMe!,
               ),
               const SizedBox(height: 6),
@@ -135,8 +134,9 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
                 key: const Key('route_drawing_my_location_origin_button'),
                 icon: HeroIcons.mapPin,
                 tooltip: tr(LocaleKeys.route_drawing_ui_use_my_location_origin),
-                isEnabled: true,
+                isEnabled: !isResolvingMyLocation,
                 isActive: isMyLocationOrigin,
+                isLoading: isResolvingMyLocation,
                 onPressed: onToggleMyLocationOrigin!,
               ),
               const SizedBox(height: 6),
@@ -224,6 +224,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     bool isDestructive = false,
     bool isPrimary = false,
     bool isActive = false,
+    bool isLoading = false,
   }) {
     final colorScheme = context.colorScheme;
     Color iconColor;
@@ -242,9 +243,20 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
       iconColor = colorScheme.onSurface;
     }
 
+    final iconWidget = isLoading
+        ? SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            ),
+          )
+        : HeroIcon(icon, size: 20, color: iconColor);
+
     Widget button = IconButton(
       key: key,
-      icon: HeroIcon(icon, size: 20, color: iconColor),
+      icon: iconWidget,
       tooltip: tooltip,
       onPressed: isEnabled ? onPressed : null,
     );

@@ -16,11 +16,20 @@ class LocationService implements ILocationService {
   final loc_pkg.Location _nativeLocation;
 
   LocationService({loc_pkg.Location? nativeLocation})
-      : _nativeLocation = nativeLocation ?? loc_pkg.Location() {
-    _init();
-  }
+      : _nativeLocation = nativeLocation ?? loc_pkg.Location();
 
-  late Position _position;
+  Position _position = Position(
+    longitude: 0,
+    latitude: 0,
+    timestamp: DateTime.fromMillisecondsSinceEpoch(0),
+    accuracy: 0,
+    altitude: 0,
+    altitudeAccuracy: 0,
+    heading: 0,
+    headingAccuracy: 0,
+    speed: 0,
+    speedAccuracy: 0,
+  );
 
   final Completer<bool> initCompleter = Completer();
 
@@ -69,7 +78,15 @@ class LocationService implements ILocationService {
   }
 
   @override
-  Future<Position> getCurrentPosition() => _determinePosition();
+  Future<Position> getCurrentPosition() async {
+    // Location is intentionally lazy. Asking for it in the service
+    // constructor opened the GPS/permission prompt before the user tapped a
+    // location action and made the map flash during startup.
+    final currentPosition = await _determinePosition();
+    _position = currentPosition;
+    if (!initCompleter.isCompleted) initCompleter.complete(true);
+    return currentPosition;
+  }
   @override
   Future<Position?> getLastKnownPosition() => Geolocator.getLastKnownPosition();
 
@@ -130,13 +147,6 @@ class LocationService implements ILocationService {
       DLog.error('Lỗi yêu cầu notification permission: $e');
       return false;
     }
-  }
-
-  void _init() async {
-    try {
-      _position = await _determinePosition();
-      initCompleter.complete(true);
-    } on Exception catch (_) {}
   }
 
   /// Determine the current position of the device.

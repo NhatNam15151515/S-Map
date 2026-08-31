@@ -19,6 +19,10 @@ void main() async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   await Hive.initFlutter();
+  // Open the region metadata before MapStyleService.init(). The map style
+  // service uses this already-initialized box to discover a previously
+  // downloaded PMTiles package during the first app frame.
+  await Hive.openBox<dynamic>(RegionDownloadServiceImpl.boxName);
 
   // Setup default service resolvers & AppReposProvider (Composition Root)
   AppReposProvider.init(routingService: RoutingServiceImpl.instance);

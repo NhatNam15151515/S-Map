@@ -42,11 +42,13 @@ class RouteDrawingScreen extends StatefulWidget {
 class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
   final GlobalKey<RouteDrawingMapLayerState> _mapLayerKey = GlobalKey();
 
+  AppCubit? _appCubit;
   late final RouteDrawingBloc _drawingBloc;
   late final SavedRoutesCubit _savedRoutesCubit;
   late final MapDisplayCubit _mapDisplayCubit;
 
   bool _isMyLocationOriginActive = false;
+  bool _isResolvingMyLocationOrigin = false;
   bool _isMarkerDestinationActive = false;
   bool _isDestinationPickerActive = true;
   LatLng? _markerDestination;
@@ -54,7 +56,9 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
   @override
   void initState() {
     super.initState();
-    _mapDisplayCubit = widget.mapDisplayCubit ?? MapDisplayCubit();
+    _appCubit = _tryReadAppCubit();
+    _mapDisplayCubit = widget.mapDisplayCubit ??
+        MapDisplayCubit(isDarkMode: _appCubit?.state.isDarkMode);
     _drawingBloc = widget.drawingBloc ??
         RouteDrawingBloc(
           routingRepository: AppReposProvider.instance.routingRepos,
@@ -104,37 +108,71 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     });
   }
 
+  AppCubit? _tryReadAppCubit() {
+    try {
+      return context.read<AppCubit>();
+    } catch (_) {
+      // RouteDrawingScreen cũng được dùng độc lập trong widget tests/previews.
+      return null;
+    }
+  }
+
   Future<void> _handleToggleMyLocationOrigin() async {
-    var currentPos = _mapDisplayCubit.state.currentPosition;
-    if (currentPos == null) {
-      await _mapDisplayCubit.locateMe();
-      currentPos = _mapDisplayCubit.state.currentPosition;
-      if (currentPos == null || !mounted) return;
+    if (_isResolvingMyLocationOrigin) return;
+
+    // Đây là một nút chọn trạng thái, không phải một luồng GPS chạy nền.
+    // Cho phép tắt ngay trạng thái active mà không gọi lại permission/GPS.
+    if (_isMyLocationOriginActive) {
+      setState(() => _isMyLocationOriginActive = false);
+      return;
     }
 
-    if (_isMyLocationOriginActive) return;
+    final mapState = _mapDisplayCubit.state;
+    final cachedPosition =
+        mapState.hasRealLocation ? mapState.currentPosition : null;
+    if (cachedPosition != null) {
+      _addMyLocationOrigin(cachedPosition);
+      return;
+    }
 
-    if (_drawingBloc.state.points.isEmpty) {
-      setState(() {
-        _isMyLocationOriginActive = true;
-        // Destination đã được truyền từ POI/search thì luôn nằm sau origin.
-        _isMarkerDestinationActive = _markerDestination != null;
-      });
-      _drawingBloc.add(
-        RouteDrawingEndpointsSelected(
-          origin: RoutePoint(
-            lat: currentPos.latitude,
-            lon: currentPos.longitude,
-          ),
-          destination: _markerDestination == null
-              ? null
-              : RoutePoint(
-                  lat: _markerDestination!.latitude,
-                  lon: _markerDestination!.longitude,
-                ),
+    setState(() => _isResolvingMyLocationOrigin = true);
+    try {
+      // Khi chưa có tọa độ thật, acquireCurrentPosition() chỉ thực hiện một
+      // request; LocationService sẽ tự mở prompt bật GPS/quyền nếu cần.
+      final currentPos = await _mapDisplayCubit.acquireCurrentPosition();
+      if (currentPos != null && mounted) {
+        _addMyLocationOrigin(currentPos);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isResolvingMyLocationOrigin = false);
+      }
+    }
+  }
+
+  void _addMyLocationOrigin(LatLng currentPos) {
+    if (!mounted || _drawingBloc.state.points.isNotEmpty) return;
+
+    setState(() {
+      _isMyLocationOriginActive = true;
+      // Destination đã được truyền từ POI/search thì luôn nằm sau origin.
+      _isMarkerDestinationActive = _markerDestination != null;
+    });
+
+    _drawingBloc.add(
+      RouteDrawingEndpointsSelected(
+        origin: RoutePoint(
+          lat: currentPos.latitude,
+          lon: currentPos.longitude,
         ),
-      );
-    }
+        destination: _markerDestination == null
+            ? null
+            : RoutePoint(
+                lat: _markerDestination!.latitude,
+                lon: _markerDestination!.longitude,
+              ),
+      ),
+    );
   }
 
   void _handleLocateMe() {
@@ -331,78 +369,94 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         BlocProvider<RouteDrawingBloc>.value(value: _drawingBloc),
         BlocProvider<SavedRoutesCubit>.value(value: _savedRoutesCubit),
       ],
-      child: Scaffold(
-        body: BlocBuilder<RouteDrawingBloc, RouteDrawingState>(
-          builder: (context, state) {
-            return Stack(
-              children: [
-                // 1. Map Layer
-                if (widget.mapLayerBuilder != null)
-                  widget.mapLayerBuilder!()
-                else
-                  RouteDrawingMapLayer(key: _mapLayerKey),
+      child: _buildThemeAwareContent(topPadding),
+    );
+  }
 
-                // 2. Floating Top Bar
-                RouteDrawingTopBar(
-                  topPadding: topPadding,
-                  onSavedRoutesPressed: () => _handleOpenSavedRoutes(context),
-                  onSearchDestinationPressed: _handleSearchDestination,
-                ),
+  Widget _buildThemeAwareContent(double topPadding) {
+    final content = Scaffold(
+      body: BlocBuilder<RouteDrawingBloc, RouteDrawingState>(
+        builder: (context, state) {
+          return Stack(
+            children: [
+              // 1. Map Layer
+              if (widget.mapLayerBuilder != null)
+                widget.mapLayerBuilder!()
+              else
+                RouteDrawingMapLayer(key: _mapLayerKey),
 
-                if (_isDestinationPickerActive)
-                  const IgnorePointer(
-                    child: Center(
-                      child: Icon(Icons.flag_rounded, size: 42),
-                    ),
+              // 2. Floating Top Bar
+              RouteDrawingTopBar(
+                topPadding: topPadding,
+                onSavedRoutesPressed: () => _handleOpenSavedRoutes(context),
+                onSearchDestinationPressed: _handleSearchDestination,
+              ),
+
+              if (_isDestinationPickerActive)
+                const IgnorePointer(
+                  child: Center(
+                    child: Icon(Icons.flag_rounded, size: 42),
                   ),
-
-                // 3. Floating Toolbar (Undo, Redo, Clear, Fit Bounds, Origin/Dest Toggles)
-                RouteDrawingFloatingToolbar(
-                  canUndo: state.canUndo,
-                  canRedo: state.canRedo,
-                  canClear: state.points.isNotEmpty,
-                  hasPoints: state.points.isNotEmpty,
-                  isMyLocationOrigin: _isMyLocationOriginActive,
-                  isMarkerDestination: _isMarkerDestinationActive,
-                  // Luôn hiển thị cờ để người dùng có thể bật chế độ chọn
-                  // đích từ tâm bản đồ ngay cả khi chưa có POI tìm kiếm.
-                  hasMarkerDestination: true,
-                  onLocateMe: _handleLocateMe,
-                  onUndo: () =>
-                      _drawingBloc.add(const RouteDrawingUndoLastPoint()),
-                  onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
-                  onClear: () {
-                    setState(() {
-                      _isMyLocationOriginActive = false;
-                      _isMarkerDestinationActive = false;
-                    });
-                    _drawingBloc.add(const RouteDrawingClearRoute());
-                  },
-                  onFitBounds: () =>
-                      _mapLayerKey.currentState?.fitRouteBounds(),
-                  onToggleMyLocationOrigin: _handleToggleMyLocationOrigin,
-                  onToggleMarkerDestination: _markerDestination != null
-                      ? _handleToggleMarkerDestination
-                      : _handleToggleMarkerDestination,
-                  onRemoveMarkerDestination: _markerDestination != null
-                      ? _handleRemoveMarkerDestination
-                      : null,
                 ),
 
-                // 4. Bottom Summary & Action Card
-                RouteDrawingBottomCard(
-                  pointCount: state.pointCount,
-                  distanceMeters: state.totalDistance,
-                  durationMs: state.totalTime,
-                  isLoading: state.isLoading,
-                  onSavePressed: () => _handleSaveRoute(context, state),
-                  onNavigatePressed: () => _handleNavigate(context, state),
-                ),
-              ],
-            );
-          },
-        ),
+              // 3. Floating Toolbar (Undo, Redo, Clear, Fit Bounds, Origin/Dest Toggles)
+              RouteDrawingFloatingToolbar(
+                canUndo: state.canUndo,
+                canRedo: state.canRedo,
+                canClear: state.points.isNotEmpty,
+                hasPoints: state.points.isNotEmpty,
+                isMyLocationOrigin: _isMyLocationOriginActive,
+                isResolvingMyLocation: _isResolvingMyLocationOrigin,
+                isMarkerDestination: _isMarkerDestinationActive,
+                // Luôn hiển thị cờ để người dùng có thể bật chế độ chọn
+                // đích từ tâm bản đồ ngay cả khi chưa có POI tìm kiếm.
+                hasMarkerDestination: true,
+                onLocateMe: _handleLocateMe,
+                onUndo: () =>
+                    _drawingBloc.add(const RouteDrawingUndoLastPoint()),
+                onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
+                onClear: () {
+                  setState(() {
+                    _isMyLocationOriginActive = false;
+                    _isMarkerDestinationActive = false;
+                  });
+                  _drawingBloc.add(const RouteDrawingClearRoute());
+                },
+                onFitBounds: () => _mapLayerKey.currentState?.fitRouteBounds(),
+                onToggleMyLocationOrigin: _handleToggleMyLocationOrigin,
+                onToggleMarkerDestination: _handleToggleMarkerDestination,
+                onRemoveMarkerDestination: _markerDestination != null
+                    ? _handleRemoveMarkerDestination
+                    : null,
+              ),
+
+              // 4. Bottom Summary & Action Card
+              RouteDrawingBottomCard(
+                pointCount: state.pointCount,
+                distanceMeters: state.totalDistance,
+                durationMs: state.totalTime,
+                isLoading: state.isLoading,
+                onSavePressed: () => _handleSaveRoute(context, state),
+                onNavigatePressed: () => _handleNavigate(context, state),
+              ),
+            ],
+          );
+        },
       ),
+    );
+
+    final appCubit = _appCubit;
+    if (appCubit == null) return content;
+
+    return BlocListener<AppCubit, AppState>(
+      bloc: appCubit,
+      listenWhen: (previous, current) =>
+          previous.themeMode != current.themeMode ||
+          previous.appStyle != current.appStyle,
+      listener: (context, appState) {
+        _mapDisplayCubit.updateMapTheme(isDarkMode: appState.isDarkMode);
+      },
+      child: content,
     );
   }
 }

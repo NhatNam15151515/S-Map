@@ -109,18 +109,9 @@ class MapControls extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: locateHeroTag ?? 'map_locate_me_fab',
-            tooltip: tr(LocaleKeys.map_current_location),
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              onLocateMe();
-            },
-            backgroundColor: colorScheme.surface,
-            foregroundColor: colorScheme.primary,
-            elevation: 3,
-            shape: const CircleBorder(),
-            child: const Icon(Icons.my_location_rounded, size: 24),
+          MapLocateButton(
+            heroTag: locateHeroTag,
+            onPressed: onLocateMe,
           ),
         ],
       ),

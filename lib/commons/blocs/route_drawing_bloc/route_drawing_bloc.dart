@@ -75,14 +75,11 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       distanceToRoad: 0,
     );
 
-    emit(state.copyWith(
-      status: RouteDrawingStatus.loading,
-      requestGeneration: generation,
-      clearWarning: true,
-      clearError: true,
-    ));
-
     if (event.destination == null) {
+      // The GPS origin already has a trusted coordinate. Do not put the
+      // drawing screen through a loading state or a snap/routing request just
+      // to add its first point; that transition must be synchronous from the
+      // user's perspective.
       emit(state.copyWith(
         status: RouteDrawingStatus.pointAdded,
         points: [origin],
@@ -96,6 +93,13 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       ));
       return;
     }
+
+    emit(state.copyWith(
+      status: RouteDrawingStatus.loading,
+      requestGeneration: generation,
+      clearWarning: true,
+      clearError: true,
+    ));
 
     final destination = SnappedRoadPoint(
       originalLat: event.destination!.lat,

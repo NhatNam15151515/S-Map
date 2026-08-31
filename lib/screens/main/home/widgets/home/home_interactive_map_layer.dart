@@ -38,6 +38,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   final IPoiRepository _poiRepository = PoiRepositoryImpl();
   RouteResult? _renderedNavRoute;
   int _navListenerGeneration = 0;
+  String? _lastAppliedMapStyle;
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
@@ -80,6 +81,23 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
   void handleCameraAction(MapCameraAction action) {
     _cameraController.applyCameraAction(_mapController, action);
+  }
+
+  Future<void> _applyMapStyle(String styleString) async {
+    if (styleString.isEmpty || styleString == _lastAppliedMapStyle) return;
+
+    final controller = _mapController;
+    if (controller == null) return;
+
+    _lastAppliedMapStyle = styleString;
+    try {
+      // Update the existing native map so its camera, location dot and
+      // texture surface stay in place while the base tiles change.
+      await controller.setStyle(styleString);
+    } catch (error, stack) {
+      _lastAppliedMapStyle = null;
+      DLog.warning('⚠️ [Map] Không thể áp dụng style bản đồ: $error', stack);
+    }
   }
 
   void _onCameraIdle() {
@@ -181,8 +199,9 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     String value(List<String> keys) {
       for (final key in keys) {
         final raw = properties[key];
-        if (raw != null && raw.toString().trim().isNotEmpty)
+        if (raw != null && raw.toString().trim().isNotEmpty) {
           return raw.toString();
+        }
       }
       return '';
     }
@@ -270,8 +289,10 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           listenWhen: (prev, curr) =>
               prev.cameraAction != curr.cameraAction ||
               prev.selectedPoi != curr.selectedPoi ||
-              prev.status != curr.status,
+              prev.status != curr.status ||
+              prev.styleString != curr.styleString,
           listener: (context, state) {
+            _applyMapStyle(state.styleString);
             if (state.cameraAction != null) {
               handleCameraAction(state.cameraAction!);
             }
@@ -395,7 +416,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       ],
       child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
         buildWhen: (prev, curr) =>
-            prev.status != curr.status || prev.styleString != curr.styleString,
+            prev.status != curr.status ||
+            (prev.styleString != curr.styleString && _mapController == null),
         builder: (context, state) {
           return Stack(
             children: [
@@ -404,6 +426,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 styleString: state.styleString,
                 onMapCreated: (controller) {
                   _mapController = controller;
+                  _lastAppliedMapStyle = state.styleString;
                   displayCubit.onMapCreated();
                 },
                 onStyleLoadedCallback: () async {
@@ -415,6 +438,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   await _symbolManager.renderSovereigntySymbols(_mapController);
                   await _routeManager.loadMarkerAssets(_mapController,
                       force: true);
+                  _lastAppliedMapStyle = displayCubit.state.styleString;
                   displayCubit.onStyleLoaded();
 
                   if (!mounted) return;

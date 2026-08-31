@@ -130,7 +130,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     LatLng? destination,
     String? destinationName,
   }) {
-    final myPos = displayCubit.state.currentPosition;
+    final mapState = displayCubit.state;
+    final myPos = mapState.hasRealLocation ? mapState.currentPosition : null;
     final destLatLng =
         destination ?? (poi != null ? LatLng(poi.lat, poi.lon) : null);
     final name = destinationName ?? poi?.name;

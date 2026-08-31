@@ -4,6 +4,7 @@ export 'help_center_question.dart';
 export 'notification_model.dart';
 export 'place_model.dart';
 export 'poi_model.dart';
+export 'map_style_palette.dart';
 export 'routing/active_trip_snapshot.dart';
 export 'routing/custom_route_model.dart';
 export 'routing/instruction_progress.dart';

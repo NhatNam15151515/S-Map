@@ -38,6 +38,10 @@ class MapDisplayState extends Equatable {
   final bool isNightMode;
   final String? errorMessageKey;
   final LatLng? currentPosition;
+  /// True only when [currentPosition] came from the device (fresh or cached
+  /// GPS). The map still keeps a default center after a GPS failure, but that
+  /// fallback must never be used as the user's route origin.
+  final bool hasRealLocation;
   final LatLng? center;
   final double zoom;
   final double rotation;
@@ -53,6 +57,7 @@ class MapDisplayState extends Equatable {
     this.isNightMode = false,
     this.errorMessageKey,
     this.currentPosition,
+    this.hasRealLocation = false,
     this.center,
     this.zoom = 14.0,
     this.rotation = 0.0,
@@ -70,6 +75,7 @@ class MapDisplayState extends Equatable {
     String? errorMessageKey,
     bool clearError = false,
     LatLng? currentPosition,
+    bool? hasRealLocation,
     LatLng? center,
     double? zoom,
     double? rotation,
@@ -88,6 +94,7 @@ class MapDisplayState extends Equatable {
       errorMessageKey:
           clearError ? null : (errorMessageKey ?? this.errorMessageKey),
       currentPosition: currentPosition ?? this.currentPosition,
+      hasRealLocation: hasRealLocation ?? this.hasRealLocation,
       center: center ?? this.center,
       zoom: zoom ?? this.zoom,
       rotation: rotation ?? this.rotation,
@@ -108,6 +115,7 @@ class MapDisplayState extends Equatable {
         isNightMode,
         errorMessageKey,
         currentPosition,
+        hasRealLocation,
         center,
         zoom,
         rotation,

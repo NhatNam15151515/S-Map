@@ -9,6 +9,7 @@ export 'maintenance_popup.dart';
 export 'map_compass_button.dart';
 export 'map_category_chips.dart';
 export 'map_controls.dart';
+export 'map_locate_button.dart';
 export 'map_search_bar.dart';
 export 'poi_quick_card.dart';
 export 'search_this_area_button.dart';

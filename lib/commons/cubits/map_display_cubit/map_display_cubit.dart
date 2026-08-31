@@ -15,7 +15,10 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
   final IMapStyleService _mapStyleService;
 
   StreamSubscription<double?>? _compassSubscription;
+  StreamSubscription<void>? _mapStyleSubscription;
   double? _lastRotatedHeading;
+  Future<LatLng>? _freshPositionRequest;
+  bool _hasLoadedStyle = false;
 
   /// Minimum angular delta (in degrees) required to rotate camera (Anti-jitter filter)
   static const double _headingDeadband = 1.5;
@@ -47,9 +50,21 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
                   defaultMapStyleService ??
                   const NoOpMapStyleService())
               .getStyleJson(
-            isDarkMode: isDarkMode ?? defaultDarkModeResolver?.call() ?? false,
+            isDarkMode:
+                isDarkMode ?? defaultDarkModeResolver?.call() ?? false,
           ),
-        ));
+        )) {
+    // A region download/delete can happen while Home remains alive behind a
+    // settings route. Listen to the style facade so the existing native map
+    // switches source in place instead of requiring a screen recreation.
+    _mapStyleSubscription = _mapStyleService.changes.listen((_) {
+      final isDarkMode = state.isNightMode;
+      final newStyle = _mapStyleService.getStyleJson(isDarkMode: isDarkMode);
+      if (newStyle.isNotEmpty && newStyle != state.styleString) {
+        emit(state.copyWith(styleString: newStyle));
+      }
+    });
+  }
 
 
   /// Safe emit guard rule mandatory for all Cubits/Blocs
@@ -83,19 +98,23 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
   }
 
   Future<void> onStyleLoaded() async {
+    final shouldLocate = !_hasLoadedStyle;
+    _hasLoadedStyle = true;
     emit(state.copyWith(status: MapDisplayStatus.ready));
-    await locateMe();
+    // A style reload (for example, switching light/dark mode) must not
+    // restart GPS or the native permission flow. That used to cause a visible
+    // map flash and could make the location button appear stuck.
+    if (shouldLocate) await locateMe();
   }
-
   Future<void> locateMe() async {
     // Phase 1: Instant Flyback (<50ms) - Bay ngay về vị trí đã lưu nếu có
-    final cachedPos = state.currentPosition;
+    final cachedPos = state.hasRealLocation ? state.currentPosition : null;
     if (cachedPos != null) {
       _animateToTargetPosition(cachedPos);
     } else {
       try {
         final lastKnown = await _locationService.getLastKnownPosition();
-        if (lastKnown != null && state.currentPosition == null) {
+        if (lastKnown != null && !state.hasRealLocation) {
           _animateToTargetPosition(
             LatLng(lastKnown.latitude, lastKnown.longitude),
           );
@@ -105,8 +124,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
 
     // Phase 2: Fresh GPS Fix - Lấy tọa độ mới nhất và tinh chỉnh nhẹ camera
     try {
-      final pos = await _locationService.getCurrentPosition();
-      final latLng = LatLng(pos.latitude, pos.longitude);
+      final latLng = await _requestFreshPosition();
 
       final shouldAnimate = cachedPos == null ||
           (state.isFollowingUser &&
@@ -130,11 +148,67 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     }
   }
 
+  /// Lấy vị trí GPS thật mà không dùng vị trí mặc định làm fallback.
+  ///
+  /// Dùng cho các thao tác bắt buộc phải có vị trí người dùng, ví dụ đặt
+  /// điểm bắt đầu của route. [locateMe] vẫn giữ fallback để nút định vị bản
+  /// đồ ở Home có thể đưa người dùng về vùng mặc định khi GPS lỗi.
+  Future<LatLng?> acquireCurrentPosition() async {
+    final cachedPosition =
+        state.hasRealLocation ? state.currentPosition : null;
+    if (cachedPosition != null) {
+      if (state.errorMessageKey != null) {
+        emit(state.copyWith(clearError: true));
+      }
+      return cachedPosition;
+    }
+
+    try {
+      // Let the concrete service handle the complete permission flow. The
+      // real LocationService asks Android to enable GPS when necessary; a
+      // separate guard here used to return early and skip that prompt.
+      final latLng = await _requestFreshPosition();
+      final serviceEnabled = await _locationService.isLocationServiceEnabled();
+      // NoOpLocationService intentionally returns (0, 0) as a safe value.
+      // Never turn that detached-environment fallback into a route origin.
+      if (!serviceEnabled && latLng.latitude == 0 && latLng.longitude == 0) {
+        throw const LocationServiceDisabledException();
+      }
+      _animateToTargetPosition(latLng);
+      return latLng;
+    } catch (error) {
+      DLog.error('Không thể lấy GPS thật: $error');
+      _setLocationError(error);
+      return null;
+    }
+  }
+
+  /// Shares an in-flight GPS request between map startup and the origin
+  /// button. A second tap therefore waits for the existing request instead of
+  /// opening another permission/GPS operation.
+  Future<LatLng> _requestFreshPosition() async {
+    final pending = _freshPositionRequest;
+    if (pending != null) return pending;
+
+    final request = Future<Position>.sync(
+      _locationService.getCurrentPosition,
+    ).then((position) => LatLng(position.latitude, position.longitude));
+    _freshPositionRequest = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_freshPositionRequest, request)) {
+        _freshPositionRequest = null;
+      }
+    }
+  }
+
   /// Helper tập trung logic cập nhật state vị trí và gửi cameraAction
   void _animateToTargetPosition(LatLng target) {
     emit(state.copyWith(
       status: MapDisplayStatus.ready,
       currentPosition: target,
+      hasRealLocation: true,
       center: target,
       isFollowingUser: true,
       clearError: true,
@@ -168,8 +242,16 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
   void _fallbackToDefaultLocation({String? errorMessageKey}) {
     emit(state.copyWith(
       currentPosition: state.currentPosition ?? MapConstants.defaultLocation,
+      hasRealLocation: state.hasRealLocation,
       isFollowingUser: false,
       errorMessageKey: errorMessageKey,
+    ));
+  }
+
+  void _setLocationError(Object error) {
+    emit(state.copyWith(
+      errorMessageKey: _resolveLocationErrorKey(error),
+      isFollowingUser: false,
     ));
   }
 
@@ -343,6 +425,8 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
 
   @override
   Future<void> close() async {
+    await _mapStyleSubscription?.cancel();
+    _mapStyleSubscription = null;
     await _stopCompassListening();
     return super.close();
   }

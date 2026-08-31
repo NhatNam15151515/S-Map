@@ -174,5 +174,47 @@ void main() {
 
       expect(find.text('Chạm điểm tiếp theo để tạo lộ trình'), findsOneWidget);
     });
+
+    testWidgets(
+        'does not create a start point from the default location when GPS is disabled',
+        (tester) async {
+      final mockRouting = MockRoutingRepo();
+      final mockCustom = MockCustomRouteRepo();
+      final drawingBloc = RouteDrawingBloc(
+        routingRepository: mockRouting,
+        customRouteRepository: mockCustom,
+      );
+      final savedCubit = SavedRoutesCubit(
+        customRouteRepository: mockCustom,
+        autoInit: false,
+        autoWatch: false,
+      );
+      final mapCubit = MapDisplayCubit();
+
+      addTearDown(() async {
+        await drawingBloc.close();
+        await savedCubit.close();
+        await mapCubit.close();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          drawingBloc: drawingBloc,
+          savedRoutesCubit: savedCubit,
+          mapDisplayCubit: mapCubit,
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(const Key('route_drawing_my_location_origin_button')),
+      );
+      await tester.pump();
+
+      expect(drawingBloc.state.points, isEmpty);
+      expect(mapCubit.state.currentPosition, isNull);
+      expect(mapCubit.state.errorMessageKey,
+          'map.location_service_disabled');
+    });
   });
 }

@@ -10,6 +10,7 @@ import 'package:s_map/models/models.dart';
 class MockSuccessLocationService implements ILocationService {
   final Position mockPosition;
   final Position? mockLastKnown;
+  int getCurrentPositionCalls = 0;
 
   MockSuccessLocationService(this.mockPosition, {this.mockLastKnown});
 
@@ -24,7 +25,10 @@ class MockSuccessLocationService implements ILocationService {
   Stream<Position> get positionStream => Stream.value(mockPosition);
 
   @override
-  Future<Position> getCurrentPosition() async => mockPosition;
+  Future<Position> getCurrentPosition() async {
+    getCurrentPositionCalls++;
+    return mockPosition;
+  }
 
   @override
   Future<Position?> getLastKnownPosition() async =>
@@ -70,6 +74,8 @@ class MockSuccessLocationService implements ILocationService {
 }
 
 class MockDisabledLocationService implements ILocationService {
+  int getCurrentPositionCalls = 0;
+
   @override
   Position get position => throw UnimplementedError();
 
@@ -81,6 +87,7 @@ class MockDisabledLocationService implements ILocationService {
 
   @override
   Future<Position> getCurrentPosition() async {
+    getCurrentPositionCalls++;
     throw const LocationServiceDisabledException();
   }
 
@@ -276,11 +283,17 @@ class MockMapStyleService implements IMapStyleService {
   String get nightStyleJson => mockNightStyle;
 
   @override
+  Stream<void> get changes => const Stream<void>.empty();
+
+  @override
   String getStyleJson({bool isDarkMode = false}) =>
       isDarkMode ? nightStyleJson : styleJson;
 
   @override
   Future<void> init() async {}
+
+  @override
+  Future<bool> refreshOfflineMap({bool emitChange = true}) async => false;
 }
 
 void main() {
@@ -392,6 +405,55 @@ void main() {
       expect(cubit.state.currentPosition, MapConstants.defaultLocation);
       expect(cubit.state.errorMessageKey,
           'map.location_permission_denied_forever');
+      cubit.close();
+    });
+
+    test('acquireCurrentPosition never falls back when GPS is disabled',
+        () async {
+      final mockLocation = MockDisabledLocationService();
+      final cubit = MapDisplayCubit(
+        locationService: mockLocation,
+      );
+
+      final position = await cubit.acquireCurrentPosition();
+
+      expect(position, isNull);
+      expect(cubit.state.currentPosition, isNull);
+      expect(cubit.state.errorMessageKey, 'map.location_service_disabled');
+      expect(mockLocation.getCurrentPositionCalls, 1);
+      cubit.close();
+    });
+
+    test('acquireCurrentPosition returns and stores the real GPS position',
+        () async {
+      final cubit = MapDisplayCubit(
+        locationService: MockSuccessLocationService(samplePosition),
+      );
+
+      final position = await cubit.acquireCurrentPosition();
+
+      expect(position, const LatLng(10.762622, 106.660172));
+      expect(cubit.state.currentPosition,
+          const LatLng(10.762622, 106.660172));
+      expect(cubit.state.isFollowingUser, isTrue);
+      expect(cubit.state.errorMessageKey, isNull);
+      cubit.close();
+    });
+
+    test('acquireCurrentPosition uses cached GPS without requesting again',
+        () async {
+      final mockLocation = MockSuccessLocationService(samplePosition);
+      final cubit = MapDisplayCubit(locationService: mockLocation);
+      const cachedPosition = LatLng(10.762622, 106.660172);
+      cubit.emit(cubit.state.copyWith(
+        currentPosition: cachedPosition,
+        hasRealLocation: true,
+      ));
+
+      final position = await cubit.acquireCurrentPosition();
+
+      expect(position, cachedPosition);
+      expect(mockLocation.getCurrentPositionCalls, 0);
       cubit.close();
     });
 

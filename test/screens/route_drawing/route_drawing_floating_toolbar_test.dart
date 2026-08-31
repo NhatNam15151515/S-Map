@@ -112,6 +112,7 @@ void main() {
       await tester.tap(find.byKey(const Key('route_drawing_locate_me_button')));
       await tester.pump();
       expect(locateMeCalled, isTrue);
+      expect(find.byIcon(Icons.my_location_rounded), findsOneWidget);
 
       // Test Clear: cancel does not trigger onClear
       await tester.tap(find.byKey(const Key('route_drawing_clear_button')));

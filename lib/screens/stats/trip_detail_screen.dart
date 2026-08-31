@@ -30,6 +30,33 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   MapLibreMapController? _mapController;
   final MapDrawingRouteManager _routeManager = MapDrawingRouteManager();
   bool _isMapReady = false;
+  String? _lastAppliedMapStyle;
+
+  String _mapStyleForCurrentTheme() {
+    return (widget.mapStyleService ?? MapStyleService.instance).getStyleJson(
+      isDarkMode: Theme.of(context).brightness == Brightness.dark,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = _mapController;
+    final style = _mapStyleForCurrentTheme();
+    if (controller == null || style.isEmpty || style == _lastAppliedMapStyle) {
+      return;
+    }
+
+    _lastAppliedMapStyle = style;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _mapController != controller) return;
+      try {
+        await controller.setStyle(style);
+      } catch (_) {
+        _lastAppliedMapStyle = null;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -39,9 +66,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   void _onMapCreated(MapLibreMapController controller) {
     _mapController = controller;
+    _lastAppliedMapStyle = _mapStyleForCurrentTheme();
   }
 
   void _onStyleLoaded() {
+    _lastAppliedMapStyle = _mapStyleForCurrentTheme();
     _isMapReady = true;
     _drawTripPolyline();
   }
@@ -92,6 +121,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final trip = widget.trip;
+    final mapStyle = _mapStyleForCurrentTheme();
     final startLatLng = trip.polyline?.isNotEmpty == true
         ? LatLng(trip.polyline!.first[0], trip.polyline!.first[1])
         : MapConstants.defaultLocation;
@@ -108,10 +138,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             child: widget.mapLayerBuilder != null
                 ? widget.mapLayerBuilder!(context, _mapController)
                 : MapLibreMap(
-                    styleString: (widget.mapStyleService ?? MapStyleService.instance)
-                        .getStyleJson(
-                      isDarkMode: colorScheme.brightness == Brightness.dark,
-                    ),
+                    styleString: mapStyle,
                     initialCameraPosition: CameraPosition(
                       target: startLatLng,
                       zoom: 14.0,

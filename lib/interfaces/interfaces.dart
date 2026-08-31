@@ -13,6 +13,7 @@ export 'i_local_auth_service.dart';
 export 'i_local_notification_service.dart';
 export 'i_location_service.dart';
 export 'i_map_style_service.dart';
+export 'i_map_style_theme_provider.dart';
 export 'i_notification_repos.dart';
 export 'i_off_route_detector.dart';
 export 'i_package_info_service.dart';

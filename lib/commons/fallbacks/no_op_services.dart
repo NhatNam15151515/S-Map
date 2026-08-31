@@ -119,11 +119,17 @@ class NoOpMapStyleService implements IMapStyleService {
       '{"version": 8, "name": "Dark", "sources": {}, "layers": []}';
 
   @override
+  Stream<void> get changes => const Stream<void>.empty();
+
+  @override
   String getStyleJson({bool isDarkMode = false}) =>
       isDarkMode ? nightStyleJson : styleJson;
 
   @override
   Future<void> init() async {}
+
+  @override
+  Future<bool> refreshOfflineMap({bool emitChange = true}) async => false;
 }
 
 /// Fallback / No-Op implementation for IRoutingService

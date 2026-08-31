@@ -244,6 +244,22 @@ void main() {
       expect(mockRepository.lastToLat, 10.7800);
     });
 
+    test('Selecting a GPS origin without destination adds it immediately', () async {
+      final stateFuture = bloc.stream.first;
+
+      bloc.add(const RouteDrawingEndpointsSelected(
+        origin: RoutePoint(lat: 10.7700, lon: 106.7000),
+      ));
+
+      final state = await stateFuture;
+      expect(state.status, RouteDrawingStatus.pointAdded);
+      expect(state.points.length, 1);
+      expect(state.points.single.originalLat, 10.7700);
+      expect(state.points.single.originalLon, 106.7000);
+      expect(mockRepository.snapToRoadCallCount, 0);
+      expect(mockRepository.calculateRouteCallCount, 0);
+    });
+
     test(
         'Adding second point auto-connects route segment and emits routeUpdated',
         () async {

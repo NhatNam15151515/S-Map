@@ -4,16 +4,22 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
+import 'package:s_map/services/map_style_service.dart';
 import 'download_region_state.dart';
 
 export 'download_region_state.dart';
 
 class DownloadRegionCubit extends Cubit<DownloadRegionState> {
   final IRegionRepository _repository;
+  final IMapStyleService _mapStyleService;
   StreamSubscription<Map<String, double>>? _progressSubscription;
 
-  DownloadRegionCubit({IRegionRepository? repository})
+  DownloadRegionCubit({
+    IRegionRepository? repository,
+    IMapStyleService? mapStyleService,
+  })
       : _repository = repository ?? RegionRepositoryImpl.instance,
+        _mapStyleService = mapStyleService ?? MapStyleService.instance,
         super(const DownloadRegionState()) {
     _initProgressSubscription();
   }
@@ -79,6 +85,10 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
 
     try {
       await _repository.downloadRegion(regionId);
+      // Refresh the map facade before the success state is emitted. If Home
+      // is still alive behind this settings route, its MapDisplayCubit will
+      // receive the style change and swap to the local PMTiles source.
+      await _refreshMapStyleSafely();
       final updatedRegions = await _repository.getRegions();
       final updatedStorage = await _repository.getTotalStorageUsage();
 
@@ -130,6 +140,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
 
     try {
       await _repository.deleteRegion(regionId);
+      await _refreshMapStyleSafely();
       final updatedRegions = await _repository.getRegions();
       final updatedStorage = await _repository.getTotalStorageUsage();
 
@@ -181,6 +192,17 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
       ));
     } catch (e) {
       DLog.error('❌ [DownloadRegionCubit] Lỗi hủy tải vùng $regionId: $e');
+    }
+  }
+
+  Future<void> _refreshMapStyleSafely() async {
+    try {
+      await _mapStyleService.refreshOfflineMap();
+    } catch (error) {
+      // Download/delete remains successful even if a map view is not mounted
+      // or a desktop test target has no native MapLibre channel.
+      DLog.warning(
+          '⚠️ [DownloadRegionCubit] Không làm mới được style offline: $error');
     }
   }
 
