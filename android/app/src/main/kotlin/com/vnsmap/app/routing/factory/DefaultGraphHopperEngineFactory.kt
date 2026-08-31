@@ -128,27 +128,6 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
     override fun createAndLoad(graphDirectory: File): IGraphHopperEngine {
         Log.i(TAG, "Loading GraphHopper from directory: ${graphDirectory.absolutePath}")
 
-        val propsFile = File(graphDirectory, "properties")
-        if (propsFile.exists()) {
-            try {
-                val lines = propsFile.readBytes()
-                    .toString(Charsets.ISO_8859_1)
-                    .split('\n')
-                    .map { it.trim().replace("\u0000", "") }
-                    .filter { it.contains("=") }
-                Log.i(TAG, "Graph properties info:")
-                for (line in lines) {
-                    if (line.startsWith("profiles=") || line.startsWith("graph.profiles") ||
-                        line.startsWith("datareader.import.date") || line.startsWith("datareader.data.date") ||
-                        line.startsWith("graph.em.version")) {
-                        Log.i(TAG, "   🔹 $line")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not parse properties: ${e.message}")
-            }
-        }
-
         val config = GraphHopperConfig().apply {
             putObject(RoutingConstants.CONFIG_GRAPH_DATAACCESS, RoutingConstants.STORAGE_DAT_MMAP)
             putObject(RoutingConstants.CONFIG_GRAPH_LOCATION, graphDirectory.absolutePath)
@@ -262,12 +241,12 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             val existingCHGraphs = chHandler.load(baseGraph.baseGraph, chConfigs)
             Log.i(TAG, "Reflection: CH loaded, found ${existingCHGraphs.size} CH graphs")
 
-            // Set chGraphs field
+            // Set chGraphs field — load() trả về Map<String, RoutingCHGraph>
             val chGraphsField = GraphHopper::class.java.getDeclaredField("chGraphs")
             chGraphsField.isAccessible = true
             val chGraphsMap = LinkedHashMap<String, com.graphhopper.storage.RoutingCHGraph>()
-            for ((config, chGraph) in existingCHGraphs) {
-                chGraphsMap[config.name] = chGraph
+            for ((profileName, chGraph) in existingCHGraphs) {
+                chGraphsMap[profileName] = chGraph
             }
             chGraphsField.set(hopper, chGraphsMap)
             Log.i(TAG, "Reflection: chGraphs set with ${chGraphsMap.size} entries")
