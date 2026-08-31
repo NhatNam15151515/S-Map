@@ -84,26 +84,6 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             {
               "if": "road_environment == TUNNEL",
               "multiply_by": 0.3
-            },
-            {
-              "if": "lanes > 4 && road_class == TRUNK",
-              "multiply_by": 0.0
-            },
-            {
-              "if": "lanes > 4 && road_class == PRIMARY",
-              "multiply_by": 0.3
-            },
-            {
-              "if": "surface == DIRT || surface == SAND",
-              "multiply_by": 0.3
-            },
-            {
-              "else_if": "surface == GRAVEL",
-              "multiply_by": 0.5
-            },
-            {
-              "if": "toll == ALL || toll == HGV",
-              "multiply_by": 0.1
             }
           ],
           "speed": [
@@ -138,14 +118,6 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             {
               "else_if": "road_class == TRACK",
               "limit_to": 15
-            },
-            {
-              "if": "surface == SAND",
-              "limit_to": 10
-            },
-            {
-              "else_if": "surface == GRAVEL || surface == DIRT",
-              "limit_to": 15
             }
           ],
           "distance_influence": 50
@@ -155,13 +127,24 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
 
     override fun createAndLoad(graphDirectory: File): IGraphHopperEngine {
         Log.i(TAG, "Loading GraphHopper from directory: ${graphDirectory.absolutePath}")
+        println("🗺️ [DefaultGraphHopperEngineFactory] Loading GraphHopper from directory: ${graphDirectory.absolutePath}")
+
+        val propsFile = File(graphDirectory, "properties")
+        if (propsFile.exists()) {
+            println("📄 [DefaultGraphHopperEngineFactory] Graph properties file content:\n${propsFile.readText()}")
+        } else {
+            println("⚠️ [DefaultGraphHopperEngineFactory] Graph properties file not found in ${graphDirectory.absolutePath}")
+        }
 
         val config = GraphHopperConfig().apply {
             putObject(RoutingConstants.CONFIG_GRAPH_DATAACCESS, RoutingConstants.STORAGE_DAT_MMAP)
             putObject(RoutingConstants.CONFIG_GRAPH_LOCATION, graphDirectory.absolutePath)
             putObject(RoutingConstants.CONFIG_DATAREADER_FILE, "")
             putObject(RoutingConstants.CONFIG_IMPORT_OSM_IGNORED_HIGHWAYS, "")
-            putObject("graph.encoded_values", "road_class,road_environment,road_access,surface,toll,max_speed,lanes,country")
+            // Khớp với encoded-values đã được ghi trong graph/properties khi
+            // import data. Yêu cầu field không tồn tại làm profile hash lệch
+            // và GraphHopper từ chối load graph.
+            putObject("graph.encoded_values", "road_class,road_environment,road_access,max_speed")
             setProfiles(listOf(
                 Profile("moped_vn")
                     .setVehicle("car")

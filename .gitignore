@@ -50,8 +50,8 @@ app.*.map.json
 output_ghz/
 output_pmtiles/
 graph-cache/
+data/
 data-pipeline/data/
-data-pipeline/tools/
 data-pipeline/*.jar
 *.jar
 data/*.db

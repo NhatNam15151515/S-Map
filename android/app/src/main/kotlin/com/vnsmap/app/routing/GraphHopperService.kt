@@ -36,13 +36,17 @@ class GraphHopperService(
     fun init(graphLocation: File): Boolean = rwLock.write(action = {
         disposeInternal()
 
+        var targetDir: File? = null
         return try {
             Log.i(TAG, "Initializing GraphHopper from location: ${graphLocation.absolutePath}")
-            val targetDir: File = if (graphLocation.isFile && graphLocation.name.endsWith(RoutingConstants.GHZ_EXTENSION, ignoreCase = true)) {
+            println("🗺️ [GraphHopperService Native] Initializing from location: ${graphLocation.absolutePath}")
+            
+            targetDir = if (graphLocation.isFile && graphLocation.name.endsWith(RoutingConstants.GHZ_EXTENSION, ignoreCase = true)) {
                 val extractedDir = File(
                     graphLocation.parentFile ?: File("."),
                     graphLocation.nameWithoutExtension + RoutingConstants.EXTRACTED_DIR_SUFFIX
                 )
+                println("📦 [GraphHopperService Native] Extracting .ghz archive to ${extractedDir.absolutePath}...")
                 val extractSuccess = ghzExtractor.extract(
                     graphLocation.absolutePath,
                     extractedDir.absolutePath,
@@ -50,8 +54,10 @@ class GraphHopperService(
                 )
                 if (!extractSuccess) {
                     Log.e(TAG, "Failed to extract .ghz archive to ${extractedDir.absolutePath}")
+                    println("❌ [GraphHopperService Native] Failed to extract .ghz archive to ${extractedDir.absolutePath}")
                     return false
                 }
+                println("✅ [GraphHopperService Native] Extracted .ghz archive to ${extractedDir.absolutePath}")
                 extractedDir
             } else {
                 graphLocation
@@ -59,17 +65,22 @@ class GraphHopperService(
 
             if (!targetDir.exists() || !targetDir.isDirectory) {
                 Log.e(TAG, "Target directory does not exist or is not a directory: ${targetDir.absolutePath}")
+                println("❌ [GraphHopperService Native] Target directory does not exist or is not a directory: ${targetDir.absolutePath}")
                 return false
             }
 
+            println("📂 [GraphHopperService Native] Target directory files: ${targetDir.list()?.toList()}")
             engineInstance = engineFactory.createAndLoad(targetDir)
             initialized = true
             Log.i(TAG, "GraphHopper successfully initialized!")
+            println("🎉 [GraphHopperService Native] GraphHopper successfully initialized from ${targetDir.absolutePath}!")
             true
         } catch (e: Exception) {
             Log.e(TAG, "GraphHopper init failed: ${e.message}", e)
+            println("❌ [GraphHopperService Native Error] ${e.javaClass.simpleName}: ${e.message}")
+            e.printStackTrace()
             disposeInternal()
-            false
+            throw RuntimeException("Engine createAndLoad failed for ${targetDir?.absolutePath ?: graphLocation.absolutePath} (files=${targetDir?.list()?.toList()}): ${e.message}", e)
         }
     })
 

@@ -5,7 +5,7 @@ S-Map Data Pipeline: Build GraphHopper Routing Graph (.ghz) cho các vùng của
 Quy trình:
 1. Tải vietnam-latest.osm.pbf từ Geofabrik (nếu chưa có).
 2. Trích xuất (extract) PBF theo 5 vùng (metro_hcm, metro_hn, mien_nam, mien_trung, mien_bac).
-3. Chạy GraphHopper import để sinh graph cache cho từng vùng + toàn quốc.
+3. Chạy GraphImporter (Java API) để sinh graph cache — dùng cùng Profile API với Android native.
 4. Đóng gói thư mục graph-cache thành file .ghz (zip archive) để tải offline trong app Flutter.
 5. Cập nhật bảng dung lượng vào data_sizes.md.
 """
@@ -23,37 +23,12 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
-# Cấu hình vùng dữ liệu
+# Cấu hình vùng dữ liệu — chỉ dùng toàn quốc
 REGIONS = {
     "vietnam": {
         "name": "Toàn quốc Việt Nam",
         "bbox": "102.1,8.5,109.5,23.4",
         "boundary": None,
-    },
-    "metro_hcm": {
-        "name": "Vùng TP.HCM (HCM, Bình Dương, Đồng Nai, Long An)",
-        "bbox": "106.10,10.35,107.25,11.35",
-        "boundary": "boundaries/metro_hcm.geojson",
-    },
-    "metro_hn": {
-        "name": "Vùng Hà Nội (Hà Nội, Bắc Ninh, Hưng Yên, Vĩnh Phúc)",
-        "bbox": "105.30,20.60,106.30,21.40",
-        "boundary": "boundaries/metro_hn.geojson",
-    },
-    "mien_nam": {
-        "name": "Miền Nam (Đông Nam Bộ + Tây Nam Bộ)",
-        "bbox": "104.40,8.50,107.80,12.00",
-        "boundary": "boundaries/mien_nam.geojson",
-    },
-    "mien_trung": {
-        "name": "Miền Trung (Bắc Trung Bộ + Nam Trung Bộ + Tây Nguyên)",
-        "bbox": "105.00,11.50,109.50,19.50",
-        "boundary": "boundaries/mien_trung.geojson",
-    },
-    "mien_bac": {
-        "name": "Miền Bắc (Đông Bắc + Tây Bắc + Đồng bằng Sông Hồng)",
-        "bbox": "102.10,19.50,108.00,23.40",
-        "boundary": "boundaries/mien_bac.geojson",
     },
 }
 
@@ -63,7 +38,8 @@ RAW_PBF = DATA_DIR / "raw" / "vietnam-latest.osm.pbf"
 OUTPUT_DIR = DATA_DIR / "output_ghz"
 GRAPH_CACHE_DIR = DATA_DIR / "graph-cache"
 GH_JAR = Path("data-pipeline/graphhopper-web.jar")
-GH_CONFIG = Path("data-pipeline/graphhopper-config.yml")
+CUSTOM_MODEL = Path("data-pipeline/custom_model_moped.json")
+TOOLS_DIR = Path("data-pipeline/tools")
 MIN_REAL_GHZ_BYTES = 1024 * 1024
 
 def format_size(size_bytes):
@@ -95,7 +71,29 @@ def check_tools():
         print("[OK] osmium CLI available.")
     except Exception:
         print("[INFO] osmium CLI chưa được cài đặt. Sẽ dùng fallback bbox/skip extract nếu chưa có pbf theo vùng.")
-        
+
+    # Compile GraphImporter nếu chưa có hoặc source mới hơn class
+    if has_java:
+        importer_class = TOOLS_DIR / "GraphImporter.class"
+        importer_java = TOOLS_DIR / "GraphImporter.java"
+        if importer_java.exists() and (
+            not importer_class.exists()
+            or importer_java.stat().st_mtime > importer_class.stat().st_mtime
+        ):
+            print("[INFO] Đang compile GraphImporter.java...")
+            try:
+                subprocess.run(
+                    ["javac", "-cp", str(GH_JAR), str(importer_java), "-d", str(TOOLS_DIR)],
+                    check=True, capture_output=True, text=True,
+                )
+                print("[OK] GraphImporter.class compiled.")
+            except subprocess.CalledProcessError as e:
+                print(f"[ERROR] Compile GraphImporter thất bại: {e.stderr[:300]}")
+                has_java = False
+        elif not importer_java.exists():
+            print(f"[ERROR] Không tìm thấy {importer_java}.")
+            has_java = False
+
     return has_java, has_osmium
 
 def download_osm_data():
@@ -111,7 +109,6 @@ def download_osm_data():
     try:
         import urllib.request
         import ssl
-        # Sử dụng SSL context mặc định của hệ thống (có xác thực certificate)
         ctx = ssl.create_default_context()
         
         with urllib.request.urlopen(OSM_URL, context=ctx) as response, open(RAW_PBF, 'wb') as out_file:
@@ -134,29 +131,24 @@ def zip_directory(src_dir, target_ghz):
                 ziph.write(file_path, arcname)
 
 
-def prepare_graphhopper_config(region_id, region_pbf, graph_cache):
-    """Tạo config import đúng PBF/cache của vùng đang build.
+def is_valid_ghz(path):
+    """Kiểm tra archive .ghz thực sự đọc được trước khi tái sử dụng/đóng gói.
 
-    GraphHopper bản hiện tại nhận config bằng positional argument sau lệnh
-    ``import``; các tham số ``datareader.file=...`` cũ không còn hợp lệ.
+    Chỉ kiểm tra kích thước là không đủ: archive bị cắt ở cuối vẫn có thể lớn
+    hơn 1 MB nhưng mất central directory, khiến Android không thể giải nén.
     """
-    if not GH_CONFIG.exists():
-        return None
+    if not path.exists() or not path.is_file() or path.stat().st_size < MIN_REAL_GHZ_BYTES:
+        return False
+    try:
+        with zipfile.ZipFile(path, "r") as archive:
+            names = {info.filename for info in archive.infolist()}
+            required = {"nodes", "edges", "geometry", "properties"}
+            if not required.issubset(names):
+                return False
+            return archive.testzip() is None
+    except (OSError, zipfile.BadZipFile, RuntimeError, ValueError):
+        return False
 
-    config_path = DATA_DIR / f"{region_id}_graphhopper_config.yml"
-    pbf_path = region_pbf.resolve().as_posix()
-    graph_path = graph_cache.resolve().as_posix()
-    config_lines = []
-    for line in GH_CONFIG.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("datareader.file:"):
-            line = f"  datareader.file: {pbf_path}"
-        elif stripped.startswith("graph.location:"):
-            line = f"  graph.location: {graph_path}"
-        config_lines.append(line)
-
-    config_path.write_text("\n".join(config_lines) + "\n", encoding="utf-8")
-    return config_path
 
 def extract_region_pbf(region_id, region_info, has_osmium):
     """Trích xuất PBF cho 1 vùng bằng osmium hoặc skip nếu không có tool.
@@ -222,7 +214,12 @@ def extract_region_pbf(region_id, region_info, has_osmium):
     return None
 
 def build_graphhopper_graph(region_id, region_pbf, has_java, force=False):
-    """Chạy GraphHopper import để sinh graph-cache cho 1 vùng.
+    """Chạy GraphImporter (Java API) để sinh graph-cache cho 1 vùng.
+
+    Dùng Java tool GraphImporter thay vì GraphHopper CLI để tạo Profile
+    theo đúng cách Android native code dùng (Profile API + Jackson +
+    setCustomModel). Điều này đảm bảo hash trong file properties khớp
+    với hash mà Android compute khi load graph.
     
     Returns:
         Path to graph-cache directory, or None nếu không build được.
@@ -230,14 +227,15 @@ def build_graphhopper_graph(region_id, region_pbf, has_java, force=False):
     graph_cache = GRAPH_CACHE_DIR / region_id
     ghz_file = OUTPUT_DIR / f"{region_id}.ghz"
     
-    if ghz_file.exists() and ghz_file.stat().st_size >= MIN_REAL_GHZ_BYTES and not force:
+    if ghz_file.exists() and is_valid_ghz(ghz_file) and not force:
         print(f"  [OK] File {ghz_file} đã tồn tại ({format_size(ghz_file.stat().st_size)}). Skip build.")
         return graph_cache
 
     if ghz_file.exists() and force:
         print(f"  [INFO] --force: sẽ tạo lại routing graph và gói .ghz cho {region_id}.")
+    elif ghz_file.exists():
+        print(f"  [WARNING] File {ghz_file} không phải archive .ghz hợp lệ. Sẽ đóng gói lại.")
     if ghz_file.exists():
-        print(f"  [WARNING] File {ghz_file} là placeholder ({format_size(ghz_file.stat().st_size)}). Xóa để build lại.")
         ghz_file.unlink()
 
     if (graph_cache / "nodes").exists() and not force:
@@ -255,24 +253,35 @@ def build_graphhopper_graph(region_id, region_pbf, has_java, force=False):
     if region_pbf is None or not region_pbf.exists():
         print(f"  [SKIP] Không có PBF file cho vùng {region_id}.")
         return None
+
+    if not CUSTOM_MODEL.exists():
+        print(f"  [SKIP] Không tìm thấy custom model ({CUSTOM_MODEL}).")
+        return None
     
     # Xóa graph-cache cũ nếu có
     if graph_cache.exists():
         shutil.rmtree(graph_cache)
     graph_cache.mkdir(parents=True, exist_ok=True)
     
-    print(f"  Đang build GraphHopper graph cho {region_id}...")
+    print(f"  Đang build GraphHopper graph cho {region_id} (Java API, khớp Android native)...")
     try:
-        config_path = prepare_graphhopper_config(region_id, region_pbf, graph_cache)
-        if config_path is None:
-            print(f"  [SKIP] Không tìm thấy config GraphHopper ({GH_CONFIG}).")
-            return None
+        # Dùng GraphImporter Java tool thay vì CLI, đảm bảo Profile hash
+        # khớp với Android native code (DefaultGraphHopperEngineFactory.kt).
+        pbf_path = str(region_pbf.resolve())
+        graph_path = str(graph_cache.resolve())
+        model_path = str(CUSTOM_MODEL.resolve())
+
+        # Xác định classpath separator theo OS
+        cp_sep = ";" if sys.platform == "win32" else ":"
+        classpath = str(GH_JAR) + cp_sep + str(TOOLS_DIR)
 
         cmd = [
             "java", "-Xmx2g",
-            "-jar", str(GH_JAR),
-            "import",
-            str(config_path),
+            "-cp", classpath,
+            "GraphImporter",
+            "--pbf", pbf_path,
+            "--graph-dir", graph_path,
+            "--custom-model", model_path,
         ]
         
         subprocess.run(cmd, check=True, capture_output=True, text=True)
@@ -290,10 +299,11 @@ def package_ghz(region_id, graph_cache):
     """
     ghz_file = OUTPUT_DIR / f"{region_id}.ghz"
     
-    if ghz_file.exists() and ghz_file.stat().st_size >= MIN_REAL_GHZ_BYTES:
+    if ghz_file.exists() and is_valid_ghz(ghz_file):
         return ghz_file
 
     if ghz_file.exists():
+        print(f"  [WARNING] Xóa archive .ghz hỏng trước khi tạo lại: {ghz_file}")
         ghz_file.unlink()
     
     if graph_cache is None or not graph_cache.exists():
@@ -301,6 +311,10 @@ def package_ghz(region_id, graph_cache):
     
     print(f"  Đang đóng gói {graph_cache} -> {ghz_file}...")
     zip_directory(str(graph_cache), str(ghz_file))
+    if not is_valid_ghz(ghz_file):
+        print(f"  [ERROR] Archive .ghz tạo ra không hợp lệ: {ghz_file}")
+        ghz_file.unlink(missing_ok=True)
+        return None
     print(f"  [OK] Đóng gói xong: {ghz_file} ({format_size(ghz_file.stat().st_size)})")
     return ghz_file
 
@@ -382,7 +396,7 @@ def main():
         # Bước 1: Extract PBF cho vùng (nếu có osmium)
         region_pbf = extract_region_pbf(region_id, region_info, has_osmium)
         
-        # Bước 2: Build GraphHopper graph (nếu có Java + JAR)
+        # Bước 2: Build GraphHopper graph (dùng GraphImporter Java API)
         graph_cache = build_graphhopper_graph(region_id, region_pbf, has_java, force=args.force)
         
         # Bước 3: Đóng gói graph-cache thành .ghz

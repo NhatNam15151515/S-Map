@@ -15,15 +15,22 @@ class RoutingServiceImpl implements IRoutingService {
   @override
   Future<bool> initGraphHopper(String graphPath) async {
     DLog.info('⚡ [RoutingService] Invoking MethodChannel "${RoutingConstants.methodInitGraphHopper}" with path: "$graphPath"');
+    final stopwatch = Stopwatch()..start();
     try {
       final result = await _channel.invokeMethod<bool>(
         RoutingConstants.methodInitGraphHopper,
         {RoutingConstants.argGraphPath: graphPath},
       );
-      DLog.info('⚡ [RoutingService] MethodChannel initGraphHopper result: $result');
+      stopwatch.stop();
+      DLog.info('⚡ [RoutingService] MethodChannel initGraphHopper returned: $result (took ${stopwatch.elapsedMilliseconds}ms)');
       return result ?? false;
+    } on PlatformException catch (e, stack) {
+      stopwatch.stop();
+      DLog.error('❌ [RoutingService] initGraphHopper PlatformException after ${stopwatch.elapsedMilliseconds}ms: [${e.code}] ${e.message} (details: ${e.details})', e, stack);
+      return false;
     } catch (e, stack) {
-      DLog.error('❌ [RoutingService] initGraphHopper error: $e', e, stack);
+      stopwatch.stop();
+      DLog.error('❌ [RoutingService] initGraphHopper error after ${stopwatch.elapsedMilliseconds}ms: $e', e, stack);
       return false;
     }
   }

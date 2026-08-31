@@ -234,55 +234,114 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     double lastEmittedProgress = 0.05;
     bool metadataCommitted = false;
     bool stagingPromoted = false;
+    bool preservePartialDownload = false;
 
     try {
       yield 0.05;
       onProgress?.call(0.05);
 
-      final request =
-          await client.getUrl(Uri.parse(url)).timeout(requestTimeout);
-      final response = await request.close().timeout(requestTimeout);
+      const maxDownloadAttempts = 4;
+      int receivedBytes = tempZipFile.existsSync() ? tempZipFile.lengthSync() : 0;
+      bool downloadCompleted = false;
 
-      if (response.statusCode != HttpStatus.ok) {
+      for (var attempt = 1; attempt <= maxDownloadAttempts; attempt++) {
+        final resumeOffset = tempZipFile.existsSync() ? tempZipFile.lengthSync() : 0;
+        final request = await client.getUrl(Uri.parse(url)).timeout(requestTimeout);
+        if (resumeOffset > 0) {
+          request.headers.set(HttpHeaders.rangeHeader, 'bytes=$resumeOffset-');
+        }
+
+        final response = await request.close().timeout(requestTimeout);
+        if (response.statusCode == HttpStatus.requestedRangeNotSatisfiable &&
+            resumeOffset > 0) {
+          // File tạm có thể là bản tải cũ đã đủ byte nhưng vẫn hỏng. Bỏ nó
+          // và tải mới thay vì lặp vô hạn với cùng một Range.
+          if (tempZipFile.existsSync()) tempZipFile.deleteSync();
+          receivedBytes = 0;
+          continue;
+        }
+        final isResumeResponse = response.statusCode == HttpStatus.partialContent;
+        if (response.statusCode != HttpStatus.ok && !isResumeResponse) {
+          throw HttpException(
+            'Failed to download package with HTTP status ${response.statusCode}',
+            uri: Uri.parse(url),
+          );
+        }
+
+        // Server không hỗ trợ Range thì trả 200; khi đó phải bắt đầu lại,
+        // nếu append sẽ làm ZIP bị nối hai bản với nhau.
+        final append = resumeOffset > 0 && isResumeResponse;
+        if (!append && resumeOffset > 0) {
+          receivedBytes = 0;
+        }
+        final totalBytes = append && response.contentLength > 0
+            ? resumeOffset + response.contentLength
+            : response.contentLength > 0
+                ? response.contentLength
+                : region.sizeBytes;
+        final activeSink = tempZipFile.openWrite(
+          mode: append ? FileMode.append : FileMode.write,
+        );
+        sink = activeSink;
+        receivedBytes = append ? resumeOffset : 0;
+
+        try {
+          await for (final chunk in response.timeout(receiveTimeout)) {
+            if (_cancellationMap[region.id] == true) {
+              await activeSink.close();
+              sink = null;
+              if (tempZipFile.existsSync()) tempZipFile.deleteSync();
+              throw const DownloadCancelledException();
+            }
+
+            activeSink.add(chunk);
+            receivedBytes += chunk.length;
+
+            final downloadProgress = totalBytes > 0
+                ? (0.05 + (receivedBytes / totalBytes) * 0.65)
+                    .clamp(0.05, 0.70)
+                : 0.5;
+
+            if (downloadProgress - lastEmittedProgress >= 0.01) {
+              lastEmittedProgress = downloadProgress;
+              yield downloadProgress;
+              onProgress?.call(downloadProgress);
+            }
+          }
+          final bodyBytes = receivedBytes - (append ? resumeOffset : 0);
+          if (response.contentLength > 0 &&
+              bodyBytes != response.contentLength) {
+            throw HttpException(
+              'Connection ended before the complete package was received '
+              '($bodyBytes/${response.contentLength} bytes)',
+              uri: Uri.parse(url),
+            );
+          }
+          await activeSink.flush();
+          await activeSink.close();
+          sink = null;
+          downloadCompleted = true;
+          break;
+        } catch (e) {
+          try {
+            await activeSink.close();
+          } catch (_) {}
+          sink = null;
+          if (e is DownloadCancelledException) rethrow;
+          preservePartialDownload = true;
+          if (attempt == maxDownloadAttempts) rethrow;
+          DLog.warning(
+              '⚠️ [RegionDownloadService] Mất kết nối khi tải ${region.id} ở lần $attempt/$maxDownloadAttempts; sẽ tiếp tục từ ${tempZipFile.existsSync() ? tempZipFile.lengthSync() : 0} bytes');
+          await Future<void>.delayed(Duration(seconds: attempt * 2));
+        }
+      }
+
+      if (!downloadCompleted) {
         throw HttpException(
-          'Failed to download package with HTTP status ${response.statusCode}',
+          'Download did not complete after $maxDownloadAttempts attempts',
           uri: Uri.parse(url),
         );
       }
-
-      final totalBytes = response.contentLength > 0
-          ? response.contentLength
-          : region.sizeBytes;
-      int receivedBytes = 0;
-
-      final activeSink = tempZipFile.openWrite();
-      sink = activeSink;
-
-      await for (final chunk in response.timeout(receiveTimeout)) {
-        if (_cancellationMap[region.id] == true) {
-          await activeSink.close();
-          sink = null;
-          if (tempZipFile.existsSync()) tempZipFile.deleteSync();
-          throw const DownloadCancelledException();
-        }
-
-        activeSink.add(chunk);
-        receivedBytes += chunk.length;
-
-        final downloadProgress = totalBytes > 0
-            ? (0.05 + (receivedBytes / totalBytes) * 0.65).clamp(0.05, 0.70)
-            : 0.5;
-
-        if (downloadProgress - lastEmittedProgress >= 0.01) {
-          lastEmittedProgress = downloadProgress;
-          yield downloadProgress;
-          onProgress?.call(downloadProgress);
-        }
-      }
-
-      await activeSink.flush();
-      await activeSink.close();
-      sink = null;
 
       // Bắt đầu giải nén vào staging directory (0.75 -> 1.0)
       yield 0.75;
@@ -416,7 +475,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       }
       if (tempZipFile.existsSync()) {
         try {
-          tempZipFile.deleteSync();
+          if (!preservePartialDownload) tempZipFile.deleteSync();
         } catch (_) {}
       }
       rethrow;

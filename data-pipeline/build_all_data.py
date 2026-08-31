@@ -38,6 +38,20 @@ def _has_real_data_file(path: Path, minimum_bytes: int) -> bool:
     return path.exists() and path.stat().st_size >= minimum_bytes
 
 
+def _has_valid_ghz(path: Path) -> bool:
+    """Không nhận archive chỉ dựa trên size; phải đọc được ZIP và đủ graph files."""
+    if not _has_real_data_file(path, MIN_REAL_GHZ_BYTES):
+        return False
+    try:
+        with zipfile.ZipFile(path, "r") as archive:
+            names = {info.filename for info in archive.infolist()}
+            if not {"nodes", "edges", "geometry", "properties"}.issubset(names):
+                return False
+            return archive.testzip() is None
+    except (OSError, zipfile.BadZipFile, RuntimeError, ValueError):
+        return False
+
+
 def _has_address_search_data(path: Path) -> bool:
     """Kiểm tra package có DB tìm kiếm số nhà và street index mới hay chưa."""
     if not _has_real_data_file(path, MIN_REAL_POI_DB_BYTES):
@@ -105,6 +119,12 @@ def create_region_package(region_key: str) -> dict:
     ]:
         if not _has_real_data_file(file_path, minimum_bytes):
             missing_files.append(f"  - {label}: {file_path}")
+
+    if not _has_valid_ghz(ghz_file):
+        missing_files.append(
+            "  - Routing Graph (.ghz) không phải ZIP archive hợp lệ hoặc thiếu graph files: "
+            f"{ghz_file}"
+        )
 
     if not _has_address_search_data(poi_db_file):
         missing_files.append(
