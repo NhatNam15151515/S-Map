@@ -59,7 +59,7 @@ class PoiQuickCard extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -214,6 +214,8 @@ class PoiQuickCard extends StatelessWidget {
                         style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
                           fontSize: 13,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: colorScheme.primary,

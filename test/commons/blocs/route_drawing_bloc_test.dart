@@ -216,6 +216,34 @@ void main() {
       expect(mockRepository.calculateRouteCallCount, 0);
     });
 
+    test('Selecting endpoints creates origin before destination atomically', () async {
+      final streamExpectation = expectLater(
+        bloc.stream,
+        emitsInOrder([
+          predicate<RouteDrawingState>(
+            (s) => s.status == RouteDrawingStatus.loading,
+          ),
+          predicate<RouteDrawingState>((s) =>
+              s.status == RouteDrawingStatus.routeUpdated &&
+              s.points.length == 2 &&
+              s.points.first.originalLat == 10.7700 &&
+              s.points.last.originalLat == 10.7800 &&
+              s.totalDistance == 1200.0),
+        ]),
+      );
+
+      bloc.add(const RouteDrawingEndpointsSelected(
+        origin: RoutePoint(lat: 10.7700, lon: 106.7000),
+        destination: RoutePoint(lat: 10.7800, lon: 106.7100),
+      ));
+
+      await streamExpectation;
+      expect(mockRepository.snapToRoadCallCount, 0);
+      expect(mockRepository.calculateRouteCallCount, 1);
+      expect(mockRepository.lastFromLat, 10.7700);
+      expect(mockRepository.lastToLat, 10.7800);
+    });
+
     test(
         'Adding second point auto-connects route segment and emits routeUpdated',
         () async {

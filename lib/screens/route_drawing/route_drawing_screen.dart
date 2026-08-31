@@ -48,6 +48,7 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
 
   bool _isMyLocationOriginActive = false;
   bool _isMarkerDestinationActive = false;
+  bool _isDestinationPickerActive = true;
   LatLng? _markerDestination;
 
   @override
@@ -65,78 +66,172 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         );
 
     final payload = widget.payload;
+    final initialRoute = payload?.initialRoute;
     final effectiveOrigin = widget.initialOrigin ?? payload?.initialOrigin;
     _markerDestination = widget.initialDestination ??
         payload?.initialDestination ??
         (payload?.destinationPoi != null
             ? LatLng(payload!.destinationPoi!.lat, payload.destinationPoi!.lon)
             : null);
+    _isDestinationPickerActive = _markerDestination == null;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (initialRoute != null) {
+        _drawingBloc.add(RouteDrawingLoadRoute(initialRoute));
+        return;
+      }
       if (effectiveOrigin != null) {
         _drawingBloc.add(
-          RouteDrawingPointTapped(
-            lat: effectiveOrigin.latitude,
-            lon: effectiveOrigin.longitude,
+          RouteDrawingEndpointsSelected(
+            origin: RoutePoint(
+              lat: effectiveOrigin.latitude,
+              lon: effectiveOrigin.longitude,
+            ),
+            destination: _markerDestination == null
+                ? null
+                : RoutePoint(
+                    lat: _markerDestination!.latitude,
+                    lon: _markerDestination!.longitude,
+                  ),
           ),
         );
-        setState(() => _isMyLocationOriginActive = true);
-      }
-      if (_markerDestination != null) {
-        _drawingBloc.add(
-          RouteDrawingPointTapped(
-            lat: _markerDestination!.latitude,
-            lon: _markerDestination!.longitude,
-          ),
-        );
-        setState(() => _isMarkerDestinationActive = true);
+        setState(() {
+          _isMyLocationOriginActive = true;
+          _isMarkerDestinationActive = _markerDestination != null;
+        });
       }
     });
   }
 
-  void _handleToggleMyLocationOrigin() {
-    final currentPos = _mapDisplayCubit.state.currentPosition;
+  Future<void> _handleToggleMyLocationOrigin() async {
+    var currentPos = _mapDisplayCubit.state.currentPosition;
     if (currentPos == null) {
-      _mapDisplayCubit.locateMe();
-      return;
+      await _mapDisplayCubit.locateMe();
+      currentPos = _mapDisplayCubit.state.currentPosition;
+      if (currentPos == null || !mounted) return;
     }
 
-    setState(() {
-      _isMyLocationOriginActive = !_isMyLocationOriginActive;
-    });
+    if (_isMyLocationOriginActive) return;
 
-    if (_isMyLocationOriginActive) {
-      if (_drawingBloc.state.points.isEmpty) {
-        _drawingBloc.add(
-          RouteDrawingPointTapped(
+    if (_drawingBloc.state.points.isEmpty) {
+      setState(() {
+        _isMyLocationOriginActive = true;
+        // Destination đã được truyền từ POI/search thì luôn nằm sau origin.
+        _isMarkerDestinationActive = _markerDestination != null;
+      });
+      _drawingBloc.add(
+        RouteDrawingEndpointsSelected(
+          origin: RoutePoint(
             lat: currentPos.latitude,
             lon: currentPos.longitude,
           ),
-        );
-      }
+          destination: _markerDestination == null
+              ? null
+              : RoutePoint(
+                  lat: _markerDestination!.latitude,
+                  lon: _markerDestination!.longitude,
+                ),
+        ),
+      );
+    }
+  }
+
+  void _handleLocateMe() {
+    _mapDisplayCubit.locateMe();
+  }
+
+  Future<void> _handleSearchDestination() async {
+    final mapState = _mapDisplayCubit.state;
+    final searchCenter = mapState.currentPosition ?? mapState.center;
+    final result = await context.push<dynamic>(
+      AppRoutes.search,
+      extra: searchCenter,
+    );
+    if (!mounted) return;
+
+    PoiModel? poi;
+    if (result is SearchResultPayload && result.isSingle) {
+      poi = result.selectedPoi;
+    } else if (result is PoiModel) {
+      poi = result;
+    }
+    if (poi == null) return;
+
+    final destination = LatLng(poi.lat, poi.lon);
+    _mapDisplayCubit.selectPoi(poi);
+    _setMarkerDestination(destination, addToRoute: true);
+  }
+
+  void _setMarkerDestination(LatLng destination, {bool addToRoute = false}) {
+    if (!mounted) return;
+    setState(() {
+      _markerDestination = destination;
+      _isDestinationPickerActive = false;
+      _isMarkerDestinationActive = true;
+    });
+
+    if (addToRoute && _drawingBloc.state.points.isNotEmpty) {
+      _drawingBloc.add(
+        RouteDrawingPointTapped(
+          lat: destination.latitude,
+          lon: destination.longitude,
+        ),
+      );
     }
   }
 
   void _handleToggleMarkerDestination() {
-    if (_markerDestination == null) return;
+    final center = _mapDisplayCubit.state.center;
+    if (_markerDestination == null && center == null) return;
 
-    setState(() {
-      _isMarkerDestinationActive = !_isMarkerDestinationActive;
-    });
+    if (_markerDestination == null) {
+      _setMarkerDestination(
+        center!,
+        addToRoute: _drawingBloc.state.points.isNotEmpty,
+      );
+      return;
+    }
+
+    if (_drawingBloc.state.points.isEmpty) {
+      // Giữ đích ở trạng thái chờ; khi chọn origin, BLoC sẽ tạo cả cặp
+      // endpoint đúng thứ tự thay vì biến destination thành điểm bắt đầu.
+      setState(() => _isMarkerDestinationActive = true);
+      return;
+    }
 
     if (_isMarkerDestinationActive) {
-      _drawingBloc.add(
-        RouteDrawingPointTapped(
-          lat: _markerDestination!.latitude,
-          lon: _markerDestination!.longitude,
-        ),
-      );
-    } else {
-      if (_drawingBloc.state.canUndo) {
+      if (_drawingBloc.state.points.length >= 2) {
         _drawingBloc.add(const RouteDrawingUndoLastPoint());
       }
+      setState(() {
+        _markerDestination = null;
+        _isMarkerDestinationActive = false;
+        _isDestinationPickerActive = true;
+      });
+      return;
     }
+    setState(() => _isMarkerDestinationActive = true);
+    _drawingBloc.add(
+      RouteDrawingPointTapped(
+        lat: _markerDestination!.latitude,
+        lon: _markerDestination!.longitude,
+      ),
+    );
+  }
+
+  void _handleRemoveMarkerDestination() {
+    final state = _drawingBloc.state;
+    // Đích đã chọn được thêm như điểm cuối thì hoàn tác đúng điểm đó,
+    // không đụng vào các waypoint phía trước.
+    if (_isMarkerDestinationActive && state.points.length >= 2) {
+      _drawingBloc.add(const RouteDrawingUndoLastPoint());
+    }
+    setState(() {
+      _markerDestination = null;
+      _isMarkerDestinationActive = false;
+      _isDestinationPickerActive = true;
+    });
   }
 
   @override
@@ -251,7 +346,15 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                 RouteDrawingTopBar(
                   topPadding: topPadding,
                   onSavedRoutesPressed: () => _handleOpenSavedRoutes(context),
+                  onSearchDestinationPressed: _handleSearchDestination,
                 ),
+
+                if (_isDestinationPickerActive)
+                  const IgnorePointer(
+                    child: Center(
+                      child: Icon(Icons.flag_rounded, size: 42),
+                    ),
+                  ),
 
                 // 3. Floating Toolbar (Undo, Redo, Clear, Fit Bounds, Origin/Dest Toggles)
                 RouteDrawingFloatingToolbar(
@@ -261,7 +364,10 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                   hasPoints: state.points.isNotEmpty,
                   isMyLocationOrigin: _isMyLocationOriginActive,
                   isMarkerDestination: _isMarkerDestinationActive,
-                  hasMarkerDestination: _markerDestination != null,
+                  // Luôn hiển thị cờ để người dùng có thể bật chế độ chọn
+                  // đích từ tâm bản đồ ngay cả khi chưa có POI tìm kiếm.
+                  hasMarkerDestination: true,
+                  onLocateMe: _handleLocateMe,
                   onUndo: () =>
                       _drawingBloc.add(const RouteDrawingUndoLastPoint()),
                   onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
@@ -277,6 +383,9 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                   onToggleMyLocationOrigin: _handleToggleMyLocationOrigin,
                   onToggleMarkerDestination: _markerDestination != null
                       ? _handleToggleMarkerDestination
+                      : _handleToggleMarkerDestination,
+                  onRemoveMarkerDestination: _markerDestination != null
+                      ? _handleRemoveMarkerDestination
                       : null,
                 ),
 

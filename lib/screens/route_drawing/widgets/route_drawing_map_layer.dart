@@ -19,6 +19,7 @@ class RouteDrawingMapLayer extends StatefulWidget {
 class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixin {
   MapLibreMapController? _mapController;
   final MapDrawingRouteManager _routeManager = MapDrawingRouteManager();
+  final MapCameraController _cameraController = MapCameraController();
 
   RouteDrawingBloc get drawingBloc => context.read<RouteDrawingBloc>();
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
@@ -87,38 +88,48 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
           showError(tr(state.errorMessageKey!));
         }
       },
-      child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
-        buildWhen: (prev, curr) =>
-            prev.status != curr.status || prev.styleString != curr.styleString,
-        builder: (context, mapState) {
-          return MapView(
-            key: ValueKey('drawing_map_view_night_${mapState.isNightMode}'),
-            styleString: mapState.styleString,
-            onMapCreated: (controller) {
-
-              _mapController = controller;
-              displayCubit.onMapCreated();
-            },
-            onStyleLoadedCallback: () async {
-              _routeManager.resetAssetLoaded();
-              await _routeManager.loadMarkerAssets(_mapController);
-              final symbolManager = MapSymbolManager();
-              await symbolManager.renderSovereigntySymbols(_mapController);
-              final drawState = drawingBloc.state;
-              if (drawState.points.isNotEmpty || drawState.fullPolyline.isNotEmpty) {
-                await _routeManager.drawCustomRoute(
-                  controller: _mapController,
-                  points: drawState.points,
-                  fullPolyline: drawState.fullPolyline,
-                );
-              }
-              displayCubit.onStyleLoaded();
-            },
-            onCameraTrackingDismissed: displayCubit.onCameraTrackingDismissed,
-            onCameraMove: displayCubit.onCameraMove,
-            onMapClick: _onMapClick,
-          );
+      child: BlocListener<MapDisplayCubit, MapDisplayState>(
+        listenWhen: (prev, curr) => prev.cameraAction != curr.cameraAction,
+        listener: (context, mapState) {
+          final action = mapState.cameraAction;
+          if (action != null) {
+            _cameraController.applyCameraAction(_mapController, action);
+          }
         },
+        child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
+          buildWhen: (prev, curr) =>
+              prev.status != curr.status || prev.styleString != curr.styleString,
+          builder: (context, mapState) {
+            return MapView(
+              key: ValueKey('drawing_map_view_night_${mapState.isNightMode}'),
+              styleString: mapState.styleString,
+              onMapCreated: (controller) {
+                _mapController = controller;
+                displayCubit.onMapCreated();
+              },
+              onStyleLoadedCallback: () async {
+                _routeManager.resetAssetLoaded();
+                await _routeManager.loadMarkerAssets(_mapController);
+                final symbolManager = MapSymbolManager();
+                await symbolManager.renderSovereigntySymbols(_mapController);
+                final drawState = drawingBloc.state;
+                if (drawState.points.isNotEmpty ||
+                    drawState.fullPolyline.isNotEmpty) {
+                  await _routeManager.drawCustomRoute(
+                    controller: _mapController,
+                    points: drawState.points,
+                    fullPolyline: drawState.fullPolyline,
+                  );
+                }
+                displayCubit.onStyleLoaded();
+              },
+              onCameraTrackingDismissed:
+                  displayCubit.onCameraTrackingDismissed,
+              onCameraMove: displayCubit.onCameraMove,
+              onMapClick: _onMapClick,
+            );
+          },
+        ),
       ),
     );
   }

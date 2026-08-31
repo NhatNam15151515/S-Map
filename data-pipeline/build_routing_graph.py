@@ -221,7 +221,7 @@ def extract_region_pbf(region_id, region_info, has_osmium):
     
     return None
 
-def build_graphhopper_graph(region_id, region_pbf, has_java):
+def build_graphhopper_graph(region_id, region_pbf, has_java, force=False):
     """Chạy GraphHopper import để sinh graph-cache cho 1 vùng.
     
     Returns:
@@ -230,15 +230,17 @@ def build_graphhopper_graph(region_id, region_pbf, has_java):
     graph_cache = GRAPH_CACHE_DIR / region_id
     ghz_file = OUTPUT_DIR / f"{region_id}.ghz"
     
-    if ghz_file.exists() and ghz_file.stat().st_size >= MIN_REAL_GHZ_BYTES:
+    if ghz_file.exists() and ghz_file.stat().st_size >= MIN_REAL_GHZ_BYTES and not force:
         print(f"  [OK] File {ghz_file} đã tồn tại ({format_size(ghz_file.stat().st_size)}). Skip build.")
         return graph_cache
 
+    if ghz_file.exists() and force:
+        print(f"  [INFO] --force: sẽ tạo lại routing graph và gói .ghz cho {region_id}.")
     if ghz_file.exists():
         print(f"  [WARNING] File {ghz_file} là placeholder ({format_size(ghz_file.stat().st_size)}). Xóa để build lại.")
         ghz_file.unlink()
 
-    if (graph_cache / "nodes").exists():
+    if (graph_cache / "nodes").exists() and not force:
         print(f"  [OK] Graph cache {graph_cache} đã có sẵn. Tái sử dụng để đóng gói.")
         return graph_cache
 
@@ -348,6 +350,11 @@ def main():
         default="all",
         help="Vùng cần build: vietnam, metro_hcm, metro_hn, mien_nam, mien_trung, mien_bac, hoặc all",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Xóa cache/.ghz của vùng chọn và import lại từ PBF sau khi đổi profile/model.",
+    )
     args = parser.parse_args()
 
     print("=== S-Map Routing Graph Builder (.ghz) ===")
@@ -376,7 +383,7 @@ def main():
         region_pbf = extract_region_pbf(region_id, region_info, has_osmium)
         
         # Bước 2: Build GraphHopper graph (nếu có Java + JAR)
-        graph_cache = build_graphhopper_graph(region_id, region_pbf, has_java)
+        graph_cache = build_graphhopper_graph(region_id, region_pbf, has_java, force=args.force)
         
         # Bước 3: Đóng gói graph-cache thành .ghz
         ghz_file = package_ghz(region_id, graph_cache)

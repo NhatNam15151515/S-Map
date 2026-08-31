@@ -143,6 +143,7 @@ class RoutingMethodChannelHandler(
         try {
             backgroundExecutor.execute {
                 try {
+                    ensureDefaultGraphInitialized()
                     val routeResult = routingService.route(fromLat!!, fromLon!!, toLat!!, toLon!!, vehicleProfile)
                     postSuccess(result, routeResult.toMap())
                 } catch (e: Exception) {
@@ -191,6 +192,7 @@ class RoutingMethodChannelHandler(
         try {
             backgroundExecutor.execute {
                 try {
+                    ensureDefaultGraphInitialized()
                     val snappedPoint = routingService.snapToRoad(lat!!, lon!!)
                     postSuccess(result, snappedPoint.toMap())
                 } catch (e: Exception) {
@@ -216,6 +218,56 @@ class RoutingMethodChannelHandler(
         if (lat == null || lon == null) return false
         if (lat.isNaN() || lat.isInfinite() || lon.isNaN() || lon.isInfinite()) return false
         return lat in -90.0..90.0 && lon in -180.0..180.0
+    }
+
+    /**
+     * Last-mile recovery for data copied by the Gradle/download pipeline.
+     * Flutter normally initializes this through RoutingRepository, but a
+     * running app can survive a data push or have a different path_provider
+     * path. In that case native can still resolve its own external files dir.
+     * Also checks context.filesDir for the bundled asset copy (vietnam.ghz).
+     */
+    private fun ensureDefaultGraphInitialized(): Boolean {
+        if (routingService.isInitialized()) return true
+
+        // 1. Kiểm tra externalFilesDir/regions/vietnam (dữ liệu tải về)
+        val externalDir = context?.getExternalFilesDir(null)
+        if (externalDir != null) {
+            val vietnamDir = File(externalDir, "regions/vietnam")
+            val nodesFile = File(vietnamDir, "nodes")
+            if (nodesFile.isFile && nodesFile.length() > 0L) {
+                Log.i("RoutingChannel", "Auto-initializing GraphHopper from ${vietnamDir.absolutePath}")
+                return routingService.init(vietnamDir.absolutePath)
+            }
+
+            val vietnamArchive = File(vietnamDir, "vietnam.ghz")
+            if (vietnamArchive.isFile && vietnamArchive.length() > 0L) {
+                Log.i("RoutingChannel", "Auto-initializing GraphHopper from ${vietnamArchive.absolutePath}")
+                return routingService.init(vietnamArchive.absolutePath)
+            }
+        }
+
+        // 2. Kiểm tra context.filesDir (nơi bundled asset được copy ra từ APK)
+        val filesDir = context?.filesDir
+        if (filesDir != null) {
+            // Thư mục đã giải nén
+            val extractedDir = File(filesDir, "vietnam_extracted")
+            val extractedNodes = File(extractedDir, "nodes")
+            if (extractedNodes.isFile && extractedNodes.length() > 0L) {
+                Log.i("RoutingChannel", "Auto-initializing GraphHopper from extracted dir: ${extractedDir.absolutePath}")
+                return routingService.init(extractedDir.absolutePath)
+            }
+
+            // File .ghz copy từ bundled asset
+            val bundledCopy = File(filesDir, "vietnam.ghz")
+            if (bundledCopy.isFile && bundledCopy.length() > 0L) {
+                Log.i("RoutingChannel", "Auto-initializing GraphHopper from bundled copy: ${bundledCopy.absolutePath}")
+                return routingService.init(bundledCopy.absolutePath)
+            }
+        }
+
+        Log.w("RoutingChannel", "No default Vietnam graph found in any location")
+        return false
     }
 
     private fun handleIsInitialized(result: MethodChannel.Result) {

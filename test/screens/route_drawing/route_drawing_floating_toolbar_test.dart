@@ -75,6 +75,7 @@ void main() {
       bool redoCalled = false;
       bool clearCalled = false;
       bool fitBoundsCalled = false;
+      bool locateMeCalled = false;
 
       await tester.pumpWidget(
         createTestableWidget(
@@ -87,6 +88,7 @@ void main() {
             onRedo: () => redoCalled = true,
             onClear: () => clearCalled = true,
             onFitBounds: () => fitBoundsCalled = true,
+            onLocateMe: () => locateMeCalled = true,
           ),
         ),
       );
@@ -106,6 +108,10 @@ void main() {
       await tester.tap(find.byKey(const Key('route_drawing_fit_bounds_button')));
       await tester.pump();
       expect(fitBoundsCalled, isTrue);
+
+      await tester.tap(find.byKey(const Key('route_drawing_locate_me_button')));
+      await tester.pump();
+      expect(locateMeCalled, isTrue);
 
       // Test Clear: cancel does not trigger onClear
       await tester.tap(find.byKey(const Key('route_drawing_clear_button')));

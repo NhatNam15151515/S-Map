@@ -50,5 +50,5 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
 
 | ID Vùng | Tên Vùng | File Zip Đóng Gói | Dung Lượng Zip | Nội Dung Bên Trong | Status |
 |---|---|---|---|---|---|
-| `vietnam` | Toàn quốc Việt Nam | `vietnam.zip` | **622.32 MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |
+| `vietnam` | Toàn quốc Việt Nam | `vietnam.zip` | **376.18 MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |
 <!-- END_ZIP_TABLE_METRICS -->

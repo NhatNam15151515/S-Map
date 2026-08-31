@@ -39,11 +39,13 @@ class HomeHeaderSearchBar extends StatelessWidget {
             onClearSearch: onClearSearch,
             onPoiSelected: onPoiSelected,
             onTap: () {
-              final userLocation =
-                  context.read<MapDisplayCubit>().state.currentPosition;
+              final mapState = context.read<MapDisplayCubit>().state;
+              // Ưu tiên GPS để kết quả gần người dùng. Khi GPS chưa sẵn
+              // sàng, dùng tâm camera hiện tại thay vì tìm toàn bộ dữ liệu.
+              final searchCenter = mapState.currentPosition ?? mapState.center;
               context.push<dynamic>(
                 AppRoutes.search,
-                extra: userLocation,
+                extra: searchCenter,
               ).then((result) {
                 if (result != null && context.mounted) {
                   if (result is SearchResultPayload) {

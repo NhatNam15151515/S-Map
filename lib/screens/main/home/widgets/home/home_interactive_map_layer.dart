@@ -9,7 +9,9 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
+import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeInteractiveMapLayer extends StatefulWidget {
@@ -33,6 +35,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   final MapSymbolManager _symbolManager = MapSymbolManager();
   final MapCameraController _cameraController = MapCameraController();
   final MapRouteManager _routeManager = MapRouteManager();
+  final IPoiRepository _poiRepository = PoiRepositoryImpl();
   RouteResult? _renderedNavRoute;
   int _navListenerGeneration = 0;
 
@@ -109,11 +112,133 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   /// Xử lý tap trên bản đồ: kiểm tra xem có tap vào marker không
-  void _onMapClick(Point<double> point, LatLng latLng) {
+  Future<void> _onMapClick(Point<double> point, LatLng latLng) async {
     final poi = _symbolManager.getPoiAtLocation(latLng.latitude, latLng.longitude);
     if (poi != null && mounted) {
       widget.onPoiTapped(poi);
+      return;
     }
+
+    // Các POI tìm kiếm của app nằm ở GeoJSON layer riêng; các địa điểm có
+    // sẵn trên bản đồ lại nằm trong vector tile. Query rendered features để
+    // cả hai loại điểm đều đi qua cùng callback mở marker/bottom sheet.
+    final renderedPoi = await _queryRenderedPoi(point, latLng);
+    if (renderedPoi != null && mounted) {
+      widget.onPoiTapped(renderedPoi);
+    }
+  }
+
+  Future<PoiModel?> _queryRenderedPoi(Point<double> point, LatLng latLng) async {
+    final controller = _mapController;
+    if (controller == null) return null;
+
+    try {
+      final features = await controller.queryRenderedFeatures(point, const [], null);
+      final candidates = <PoiModel>[];
+      for (final rawFeature in features) {
+        if (rawFeature is! Map) continue;
+        final rawProperties = rawFeature['properties'];
+        if (rawProperties is! Map) continue;
+        final properties = Map<String, dynamic>.from(rawProperties);
+        final poi = _poiFromRenderedProperties(properties, latLng);
+        if (poi != null) candidates.add(poi);
+      }
+
+      if (candidates.isNotEmpty) {
+        candidates.sort((a, b) => _poiFeatureScore(b).compareTo(_poiFeatureScore(a)));
+        return await _enrichRenderedPoi(candidates.first);
+      }
+
+      // Một số tile chỉ chứa hình học/label, không mang đủ metadata POI.
+      // Tra cứu thêm trong DB offline quanh vị trí chạm để lấy thông tin đầy đủ.
+      final delta = 0.0008; // khoảng 80–90 m quanh điểm chạm
+      final nearby = await _poiRepository.searchInBounds(
+        minLat: latLng.latitude - delta,
+        maxLat: latLng.latitude + delta,
+        minLon: latLng.longitude - delta,
+        maxLon: latLng.longitude + delta,
+        limit: 10,
+      );
+      if (nearby.isEmpty) return null;
+      nearby.sort((a, b) => _distanceTo(a, latLng).compareTo(_distanceTo(b, latLng)));
+      return nearby.first;
+    } catch (e, stack) {
+      DLog.warning('⚠️ [Map] Không đọc được feature tại vị trí chạm: $e', stack);
+      return null;
+    }
+  }
+
+  PoiModel? _poiFromRenderedProperties(
+    Map<String, dynamic> properties,
+    LatLng fallbackLocation,
+  ) {
+    String value(List<String> keys) {
+      for (final key in keys) {
+        final raw = properties[key];
+        if (raw != null && raw.toString().trim().isNotEmpty) return raw.toString();
+      }
+      return '';
+    }
+
+    final name = value(['name:vi', 'name', 'name_vi', 'name:en']);
+    final category = value([
+      'category',
+      'amenity',
+      'tourism',
+      'shop',
+      'leisure',
+      'historic',
+      'public_transport',
+      'place',
+    ]);
+    if (name.isEmpty || (category.isEmpty && value(['address', 'addr:street', 'street']).isEmpty)) {
+      return null;
+    }
+
+    final idValue = value(['id', 'osm_id', '@id']);
+    return PoiModel(
+      id: int.tryParse(idValue),
+      osmId: idValue.isEmpty ? null : idValue,
+      name: name,
+      nameAscii: AppUtils.instance.toAscii(name),
+      category: category.isEmpty ? 'place' : category,
+      subCategory: value(['sub_category', 'subclass', 'type']),
+      lat: fallbackLocation.latitude,
+      lon: fallbackLocation.longitude,
+      address: value(['address', 'addr:full']),
+      street: value(['street', 'addr:street']),
+      housenumber: value(['housenumber', 'addr:housenumber']),
+      city: value(['city', 'addr:city']),
+    );
+  }
+
+  int _poiFeatureScore(PoiModel poi) {
+    final category = (poi.category ?? '').toLowerCase();
+    return category == 'place' ? 1 : 3;
+  }
+
+  Future<PoiModel> _enrichRenderedPoi(PoiModel poi) async {
+    final nearby = await _poiRepository.searchInBounds(
+      minLat: poi.lat - 0.0008,
+      maxLat: poi.lat + 0.0008,
+      minLon: poi.lon - 0.0008,
+      maxLon: poi.lon + 0.0008,
+      query: poi.name,
+      limit: 5,
+    );
+    if (nearby.isEmpty) return poi;
+    nearby.sort((a, b) => _distanceTo(a, LatLng(poi.lat, poi.lon))
+        .compareTo(_distanceTo(b, LatLng(poi.lat, poi.lon))));
+    return nearby.first;
+  }
+
+  double _distanceTo(PoiModel poi, LatLng location) {
+    return AppUtils.instance.calculateDistance(
+      poi.lat,
+      poi.lon,
+      location.latitude,
+      location.longitude,
+    );
   }
 
   /// Hiển thị danh sách kết quả tìm kiếm và fit camera bao quanh

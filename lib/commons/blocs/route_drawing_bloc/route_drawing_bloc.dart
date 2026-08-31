@@ -32,6 +32,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       _onPointTapped,
       transformer: restartable(),
     );
+    on<RouteDrawingEndpointsSelected>(_onEndpointsSelected);
 
     on<RouteDrawingUndoLastPoint>(_onUndoLastPoint);
     on<RouteDrawingRedoPoint>(_onRedoPoint);
@@ -58,6 +59,85 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       }
     }
     return List.unmodifiable(fullList);
+  }
+
+  Future<void> _onEndpointsSelected(
+    RouteDrawingEndpointsSelected event,
+    Emitter<RouteDrawingState> emit,
+  ) async {
+    final generation = ++_currentGeneration;
+    final origin = SnappedRoadPoint(
+      originalLat: event.origin.lat,
+      originalLon: event.origin.lon,
+      snappedLat: event.origin.lat,
+      snappedLon: event.origin.lon,
+      isSnapped: true,
+      distanceToRoad: 0,
+    );
+
+    emit(state.copyWith(
+      status: RouteDrawingStatus.loading,
+      requestGeneration: generation,
+      clearWarning: true,
+      clearError: true,
+    ));
+
+    if (event.destination == null) {
+      emit(state.copyWith(
+        status: RouteDrawingStatus.pointAdded,
+        points: [origin],
+        segments: const [],
+        fullPolyline: const [],
+        totalDistance: 0,
+        totalTime: 0,
+        redoPoints: const [],
+        redoSegments: const [],
+        requestGeneration: generation,
+      ));
+      return;
+    }
+
+    final destination = SnappedRoadPoint(
+      originalLat: event.destination!.lat,
+      originalLon: event.destination!.lon,
+      snappedLat: event.destination!.lat,
+      snappedLon: event.destination!.lon,
+      isSnapped: true,
+      distanceToRoad: 0,
+    );
+    final route = await _routingRepository.calculateRoute(
+      fromLat: origin.snappedLat,
+      fromLon: origin.snappedLon,
+      toLat: destination.snappedLat,
+      toLon: destination.snappedLon,
+      vehicleProfile: state.profile,
+    );
+
+    if (isClosed || emit.isDone || generation != _currentGeneration) return;
+
+    if (route.isSuccess) {
+      emit(state.copyWith(
+        status: RouteDrawingStatus.routeUpdated,
+        points: [origin, destination],
+        segments: [route],
+        fullPolyline: _buildFullPolyline([route]),
+        totalDistance: route.distance,
+        totalTime: route.time,
+        redoPoints: const [],
+        redoSegments: const [],
+        requestGeneration: generation,
+        clearWarning: true,
+        clearError: true,
+      ));
+    } else {
+      emit(state.copyWith(
+        status: RouteDrawingStatus.error,
+        points: [origin, destination],
+        requestGeneration: generation,
+        errorMessageKey: route.errorMessage ?? LocaleKeys.routing_error_generic,
+        clearWarning: true,
+      ));
+    }
   }
 
   Future<void> _onPointTapped(

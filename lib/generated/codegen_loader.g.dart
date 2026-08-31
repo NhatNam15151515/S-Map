@@ -244,7 +244,8 @@ class CodegenLoader extends AssetLoader{
     "delete_confirm_desc": "Are you sure you want to delete route \"{}\"?",
     "profile_moped": "Motorcycle",
     "profile_car": "Car",
-    "profile_foot": "Walking"
+    "profile_foot": "Walking",
+    "custom_route_drawing": "Custom Route"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",
@@ -564,7 +565,8 @@ static const Map<String,dynamic> _vi = {
     "delete_confirm_desc": "Bạn có chắc muốn xóa lộ trình \"{}\" không?",
     "profile_moped": "Xe máy",
     "profile_car": "Ô tô",
-    "profile_foot": "Đi bộ"
+    "profile_foot": "Đi bộ",
+    "custom_route_drawing": "Tự vẽ lộ trình"
   },
   "stats_dashboard": {
     "title": "Thống kê chuyến đi",

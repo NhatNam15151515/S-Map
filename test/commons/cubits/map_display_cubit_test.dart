@@ -543,9 +543,11 @@ void main() {
     });
 
     test(
-        'selectPoi updates selectedPoi, center, currentPosition, and triggers animateToPosition cameraAction',
+        'selectPoi updates selectedPoi and center without overwriting GPS currentPosition',
         () {
       final cubit = MapDisplayCubit();
+      const gpsPosition = LatLng(10.762622, 106.660172);
+      cubit.emit(cubit.state.copyWith(currentPosition: gpsPosition));
       const poi = PoiModel(
         name: 'Hồ Hoàn Kiếm',
         nameAscii: 'Ho Hoan Kiem',
@@ -558,8 +560,7 @@ void main() {
 
       expect(cubit.state.selectedPoi, equals(poi));
       expect(cubit.state.center, equals(const LatLng(21.0285, 105.8542)));
-      expect(
-          cubit.state.currentPosition, equals(const LatLng(21.0285, 105.8542)));
+      expect(cubit.state.currentPosition, equals(gpsPosition));
       expect(cubit.state.isFollowingUser, isFalse);
       expect(cubit.state.cameraAction?.type,
           equals(MapCameraActionType.animateToPosition));

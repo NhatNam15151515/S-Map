@@ -6,18 +6,22 @@ import 'package:s_map/commons/widgets/widgets.dart';
 class HomeMapControls extends StatelessWidget {
   final MapDisplayCubit displayCubit;
   final VoidCallback? onSwitchLayers;
+  final double bottom;
 
   const HomeMapControls({
     super.key,
     required this.displayCubit,
     this.onSwitchLayers,
+    this.bottom = 175,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
       right: 16,
-      bottom: 220,
+      bottom: bottom + MediaQuery.paddingOf(context).bottom,
       child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
         buildWhen: (previous, current) =>
             previous.rotation != current.rotation ||

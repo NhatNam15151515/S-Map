@@ -24,6 +24,7 @@ class _MyAppState extends State<MyApp> {
   late NotificationCubit notificationCubit;
   late FavoritesCubit favoritesCubit;
   late SavedRoutesCubit savedRoutesCubit;
+  late RoutePreviewCubit routePreviewCubit;
   late NavigationBloc navigationBloc;
 
   @override
@@ -34,6 +35,9 @@ class _MyAppState extends State<MyApp> {
     notificationCubit = NotificationCubit();
     favoritesCubit = FavoritesCubit();
     savedRoutesCubit = SavedRoutesCubit();
+    routePreviewCubit = RoutePreviewCubit(
+      routingRepository: AppReposProvider.instance.routingRepos,
+    );
     navigationBloc = NavigationBloc(
       routingRepository: AppReposProvider.instance.routingRepos,
       tripRepository: AppReposProvider.instance.tripRepos,
@@ -46,6 +50,7 @@ class _MyAppState extends State<MyApp> {
   void dispose() {
     favoritesCubit.close();
     savedRoutesCubit.close();
+    routePreviewCubit.close();
     navigationBloc.close();
     super.dispose();
   }
@@ -59,6 +64,7 @@ class _MyAppState extends State<MyApp> {
         BlocProvider.value(value: notificationCubit),
         BlocProvider.value(value: favoritesCubit),
         BlocProvider.value(value: savedRoutesCubit),
+        BlocProvider.value(value: routePreviewCubit),
         BlocProvider.value(value: navigationBloc),
       ],
       child: BlocBuilder<AppCubit, AppState>(

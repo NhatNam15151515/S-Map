@@ -8,11 +8,13 @@ import 'package:s_map/generated/locale_keys.g.dart';
 class RouteDrawingTopBar extends StatelessWidget {
   final double topPadding;
   final VoidCallback onSavedRoutesPressed;
+  final VoidCallback? onSearchDestinationPressed;
 
   const RouteDrawingTopBar({
     super.key,
     required this.topPadding,
     required this.onSavedRoutesPressed,
+    this.onSearchDestinationPressed,
   });
 
   @override
@@ -102,6 +104,17 @@ class RouteDrawingTopBar extends StatelessWidget {
                 ],
               ),
             ),
+            if (onSearchDestinationPressed != null)
+              IconButton(
+                key: const Key('route_drawing_search_destination_button'),
+                icon: HeroIcon(
+                  HeroIcons.magnifyingGlass,
+                  size: 22,
+                  color: colorScheme.primary,
+                ),
+                tooltip: 'Tìm điểm kết thúc',
+                onPressed: onSearchDestinationPressed,
+              ),
             IconButton(
               key: const Key('route_drawing_saved_routes_button'),
               icon: HeroIcon(

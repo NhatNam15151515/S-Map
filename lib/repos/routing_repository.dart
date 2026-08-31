@@ -35,9 +35,19 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   }
 
   /// Tự động tìm và nạp file đồ thị đường đi (.ghz hoặc thư mục giải nén) nếu có trên thiết bị
-  Future<void> _ensureAutoInitialized() {
-    return _autoInitFuture ??= _ensureAutoInitializedImpl();
+  Future<void> _ensureAutoInitialized() async {
+    final isReady = await _routingService.isInitialized();
+    if (isReady) return;
+
+    _autoInitFuture ??= _ensureAutoInitializedImpl();
+    await _autoInitFuture;
+
+    final readyAfter = await _routingService.isInitialized();
+    if (!readyAfter) {
+      _autoInitFuture = null;
+    }
   }
+
 
   Future<void> _ensureAutoInitializedImpl() async {
     DLog.info('🔍 [RoutingRepository] Executing _ensureAutoInitializedImpl');
@@ -63,6 +73,9 @@ class RoutingRepositoryImpl implements IRoutingRepository {
         }
         return success;
       }
+
+      // Dọn dẹp dữ liệu metro_hcm cũ còn sót trên thiết bị (legacy cleanup)
+      await _cleanupLegacyData();
 
       final candidateDirs = <String>[];
       try {
@@ -96,15 +109,11 @@ class RoutingRepositoryImpl implements IRoutingRepository {
         'vietnam_extracted',
         'vietnam-latest-gh',
         'graphhopper',
-        'metro_hcm_extracted',
       ];
 
       const candidateFileNames = [
         'regions/vietnam/vietnam.ghz',
         'vietnam.ghz',
-        'vietnam_sample.ghz',
-        'metro_hcm.ghz',
-        'map.ghz',
       ];
 
       DLog.info(
@@ -153,7 +162,6 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       // 3. Nếu không tìm thấy ở bất kỳ đâu trên bộ nhớ thiết bị, tự nạp từ Bundled Asset trong APK
       for (final bundledAsset in const [
         'assets/map/vietnam.ghz',
-        'assets/map/metro_hcm.ghz',
       ]) {
         DLog.info(
             '📦 [RoutingRepository] Attempting auto-init from bundled APK asset: "$bundledAsset"');
@@ -237,7 +245,10 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   }
 
   @override
-  Future<bool> isEngineReady() {
+  Future<bool> isEngineReady() async {
+    final ready = await _routingService.isInitialized();
+    if (ready) return true;
+    await _ensureAutoInitialized();
     return _routingService.isInitialized();
   }
 
@@ -248,5 +259,54 @@ class RoutingRepositoryImpl implements IRoutingRepository {
     _activeInitSession = 0;
     _autoInitFuture = null;
     return _routingService.dispose();
+  }
+
+  /// Dọn dẹp dữ liệu legacy metro_hcm còn sót trên thiết bị từ các bản build cũ.
+  /// Cũng xóa bản copy cũ của bundled asset (metro_hcm.ghz) trong filesDir/docDir.
+  Future<void> _cleanupLegacyData() async {
+    const legacyNames = [
+      'metro_hcm.ghz',
+      'metro_hcm_extracted',
+      'metro_hcm',
+    ];
+
+    final dirsToClean = <String>[];
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      dirsToClean.add(docDir.path);
+    } catch (_) {}
+    try {
+      final extDir = await getExternalStorageDirectory();
+      if (extDir != null) dirsToClean.add(extDir.path);
+    } catch (_) {}
+
+    // Thêm các path phổ biến trên Android
+    dirsToClean.addAll([
+      '/sdcard/Android/data/com.vnsmap.app/files',
+      '/storage/emulated/0/Android/data/com.vnsmap.app/files',
+    ]);
+
+    for (final dirPath in dirsToClean) {
+      for (final name in legacyNames) {
+        try {
+          final filePath = p.join(dirPath, name);
+          final file = File(filePath);
+          if (await file.exists()) {
+            await file.delete(recursive: true);
+            DLog.info(
+                '🗑️ [RoutingRepository] Deleted legacy file: "$filePath"');
+          }
+          final dir = Directory(filePath);
+          if (await dir.exists()) {
+            await dir.delete(recursive: true);
+            DLog.info(
+                '🗑️ [RoutingRepository] Deleted legacy directory: "$filePath"');
+          }
+        } catch (e) {
+          DLog.warning(
+              '⚠️ [RoutingRepository] Failed to clean legacy "$name" in "$dirPath": $e');
+        }
+      }
+    }
   }
 }

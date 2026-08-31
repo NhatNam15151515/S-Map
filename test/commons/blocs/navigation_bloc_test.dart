@@ -256,6 +256,7 @@ void main() {
           points: [
             [10.7725, 106.6980],
             [10.7738, 106.6998],
+            [10.7766, 106.7032],
           ],
         ),
       ],
@@ -406,6 +407,43 @@ void main() {
         origin: origin,
         destination: destination,
         destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Khởi hành tại origin
+      bloc.add(LocationUpdated(
+        latitude: origin.lat,
+        longitude: origin.lon,
+        speed: 0.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Di chuyển từng bước trên lộ trình (mỗi bước < 150m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6985,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7738,
+        longitude: 106.6995,
+        speed: 8.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7748,
+        longitude: 106.7008,
+        speed: 8.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7758,
+        longitude: 106.7020,
+        speed: 8.0,
       ));
       await Future.delayed(const Duration(milliseconds: 10));
 
@@ -603,7 +641,44 @@ void main() {
         emits(predicate<NavigationState>((s) => s.status == NavigationStatus.navigating)),
       );
 
-      // Điểm gần đích (< 20m)
+      // Điểm 1: Khởi hành tại origin
+      bloc.add(LocationUpdated(
+        latitude: origin.lat,
+        longitude: origin.lon,
+        speed: 0.0,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // Di chuyển từng bước trên lộ trình (mỗi bước < 150m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6985,
+        speed: 5.0,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7738,
+        longitude: 106.6995,
+        speed: 8.0,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7748,
+        longitude: 106.7008,
+        speed: 8.0,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7758,
+        longitude: 106.7020,
+        speed: 8.0,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // Điểm 6: Tới sát đích (< 20m)
       bloc.add(const LocationUpdated(
         latitude: 10.77659,
         longitude: 106.70319,
@@ -941,6 +1016,43 @@ void main() {
       ));
       await Future.delayed(const Duration(milliseconds: 10));
 
+      // Khởi hành tại origin
+      bloc.add(LocationUpdated(
+        latitude: origin.lat,
+        longitude: origin.lon,
+        speed: 0.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Di chuyển từng bước trên lộ trình (mỗi bước < 150m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6985,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7738,
+        longitude: 106.6995,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7748,
+        longitude: 106.7008,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7758,
+        longitude: 106.7020,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
       // Gửi tọa độ GPS tại đích (Nhà hát TP: 10.7766, 106.7032)
       bloc.add(const LocationUpdated(
         latitude: 10.7766,
@@ -993,6 +1105,43 @@ void main() {
         origin: origin,
         destination: destination,
         destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Khởi hành tại origin
+      bloc.add(LocationUpdated(
+        latitude: origin.lat,
+        longitude: origin.lon,
+        speed: 0.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Di chuyển từng bước trên lộ trình (mỗi bước < 150m)
+      bloc.add(const LocationUpdated(
+        latitude: 10.7730,
+        longitude: 106.6985,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7738,
+        longitude: 106.6995,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7748,
+        longitude: 106.7008,
+        speed: 5.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      bloc.add(const LocationUpdated(
+        latitude: 10.7758,
+        longitude: 106.7020,
+        speed: 5.0,
       ));
       await Future.delayed(const Duration(milliseconds: 10));
 

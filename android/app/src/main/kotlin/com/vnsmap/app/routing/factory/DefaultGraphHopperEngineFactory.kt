@@ -9,7 +9,6 @@ import com.graphhopper.ResponsePath
 import com.graphhopper.config.CHProfile
 import com.graphhopper.config.Profile
 import com.graphhopper.jackson.Jackson
-import com.graphhopper.routing.util.EdgeFilter
 import com.graphhopper.storage.index.Snap
 import com.graphhopper.util.CustomModel
 import com.graphhopper.util.Instruction
@@ -167,26 +166,21 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                 Profile("moped_vn")
                     .setVehicle("car")
                     .setWeighting("custom")
-                    .setCustomModel(CustomModel().apply { distanceInfluence = null })
+                    // Phải nạp cùng custom model đã dùng lúc import graph. Nếu để
+                    // model rỗng, GraphHopper sẽ load được graph nhưng route native
+                    // sẽ quay về weighting mặc định và ưu tiên đường lớn.
+                    .setCustomModel(Jackson.newObjectMapper().readValue(CUSTOM_MODEL_JSON, CustomModel::class.java))
             ))
             setCHProfiles(listOf(
                 CHProfile("moped_vn")
             ))
         }
 
-        val hopper = object : GraphHopper() {
-            override fun createWeightingFactory(): com.graphhopper.routing.WeightingFactory {
-                return com.graphhopper.routing.WeightingFactory { profile, _, _ ->
-                    val accessEnc = encodingManager.getBooleanEncodedValue(
-                        com.graphhopper.routing.ev.VehicleAccess.key(profile.vehicle)
-                    )
-                    val avSpeedEnc = encodingManager.getDecimalEncodedValue(
-                        com.graphhopper.routing.ev.VehicleSpeed.key(profile.vehicle)
-                    )
-                    com.graphhopper.routing.weighting.FastestWeighting(accessEnc, avSpeedEnc)
-                }
-            }
-        }.init(config)
+        // Dùng GraphHopper weighting mặc định để profile `custom` thực sự áp dụng
+        // priority/speed/distance_influence của custom_model_moped.json.
+        // Trước đây factory bị override bằng FastestWeighting, làm mất toàn bộ
+        // ưu tiên hẻm nhỏ dù graph đã chứa các edge đó.
+        val hopper = GraphHopper().init(config)
         val loadSuccess = try {
             hopper.load()
         } catch (e: Exception) {
@@ -336,7 +330,17 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                     return SnappedRoadPoint.notSnapped(lat, lon, "LocationIndex is null or not loaded", elapsedMs)
                 }
 
-                val snap: Snap = locationIndex.findClosest(lat, lon, EdgeFilter.ALL_EDGES)
+                val vehicleAccess = hopper.encodingManager.getBooleanEncodedValue(
+                    com.graphhopper.routing.ev.VehicleAccess.key("car")
+                )
+                // Không snap vào footway/pedestrian/private edge mà xe máy không
+                // thể route; nếu không điểm trong hẻm dễ bị hút sang edge gần nhất
+                // nhưng không đi được.
+                val snap: Snap = locationIndex.findClosest(
+                    lat,
+                    lon,
+                    com.graphhopper.routing.util.AccessFilter.allEdges(vehicleAccess)
+                )
                 val elapsedMs = (System.nanoTime() - startNano) / 1_000_000L
 
                 if (!snap.isValid) {

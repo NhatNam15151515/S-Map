@@ -12,12 +12,14 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   final bool isMyLocationOrigin;
   final bool isMarkerDestination;
   final bool hasMarkerDestination;
+  final VoidCallback? onLocateMe;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
   final VoidCallback onClear;
   final VoidCallback onFitBounds;
   final VoidCallback? onToggleMyLocationOrigin;
   final VoidCallback? onToggleMarkerDestination;
+  final VoidCallback? onRemoveMarkerDestination;
 
   const RouteDrawingFloatingToolbar({
     super.key,
@@ -28,12 +30,14 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     this.isMyLocationOrigin = false,
     this.isMarkerDestination = false,
     this.hasMarkerDestination = false,
+    this.onLocateMe,
     required this.onUndo,
     required this.onRedo,
     required this.onClear,
     required this.onFitBounds,
     this.onToggleMyLocationOrigin,
     this.onToggleMarkerDestination,
+    this.onRemoveMarkerDestination,
   });
 
   void _showClearConfirmDialog(BuildContext context) {
@@ -113,6 +117,18 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (onLocateMe != null) ...[
+              _buildToolbarButton(
+                context: context,
+                key: const Key('route_drawing_locate_me_button'),
+                icon: HeroIcons.cursorArrowRays,
+                tooltip: tr(LocaleKeys.map_current_location),
+                isEnabled: true,
+                isPrimary: true,
+                onPressed: onLocateMe!,
+              ),
+              const SizedBox(height: 6),
+            ],
             if (onToggleMyLocationOrigin != null) ...[
               _buildToolbarButton(
                 context: context,
@@ -134,6 +150,17 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
                 isEnabled: true,
                 isActive: isMarkerDestination,
                 onPressed: onToggleMarkerDestination!,
+              ),
+              const SizedBox(height: 6),
+            ],
+            if (hasMarkerDestination && onRemoveMarkerDestination != null) ...[
+              _buildToolbarButton(
+                context: context,
+                key: const Key('route_drawing_remove_destination_button'),
+                icon: HeroIcons.xMark,
+                tooltip: 'Xóa điểm kết thúc',
+                isEnabled: true,
+                onPressed: onRemoveMarkerDestination!,
               ),
               const SizedBox(height: 6),
             ],

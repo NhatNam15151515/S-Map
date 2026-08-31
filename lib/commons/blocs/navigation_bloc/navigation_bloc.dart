@@ -31,6 +31,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   DateTime? _lastRerouteTime;
   double? _lastValidDistanceLat;
   double? _lastValidDistanceLon;
+  bool _hasMovedDuringNavigation = false;
 
   /// Optional global default service resolvers set by the composition root
   static ILocationService? defaultLocationService;
@@ -130,7 +131,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     try {
       await _activeTripService.clearActiveSession();
     } catch (e, stack) {
-      DLog.error('❌ [NavigationBloc] Failed to clear active session: $e', e, stack);
+      DLog.error(
+          '❌ [NavigationBloc] Failed to clear active session: $e', e, stack);
     }
   }
 
@@ -151,7 +153,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       }
     } catch (e, stack) {
       if (isClosed || emit.isDone) return;
-      DLog.error('❌ [NavigationBloc] Error checking active session: $e', e, stack);
+      DLog.error(
+          '❌ [NavigationBloc] Error checking active session: $e', e, stack);
     }
   }
 
@@ -249,12 +252,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
-    final destName =
-        snapshot.destinationName ?? LocaleKeys.routing_destination_fallback.tr();
+    final destName = snapshot.destinationName ??
+        LocaleKeys.routing_destination_fallback.tr();
     final stream = _locationService.getPositionStream(
       enableBackground: true,
-      notificationTitle:
-          LocaleKeys.routing_foreground_notification_title.tr(),
+      notificationTitle: LocaleKeys.routing_foreground_notification_title.tr(),
       notificationText: LocaleKeys.routing_foreground_notification_text.tr(
         args: [destName],
       ),
@@ -269,7 +271,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         }
       },
       onError: (error) {
-        DLog.error('❌ [NavigationBloc] GPS Position Stream error on resume: $error');
+        DLog.error(
+            '❌ [NavigationBloc] GPS Position Stream error on resume: $error');
       },
     );
   }
@@ -282,7 +285,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     try {
       await _activeTripService.clearActiveSession();
     } catch (e, stack) {
-      DLog.error('❌ [NavigationBloc] Error clearing discarded active session: $e', e, stack);
+      DLog.error(
+          '❌ [NavigationBloc] Error clearing discarded active session: $e',
+          e,
+          stack);
     }
     if (isClosed || emit.isDone) return;
     emit(state.copyWith(clearPendingResumeSession: true));
@@ -325,6 +331,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _lastRerouteTime = null;
     _lastValidDistanceLat = null;
     _lastValidDistanceLon = null;
+    _hasMovedDuringNavigation = false;
 
     DeviceOemType? promptOem;
     try {
@@ -391,8 +398,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         event.destinationName ?? LocaleKeys.routing_destination_fallback.tr();
     final stream = _locationService.getPositionStream(
       enableBackground: true,
-      notificationTitle:
-          LocaleKeys.routing_foreground_notification_title.tr(),
+      notificationTitle: LocaleKeys.routing_foreground_notification_title.tr(),
       notificationText: LocaleKeys.routing_foreground_notification_text.tr(
         args: [destName],
       ),
@@ -463,8 +469,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         : state.speedSampleCount;
 
     final accuracy = event.accuracy;
-    final isAccuracyAcceptable = accuracy == null ||
-        accuracy <= RoutingConstants.maxGpsAccuracyMeters;
+    final isAccuracyAcceptable =
+        accuracy == null || accuracy <= RoutingConstants.maxGpsAccuracyMeters;
 
     // Nếu GPS fix kém chính xác (> 35m), chỉ cập nhật tọa độ hiển thị, không chạy engine/reroute
     if (!isAccuracyAcceptable) {
@@ -494,6 +500,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       if (deltaMeters >= RoutingConstants.minGpsMovementDeltaMeters &&
           deltaMeters <= RoutingConstants.maxGpsJumpDeltaMeters) {
         addedDistance = deltaMeters;
+        _hasMovedDuringNavigation = true;
         _lastValidDistanceLat = currentLat;
         _lastValidDistanceLon = currentLon;
       }
@@ -514,7 +521,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     );
 
     // 2. Kiểm tra đã đến đích chưa (thông qua engine hoặc khoảng cách đích)
-    bool isArrived = progress.hasArrived;
+    // GPS thường phát ngay một fix đầu tiên khi vừa bấm "Bắt đầu". Không
+    // được coi fix đứng yên đó là đã hoàn thành, đặc biệt với route tự vẽ có
+    // một instruction bao trùm toàn bộ polyline.
+    bool isArrived = progress.hasArrived && _hasMovedDuringNavigation;
     if (!isArrived && state.destination != null) {
       final distToDestKm = AppUtils.instance.calculateDistance(
         currentLat,
@@ -523,7 +533,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         state.destination!.lon,
       );
       final distToDestMeters = distToDestKm * RoutingConstants.metersPerKm;
-      if (distToDestMeters <= _turnByTurnEngine.arrivalThresholdMeters) {
+      if (_hasMovedDuringNavigation &&
+          distToDestMeters <= _turnByTurnEngine.arrivalThresholdMeters) {
         isArrived = true;
       }
     }
@@ -679,7 +690,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       );
 
       if (isClosed || emit.isDone || generation != _requestGeneration) {
-        DLog.info('⏭️ [NavigationBloc] Stale reroute response discarded (#$generation vs #$_requestGeneration)');
+        DLog.info(
+            '⏭️ [NavigationBloc] Stale reroute response discarded (#$generation vs #$_requestGeneration)');
         return;
       }
 
@@ -713,17 +725,20 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         ));
         add(const SaveActiveSessionSnapshot());
       } else {
-        DLog.error('❌ [NavigationBloc] Reroute calculation failed: ${newRoute.errorMessage}');
+        DLog.error(
+            '❌ [NavigationBloc] Reroute calculation failed: ${newRoute.errorMessage}');
         emit(state.copyWith(
           status: NavigationStatus.navigating,
           isRerouting: false,
           requestGeneration: generation,
-          errorMessageKey: newRoute.errorMessage ?? LocaleKeys.routing_error_generic,
+          errorMessageKey:
+              newRoute.errorMessage ?? LocaleKeys.routing_error_generic,
         ));
       }
     } catch (e, stack) {
       if (isClosed || emit.isDone || generation != _requestGeneration) return;
-      DLog.error('❌ [NavigationBloc] Exception in reroute calculation: $e', e, stack);
+      DLog.error(
+          '❌ [NavigationBloc] Exception in reroute calculation: $e', e, stack);
       emit(state.copyWith(
         status: NavigationStatus.navigating,
         isRerouting: false,
@@ -838,7 +853,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
   @override
   Future<void> close() async {
-    DLog.info('🧹 [NavigationBloc] Disposing NavigationBloc and cancelling GPS listeners');
+    DLog.info(
+        '🧹 [NavigationBloc] Disposing NavigationBloc and cancelling GPS listeners');
     _requestGeneration++;
     _stopAutoSaveTimer();
     _lastRerouteTime = null;

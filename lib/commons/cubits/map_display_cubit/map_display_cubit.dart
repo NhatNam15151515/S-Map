@@ -324,7 +324,6 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     final target = LatLng(poi.lat, poi.lon);
     emit(state.copyWith(
       selectedPoi: poi,
-      currentPosition: target,
       center: target,
       isFollowingUser: false,
       clearError: true,

@@ -22,6 +22,7 @@ class SavedScreenContent extends StatelessWidget {
   void _onDirections(BuildContext context, PoiModel poi) {
     try {
       context.read<MapDisplayCubit>().selectPoi(poi);
+      context.read<RoutePreviewCubit>().previewRouteToPoi(poi);
     } catch (_) {}
     context.go(AppRoutes.home);
   }

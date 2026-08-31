@@ -64,7 +64,10 @@ class SavedRoutesTabContent extends StatelessWidget {
   }
 
   void _onOpenInRouteDrawing(BuildContext context, CustomRouteModel route) {
-    context.push(AppRoutes.routeDrawing);
+    context.push(
+      AppRoutes.routeDrawing,
+      extra: RouteDrawingPayload(initialRoute: route),
+    );
   }
 
   void _showDeleteConfirmDialog(BuildContext context, CustomRouteModel route) {

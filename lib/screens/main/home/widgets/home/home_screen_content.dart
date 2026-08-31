@@ -11,6 +11,7 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
@@ -46,6 +47,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
         navigationBloc.add(const CheckActiveSession());
         final isDark = context.read<AppCubit>().state.isDarkMode;
         displayCubit.updateMapTheme(isDarkMode: isDark);
+        // Pre-warm Routing engine ngầm để khi bấm Chỉ đường không bị delay/not ready
+        AppReposProvider.instance.routingRepos.isEngineReady();
       }
     });
   }
@@ -212,6 +215,12 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final controlsBottom = _selectedMarkerPoi != null
+        ? 216.0
+        : (_searchResults.isNotEmpty ||
+                (_activeSearchText?.trim().isNotEmpty ?? false))
+            ? 295.0
+            : 175.0;
 
     return Scaffold(
       body: MultiBlocListener(
@@ -347,7 +356,10 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
 
                     // 2. Right Map Controls (ẩn khi đang điều hướng)
                     if (!isNavigating)
-                      HomeMapControls(displayCubit: displayCubit),
+                      HomeMapControls(
+                        displayCubit: displayCubit,
+                        bottom: controlsBottom,
+                      ),
 
                     // 3. Normal Map Exploration Elements (Ẩn khi đang xem route hoặc dẫn đường)
                     if (!isRouteActive && !isNavigating) ...[

@@ -22,6 +22,21 @@ class RouteDrawingPointTapped extends RouteDrawingEvent {
   List<Object?> get props => [lat, lon];
 }
 
+/// Khởi tạo cặp điểm đầu/cuối trong một transaction.
+/// Dùng cho luồng chọn endpoint để tránh hai event snap async huỷ lẫn nhau.
+class RouteDrawingEndpointsSelected extends RouteDrawingEvent {
+  final RoutePoint origin;
+  final RoutePoint? destination;
+
+  const RouteDrawingEndpointsSelected({
+    required this.origin,
+    this.destination,
+  });
+
+  @override
+  List<Object?> get props => [origin, destination];
+}
+
 /// Hoàn tác (Undo) điểm vừa thêm gần nhất
 class RouteDrawingUndoLastPoint extends RouteDrawingEvent {
   const RouteDrawingUndoLastPoint();

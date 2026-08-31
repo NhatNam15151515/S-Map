@@ -34,10 +34,11 @@ class HomeBottomOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     // 1. Khi đang chọn một địa điểm cụ thể (từ sheet hoặc bấm vào marker): hiển thị Quick Card
     if (selectedMarkerPoi != null) {
+      final bottomPadding = MediaQuery.paddingOf(context).bottom;
       return Positioned(
         left: 0,
         right: 0,
-        bottom: 24,
+        bottom: kBottomNavigationBarHeight + bottomPadding + 4,
         child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
           buildWhen: (prev, curr) =>
               prev.currentPosition != curr.currentPosition,
