@@ -17,13 +17,29 @@ class RoutingServiceImpl implements IRoutingService {
     DLog.info('⚡ [RoutingService] Invoking MethodChannel "${RoutingConstants.methodInitGraphHopper}" with path: "$graphPath"');
     final stopwatch = Stopwatch()..start();
     try {
-      final result = await _channel.invokeMethod<bool>(
+      final result = await _channel.invokeMethod<dynamic>(
         RoutingConstants.methodInitGraphHopper,
         {RoutingConstants.argGraphPath: graphPath},
       );
       stopwatch.stop();
-      DLog.info('⚡ [RoutingService] MethodChannel initGraphHopper returned: $result (took ${stopwatch.elapsedMilliseconds}ms)');
-      return result ?? false;
+
+      // Native trả về Map chi tiết { success, resolvedPath, error? }
+      if (result is Map) {
+        final success = result['success'] == true;
+        final resolvedPath = result['resolvedPath'] ?? graphPath;
+        final error = result['error'];
+        if (success) {
+          DLog.info('✅ [RoutingService] initGraphHopper SUCCESS (${stopwatch.elapsedMilliseconds}ms)\n   📂 resolvedPath: $resolvedPath');
+        } else {
+          DLog.error('❌ [RoutingService] initGraphHopper FAILED (${stopwatch.elapsedMilliseconds}ms)\n   📂 resolvedPath: $resolvedPath\n   🔥 Native error: $error');
+        }
+        return success;
+      }
+
+      // Fallback: nếu native trả về bool trực tiếp (tương thích cũ)
+      final success = result == true;
+      DLog.info('⚡ [RoutingService] MethodChannel initGraphHopper returned: $success (took ${stopwatch.elapsedMilliseconds}ms)');
+      return success;
     } on PlatformException catch (e, stack) {
       stopwatch.stop();
       DLog.error('❌ [RoutingService] initGraphHopper PlatformException after ${stopwatch.elapsedMilliseconds}ms: [${e.code}] ${e.message} (details: ${e.details})', e, stack);

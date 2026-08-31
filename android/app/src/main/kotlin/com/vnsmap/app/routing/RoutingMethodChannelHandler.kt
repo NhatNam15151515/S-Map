@@ -86,28 +86,29 @@ class RoutingMethodChannelHandler(
                                 input.copyTo(output)
                             }
                         }
-                        Log.i("RoutingChannel", "Graph asset successfully copied to ${targetFile.absolutePath}")
+                        Log.i("RoutingChannel", "Graph asset copied: ${targetFile.absolutePath} (${targetFile.length()} bytes)")
                     }
                     resolvedPath = targetFile.absolutePath
                 }
 
                 val success = routingService.init(resolvedPath)
-                if (success) {
-                    println("✅ [RoutingChannel Native] GraphHopper successfully initialized with path: $resolvedPath")
-                } else {
-                    println("❌ [RoutingChannel Native] GraphHopper init returned false for path: $resolvedPath")
+                // Trả về Map chi tiết thay vì bool để Flutter có thể log lỗi native
+                val resultMap = hashMapOf<String, Any?>(
+                    "success" to success,
+                    "resolvedPath" to resolvedPath
+                )
+                if (!success) {
+                    resultMap["error"] = "GraphHopper init returned false for path: $resolvedPath"
                 }
-                postSuccess(result, success)
+                postSuccess(result, resultMap)
             } catch (e: Exception) {
                 Log.e("RoutingChannel", "Failed to initialize GraphHopper: ${e.message}", e)
-                println("❌ [RoutingChannel Native Exception] ${e.javaClass.simpleName}: ${e.message}")
-                e.printStackTrace()
-                postError(
-                    result,
-                    RoutingConstants.ERR_CODE_ROUTING_FAILED,
-                    "Failed to initialize GraphHopper: ${e.message}",
-                    null
+                val resultMap = hashMapOf<String, Any?>(
+                    "success" to false,
+                    "resolvedPath" to graphPath,
+                    "error" to "${e.javaClass.simpleName}: ${e.message}"
                 )
+                postSuccess(result, resultMap)
             }
         }
     }
