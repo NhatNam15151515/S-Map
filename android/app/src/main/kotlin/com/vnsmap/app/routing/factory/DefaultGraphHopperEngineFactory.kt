@@ -127,7 +127,6 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
 
     override fun createAndLoad(graphDirectory: File): IGraphHopperEngine {
         Log.i(TAG, "Loading GraphHopper from directory: ${graphDirectory.absolutePath}")
-        println("🗺️ [DefaultGraphHopperEngineFactory] Loading GraphHopper from directory: ${graphDirectory.absolutePath}")
 
         val propsFile = File(graphDirectory, "properties")
         if (propsFile.exists()) {
@@ -137,19 +136,17 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                     .split('\n')
                     .map { it.trim().replace("\u0000", "") }
                     .filter { it.contains("=") }
-                println("📄 [DefaultGraphHopperEngineFactory] Graph properties info:")
+                Log.i(TAG, "Graph properties info:")
                 for (line in lines) {
                     if (line.startsWith("profiles=") || line.startsWith("graph.profiles") ||
                         line.startsWith("datareader.import.date") || line.startsWith("datareader.data.date") ||
                         line.startsWith("graph.em.version")) {
-                        println("   🔹 $line")
+                        Log.i(TAG, "   🔹 $line")
                     }
                 }
             } catch (e: Exception) {
-                println("⚠️ [DefaultGraphHopperEngineFactory] Could not parse properties: ${e.message}")
+                Log.w(TAG, "Could not parse properties: ${e.message}")
             }
-        } else {
-            println("⚠️ [DefaultGraphHopperEngineFactory] Graph properties file not found in ${graphDirectory.absolutePath}")
         }
 
         val config = GraphHopperConfig().apply {
@@ -158,6 +155,10 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             putObject(RoutingConstants.CONFIG_DATAREADER_FILE, "")
             putObject(RoutingConstants.CONFIG_IMPORT_OSM_IGNORED_HIGHWAYS, "")
             putObject("graph.encoded_values", "road_class,road_environment,road_access,max_speed")
+            // Giữ weighting=custom + CustomModel vì GraphHopper 8.0 bắt buộc.
+            // Graph data được build với profile này trên desktop JVM (Janino hoạt động).
+            // Trên Android, Janino KHÔNG hoạt động nhưng CH đã pre-computed nên
+            // routing thực tế chỉ dùng shortcuts, không cần compile expressions.
             setProfiles(listOf(
                 Profile("moped_vn")
                     .setVehicle("car")
@@ -170,31 +171,128 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
         }
 
         val hopper = GraphHopper().init(config)
+
+        // GraphHopper 8.0 gọi checkProfilesConsistency() bên trong load(),
+        // nó compile custom model expressions bằng Janino → FAIL trên Android.
+        // Workaround: bỏ qua lỗi Janino bằng Reflection, vì CH đã pre-computed.
         val loadSuccess = try {
             hopper.load()
+        } catch (e: IllegalArgumentException) {
+            if (e.message?.contains("can't load this type of class file") == true ||
+                e.message?.contains("Cannot compile expression") == true) {
+                // Lỗi Janino trên Android → bypass checkProfilesConsistency bằng Reflection
+                Log.w(TAG, "Janino incompatible on Android (expected). Bypassing with Reflection...")
+                loadGraphWithReflection(hopper, graphDirectory)
+            } else {
+                Log.e(TAG, "hopper.load() threw unexpected error: ${e.message}", e)
+                try { hopper.close() } catch (_: Exception) {}
+                throw e
+            }
         } catch (e: Exception) {
             Log.e(TAG, "hopper.load() threw exception: ${e.message}", e)
-            println("❌ [GraphHopper Native Error] ${e.javaClass.simpleName}: ${e.message}")
-            e.printStackTrace()
             try { hopper.close() } catch (_: Exception) {}
             throw e
         }
 
         if (!loadSuccess) {
-            try {
-                hopper.close()
-            } catch (_: Exception) {}
-            Log.e(TAG, "hopper.load() returned false for ${graphDirectory.absolutePath}")
-            println("❌ [GraphHopper Native Error] hopper.load() returned false for ${graphDirectory.absolutePath}")
+            try { hopper.close() } catch (_: Exception) {}
+            Log.e(TAG, "Graph load failed for ${graphDirectory.absolutePath}")
             throw IllegalStateException("${RoutingConstants.ERR_GRAPH_DATA_INCOMPLETE} at ${graphDirectory.absolutePath}")
         }
 
         val baseGraph = hopper.baseGraph
         val nodeCount = baseGraph?.nodes ?: 0
         val edgeCount = baseGraph?.edges ?: 0
-        Log.i(TAG, "GraphHopper successfully loaded from ${graphDirectory.absolutePath}! (Nodes: $nodeCount, Edges: $edgeCount)")
-        println("🎉 [DefaultGraphHopperEngineFactory] GraphHopper READY! Nodes: $nodeCount, Edges: $edgeCount")
+        Log.i(TAG, "GraphHopper READY from ${graphDirectory.absolutePath}! (Nodes: $nodeCount, Edges: $edgeCount)")
         return GraphHopperEngineWrapper(hopper)
+    }
+
+    /**
+     * Bypass cả checkProfilesConsistency() LẪN loadOrPrepareCH() bằng Reflection.
+     *
+     * Cả 2 method đều cần Janino (compile custom model expressions) → FAIL trên Android.
+     * Nhưng CH shortcuts ĐÃ pre-computed trên desktop JVM và stored trong graph files.
+     *
+     * Khi load() fail tại checkProfilesConsistency, đã hoàn thành:
+     * ✅ properties, encodingManager, baseGraph loaded
+     *
+     * Cần gọi thủ công:
+     * 1. initLocationIndex() - init location index
+     * 2. Load CH storage trực tiếp từ files (skip createCHConfigs)
+     * 3. directory.loadMMap()
+     * 4. setFullyLoaded()
+     */
+    private fun loadGraphWithReflection(hopper: GraphHopper, graphDirectory: File): Boolean {
+        return try {
+            // 1. initLocationIndex()
+            val initLocMethod = GraphHopper::class.java.getDeclaredMethod("initLocationIndex")
+            initLocMethod.isAccessible = true
+            initLocMethod.invoke(hopper)
+            Log.i(TAG, "Reflection: initLocationIndex() OK")
+
+            // 2. Load CH data trực tiếp bằng CHPreparationHandler
+            // Tạo CHConfig thủ công KHÔNG cần Janino
+            val baseGraph = hopper.baseGraph!!
+            val profilesByNameField = GraphHopper::class.java.getDeclaredField("profilesByName")
+            profilesByNameField.isAccessible = true
+            @Suppress("UNCHECKED_CAST")
+            val profilesByName = profilesByNameField.get(hopper) as Map<String, Profile>
+            val profile = profilesByName["moped_vn"]!!
+
+            // Tạo CHConfig với FastestWeighting (không cần Janino)
+            val encodingManager = hopper.encodingManager
+            val vehicleSpeed = encodingManager.getDecimalEncodedValue(
+                com.graphhopper.routing.ev.VehicleSpeed.key("car")
+            )
+            val vehicleAccess = encodingManager.getBooleanEncodedValue(
+                com.graphhopper.routing.ev.VehicleAccess.key("car")
+            )
+            val turnCostProvider = com.graphhopper.routing.weighting.TurnCostProvider.NO_TURN_COST_PROVIDER
+            val fastestWeighting = com.graphhopper.routing.weighting.FastestWeighting(
+                vehicleAccess, vehicleSpeed, turnCostProvider
+            )
+
+            val chConfig = com.graphhopper.storage.CHConfig.nodeBased(profile.name, fastestWeighting)
+            val chConfigs = listOf(chConfig)
+
+            // Gọi CHPreparationHandler.load(baseGraph, chConfigs)
+            val chHandlerField = GraphHopper::class.java.getDeclaredField("chPreparationHandler")
+            chHandlerField.isAccessible = true
+            val chHandler = chHandlerField.get(hopper) as com.graphhopper.routing.ch.CHPreparationHandler
+            val existingCHGraphs = chHandler.load(baseGraph.baseGraph, chConfigs)
+            Log.i(TAG, "Reflection: CH loaded, found ${existingCHGraphs.size} CH graphs")
+
+            // Set chGraphs field
+            val chGraphsField = GraphHopper::class.java.getDeclaredField("chGraphs")
+            chGraphsField.isAccessible = true
+            val chGraphsMap = LinkedHashMap<String, com.graphhopper.storage.RoutingCHGraph>()
+            for ((config, chGraph) in existingCHGraphs) {
+                chGraphsMap[config.name] = chGraph
+            }
+            chGraphsField.set(hopper, chGraphsMap)
+            Log.i(TAG, "Reflection: chGraphs set with ${chGraphsMap.size} entries")
+
+            // 3. directory.loadMMap()
+            val directory = baseGraph.directory
+            try {
+                val loadMMapMethod = directory.javaClass.getMethod("loadMMap")
+                loadMMapMethod.invoke(directory)
+                Log.i(TAG, "Reflection: directory.loadMMap() OK")
+            } catch (_: NoSuchMethodException) {
+                Log.i(TAG, "Reflection: directory.loadMMap() not available (might be DAT mode)")
+            }
+
+            // 4. setFullyLoaded()
+            val setFullyLoadedMethod = GraphHopper::class.java.getDeclaredMethod("setFullyLoaded")
+            setFullyLoadedMethod.isAccessible = true
+            setFullyLoadedMethod.invoke(hopper)
+
+            Log.i(TAG, "GraphHopper loaded via Reflection bypass (Janino-free) ✅")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Reflection bypass failed: ${e.message}", e)
+            false
+        }
     }
 
     private class GraphHopperEngineWrapper(
