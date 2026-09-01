@@ -27,15 +27,9 @@ class MapStylePalette {
   final String buildingFill;
   final String buildingOutline;
   final String roadCasing;
-  final String roadMotorway;
-  final String roadTrunk;
-  final String roadPrimary;
-  final String roadSecondary;
-  final String roadTertiary;
-  final String roadMinor;
-  final String roadService;
-  final String roadTrack;
-  final String roadDefault;
+  final String roadSurface;
+  final double roadCasingOpacity;
+  final double roadSurfaceOpacity;
   final String placeDot;
   final String placeStroke;
   final String poiDot;
@@ -71,15 +65,9 @@ class MapStylePalette {
     required this.buildingFill,
     required this.buildingOutline,
     required this.roadCasing,
-    required this.roadMotorway,
-    required this.roadTrunk,
-    required this.roadPrimary,
-    required this.roadSecondary,
-    required this.roadTertiary,
-    required this.roadMinor,
-    required this.roadService,
-    required this.roadTrack,
-    required this.roadDefault,
+    required this.roadSurface,
+    required this.roadCasingOpacity,
+    required this.roadSurfaceOpacity,
     required this.placeDot,
     required this.placeStroke,
     required this.poiDot,
@@ -118,15 +106,9 @@ class MapStylePalette {
         '__BUILDING_FILL__': buildingFill,
         '__BUILDING_OUTLINE__': buildingOutline,
         '__ROAD_CASING__': roadCasing,
-        '__ROAD_MOTORWAY__': roadMotorway,
-        '__ROAD_TRUNK__': roadTrunk,
-        '__ROAD_PRIMARY__': roadPrimary,
-        '__ROAD_SECONDARY__': roadSecondary,
-        '__ROAD_TERTIARY__': roadTertiary,
-        '__ROAD_MINOR__': roadMinor,
-        '__ROAD_SERVICE__': roadService,
-        '__ROAD_TRACK__': roadTrack,
-        '__ROAD_DEFAULT__': roadDefault,
+        '__ROAD_SURFACE__': roadSurface,
+        '__ROAD_CASING_OPACITY__': roadCasingOpacity.toString(),
+        '__ROAD_SURFACE_OPACITY__': roadSurfaceOpacity.toString(),
         '__PLACE_DOT__': placeDot,
         '__PLACE_STROKE__': placeStroke,
         '__POI_DOT__': poiDot,

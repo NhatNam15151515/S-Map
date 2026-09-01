@@ -14,7 +14,7 @@ typedef RegionDownloadService = IRegionDownloadService;
 class RegionDownloadServiceImpl implements IRegionDownloadService {
   static const String boxName = 'offline_regions_box';
   static const String basePackageUrl =
-      'https://github.com/NhatNam15151515/S-Map/releases/download/map-data-v1.0.0';
+      'https://github.com/NhatNam15151515/S-Map/releases/download/map-data-v1.1.0';
 
   final Box<dynamic>? _customBox;
   final HttpClient? _customHttpClient;
@@ -40,8 +40,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
           'Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn quốc; hỗ trợ địa chỉ trước và sau sáp nhập',
       bbox: [102.10, 8.50, 109.50, 23.40],
       downloadUrl: '$basePackageUrl/vietnam.zip',
-      sizeBytes: 652548547,
-      version: '1.0.0',
+      sizeBytes: 928931146,
+      version: '1.1.0',
     ),
   ];
 

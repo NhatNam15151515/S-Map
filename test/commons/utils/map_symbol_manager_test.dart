@@ -40,7 +40,7 @@ void main() {
       expect(bounds.northeast.longitude, closeTo(106.7500, 0.0001));
     });
 
-    test('getPoiBySymbolId returns null (GeoJSON mode)', () {
+    test('getPoiBySymbolId returns null before symbols are rendered', () {
       final manager = MapSymbolManager();
       expect(manager.getPoiBySymbolId('unknown_id'), isNull);
     });

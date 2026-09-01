@@ -59,6 +59,66 @@ void main() {
         expect(light['layers'], isNotEmpty);
         expect(dark['layers'], isNotEmpty);
         expect(light['layers'], isNot(equals(dark['layers'])));
+
+        final lightRoadLayers = (light['layers'] as List)
+            .where((layer) =>
+                (layer as Map<String, dynamic>)['id'].toString().startsWith('smap-road-'))
+            .toList();
+        final darkRoadLayers = (dark['layers'] as List)
+            .where((layer) =>
+                (layer as Map<String, dynamic>)['id'].toString().startsWith('smap-road-'))
+            .toList();
+        expect(lightRoadLayers.length, equals(darkRoadLayers.length));
+        expect(
+          lightRoadLayers
+              .map((layer) => (layer as Map<String, dynamic>)['paint']['line-width'])
+              .toList(),
+          equals(darkRoadLayers
+              .map((layer) => (layer as Map<String, dynamic>)['paint']['line-width'])
+              .toList()),
+        );
+        expect(
+          lightRoadLayers
+              .map((layer) => (layer as Map<String, dynamic>)['minzoom'])
+              .toList(),
+          equals(darkRoadLayers
+              .map((layer) => (layer as Map<String, dynamic>)['minzoom'])
+              .toList()),
+        );
+
+        Map<String, dynamic> roadLayer(
+          List<dynamic> layers,
+          String id,
+        ) => layers
+            .cast<Map<String, dynamic>>()
+            .firstWhere((layer) => layer['id'] == id);
+
+        expect(
+          (roadLayer(dark['layers'] as List<dynamic>, 'smap-road-surface')['paint']
+              as Map<String, dynamic>)['line-opacity'],
+          lessThan((roadLayer(light['layers'] as List<dynamic>, 'smap-road-surface')['paint']
+              as Map<String, dynamic>)['line-opacity']),
+        );
+        expect(
+          roadLayer(light['layers'] as List<dynamic>, 'smap-road-casing')['minzoom'],
+          equals(11),
+        );
+        expect(
+          roadLayer(light['layers'] as List<dynamic>, 'smap-road-casing-major')['minzoom'],
+          equals(4),
+        );
+        expect(
+          roadLayer(light['layers'] as List<dynamic>, 'smap-road-casing-primary')['minzoom'],
+          equals(6),
+        );
+        expect(
+          roadLayer(light['layers'] as List<dynamic>, 'smap-road-casing-secondary')['minzoom'],
+          equals(8),
+        );
+        expect(
+          roadLayer(light['layers'] as List<dynamic>, 'smap-road-casing-tertiary')['minzoom'],
+          equals(10),
+        );
       } finally {
         await tempDir.delete(recursive: true);
       }

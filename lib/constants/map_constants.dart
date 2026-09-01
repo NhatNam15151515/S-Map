@@ -20,10 +20,13 @@ class MapConstants {
   static const double viewportSearchDistanceThresholdKm = 0.4;
 
   /// Cấu hình hiển thị Marker Symbol trên bản đồ
+  /// Scale chung cho ảnh redmarker; giữ nguyên tỉ lệ giữa marker thường và
+  /// marker được chọn nhưng giảm kích thước hiển thị khoảng 30%.
+  static const double markerIconScale = 0.7;
   static const double symbolTextSize = 11.0;
   static const double symbolTextHaloWidth = 1.5;
-  static const double symbolIconSize = 1.05;
+  static const double symbolIconSize = 1.05 * markerIconScale;
   static const double selectedSymbolTextSize = 12.0;
-  static const double selectedSymbolIconSize = 1.35;
+  static const double selectedSymbolIconSize = 1.35 * markerIconScale;
   static const double selectedSymbolTextHaloWidth = 2.0;
 }

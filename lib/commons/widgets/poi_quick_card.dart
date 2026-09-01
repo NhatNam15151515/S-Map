@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
@@ -46,7 +47,8 @@ class PoiQuickCard extends StatelessWidget {
     final categoryLabel = tr(PoiCategoryHelper.getCategoryLocaleKey(poi.category));
     final address = PoiCategoryHelper.formatAddress(poi);
 
-    String subtitleText = address;
+    String? distStr;
+    String? etaStr;
     if (effectiveLocation != null) {
       final distKm = AppUtils.instance.calculateDistance(
         effectiveLocation.latitude,
@@ -54,9 +56,20 @@ class PoiQuickCard extends StatelessWidget {
         poi.lat,
         poi.lon,
       );
-      final distStr = PoiCategoryHelper.formatDistance(distKm);
-      subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
+      distStr = PoiCategoryHelper.formatDistance(distKm);
+      final estMinutes = (distKm / 30 * 60).round();
+      if (estMinutes < 1) {
+        etaStr = '< 1 ${tr(LocaleKeys.minuteS)}';
+      } else if (estMinutes >= 60) {
+        final hours = estMinutes ~/ 60;
+        final mins = estMinutes % 60;
+        etaStr = mins > 0 ? '$hours ${tr(LocaleKeys.hourS)} $mins ${tr(LocaleKeys.minuteS)}' : '$hours ${tr(LocaleKeys.hourS)}';
+      } else {
+        etaStr = '~$estMinutes ${tr(LocaleKeys.minuteS)}';
+      }
     }
+
+    final latLonStr = '${poi.lat.toStringAsFixed(5)}, ${poi.lon.toStringAsFixed(5)}';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -81,6 +94,7 @@ class PoiQuickCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 44,
@@ -104,36 +118,52 @@ class PoiQuickCard extends StatelessWidget {
                       poi.name,
                       style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
                         fontSize: 16,
+                        height: 1.25,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (categoryLabel.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        categoryLabel,
-                        style: colorScheme.primary.textTheme.mediumStyle.copyWith(
-                          fontSize: 12,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    if (subtitleText.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitleText,
-                        style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
-                          fontSize: 13,
-                          fontWeight: AppFontWeight.regular.weight,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    if (categoryLabel.isNotEmpty || (poi.subCategory != null && poi.subCategory!.isNotEmpty)) ...[
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          if (categoryLabel.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withAlpha(20),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                categoryLabel,
+                                style: colorScheme.primary.textTheme.mediumStyle.copyWith(
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          if (poi.subCategory != null &&
+                              poi.subCategory!.trim().isNotEmpty &&
+                              poi.subCategory!.toLowerCase() != poi.category?.toLowerCase())
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest.withAlpha(120),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                poi.subCategory!.trim(),
+                                style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ],
                 ),
               ),
+              const SizedBox(width: 4),
               BlocBuilder<FavoritesCubit, FavoritesState>(
                 builder: (context, favState) {
                   final cubit = context.read<FavoritesCubit>();
@@ -141,6 +171,9 @@ class PoiQuickCard extends StatelessWidget {
                   final isFav = favState.isFavorite(key);
 
                   return IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
                     icon: Icon(
                       isFav
                           ? Icons.bookmark_rounded
@@ -155,7 +188,11 @@ class PoiQuickCard extends StatelessWidget {
                   );
                 },
               ),
+              const SizedBox(width: 4),
               IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
                 icon: Icon(
                   Icons.close_rounded,
                   size: 20,
@@ -165,6 +202,91 @@ class PoiQuickCard extends StatelessWidget {
                 tooltip: tr(LocaleKeys.cancel),
               ),
             ],
+          ),
+          if (address.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    address,
+                    style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+                      fontSize: 13,
+                      fontWeight: AppFontWeight.regular.weight,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (distStr != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(
+                  Icons.two_wheeler_rounded,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  etaStr != null ? '$distStr • $etaStr' : distStr,
+                  style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 6),
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: latLonStr));
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  content: Text('Đã sao chép tọa độ: $latLonStr'),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.my_location_rounded,
+                    size: 14,
+                    color: colorScheme.outline,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    latLonStr,
+                    style: colorScheme.outline.textTheme.textStyle.copyWith(
+                      fontSize: 12,
+                      fontWeight: AppFontWeight.regular.weight,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.copy_rounded,
+                    size: 12,
+                    color: colorScheme.outline,
+                  ),
+                ],
+              ),
+            ),
           ),
           if (onDirections != null || onCustomRoute != null) ...[
             const SizedBox(height: 12),

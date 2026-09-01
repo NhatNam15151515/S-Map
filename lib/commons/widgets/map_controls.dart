@@ -31,8 +31,10 @@ class MapControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final bool showCompass =
-        onToggleOrientation != null && rotation.abs() > 0.05;
+    // Keep the compass in the control stack at all times. Hiding it based on
+    // a tiny bearing threshold made the whole stack jump when the native map
+    // reported 0°/360° around north.
+    final bool showCompass = onToggleOrientation != null;
 
     return RepaintBoundary(
       child: Column(

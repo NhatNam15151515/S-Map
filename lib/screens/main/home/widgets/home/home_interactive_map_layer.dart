@@ -115,8 +115,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   /// Hiển thị ghim đỏ cho một địa điểm cụ thể được chọn
-  void setSelectedPoiMarker(PoiModel poi) {
-    _symbolManager.setSelectedPoiMarker(_mapController, poi);
+  Future<void> setSelectedPoiMarker(PoiModel poi) {
+    return _symbolManager.setSelectedPoiMarker(_mapController, poi);
   }
 
   /// Xóa ghim đơn lẻ khi đóng thẻ POI
@@ -138,9 +138,9 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       return;
     }
 
-    // Các POI tìm kiếm của app nằm ở GeoJSON layer riêng; các địa điểm có
-    // sẵn trên bản đồ lại nằm trong vector tile. Query rendered features để
-    // cả hai loại điểm đều đi qua cùng callback mở marker/bottom sheet.
+    // POI tìm kiếm của app nằm ở native symbol; các địa điểm có sẵn trên bản
+    // đồ lại nằm trong vector tile. Query rendered features để cả hai loại
+    // điểm đều đi qua cùng callback mở marker/bottom sheet.
     final renderedPoi = await _queryRenderedPoi(point, latLng);
     if (renderedPoi != null && mounted) {
       widget.onPoiTapped(renderedPoi);
@@ -291,13 +291,13 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               prev.selectedPoi != curr.selectedPoi ||
               prev.status != curr.status ||
               prev.styleString != curr.styleString,
-          listener: (context, state) {
+          listener: (context, state) async {
             _applyMapStyle(state.styleString);
             if (state.cameraAction != null) {
               handleCameraAction(state.cameraAction!);
             }
             if (state.selectedPoi != null) {
-              setSelectedPoiMarker(state.selectedPoi!);
+              await setSelectedPoiMarker(state.selectedPoi!);
             } else if (state.selectedPoi == null &&
                 _symbolManager.selectedPoi != null) {
               clearSelectedPoiMarker();
@@ -424,6 +424,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               MapView(
                 key: const Key('map_view_main'),
                 styleString: state.styleString,
+                nativeCompassEnabled: false,
                 onMapCreated: (controller) {
                   _mapController = controller;
                   _lastAppliedMapStyle = state.styleString;
@@ -438,22 +439,26 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   await _symbolManager.renderSovereigntySymbols(_mapController);
                   await _routeManager.loadMarkerAssets(_mapController,
                       force: true);
-                  _lastAppliedMapStyle = displayCubit.state.styleString;
-                  displayCubit.onStyleLoaded();
-
                   if (!mounted) return;
 
-                  // 1. Khôi phục POI markers và selected POI marker (nếu có category/search đang active)
+                  // 1. Khôi phục POI markers và selected POI marker (nếu có
+                  // category/search đang active). Await để không tranh chấp
+                  // với listener vừa nhận trạng thái style mới.
                   final viewportState = viewportBloc.state;
                   if (viewportState.status == ViewportSearchStatus.success &&
                       viewportState.selectedCategory != CategoryConstants.all &&
                       viewportState.pois.isNotEmpty) {
-                    _symbolManager.renderPoiList(
-                        _mapController, viewportState.pois);
+                    await _symbolManager.renderPoiList(
+                      _mapController,
+                      viewportState.pois,
+                    );
                   }
                   if (displayCubit.state.selectedPoi != null) {
-                    setSelectedPoiMarker(displayCubit.state.selectedPoi!);
+                    await setSelectedPoiMarker(displayCubit.state.selectedPoi!);
                   }
+
+                  _lastAppliedMapStyle = displayCubit.state.styleString;
+                  await displayCubit.onStyleLoaded();
 
                   // 2. Khôi phục Route Preview nếu đang mở
                   final previewState = routePreviewCubit.state;

@@ -5,29 +5,35 @@ import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 
-/// Quản lý Symbol/Marker bằng GeoJSON source + Symbol layer riêng
-/// để tránh collision detection của SymbolManager mặc định gây mất ghim khi zoom.
+/// Quản lý marker POI bằng Symbol native của MapLibre.
+///
+/// Symbol native được dùng có chủ đích ở đây: khác với một Symbol layer
+/// GeoJSON tự tạo, nó được MapLibre tự vẽ lại sau camera movement và cho phép
+/// ta giữ handle để xoá/cập nhật chính xác marker đang chọn.
 class MapSymbolManager {
   // --- Trạng thái nội bộ ---
   final List<PoiModel> _searchResultPois = [];
+  final Map<String, PoiModel> _renderedSymbols = {};
+  final List<Symbol> _searchResultSymbols = [];
+  Symbol? _selectedSymbol;
   PoiModel? _selectedPoi;
   bool _isAssetLoaded = false;
   bool _layersInitialized = false;
+  Future<void>? _assetLoadFuture;
+  Future<void>? _layersInitFuture;
+  int _layersGeneration = 0;
+  int _renderGeneration = 0;
+  int _selectedGeneration = 0;
 
-  // Layer IDs cho GeoJSON custom layers
-  static const String _searchSourceId = 'smap-search-results-source';
-  static const String _searchLayerId = 'smap-search-results-layer';
-  static const String _selectedSourceId = 'smap-selected-poi-source';
-  static const String _selectedLayerId = 'smap-selected-poi-layer';
+  // Layer IDs cho nhãn chủ quyền GeoJSON cố định.
   static const String _sovereigntySourceId = 'smap-sovereignty-source';
   static const String _sovereigntyLayerId = 'smap-sovereignty-layer';
 
   /// Map từ POI key → PoiModel để hỗ trợ tra cứu khi tap trên bản đồ
   final Map<String, PoiModel> _poiLookup = {};
 
-  /// Lấy POI tương ứng từ symbol ID khi người dùng bấm vào marker
-  /// Dùng queryRenderedFeatures để xác định POI từ tọa độ thay vì symbol ID
-  PoiModel? getPoiBySymbolId(String symbolId) => null;
+  /// Lấy POI tương ứng từ symbol ID khi người dùng bấm vào marker.
+  PoiModel? getPoiBySymbolId(String symbolId) => _renderedSymbols[symbolId];
 
   /// Tra cứu POI gần nhất tại tọa độ (cho map tap handler)
   PoiModel? getPoiAtLocation(double lat, double lon, {double toleranceDeg = 0.0005}) {
@@ -46,12 +52,47 @@ class MapSymbolManager {
   void resetAssetLoaded() {
     _isAssetLoaded = false;
     _layersInitialized = false;
+    _layersGeneration++;
+    _layersInitFuture = null;
+    // setStyle() removes the native SymbolManager layer and invalidates all
+    // Symbol handles. Keep the POI state so Home can restore it on the new
+    // style, but never reuse stale native handles.
+    _renderGeneration++;
+    _selectedGeneration++;
+    _renderedSymbols.clear();
+    _searchResultSymbols.clear();
+    _selectedSymbol = null;
   }
 
   /// Nạp icon ảnh ghim đỏ vào MapLibre Sprite Engine
-  Future<void> loadMarkerAssets(MapLibreMapController? controller, {bool force = false}) async {
+  Future<void> loadMarkerAssets(
+    MapLibreMapController? controller, {
+    bool force = false,
+  }) async {
     if (controller == null) return;
     if (_isAssetLoaded && !force) return;
+
+    // A style load can notify the Cubit and the widget callback in the same
+    // frame. Serialize sprite registration so two addImage calls cannot race
+    // on the same native image key and make the following addSymbol fail.
+    final pending = _assetLoadFuture;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+
+    final loadFuture = _loadMarkerAssets(controller);
+    _assetLoadFuture = loadFuture;
+    try {
+      await loadFuture;
+    } finally {
+      if (identical(_assetLoadFuture, loadFuture)) {
+        _assetLoadFuture = null;
+      }
+    }
+  }
+
+  Future<void> _loadMarkerAssets(MapLibreMapController controller) async {
     try {
       final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
       final bytes = byteData.buffer
@@ -61,112 +102,131 @@ class MapSymbolManager {
       DLog.info(
           '🗺️ [MapSymbolManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine');
     } catch (e, stack) {
+      // MapRouteManager may have registered the same image key just before
+      // this manager. The sprite is already usable in that case.
+      final errorText = e.toString().toLowerCase();
+      if (errorText.contains('already') && errorText.contains('image')) {
+        _isAssetLoaded = true;
+        DLog.info(
+            '🗺️ [MapSymbolManager] Marker image already exists; reusing native sprite');
+      } else {
+        DLog.warning(
+            '⚠️ [MapSymbolManager] Failed to load marker asset: $e', stack);
+        return;
+      }
+    }
+
+    // addSymbol() has collision enabled by default. Configure the native
+    // manager after the image is registered. If a platform does not support
+    // one of these optional manager updates, the image remains usable.
+    try {
+      await controller.setSymbolIconAllowOverlap(true);
+      await controller.setSymbolIconIgnorePlacement(true);
+      await controller.setSymbolTextAllowOverlap(true);
+      await controller.setSymbolTextIgnorePlacement(true);
+    } catch (e, stack) {
       DLog.warning(
-          '⚠️ [MapSymbolManager] Failed to load marker asset: $e', stack);
+          '⚠️ [MapSymbolManager] Could not configure symbol overlap: $e', stack);
     }
   }
 
-  /// Khởi tạo custom GeoJSON sources + Symbol layers với icon-allow-overlap: true
-  /// Gọi 1 lần duy nhất sau khi style loaded
+  /// Khởi tạo GeoJSON layer cho nhãn chủ quyền sau khi style loaded.
+  /// POI markers không dùng layer này; chúng đi qua native SymbolManager.
   Future<void> initLayers(MapLibreMapController? controller) async {
     if (controller == null || _layersInitialized) return;
 
+    // onStyleLoaded and the first sovereignty render can arrive in the same
+    // frame. Serialize layer creation so both calls cannot pass the boolean
+    // guard before addSymbolLayer finishes.
+    final pending = _layersInitFuture;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+
+    final generation = _layersGeneration;
+    final initFuture = _initLayers(controller, generation);
+    _layersInitFuture = initFuture;
     try {
-      // 1. Search results layer (danh sách ghim nhỏ)
-      await controller.addGeoJsonSource(_searchSourceId, _emptyFeatureCollection());
-      await controller.addSymbolLayer(
-        _searchSourceId,
-        _searchLayerId,
-        SymbolLayerProperties(
-          iconImage: RoutingConstants.markerImageKey,
-          iconSize: [
-            Expressions.get,
-            'iconSize',
-          ],
-          iconAnchor: 'bottom',
-          iconAllowOverlap: true,
-          iconIgnorePlacement: true,
-          textField: [Expressions.get, 'name'],
-          textSize: [Expressions.get, 'textSize'],
-          textColor: AppColors.mapSymbolText.toHex,
-          textHaloColor: AppColors.mapSymbolHalo.toHex,
-          textHaloWidth: MapConstants.symbolTextHaloWidth,
-          textOffset: const [0, 0.6],
-          textAnchor: 'top',
-          textMaxWidth: 8.0,
-          textAllowOverlap: true,
-          textIgnorePlacement: true,
-          symbolSortKey: [Expressions.get, 'zIndex'],
-        ),
-        enableInteraction: true,
-      );
-
-      // 2. Selected POI layer (ghim to nổi bật)
-      await controller.addGeoJsonSource(_selectedSourceId, _emptyFeatureCollection());
-      await controller.addSymbolLayer(
-        _selectedSourceId,
-        _selectedLayerId,
-        SymbolLayerProperties(
-          iconImage: RoutingConstants.markerImageKey,
-          iconSize: [
-            Expressions.get,
-            'iconSize',
-          ],
-          iconAnchor: 'bottom',
-          iconAllowOverlap: true,
-          iconIgnorePlacement: true,
-          textField: [Expressions.get, 'name'],
-          textSize: [Expressions.get, 'textSize'],
-          textColor: AppColors.mapSymbolText.toHex,
-          textHaloColor: AppColors.mapSymbolHalo.toHex,
-          textHaloWidth: MapConstants.selectedSymbolTextHaloWidth,
-          textOffset: const [0, 0.6],
-          textAnchor: 'top',
-          textMaxWidth: 10.0,
-          textAllowOverlap: true,
-          textIgnorePlacement: true,
-          symbolSortKey: [Expressions.get, 'zIndex'],
-        ),
-        enableInteraction: true,
-      );
-
-      // 3. Sovereignty labels layer (Hoàng Sa, Trường Sa, Biển Đông)
-      await controller.addGeoJsonSource(_sovereigntySourceId, _emptyFeatureCollection());
-      await controller.addSymbolLayer(
-        _sovereigntySourceId,
-        _sovereigntyLayerId,
-        const SymbolLayerProperties(
-          textField: [Expressions.get, 'name'],
-          textSize: [Expressions.get, 'textSize'],
-          textColor: [Expressions.get, 'textColor'],
-          textHaloColor: '#FFFFFF',
-          textHaloWidth: 2.0,
-          textAnchor: 'center',
-          textLetterSpacing: [Expressions.get, 'letterSpacing'],
-          textAllowOverlap: true,
-          textIgnorePlacement: true,
-          iconAllowOverlap: true,
-          iconIgnorePlacement: true,
-        ),
-        enableInteraction: false,
-      );
-
-      _layersInitialized = true;
-      DLog.info('🗺️ [MapSymbolManager] Custom GeoJSON layers initialized (icon-allow-overlap: true)');
-    } catch (e, stack) {
-      DLog.error('❌ [MapSymbolManager] Failed to initialize custom layers: $e', stack);
+      await initFuture;
+    } finally {
+      if (identical(_layersInitFuture, initFuture)) {
+        _layersInitFuture = null;
+      }
     }
   }
 
-  /// Render danh sách POI (kết quả tìm kiếm/danh mục) bằng cách cập nhật GeoJSON source
+  Future<void> _initLayers(
+    MapLibreMapController controller,
+    int generation,
+  ) async {
+    try {
+      // Sovereignty labels layer (Hoàng Sa, Trường Sa, Biển Đông).
+      try {
+        await controller.addGeoJsonSource(
+          _sovereigntySourceId,
+          _emptyFeatureCollection(),
+        );
+      } catch (e, stack) {
+        if (!_isAlreadyExistsError(e)) {
+          DLog.error(
+              '❌ [MapSymbolManager] Failed to initialize sovereignty source: $e',
+              stack);
+          return;
+        }
+      }
+
+      try {
+        await controller.addSymbolLayer(
+          _sovereigntySourceId,
+          _sovereigntyLayerId,
+          const SymbolLayerProperties(
+            textField: [Expressions.get, 'name'],
+            textSize: [Expressions.get, 'textSize'],
+            textColor: [Expressions.get, 'textColor'],
+            textHaloColor: '#FFFFFF',
+            textHaloWidth: 2.0,
+            textAnchor: 'center',
+            textLetterSpacing: [Expressions.get, 'letterSpacing'],
+            textAllowOverlap: true,
+            textIgnorePlacement: true,
+            iconAllowOverlap: true,
+            iconIgnorePlacement: true,
+          ),
+          enableInteraction: false,
+        );
+      } catch (e, stack) {
+        if (!_isAlreadyExistsError(e)) {
+          DLog.error(
+              '❌ [MapSymbolManager] Failed to initialize sovereignty layer: $e',
+              stack);
+          return;
+        }
+        DLog.info(
+            '🗺️ [MapSymbolManager] Sovereignty layer already exists; reusing it');
+      }
+
+      if (generation == _layersGeneration) {
+        _layersInitialized = true;
+        DLog.info(
+            '🗺️ [MapSymbolManager] Custom GeoJSON layers initialized (icon-allow-overlap: true)');
+      }
+    } catch (e, stack) {
+      DLog.error('❌ [MapSymbolManager] Failed to initialize custom layers: $e',
+          stack);
+    }
+  }
+
+  bool _isAlreadyExistsError(Object error) =>
+      error.toString().toLowerCase().contains('already exists');
+
+  /// Render danh sách POI (kết quả tìm kiếm/danh mục) bằng native symbols.
   Future<void> renderPoiList(
     MapLibreMapController? controller,
     List<PoiModel> pois,
   ) async {
     if (controller == null) return;
-
-    await loadMarkerAssets(controller);
-    if (!_layersInitialized) await initLayers(controller);
+    final generation = ++_renderGeneration;
 
     _searchResultPois
       ..clear()
@@ -181,113 +241,120 @@ class MapSymbolManager {
       _poiLookup[_poiKey(_selectedPoi!)] = _selectedPoi!;
     }
 
-    // Build GeoJSON features cho search results (trừ POI đang chọn)
-    final features = <Map<String, dynamic>>[];
-    for (final poi in pois) {
-      if (_selectedPoi != null && _selectedPoi!.id == poi.id) continue;
-      features.add(_poiToFeature(
-        poi,
-        iconSize: MapConstants.symbolIconSize,
-        textSize: MapConstants.symbolTextSize,
-        zIndex: 1,
-      ));
-    }
-
     try {
-      await controller.setGeoJsonSource(
-        _searchSourceId,
-        _buildFeatureCollection(features),
-      );
+      await loadMarkerAssets(controller);
+      if (generation != _renderGeneration) return;
+
+      // Chỉ xoá các symbol do danh sách tìm kiếm tạo ra; selected marker
+      // được quản lý riêng và không bị ảnh hưởng khi danh sách đổi.
+      for (final symbol in _searchResultSymbols) {
+        _renderedSymbols.remove(symbol.id);
+        try {
+          await controller.removeSymbol(symbol);
+        } catch (_) {}
+      }
+      _searchResultSymbols.clear();
+
+      for (final poi in pois) {
+        if (generation != _renderGeneration) return;
+        if (_isSamePoi(_selectedPoi, poi)) continue;
+
+        try {
+          // Icon-only avoids the offline font/glyph path hiding the whole
+          // native symbol when a style has no matching text glyphs.
+          final symbol = await controller.addSymbol(_symbolOptions(
+            poi,
+            iconSize: MapConstants.symbolIconSize,
+          ));
+          if (generation != _renderGeneration) {
+            try {
+              await controller.removeSymbol(symbol);
+            } catch (_) {}
+            return;
+          }
+          _searchResultSymbols.add(symbol);
+          _renderedSymbols[symbol.id] = poi;
+        } catch (e, stack) {
+          DLog.warning(
+              '⚠️ [MapSymbolManager] Failed to render search marker: $e', stack);
+        }
+      }
       DLog.info(
-          '📍 [MapSymbolManager] Rendered ${features.length} search result markers via GeoJSON source');
-    } catch (e) {
-      DLog.warning('⚠️ [MapSymbolManager] Failed to update search GeoJSON source: $e');
+          '📍 [MapSymbolManager] Rendered ${_searchResultSymbols.length} search result markers via native symbols');
+    } catch (e, stack) {
+      DLog.warning('⚠️ [MapSymbolManager] Failed to render search symbols: $e', stack);
     }
   }
 
-  /// Hiển thị ghim đỏ nổi bật bền vững cho một POI được chọn
+  /// Hiển thị ghim đỏ nổi bật bền vững cho một POI được chọn.
   Future<void> setSelectedPoiMarker(
     MapLibreMapController? controller,
     PoiModel poi,
   ) async {
-    if (_selectedPoi?.id == poi.id) return;
-
+    final samePoi = _isSamePoi(_selectedPoi, poi);
+    final generation = ++_selectedGeneration;
     _selectedPoi = poi;
     _poiLookup[_poiKey(poi)] = poi;
     if (controller == null) return;
+    // Camera movement and rebuilds do not require recreating a native symbol.
+    // Only recreate it after a style reload, when resetAssetLoaded() has
+    // cleared the handle.
+    if (samePoi && _selectedSymbol != null) return;
 
-    await loadMarkerAssets(controller);
-    if (!_layersInitialized) await initLayers(controller);
-
-    // 1. Cập nhật selected layer với 1 feature duy nhất
     try {
-      await controller.setGeoJsonSource(
-        _selectedSourceId,
-        _buildFeatureCollection([
-          _poiToFeature(
-            poi,
-            iconSize: MapConstants.selectedSymbolIconSize,
-            textSize: MapConstants.selectedSymbolTextSize,
-            zIndex: 10,
-          ),
-        ]),
-      );
+      await loadMarkerAssets(controller);
+      if (generation != _selectedGeneration) return;
+
+      if (_selectedSymbol != null) {
+        final oldSymbol = _selectedSymbol!;
+        _selectedSymbol = null;
+        _renderedSymbols.remove(oldSymbol.id);
+        try {
+          await controller.removeSymbol(oldSymbol);
+        } catch (_) {}
+      }
+
+      // Keep this marker icon-only as well. A missing offline glyph must not
+      // make MapLibre discard the selected red pin together with its label.
+      final symbol = await controller.addSymbol(_symbolOptions(
+        poi,
+        iconSize: MapConstants.selectedSymbolIconSize,
+      ));
+
+      if (generation != _selectedGeneration) {
+        try {
+          await controller.removeSymbol(symbol);
+        } catch (_) {}
+        return;
+      }
+      _selectedSymbol = symbol;
+      _renderedSymbols[symbol.id] = poi;
       DLog.info(
           '📍 [MapSymbolManager] Selected POI marker placed: "${poi.name}" at (${poi.lat}, ${poi.lon})');
-    } catch (e) {
-      DLog.warning('⚠️ [MapSymbolManager] Failed to update selected POI GeoJSON source: $e');
-    }
-
-    // 2. Cập nhật lại search results để loại bỏ POI đang chọn (tránh ghim trùng)
-    if (_searchResultPois.isNotEmpty) {
-      final features = <Map<String, dynamic>>[];
-      for (final p in _searchResultPois) {
-        if (p.id == poi.id) continue;
-        features.add(_poiToFeature(
-          p,
-          iconSize: MapConstants.symbolIconSize,
-          textSize: MapConstants.symbolTextSize,
-          zIndex: 1,
-        ));
-      }
-      try {
-        await controller.setGeoJsonSource(
-          _searchSourceId,
-          _buildFeatureCollection(features),
-        );
-      } catch (_) {}
+    } catch (e, stack) {
+      DLog.error('❌ [MapSymbolManager] Failed to add selected POI symbol: $e', stack);
     }
   }
 
   /// Xóa ghim đơn lẻ khi người dùng đóng thẻ POI
   Future<void> clearSelectedPoiMarker(MapLibreMapController? controller) async {
-    final previousSelectedPoi = _selectedPoi;
     _selectedPoi = null;
-    if (controller == null) return;
-
-    // Xóa selected source
-    try {
-      await controller.setGeoJsonSource(_selectedSourceId, _emptyFeatureCollection());
-      DLog.info('📍 [MapSymbolManager] Selected POI marker cleared');
-    } catch (_) {}
-
-    // Khôi phục lại ghim POI cũ vào search results (nếu nó nằm trong danh sách)
-    if (previousSelectedPoi != null && _searchResultPois.isNotEmpty) {
-      final features = <Map<String, dynamic>>[];
-      for (final p in _searchResultPois) {
-        features.add(_poiToFeature(
-          p,
-          iconSize: MapConstants.symbolIconSize,
-          textSize: MapConstants.symbolTextSize,
-          zIndex: 1,
-        ));
+    _selectedGeneration++;
+    final symbol = _selectedSymbol;
+    _selectedSymbol = null;
+    if (symbol != null) {
+      _renderedSymbols.remove(symbol.id);
+      if (controller != null) {
+        try {
+          await controller.removeSymbol(symbol);
+        } catch (_) {}
       }
-      try {
-        await controller.setGeoJsonSource(
-          _searchSourceId,
-          _buildFeatureCollection(features),
-        );
-      } catch (_) {}
+    }
+    DLog.info('📍 [MapSymbolManager] Selected POI marker cleared');
+
+    // POI vừa selected có thể phải quay lại danh sách kết quả.
+    if (controller != null && _searchResultPois.isNotEmpty) {
+      await renderPoiList(controller, _searchResultPois);
     }
   }
 
@@ -464,43 +531,57 @@ class MapSymbolManager {
   /// Dọn sạch toàn bộ marker tìm kiếm nhưng khôi phục lại nhãn chủ quyền
   Future<void> clearAll(MapLibreMapController? controller) async {
     _selectedPoi = null;
+    _renderGeneration++;
+    _selectedGeneration++;
     _searchResultPois.clear();
     _poiLookup.clear();
+    final symbolsToRemove = <Symbol>[
+      ..._searchResultSymbols,
+      if (_selectedSymbol != null) _selectedSymbol!,
+    ];
+    _searchResultSymbols.clear();
+    _selectedSymbol = null;
+    _renderedSymbols.clear();
 
+    if (controller != null) {
+      for (final symbol in symbolsToRemove) {
+        try {
+          await controller.removeSymbol(symbol);
+        } catch (_) {}
+      }
+    }
     if (controller != null && _layersInitialized) {
-      try {
-        await controller.setGeoJsonSource(_searchSourceId, _emptyFeatureCollection());
-        await controller.setGeoJsonSource(_selectedSourceId, _emptyFeatureCollection());
-      } catch (_) {}
       await renderSovereigntySymbols(controller);
     }
   }
 
   // --- Helpers ---
 
-  /// Chuyển đổi PoiModel thành GeoJSON Feature
-  Map<String, dynamic> _poiToFeature(
+  SymbolOptions _symbolOptions(
     PoiModel poi, {
     required double iconSize,
-    required double textSize,
-    required int zIndex,
+    double? textSize,
+    double? textHaloWidth,
   }) {
-    return {
-      'type': 'Feature',
-      'id': poi.id,
-      'geometry': {
-        'type': 'Point',
-        'coordinates': [poi.lon, poi.lat],
-      },
-      'properties': {
-        'poiId': poi.id,
-        'name': poi.name,
-        'iconSize': iconSize,
-        'textSize': textSize,
-        'zIndex': zIndex,
-      },
-    };
+    return SymbolOptions(
+      geometry: LatLng(poi.lat, poi.lon),
+      iconImage: RoutingConstants.markerImageKey,
+      iconSize: iconSize,
+      iconAnchor: 'bottom',
+      textField: textSize == null ? null : poi.name,
+      textSize: textSize,
+      textColor: textSize == null ? null : AppColors.mapSymbolText.toHex,
+      textHaloColor: textSize == null ? null : AppColors.mapSymbolHalo.toHex,
+      textHaloWidth: textHaloWidth,
+      textOffset: textSize == null ? null : const Offset(0, 0.6),
+      textAnchor: textSize == null ? null : 'top',
+    );
   }
+
+  bool _isSamePoi(PoiModel? left, PoiModel right) =>
+      left?.id == right.id &&
+      left?.lat == right.lat &&
+      left?.lon == right.lon;
 
   /// Tạo GeoJSON FeatureCollection trống
   Map<String, dynamic> _emptyFeatureCollection() {

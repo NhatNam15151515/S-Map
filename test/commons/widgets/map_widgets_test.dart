@@ -96,5 +96,26 @@ void main() {
       await tester.tap(find.byIcon(Icons.navigation_rounded));
       expect(tapped, true);
     });
+
+    testWidgets('MapControls keeps the compass mounted at north-up', (tester) async {
+      bool orientationToggled = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MapControls(
+              onZoomIn: () {},
+              onZoomOut: () {},
+              onLocateMe: () {},
+              onToggleOrientation: () => orientationToggled = true,
+              rotation: 0,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.navigation_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.navigation_rounded));
+      expect(orientationToggled, true);
+    });
   });
 }

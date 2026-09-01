@@ -237,7 +237,7 @@ void main() {
       final savedData = fakeBox.get('vietnam');
       expect(savedData, isNotNull);
       expect(savedData['status'], equals(RegionDownloadStatus.downloaded.name));
-      expect(savedData['localVersion'], equals('1.0.0'));
+      expect(savedData['localVersion'], equals('1.1.0'));
 
       final downloaded = await service.getDownloadedRegions();
       expect(downloaded.length, 1);

@@ -211,7 +211,8 @@ class MapDrawingRouteManager {
           },
           'properties': {
             'name': label,
-            'iconSize': i == 0 || i == points.length - 1 ? 1.1 : 0.85,
+            'iconSize': (i == 0 || i == points.length - 1 ? 1.1 : 0.85) *
+                MapConstants.markerIconScale,
             'zIndex': i == 0 || i == points.length - 1 ? 10 : 5,
           },
         });

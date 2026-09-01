@@ -53,6 +53,8 @@ graph-cache/
 data/
 data-pipeline/data/
 data-pipeline/*.jar
+data-pipeline/tmp*/
+data-pipeline/.test_*.db*
 *.jar
 data/*.db
 data/*.zip

@@ -14,14 +14,16 @@ Quy trình:
 8. Cập nhật thông số dung lượng vào data-pipeline/data_sizes.md.
 """
 
-import os
 import sys
 import argparse
 import json
+import math
 import re
 import sqlite3
 import time
 import unicodedata
+from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from pathlib import Path
 
 # Fix Unicode output trên Windows Terminal
@@ -33,7 +35,13 @@ import osmium
 
 # Thêm data-pipeline vào sys.path để import config
 sys.path.append(str(Path(__file__).parent))
-from config import REGIONS, RAW_PBF, POI_DB_DIR as OUTPUT_DIR
+from config import (
+    OVERTURE_GEOJSON,
+    OVERTURE_GEOJSONSEQ,
+    REGIONS,
+    RAW_PBF,
+    POI_DB_DIR as OUTPUT_DIR,
+)
 
 ADMIN_ALIAS_FILE = Path(__file__).with_name("admin_aliases.json")
 
@@ -73,6 +81,69 @@ STREET_HIGHWAY_TYPES = {
     "pedestrian",
 }
 
+# Overture's taxonomy is more detailed than the app's current category model.
+# Keep the mapping intentionally small and stable; unknown values remain
+# searchable through sub_category instead of being discarded.
+OVERTURE_CATEGORY_MAP = {
+    "restaurant": ("food", "restaurant"),
+    "cafe": ("coffee", "cafe"),
+    "coffee_shop": ("coffee", "cafe"),
+    "fast_food": ("food", "fast_food"),
+    "food_court": ("food", "food_court"),
+    "bakery": ("food", "bakery"),
+    "bar": ("food", "bar"),
+    "pub": ("food", "pub"),
+    "ice_cream_shop": ("food", "ice_cream"),
+    "hotel": ("hotel", "hotel"),
+    "motel": ("hotel", "motel"),
+    "hostel": ("hotel", "hostel"),
+    "guest_house": ("hotel", "guest_house"),
+    "fuel_station": ("gas", "fuel"),
+    "gas_station": ("gas", "fuel"),
+    "atm": ("atm", "atm"),
+    "bank": ("bank", "bank"),
+    "hospital": ("hospital", "hospital"),
+    "clinic": ("hospital", "clinic"),
+    "pharmacy": ("hospital", "pharmacy"),
+    "school": ("school", "school"),
+    "university": ("school", "university"),
+    "park": ("park", "park"),
+    "museum": ("tourism", "museum"),
+    "tourist_attraction": ("tourism", "attraction"),
+    "supermarket": ("shop", "supermarket"),
+    "grocery_store": ("shop", "grocery_store"),
+    "convenience_store": ("shop", "convenience_store"),
+    "shopping_mall": ("shop", "shopping_mall"),
+    "clothing_store": ("shop", "clothing_store"),
+    "electronics_store": ("shop", "electronics_store"),
+    "book_store": ("shop", "book_store"),
+    "beauty_salon": ("shop", "beauty_salon"),
+    "hair_salon": ("shop", "hair_salon"),
+    "airport": ("transportation", "airport"),
+    "bus_station": ("transportation", "bus_station"),
+    "train_station": ("transportation", "train_station"),
+    "parking": ("transportation", "parking"),
+}
+
+OVERTURE_MAX_MATCH_DISTANCE_M = 50.0
+OVERTURE_STRICT_NAME_DISTANCE_M = 25.0
+OVERTURE_FUZZY_NAME_RATIO = 0.80
+POI_DB_COLUMNS = (
+    "osm_id",
+    "name",
+    "name_ascii",
+    "category",
+    "sub_category",
+    "lat",
+    "lon",
+    "address",
+    "address_ascii",
+    "street",
+    "housenumber",
+    "city",
+    "admin_aliases",
+)
+
 
 def remove_vietnamese_accents(text: str) -> str:
     """Bỏ dấu tiếng Việt chuẩn hóa chuỗi phục vụ full-text search."""
@@ -82,6 +153,56 @@ def remove_vietnamese_accents(text: str) -> str:
     text = "".join(c for c in text if unicodedata.category(c) != "Mn")
     text = text.replace("đ", "d").replace("Đ", "D")
     return unicodedata.normalize("NFC", text).lower().strip()
+
+
+def _as_mapping(value):
+    """Return a JSON object whether the CLI emitted it as an object or text."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _as_text(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (dict, list)):
+        return ""
+    return str(value).strip()
+
+
+def _timestamp_to_iso(value) -> str:
+    """Normalize OSM/Overture timestamps for in-memory merge decisions."""
+    if not value:
+        return ""
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        raw = _as_text(value)
+        if not raw:
+            return ""
+        try:
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            return ""
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat()
+
+
+def _parse_timestamp(value):
+    normalized = _timestamp_to_iso(value)
+    if not normalized:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
 
 
 def _normalize_admin_match_text(text: str) -> str:
@@ -128,6 +249,418 @@ def get_admin_aliases(*texts: str) -> str:
                         matched_aliases.append(value)
 
     return " | ".join(matched_aliases)
+
+
+def _iter_geojson_features(path: Path):
+    """Yield features from GeoJSONSeq or a regular GeoJSON file.
+
+    GeoJSONSeq is the preferred national-cache format because it can be read
+    line by line. Regular FeatureCollection input remains supported for
+    backwards compatibility with an already downloaded cache.
+    """
+    with path.open("r", encoding="utf-8") as file:
+        if path.suffix.lower() in {".geojsonseq", ".geojsonl", ".ndjson"}:
+            for line_number, line in enumerate(file, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    feature = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(
+                        f"GeoJSONSeq không hợp lệ tại dòng {line_number}: {path}"
+                    ) from exc
+                if isinstance(feature, dict) and feature.get("type") == "Feature":
+                    yield feature
+            return
+
+        first = file.read(1)
+        file.seek(0)
+        if first in ("{", "["):
+            payload = json.load(file)
+            if isinstance(payload, dict) and payload.get("type") == "FeatureCollection":
+                yield from payload.get("features", [])
+            elif isinstance(payload, dict) and payload.get("type") == "Feature":
+                yield payload
+            elif isinstance(payload, list):
+                yield from payload
+            return
+
+        raise ValueError(f"Không nhận diện được định dạng GeoJSON: {path}")
+
+
+def _first_overture_address(properties):
+    addresses = properties.get("addresses") or []
+    if isinstance(addresses, dict):
+        addresses = [addresses]
+    if isinstance(addresses, str):
+        try:
+            addresses = json.loads(addresses)
+        except (TypeError, json.JSONDecodeError):
+            addresses = []
+    if not isinstance(addresses, list):
+        return {}
+    for address in addresses:
+        parsed = _as_mapping(address)
+        if parsed:
+            return parsed
+    return {}
+
+
+def _overture_category(properties) -> str:
+    """Read current taxonomy fields, then fall back to the legacy field."""
+    basic_category = _as_text(properties.get("basic_category"))
+    if basic_category:
+        return basic_category.lower()
+
+    taxonomy = _as_mapping(properties.get("taxonomy"))
+    taxonomy_primary = _as_text(taxonomy.get("primary"))
+    if taxonomy_primary:
+        return taxonomy_primary.lower()
+
+    categories = _as_mapping(properties.get("categories"))
+    return _as_text(categories.get("primary")).lower()
+
+
+def _overture_update_time(properties) -> str:
+    updates = []
+    sources = properties.get("sources") or []
+    if isinstance(sources, dict):
+        sources = [sources]
+    if isinstance(sources, str):
+        try:
+            sources = json.loads(sources)
+        except (TypeError, json.JSONDecodeError):
+            sources = []
+    if isinstance(sources, list):
+        for source in sources:
+            update_time = _timestamp_to_iso(_as_mapping(source).get("update_time"))
+            if update_time:
+                updates.append(update_time)
+    return max(updates) if updates else ""
+
+
+def _feature_point(feature):
+    geometry = _as_mapping(feature.get("geometry"))
+    if geometry.get("type") != "Point":
+        return None
+    coordinates = geometry.get("coordinates")
+    if not isinstance(coordinates, (list, tuple)) or len(coordinates) < 2:
+        return None
+    try:
+        lon, lat = float(coordinates[0]), float(coordinates[1])
+    except (TypeError, ValueError):
+        return None
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None
+    return lat, lon
+
+
+def _is_vietnam_address(address) -> bool:
+    country = _as_text(address.get("country")).lower()
+    if not country:
+        return True
+    return country in {"vn", "vnm", "vietnam", "việt nam"}
+
+
+def load_overture_places(geojson_path: Path, bbox=None):
+    """Load valid Overture place points and map them to S-Map's POI schema."""
+    if not geojson_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy Overture cache: {geojson_path}")
+
+    for feature in _iter_geojson_features(geojson_path):
+        if not isinstance(feature, dict):
+            continue
+        properties = _as_mapping(feature.get("properties"))
+        lat_lon = _feature_point(feature)
+        if lat_lon is None:
+            continue
+        lat, lon = lat_lon
+
+        if bbox:
+            min_lon, min_lat, max_lon, max_lat = bbox
+            if not (min_lat <= lat <= max_lat and min_lon <= lon <= max_lon):
+                continue
+
+        address_data = _first_overture_address(properties)
+        if not _is_vietnam_address(address_data):
+            continue
+
+        operating_status = _as_text(properties.get("operating_status")).lower()
+        if operating_status == "permanently_closed":
+            continue
+        confidence = properties.get("confidence")
+        try:
+            confidence = float(confidence) if confidence is not None else None
+        except (TypeError, ValueError):
+            confidence = None
+        if confidence is not None and confidence <= 0:
+            continue
+
+        names = _as_mapping(properties.get("names"))
+        name = _as_text(names.get("primary")) or _as_text(names.get("common"))
+        if not name:
+            continue
+
+        freeform = _as_text(address_data.get("freeform"))
+        street = _as_text(address_data.get("street"))
+        housenumber = _as_text(
+            address_data.get("number")
+            or address_data.get("house_number")
+            or address_data.get("housenumber")
+        )
+        city = _as_text(address_data.get("locality"))
+        region = _as_text(address_data.get("region"))
+        address = freeform
+        if not address:
+            address = ", ".join(
+                part for part in (housenumber, street, city, region) if part
+            )
+
+        overture_category = _overture_category(properties)
+        if overture_category:
+            category, sub_category = OVERTURE_CATEGORY_MAP.get(
+                overture_category,
+                ("shop", overture_category),
+            )
+        else:
+            category, sub_category = "other", "general"
+
+        overture_id = _as_text(feature.get("id")) or _as_text(properties.get("id"))
+        if not overture_id:
+            continue
+
+        yield {
+            "osm_id": f"overture:{overture_id}",
+            "name": name,
+            "name_ascii": remove_vietnamese_accents(name),
+            "admin_aliases": get_admin_aliases(city, region, address),
+            "category": category,
+            "sub_category": sub_category,
+            "lat": lat,
+            "lon": lon,
+            "address": address,
+            "address_ascii": remove_vietnamese_accents(address),
+            "street": street,
+            "housenumber": housenumber,
+            "city": city,
+            # Internal fields used only during source merge; stripped before
+            # SQLite insertion so the app schema remains unchanged.
+            "_source": "overture",
+            "_source_updated_at": _overture_update_time(properties),
+            "_confidence": confidence,
+        }
+
+
+def _normalize_match_text(value) -> str:
+    return re.sub(r"[^a-z0-9]+", "", remove_vietnamese_accents(_as_text(value)))
+
+
+def _distance_m(lat1, lon1, lat2, lon2) -> float:
+    """Approximate great-circle distance, accurate enough for POI matching."""
+    radius_m = 6_371_000.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lambda = math.radians(lon2 - lon1)
+    a = (
+        math.sin(d_phi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
+    )
+    return radius_m * 2 * math.atan2(math.sqrt(a), math.sqrt(max(0.0, 1 - a)))
+
+
+def _has_value(record, key) -> bool:
+    value = record.get(key)
+    return value is not None and _as_text(value) != ""
+
+
+def _address_quality(record) -> int:
+    return sum(
+        int(_has_value(record, field))
+        for field in ("address", "street", "housenumber", "city")
+    )
+
+
+def _address_matches(first, second) -> bool:
+    first_address = _normalize_match_text(first.get("address"))
+    second_address = _normalize_match_text(second.get("address"))
+    if first_address and second_address and first_address == second_address:
+        return True
+
+    first_street = _normalize_match_text(first.get("street"))
+    second_street = _normalize_match_text(second.get("street"))
+    first_number = _normalize_match_text(first.get("housenumber"))
+    second_number = _normalize_match_text(second.get("housenumber"))
+    return bool(
+        first_street
+        and second_street
+        and first_number
+        and second_number
+        and first_street == second_street
+        and first_number == second_number
+    )
+
+
+def _is_named_osm_poi(record) -> bool:
+    return (
+        record.get("category") not in {"address", "street"}
+        and bool(_normalize_match_text(record.get("name")))
+    )
+
+
+def _records_are_duplicate(osm_record, overture_record, distance_m) -> tuple[bool, float]:
+    if not _is_named_osm_poi(osm_record):
+        return False, 0.0
+
+    osm_name = _normalize_match_text(osm_record.get("name"))
+    overture_name = _normalize_match_text(overture_record.get("name"))
+    if not osm_name or not overture_name:
+        return False, 0.0
+
+    name_ratio = SequenceMatcher(None, osm_name, overture_name).ratio()
+    address_match = _address_matches(osm_record, overture_record)
+
+    # Strict name match handles normal coordinate drift. A wider match is only
+    # accepted when the address independently confirms the same place.
+    duplicate = (
+        distance_m <= OVERTURE_STRICT_NAME_DISTANCE_M
+        and name_ratio >= OVERTURE_FUZZY_NAME_RATIO
+    ) or (
+        distance_m <= OVERTURE_MAX_MATCH_DISTANCE_M
+        and address_match
+        and name_ratio >= 0.65
+    )
+    return duplicate, name_ratio
+
+
+def _build_spatial_grid(records, cell_size_m=OVERTURE_MAX_MATCH_DISTANCE_M):
+    cell_degrees = cell_size_m / 111_320.0
+    grid = {}
+    for index, record in enumerate(records):
+        try:
+            lat, lon = float(record["lat"]), float(record["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        key = (math.floor(lat / cell_degrees), math.floor(lon / cell_degrees))
+        grid.setdefault(key, []).append(index)
+    return grid, cell_degrees
+
+
+def _find_osm_match(osm_records, grid, cell_degrees, overture_record):
+    try:
+        lat, lon = float(overture_record["lat"]), float(overture_record["lon"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    cell_lat = math.floor(lat / cell_degrees)
+    cell_lon = math.floor(lon / cell_degrees)
+    matches = []
+    for delta_lat in (-1, 0, 1):
+        for delta_lon in (-1, 0, 1):
+            for index in grid.get((cell_lat + delta_lat, cell_lon + delta_lon), []):
+                osm_record = osm_records[index]
+                distance_m = _distance_m(lat, lon, osm_record["lat"], osm_record["lon"])
+                if distance_m > OVERTURE_MAX_MATCH_DISTANCE_M:
+                    continue
+                duplicate, name_ratio = _records_are_duplicate(
+                    osm_record, overture_record, distance_m
+                )
+                if duplicate:
+                    matches.append((distance_m, -name_ratio, index))
+    if not matches:
+        return None
+    matches.sort()
+    distance_m, negative_ratio, index = matches[0]
+    return index, distance_m, -negative_ratio
+
+
+def _canonical_record_key(record):
+    confidence = record.get("_confidence")
+    try:
+        confidence = float(confidence) if confidence is not None else -1.0
+    except (TypeError, ValueError):
+        confidence = -1.0
+    # Address quality is the primary signal. Freshness and Overture confidence
+    # are tie-breakers, not a blanket source preference.
+    return (
+        _address_quality(record),
+        confidence,
+        _parse_timestamp(record.get("_source_updated_at")),
+        1 if record.get("_source") == "osm" else 0,
+    )
+
+
+def _merge_duplicate_records(first, second):
+    primary, supplemental = sorted(
+        (first, second), key=_canonical_record_key, reverse=True
+    )
+    merged = dict(primary)
+    for field in POI_DB_COLUMNS:
+        if not _has_value(merged, field) and _has_value(supplemental, field):
+            merged[field] = supplemental[field]
+    return merged
+
+
+def deduplicate_overture(osm_pois, overture_pois):
+    """Return Overture POIs that are not confidently represented in OSM."""
+    grid, cell_degrees = _build_spatial_grid(osm_pois)
+    kept = []
+    for overture_poi in overture_pois:
+        if _find_osm_match(osm_pois, grid, cell_degrees, overture_poi) is None:
+            kept.append(overture_poi)
+    return kept
+
+
+def iter_merged_overture_pois(osm_pois, overture_pois, stats=None):
+    """Stream merged records while keeping only the OSM side in memory."""
+    if stats is None:
+        stats = {
+            "overture_input": 0,
+            "overture_added": 0,
+            "overture_merged": 0,
+        }
+    else:
+        stats.clear()
+        stats.update(
+            {
+                "overture_input": 0,
+                "overture_added": 0,
+                "overture_merged": 0,
+            }
+        )
+
+    merged_osm = [dict(record) for record in osm_pois]
+    grid, cell_degrees = _build_spatial_grid(merged_osm)
+
+    for overture_poi in overture_pois:
+        stats["overture_input"] += 1
+        match = _find_osm_match(merged_osm, grid, cell_degrees, overture_poi)
+        if match is None:
+            stats["overture_added"] += 1
+            # Overture-only records can be written immediately, so a national
+            # cache does not require a second multi-million-row Python list.
+            yield dict(overture_poi)
+            continue
+
+        osm_index, _, _ = match
+        merged_osm[osm_index] = _merge_duplicate_records(
+            merged_osm[osm_index], overture_poi
+        )
+        stats["overture_merged"] += 1
+
+    yield from merged_osm
+
+
+def merge_overture_pois(osm_pois, overture_pois):
+    """Merge matching records and append Overture-only places.
+
+    This list-returning wrapper is convenient for unit tests and small regions;
+    the production build uses iter_merged_overture_pois() directly so national
+    data stays streamable.
+    """
+    stats = {}
+    merged = list(iter_merged_overture_pois(osm_pois, overture_pois, stats))
+    return merged, stats
 
 
 class POIExtractorHandler(osmium.SimpleHandler):
@@ -194,7 +727,9 @@ class POIExtractorHandler(osmium.SimpleHandler):
             and (tags.get("addr:street") or "").strip()
         )
 
-    def _build_record(self, osm_id, tags, lat, lon, has_poi_tag):
+    def _build_record(
+        self, osm_id, tags, lat, lon, has_poi_tag, source_updated_at=None
+    ):
         """Tạo record cho POI hoặc địa chỉ độc lập không có tên POI."""
         address_fields = self._address_fields(tags)
         admin_aliases = get_admin_aliases(
@@ -228,6 +763,10 @@ class POIExtractorHandler(osmium.SimpleHandler):
             "lat": lat,
             "lon": lon,
             **address_fields,
+            # Internal merge metadata. It is stripped before SQLite insertion.
+            "_source": "osm",
+            "_source_updated_at": _timestamp_to_iso(source_updated_at),
+            "_confidence": None,
         }
 
     def _collect_street(self, tags, lat, lon):
@@ -283,7 +822,9 @@ class POIExtractorHandler(osmium.SimpleHandler):
         if not self._is_in_bbox(lat, lon):
             return
 
-        record = self._build_record(f"n{n.id}", n.tags, lat, lon, has_poi_tag)
+        record = self._build_record(
+            f"n{n.id}", n.tags, lat, lon, has_poi_tag, n.timestamp
+        )
         if record:
             self.pois.append(record)
 
@@ -313,7 +854,9 @@ class POIExtractorHandler(osmium.SimpleHandler):
 
         self._collect_street(w.tags, avg_lat, avg_lon)
 
-        record = self._build_record(f"w{w.id}", w.tags, avg_lat, avg_lon, has_poi_tag)
+        record = self._build_record(
+            f"w{w.id}", w.tags, avg_lat, avg_lon, has_poi_tag, w.timestamp
+        )
         if record:
             self.pois.append(record)
 
@@ -388,11 +931,16 @@ def create_sqlite_poi_database(db_path: Path, pois: list):
         END;
     """)
 
-    # Chèn dữ liệu POIs theo batch
+    # Chèn dữ liệu POIs theo batch. Internal source metadata is deliberately
+    # excluded so the SQLite schema consumed by Flutter does not change.
+    db_rows = (
+        {column: poi.get(column) for column in POI_DB_COLUMNS}
+        for poi in pois
+    )
     cursor.executemany("""
         INSERT INTO poi (osm_id, name, name_ascii, category, sub_category, lat, lon, address, address_ascii, street, housenumber, city, admin_aliases)
         VALUES (:osm_id, :name, :name_ascii, :category, :sub_category, :lat, :lon, :address, :address_ascii, :street, :housenumber, :city, :admin_aliases);
-    """, pois)
+    """, db_rows)
 
     conn.commit()
 
@@ -401,6 +949,9 @@ def create_sqlite_poi_database(db_path: Path, pois: list):
     cursor.execute("CREATE INDEX idx_poi_name_ascii ON poi(name_ascii);")
 
     conn.commit()
+    # Ship a self-contained database without WAL sidecar files.
+    cursor.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+    cursor.execute("PRAGMA journal_mode = DELETE;")
     conn.close()
 
 
@@ -463,8 +1014,8 @@ def update_data_sizes_md(results: dict):
     report_lines = [
         "## POI SQLite Database (.db)",
         "",
-        "| Vùng địa lý | Tên File | Số lượng POI/địa chỉ | Có alias cũ/mới | Dung lượng file | Thời gian Query FTS5 |",
-        "| ----------- | -------- | -------------------- | --------------- | --------------- | -------------------- |",
+        "| Vùng địa lý | Tên File | Số lượng POI/địa chỉ | Overture thêm | Overture gộp | Có alias cũ/mới | Dung lượng file | Thời gian Query FTS5 |",
+        "| ----------- | -------- | -------------------- | ------------- | ------------ | --------------- | --------------- | -------------------- |",
     ]
 
     for key, data in results.items():
@@ -473,7 +1024,7 @@ def update_data_sizes_md(results: dict):
         size_mb = data["size_bytes"] / (1024 * 1024)
         poi_count = f"{data['count']:,}"
         report_lines.append(
-            f"| {region_name} | `{filename}` | {poi_count} địa điểm (+ {data['address_count']:,} địa chỉ) | {data['alias_count']:,} bản ghi | {size_mb:.2f} MB | < 20 ms |"
+            f"| {region_name} | `{filename}` | {poi_count} địa điểm (+ {data['address_count']:,} địa chỉ) | {data['overture_added']:,} | {data['overture_merged']:,} | {data['alias_count']:,} bản ghi | {size_mb:.2f} MB | < 50 ms |"
         )
 
     new_section = "\n".join(report_lines)
@@ -494,35 +1045,111 @@ def update_data_sizes_md(results: dict):
     print(f"📝 Đã cập nhật kết quả kích thước vào: {sizes_file}")
 
 
-def process_region(region_key: str):
+def _find_overture_cache():
+    """Prefer the streamable cache, while supporting the legacy GeoJSON path."""
+    if OVERTURE_GEOJSONSEQ.exists():
+        return OVERTURE_GEOJSONSEQ
+    if OVERTURE_GEOJSON.exists():
+        return OVERTURE_GEOJSON
+    return None
+
+
+def load_osm_pois_from_database(db_path: Path):
+    """Load an existing OSM POI database for a fast source-merge rebuild."""
+    if not db_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy OSM POI database: {db_path}")
+
+    connection = sqlite3.connect(str(db_path))
+    connection.row_factory = sqlite3.Row
+    try:
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(poi)")
+        }
+        missing = set(POI_DB_COLUMNS) - columns
+        if missing:
+            raise ValueError(f"POI database thiếu cột cần thiết: {sorted(missing)}")
+        rows = connection.execute(
+            "SELECT osm_id, name, name_ascii, category, sub_category, lat, lon, "
+            "address, address_ascii, street, housenumber, city, admin_aliases "
+            "FROM poi"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    return [
+        {
+            **dict(row),
+            "_source": "osm",
+            "_source_updated_at": "",
+            "_confidence": None,
+        }
+        for row in rows
+    ]
+
+
+def process_region(region_key: str, use_overture=True, reuse_existing_osm_db=False):
     """Trích xuất và đóng gói SQLite database cho 1 vùng cụ thể."""
     region_info = REGIONS[region_key]
     print(f"\n==================================================", flush=True)
     print(f"📦 BẮT ĐẦU DỰNG POI DATABASE CHO: {region_info['name']} ({region_key})", flush=True)
     print(f"==================================================", flush=True)
 
-    if not RAW_PBF.exists():
-        print(f"❌ LỖI: Không tìm thấy file dữ liệu OSM thô: {RAW_PBF}", flush=True)
-        sys.exit(1)
-
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_db_path = OUTPUT_DIR / f"{region_key}_poi.db"
 
-    # Trích xuất POIs bằng pyosmium
-    print("⏳ Đang trích xuất Node & Way POIs từ OSM PBF...", flush=True)
-    handler = POIExtractorHandler(bbox=region_info.get("bbox_tuple"))
-    location_handler = osmium.NodeLocationsForWays(osmium.index.create_map("flex_mem"))
-    location_handler.ignore_errors()
+    if reuse_existing_osm_db:
+        print(f"⚡ Đọc lại OSM POI database có sẵn: {out_db_path.name}", flush=True)
+        osm_pois = load_osm_pois_from_database(out_db_path)
+        print(f"⚡ Đã đọc {len(osm_pois):,} bản ghi OSM từ SQLite")
+    else:
+        if not RAW_PBF.exists():
+            print(f"❌ LỖI: Không tìm thấy file dữ liệu OSM thô: {RAW_PBF}", flush=True)
+            sys.exit(1)
 
-    start_time = time.time()
-    osmium.apply(str(RAW_PBF), location_handler, handler)
-    handler.add_street_records()
-    extract_time = time.time() - start_time
-    print(f"⚡ Trích xuất xong {len(handler.pois):,} POIs trong {extract_time:.2f}s")
+        # Trích xuất POIs bằng pyosmium
+        print("⏳ Đang trích xuất Node & Way POIs từ OSM PBF...", flush=True)
+        handler = POIExtractorHandler(bbox=region_info.get("bbox_tuple"))
+        location_handler = osmium.NodeLocationsForWays(osmium.index.create_map("flex_mem"))
+        location_handler.ignore_errors()
+
+        start_time = time.time()
+        osmium.apply(str(RAW_PBF), location_handler, handler)
+        handler.add_street_records()
+        extract_time = time.time() - start_time
+        print(f"⚡ Trích xuất xong {len(handler.pois):,} POIs trong {extract_time:.2f}s")
+        osm_pois = handler.pois
+
+    overture_stats = {
+        "overture_input": 0,
+        "overture_added": 0,
+        "overture_merged": 0,
+    }
+    pois = osm_pois
+    if use_overture:
+        overture_cache = _find_overture_cache()
+        if overture_cache is None:
+            print("ℹ️ Chưa có Overture cache; build này chỉ dùng OSM.")
+        else:
+            print(f"⏳ Đang đọc Overture Places từ {overture_cache}...")
+            overture_pois = load_overture_places(
+                overture_cache, bbox=region_info.get("bbox_tuple")
+            )
+            pois = iter_merged_overture_pois(
+                osm_pois,
+                overture_pois,
+                overture_stats,
+            )
 
     # Tạo SQLite Database
     print(f"💾 Đang ghi SQLite DB + FTS5 + R*Tree vào {out_db_path.name}...")
-    create_sqlite_poi_database(out_db_path, handler.pois)
+    create_sqlite_poi_database(out_db_path, pois)
+    if overture_stats["overture_input"]:
+        print(
+            "🔀 Overture: "
+            f"{overture_stats['overture_input']:,} hợp lệ, "
+            f"thêm {overture_stats['overture_added']:,}, "
+            f"gộp {overture_stats['overture_merged']:,}"
+        )
 
     # Benchmark test
     poi_count, address_count, alias_count = benchmark_poi_database(out_db_path)
@@ -533,6 +1160,7 @@ def process_region(region_key: str):
         "address_count": address_count,
         "alias_count": alias_count,
         "size_bytes": db_size,
+        **overture_stats,
     }
 
 
@@ -544,6 +1172,16 @@ def main():
         default="metro_hcm",
         help="Vùng cần build: metro_hcm, metro_hn, mien_nam, mien_trung, mien_bac, vietnam, hoặc all",
     )
+    parser.add_argument(
+        "--no-overture",
+        action="store_true",
+        help="Không merge Overture, dùng để tạo baseline OSM hoặc debug cache.",
+    )
+    parser.add_argument(
+        "--reuse-existing-osm-db",
+        action="store_true",
+        help="Dùng POI DB OSM hiện có làm baseline, không đọc lại PBF.",
+    )
     args = parser.parse_args()
 
     results = {}
@@ -551,9 +1189,17 @@ def main():
 
     if target_region == "all":
         for key in REGIONS.keys():
-            results[key] = process_region(key)
+            results[key] = process_region(
+                key,
+                use_overture=not args.no_overture,
+                reuse_existing_osm_db=args.reuse_existing_osm_db,
+            )
     elif target_region in REGIONS:
-        results[target_region] = process_region(target_region)
+        results[target_region] = process_region(
+            target_region,
+            use_overture=not args.no_overture,
+            reuse_existing_osm_db=args.reuse_existing_osm_db,
+        )
     else:
         print(f"❌ Vùng không hợp lệ: {target_region}. Chọn 1 trong: {list(REGIONS.keys())} hoặc all")
         sys.exit(1)

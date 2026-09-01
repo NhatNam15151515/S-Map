@@ -14,6 +14,14 @@ GHZ_DIR = DATA_DIR / "output_ghz"
 POI_DB_DIR = DATA_DIR / "output_poi_db"
 PACKAGES_DIR = DATA_DIR / "output_packages"
 
+# Overture Places is downloaded once for the country and filtered per region
+# while building each regional database.  GeoJSONSeq keeps the national cache
+# streamable instead of requiring the whole FeatureCollection in memory.
+OVERTURE_DIR = DATA_DIR / "overture"
+OVERTURE_GEOJSON = OVERTURE_DIR / "vietnam_places.geojson"
+OVERTURE_GEOJSONSEQ = OVERTURE_DIR / "vietnam_places.geojsonseq"
+OVERTURE_METADATA = OVERTURE_DIR / "vietnam_places.metadata.json"
+
 REGIONS = {
     "vietnam": {
         "name": "Toàn quốc Việt Nam",

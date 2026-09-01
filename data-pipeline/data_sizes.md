@@ -23,5 +23,11 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
 
 | ID Vùng | Tên Vùng | File Zip Đóng Gói | Dung Lượng Zip | Nội Dung Bên Trong | Status |
 |---|---|---|---|---|---|
-| `vietnam` | Toàn quốc Việt Nam | `vietnam.zip` | **622.32 MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |
+| `vietnam` | Toàn quốc Việt Nam | `vietnam.zip` | **885.90 MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |
 <!-- END_ZIP_TABLE_METRICS -->
+
+## POI SQLite Database (.db)
+
+| Vùng địa lý | Tên File | Số lượng POI/địa chỉ | Overture thêm | Overture gộp | Có alias cũ/mới | Dung lượng file | Thời gian Query FTS5 |
+| ----------- | -------- | -------------------- | ------------- | ------------ | --------------- | --------------- | -------------------- |
+| Toàn quốc Việt Nam | `vietnam_poi.db` | 1,764,681 địa điểm (+ 49,252 địa chỉ) | 1,490,111 | 12,976 | 364,392 bản ghi | 839.34 MB | < 50 ms |

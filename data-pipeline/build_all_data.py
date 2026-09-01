@@ -32,6 +32,7 @@ from config import REGIONS, RAW_PBF, PMTILES_DIR, GHZ_DIR, POI_DB_DIR, PACKAGES_
 MIN_REAL_PMTILES_BYTES = 1024 * 1024
 MIN_REAL_GHZ_BYTES = 1024 * 1024
 MIN_REAL_POI_DB_BYTES = 1024 * 1024
+DATA_PACKAGE_VERSION = "1.1.0"
 
 
 def _has_real_data_file(path: Path, minimum_bytes: int) -> bool:
@@ -149,7 +150,7 @@ def create_region_package(region_key: str) -> dict:
     version_data = {
         "region": region_key,
         "region_name": region_info["name"],
-        "version": "1.0.0",
+        "version": DATA_PACKAGE_VERSION,
         "updated_at": now_utc,
         "files": {
             "vector_tiles": {
