@@ -647,10 +647,15 @@ void main() {
       expect(cubit.state.styleString, equals('{"version": 8, "name": "Day"}'));
       expect(cubit.state.isNightMode, isFalse);
 
+      cubit.zoomOut();
+      expect(cubit.state.cameraAction?.type, MapCameraActionType.zoomOut);
+
       cubit.updateMapTheme(isDarkMode: true);
       expect(
           cubit.state.styleString, equals('{"version": 8, "name": "Night"}'));
       expect(cubit.state.isNightMode, isTrue);
+      expect(cubit.state.cameraAction, isNull,
+          reason: 'Changing map style must not replay a previous camera action');
 
       cubit.updateMapTheme(isDarkMode: false);
       expect(cubit.state.styleString, equals('{"version": 8, "name": "Day"}'));
@@ -707,6 +712,27 @@ void main() {
 
       expect(cubit.state.zoom, equals(MapConstants.minZoom));
       expect(cubit.state.cameraAction?.type, MapCameraActionType.zoomOut);
+      cubit.close();
+    });
+
+    test('zoomToLevel changes camera context without overwriting GPS position',
+        () {
+      final cubit = MapDisplayCubit();
+      const gpsPosition = LatLng(10.762622, 106.660172);
+      const mapCenter = LatLng(21.0285, 105.8542);
+      cubit.emit(cubit.state.copyWith(
+        currentPosition: gpsPosition,
+        hasRealLocation: true,
+        center: mapCenter,
+      ));
+
+      cubit.zoomToLevel(13.0, center: mapCenter);
+
+      expect(cubit.state.currentPosition, gpsPosition);
+      expect(cubit.state.center, mapCenter);
+      expect(cubit.state.zoom, 13.0);
+      expect(cubit.state.cameraAction?.target, mapCenter);
+      expect(cubit.state.cameraAction?.zoom, 13.0);
       cubit.close();
     });
 

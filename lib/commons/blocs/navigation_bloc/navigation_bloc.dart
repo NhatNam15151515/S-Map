@@ -24,6 +24,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final IDeviceInfoService _deviceInfoService;
   final ITripRepository _tripRepository;
   final IActiveTripService _activeTripService;
+  final IVisitedPoiService _visitedPoiService;
 
   StreamSubscription<Position>? _locationSubscription;
   Timer? _autoSaveTimer;
@@ -38,6 +39,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   static ITurnByTurnEngine? defaultTurnByTurnEngine;
   static IDeviceInfoService? defaultDeviceInfoService;
   static IActiveTripService? defaultActiveTripService;
+  static IVisitedPoiService? defaultVisitedPoiService;
 
   /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
   static const Duration _rerouteCooldown = Duration(seconds: 2);
@@ -53,6 +55,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     ITurnByTurnEngine? turnByTurnEngine,
     IDeviceInfoService? deviceInfoService,
     IActiveTripService? activeTripService,
+    IVisitedPoiService? visitedPoiService,
   })  : _routingRepository = routingRepository,
         _tripRepository = tripRepository,
         _locationService = locationService ??
@@ -68,6 +71,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         _activeTripService = activeTripService ??
             defaultActiveTripService ??
             const NoOpActiveTripService(),
+        _visitedPoiService = visitedPoiService ??
+            defaultVisitedPoiService ??
+            const NoOpVisitedPoiService(),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
@@ -445,10 +451,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     emit(state.copyWith(clearPromptBatteryOptimization: true));
   }
 
-  void _onLocationUpdated(
+  Future<void> _onLocationUpdated(
     LocationUpdated event,
     Emitter<NavigationState> emit,
-  ) {
+  ) async {
     if (!state.isNavigating || !state.hasRoute) return;
 
     final currentLat = event.latitude;
@@ -580,6 +586,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         createdAt: now,
       );
       unawaited(_saveTripSafely(tripRecord));
+      await _recordVisitedDestinationSafely();
+      if (isClosed) return;
 
       emit(state.copyWith(
         status: NavigationStatus.arrived,
@@ -828,6 +836,33 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       await _tripRepository.saveTrip(trip);
     } catch (e, stack) {
       DLog.error('❌ [NavigationBloc] Failed to auto-save trip: $e', e, stack);
+    }
+  }
+
+  Future<void> _recordVisitedDestinationSafely() async {
+    final destination = state.destination;
+    if (destination == null) return;
+
+    final name = state.destinationName?.trim();
+    final displayName = name == null || name.isEmpty ? 'Điểm đã đến' : name;
+    final poi = PoiModel(
+      // A route destination does not always carry an OSM id. Coordinates
+      // provide a stable fallback key for the local/cloud visited history.
+      osmId:
+          'visited:${destination.lat.toStringAsFixed(6)}:${destination.lon.toStringAsFixed(6)}',
+      name: displayName,
+      nameAscii: AppUtils.instance.toAscii(displayName),
+      category: 'place',
+      lat: destination.lat,
+      lon: destination.lon,
+    );
+
+    try {
+      await _visitedPoiService.recordVisited(poi);
+    } catch (e, stack) {
+      // Arrival and trip completion must not fail if persistence is
+      // temporarily unavailable.
+      DLog.warning('⚠️ Không thể lưu POI đã đến: $e', stack);
     }
   }
 

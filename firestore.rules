@@ -3,39 +3,71 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // User profile: Chỉ cho phép người dùng đã đăng nhập đọc, và chỉ chính họ mới được ghi/sửa profile của mình
+    // User profile: chỉ chính chủ tài khoản mới được đọc/ghi.
     match /users/{userId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // Saved places: Địa điểm đã lưu (Chỉ chủ sở hữu dữ liệu mới được phép đọc/ghi/xóa)
-    match /saved_places/{savedId} {
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+    // Personal search history, visited places, trips and daily statistics.
+    // Subcollections must be restricted to their owning Firebase account.
+    match /users/{userId}/search_history/{queryId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/visited_places/{placeId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/saved_places/{savedId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/routes/{routeId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/trips/{tripId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/daily_stats/{dateId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Places & Categories: Địa điểm khám phá công khai (đọc tự do, chỉ Authenticated mới ghi)
+    // Legacy root collection. New clients never create records here. Keep
+    // owner-only read/delete temporarily so the app can migrate old records
+    // to users/{uid}/saved_places without exposing another user's data.
+    match /saved_places/{savedId} {
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create, update: if false;
+    }
+    
+    // Places & Categories: dữ liệu bản đồ công khai, client chỉ được đọc.
     match /places/{placeId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if false;
     }
     
-    // Notifications: Thông báo hệ thống (đọc tự do, chỉ Authenticated/Admin mới ghi)
+    // Notifications: dữ liệu hệ thống, client chỉ được đọc.
     match /notifications/{notifId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if false;
     }
     
-    // Routes: Lộ trình đã lưu (Chỉ chủ sở hữu lộ trình mới có quyền đọc/ghi/xóa)
+    // Legacy root collection for custom routes. New clients use
+    // users/{uid}/routes. It remains readable/deletable only by its owner so
+    // old data can be migrated and cleaned up.
     match /routes/{routeId} {
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create, update: if false;
     }
     
-    // Default fallback: Tất cả các collection khác yêu cầu phải đăng nhập
+    // Default fallback: collections not declared above are denied explicitly.
+    // This prevents a broad authenticated-user rule from bypassing ownership
+    // checks on future personal subcollections.
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

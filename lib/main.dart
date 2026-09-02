@@ -23,8 +23,13 @@ void main() async {
   // service uses this already-initialized box to discover a previously
   // downloaded PMTiles package during the first app frame.
   await Hive.openBox<dynamic>(RegionDownloadServiceImpl.boxName);
+  await Hive.openBox<dynamic>(RecentSearchServiceImpl.boxName);
+  await Hive.openBox<dynamic>(FavoritesServiceImpl.boxName);
+  await Hive.openBox<dynamic>(VisitedPoiServiceImpl.boxName);
 
   // Setup default service resolvers & AppReposProvider (Composition Root)
+  CustomRouteServiceImpl.defaultFireStoreService = FireStoreService.instance;
+  CustomRouteServiceImpl.defaultAuthService = FirebaseAuthService.instance;
   AppReposProvider.init(routingService: RoutingServiceImpl.instance);
   MapDisplayCubit.defaultLocationService = LocationService.instance;
   MapDisplayCubit.defaultCompassService = CompassService.instance;
@@ -35,6 +40,12 @@ void main() async {
   };
 
   MapExploreCubit.defaultFireStoreService = FireStoreService.instance;
+  RecentSearchServiceImpl.defaultFireStoreService = FireStoreService.instance;
+  RecentSearchServiceImpl.defaultAuthService = FirebaseAuthService.instance;
+  FavoritesServiceImpl.defaultFireStoreService = FireStoreService.instance;
+  FavoritesServiceImpl.defaultAuthService = FirebaseAuthService.instance;
+  VisitedPoiServiceImpl.defaultFireStoreService = FireStoreService.instance;
+  VisitedPoiServiceImpl.defaultAuthService = FirebaseAuthService.instance;
   FavoritesCubit.defaultFavoritesService = FavoritesServiceImpl.instance;
   AppCubit.defaultMessagingService = FirebaseMessagingService.instance;
   AppCubit.defaultSharedPreferences = AppSharedPreferences();
@@ -46,6 +57,7 @@ void main() async {
   NavigationBloc.defaultLocationService = LocationService.instance;
   NavigationBloc.defaultDeviceInfoService = DeviceInfoService.instance;
   NavigationBloc.defaultActiveTripService = ActiveTripServiceImpl.instance;
+  NavigationBloc.defaultVisitedPoiService = VisitedPoiServiceImpl.instance;
   ListenComingNotification.messagingServiceResolver = FirebaseMessagingService.instance;
 
   await EasyLocalization.ensureInitialized();

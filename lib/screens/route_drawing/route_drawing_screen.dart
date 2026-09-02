@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
@@ -189,7 +191,9 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     if (!mounted) return;
 
     PoiModel? poi;
-    if (result is SearchResultPayload && result.isSingle) {
+    if (result is SearchResultPayload && result.isArea) {
+      poi = await _resolveAreaSearchDestination(result);
+    } else if (result is SearchResultPayload && result.isSingle) {
       poi = result.selectedPoi;
     } else if (result is PoiModel) {
       poi = result;
@@ -199,6 +203,47 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     final destination = LatLng(poi.lat, poi.lon);
     _mapDisplayCubit.selectPoi(poi);
     _setMarkerDestination(destination, addToRoute: true);
+  }
+
+  /// SearchScreen dùng area intent cho Home. Route drawing vẫn cần một POI
+  /// cụ thể, nên resolve intent thành địa điểm phù hợp nhất tại đây thay vì
+  /// để payload mới làm mất chức năng chọn đích.
+  Future<PoiModel?> _resolveAreaSearchDestination(
+    SearchResultPayload payload,
+  ) async {
+    final center = payload.searchCenter ??
+        _mapDisplayCubit.state.center ??
+        MapConstants.defaultLocation;
+    final query = payload.submittedQuery?.trim();
+    try {
+      List<PoiModel> candidates;
+      if (query != null && query.isNotEmpty) {
+        candidates = await PoiRepositoryImpl().search(query, limit: 50);
+      } else if (payload.searchCategory != null &&
+          payload.searchCategory!.trim().isNotEmpty) {
+        final bounds = MapConstants.boundsFromCenter(center, 1200.0);
+        candidates = await PoiRepositoryImpl().searchInBounds(
+          minLat: bounds.southwest.latitude,
+          maxLat: bounds.northeast.latitude,
+          minLon: bounds.southwest.longitude,
+          maxLon: bounds.northeast.longitude,
+          category: payload.searchCategory,
+          limit: 50,
+        );
+      } else {
+        return null;
+      }
+
+      final ranked = SearchResultRanker.rank(
+        candidates,
+        center: center,
+        query: query,
+        limit: 1,
+      );
+      return ranked.isEmpty ? null : ranked.first;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _setMarkerDestination(LatLng destination, {bool addToRoute = false}) {

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/services/search_cache_service.dart';
 
 // Backward compatibility alias
 typedef RegionDownloadService = IRegionDownloadService;
@@ -430,6 +431,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
 
       await box.put(region.id, updatedRegion.toMap());
       metadataCommitted = true;
+      SearchCacheService.instance.clear();
 
       // Chỉ xóa backup sau khi metadata đã lưu vào Hive thành công
       if (backupDir.existsSync()) {

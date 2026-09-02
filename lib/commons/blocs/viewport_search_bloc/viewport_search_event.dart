@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/constants/constants.dart';
 
 abstract class ViewportSearchEvent extends Equatable {
   const ViewportSearchEvent();
@@ -55,6 +56,28 @@ class ViewportCategoryFilterChanged extends ViewportSearchEvent {
 
   @override
   List<Object?> get props => [category, bounds];
+}
+
+/// Tìm kiếm từ một tâm cố định và mở rộng location bias dần khi category
+/// chưa có kết quả. Với text search, handler vẫn truy vấn ứng viên toàn cục
+/// để location bias không trở thành giới hạn cứng như một bbox filter.
+class ProgressiveAreaSearch extends ViewportSearchEvent {
+  final LatLng center;
+  final String? category;
+  final String? query;
+  final double initialZoom;
+  final int limit;
+
+  const ProgressiveAreaSearch({
+    required this.center,
+    this.category,
+    this.query,
+    this.initialZoom = MapConstants.areaSearchInitialZoom,
+    this.limit = 50,
+  });
+
+  @override
+  List<Object?> get props => [center, category, query, initialZoom, limit];
 }
 
 /// Event xóa kết quả tìm kiếm viewport

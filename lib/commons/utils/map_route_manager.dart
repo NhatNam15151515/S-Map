@@ -14,11 +14,8 @@ class MapRouteManager {
   int _renderGeneration = 0;
   int _progressGeneration = 0;
   bool _isAssetLoaded = false;
-  bool _destLayerInitialized = false;
+  Symbol? _destinationSymbol;
   int _lastPassedSegmentIndex = -1;
-
-  static const String _destSourceId = 'smap-route-dest-source';
-  static const String _destLayerId = 'smap-route-dest-layer';
 
   /// Nạp icon marker vào engine MapLibre
   Future<void> loadMarkerAssets(MapLibreMapController? controller, {bool force = false}) async {
@@ -31,50 +28,23 @@ class MapRouteManager {
       _isAssetLoaded = true;
       DLog.info('🗺️ [MapRouteManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine');
     } catch (e, stack) {
-      DLog.warning('⚠️ [MapRouteManager] Failed to load marker asset: $e', stack);
+      final errorText = e.toString().toLowerCase();
+      if (errorText.contains('already') && errorText.contains('image')) {
+        _isAssetLoaded = true;
+        DLog.info(
+            '🗺️ [MapRouteManager] Marker image already exists; reusing native sprite');
+      } else {
+        DLog.warning('⚠️ [MapRouteManager] Failed to load marker asset: $e', stack);
+      }
     }
   }
 
   void resetAssetLoaded() {
     _isAssetLoaded = false;
-    _destLayerInitialized = false;
+    // setStyle() invalidates native symbol handles. The route is redrawn by
+    // HomeInteractiveMapLayer after the new style has loaded.
+    _destinationSymbol = null;
   }
-
-  /// Khởi tạo GeoJSON source + Symbol layer cho destination marker
-  Future<void> _initDestLayer(MapLibreMapController controller) async {
-    if (_destLayerInitialized) return;
-    try {
-      await controller.addGeoJsonSource(_destSourceId, _emptyFC());
-      await controller.addSymbolLayer(
-        _destSourceId,
-        _destLayerId,
-        SymbolLayerProperties(
-          iconImage: RoutingConstants.markerImageKey,
-          iconSize: [Expressions.get, 'iconSize'],
-          iconAnchor: 'bottom',
-          iconAllowOverlap: true,
-          iconIgnorePlacement: true,
-          textField: [Expressions.get, 'name'],
-          textSize: [Expressions.get, 'textSize'],
-          textColor: AppColors.mapSymbolText.toHex,
-          textHaloColor: AppColors.mapSymbolHalo.toHex,
-          textHaloWidth: MapConstants.selectedSymbolTextHaloWidth,
-          textOffset: const [0, 0.6],
-          textAnchor: 'top',
-          textMaxWidth: 10.0,
-          textAllowOverlap: true,
-          textIgnorePlacement: true,
-          symbolSortKey: [Expressions.get, 'zIndex'],
-        ),
-        enableInteraction: false,
-      );
-      _destLayerInitialized = true;
-    } catch (e) {
-      DLog.warning('⚠️ [MapRouteManager] Failed to init dest layer: $e');
-    }
-  }
-
-  Map<String, dynamic> _emptyFC() => {'type': 'FeatureCollection', 'features': <Map<String, dynamic>>[]};
 
   /// Chuyển đổi danh sách [lat, lon] sang List<LatLng> an toàn
   static List<LatLng> parseRoutePoints(List<List<double>> rawPoints) {
@@ -129,6 +99,9 @@ class MapRouteManager {
     _lastPassedSegmentIndex = -1;
     DLog.info('🗺️ [MapRouteManager] Drawing route on map [Gen #$generation]: ${latLngs.length} points | Destination: "$destinationName"');
 
+    Line? casingLine;
+    Line? mainLine;
+    Symbol? destinationSymbol;
     try {
       await loadMarkerAssets(controller);
       if (generation != _renderGeneration || progressGen != _progressGeneration) return false;
@@ -138,7 +111,7 @@ class MapRouteManager {
       if (generation != _renderGeneration || progressGen != _progressGeneration) return false;
 
       // 1. Tạo Casing Line (Viền đậm bên dưới tạo độ nổi khối)
-      final casingLine = await controller.addLine(
+      casingLine = await controller.addLine(
         LineOptions(
           geometry: latLngs,
           lineColor: AppColors.routeCasingColor.toHex,
@@ -149,7 +122,7 @@ class MapRouteManager {
       );
 
       // 2. Tạo Main Route Line (Màu xanh Google Blue chính)
-      final mainLine = await controller.addLine(
+      mainLine = await controller.addLine(
         LineOptions(
           geometry: latLngs,
           lineColor: AppColors.routeMainColor.toHex,
@@ -159,39 +132,38 @@ class MapRouteManager {
         ),
       );
 
-      // 3. Tạo Marker điểm đến (Destination) via GeoJSON source
-      await _initDestLayer(controller);
-      await controller.setGeoJsonSource(_destSourceId, {
-        'type': 'FeatureCollection',
-        'features': [
-          {
-            'type': 'Feature',
-            'geometry': {
-              'type': 'Point',
-              'coordinates': [destination.lon, destination.lat],
-            },
-            'properties': {
-              'name': destinationName ?? '',
-              'iconSize': MapConstants.selectedSymbolIconSize,
-              'textSize': MapConstants.selectedSymbolTextSize,
-              'zIndex': 10,
-            },
-          },
-        ],
-      });
+      // 3. Tạo marker điểm đến bằng native Symbol riêng. Search marker
+      // cũng là native Symbol nhưng được MapSymbolManager giữ trong list
+      // khác, nên hide search symbols sẽ không thể xóa nhầm destination.
+      destinationSymbol = await controller.addSymbol(
+        SymbolOptions(
+          geometry: LatLng(destination.lat, destination.lon),
+          iconImage: RoutingConstants.markerImageKey,
+          iconSize: MapConstants.selectedSymbolIconSize,
+          iconAnchor: 'bottom',
+          zIndex: 100,
+        ),
+      );
 
       if (generation != _renderGeneration || progressGen != _progressGeneration) {
         DLog.info('⏭️ [MapRouteManager] Discarding stale drawn route objects (Current #$_renderGeneration vs #$generation)');
         await _removeOrphan(controller, line: casingLine);
         await _removeOrphan(controller, line: mainLine);
+        await _removeOrphan(controller, symbol: destinationSymbol);
         return false;
       }
 
       _routeCasingLine = casingLine;
       _routeLine = mainLine;
+      _destinationSymbol = destinationSymbol;
       DLog.info('✅ [MapRouteManager] Route line & destination marker drawn successfully on map');
       return true;
     } catch (e, stack) {
+      // Nếu native destination symbol lỗi sau khi line đã tạo, dọn cả ba
+      // object để route manager không giữ một route thiếu marker.
+      await _removeOrphan(controller, line: casingLine);
+      await _removeOrphan(controller, line: mainLine);
+      await _removeOrphan(controller, symbol: destinationSymbol);
       DLog.error('❌ [MapRouteManager] Error drawing route on map: $e', stack);
       return false;
     }
@@ -335,6 +307,7 @@ class MapRouteManager {
   Future<void> _removeOrphan(
     MapLibreMapController? controller, {
     Line? line,
+    Symbol? symbol,
   }) async {
     if (controller == null) return;
     if (line != null) {
@@ -342,6 +315,14 @@ class MapRouteManager {
         await controller.removeLine(line);
       } catch (e) {
         DLog.warning('⚠️ [MapRouteManager] Failed to remove orphan line: $e');
+      }
+    }
+    if (symbol != null) {
+      try {
+        await controller.removeSymbol(symbol);
+      } catch (e) {
+        DLog.warning(
+            '⚠️ [MapRouteManager] Failed to remove orphan destination symbol: $e');
       }
     }
   }
@@ -376,11 +357,11 @@ class MapRouteManager {
       _routeCasingLine = null;
     }
 
-    // Clear destination marker via GeoJSON source
-    if (_destLayerInitialized) {
+    if (_destinationSymbol != null) {
       try {
-        await controller.setGeoJsonSource(_destSourceId, _emptyFC());
+        await controller.removeSymbol(_destinationSymbol!);
       } catch (_) {}
+      _destinationSymbol = null;
     }
   }
 }

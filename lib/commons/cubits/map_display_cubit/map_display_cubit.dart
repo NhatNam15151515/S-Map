@@ -61,7 +61,11 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
       final isDarkMode = state.isNightMode;
       final newStyle = _mapStyleService.getStyleJson(isDarkMode: isDarkMode);
       if (newStyle.isNotEmpty && newStyle != state.styleString) {
-        emit(state.copyWith(styleString: newStyle));
+        emit(state.copyWith(
+          styleString: newStyle,
+          // A style change must not replay a previous zoom/locate action.
+          clearCameraAction: true,
+        ));
       }
     });
   }
@@ -81,6 +85,9 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
       emit(state.copyWith(
         styleString: newStyle,
         isNightMode: isDarkMode,
+        // Home listens to both styleString and cameraAction. Clear the old
+        // one so toggling map style cannot repeat the last zoomOut action.
+        clearCameraAction: true,
       ));
     }
   }
@@ -396,6 +403,31 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
       cameraAction: MapCameraAction(
         type: MapCameraActionType.zoomOut,
         zoom: nextZoom,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      ),
+    ));
+  }
+
+  /// Zoom đến mức chỉ định nhưng giữ nguyên vị trí GPS và trạng thái
+  /// following. Nếu có [center] thì đó là tâm camera mới; method này không
+  /// ghi đè [currentPosition] vì GPS và tâm bản đồ là hai khái niệm khác nhau.
+  void zoomToLevel(double zoom, {LatLng? center}) {
+    final target = center ?? state.center ?? state.currentPosition;
+    if (target == null) return;
+
+    final clampedZoom = zoom.clamp(
+      MapConstants.minZoom,
+      MapConstants.maxZoom,
+    ).toDouble();
+    emit(state.copyWith(
+      center: target,
+      zoom: clampedZoom,
+      isFollowingUser: false,
+      clearError: true,
+      cameraAction: MapCameraAction(
+        type: MapCameraActionType.animateToPosition,
+        target: target,
+        zoom: clampedZoom,
         timestamp: DateTime.now().microsecondsSinceEpoch,
       ),
     ));

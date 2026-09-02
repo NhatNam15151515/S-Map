@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
+import 'package:s_map/services/services.dart';
 
 class HomeInteractiveMapLayer extends StatefulWidget {
   final ValueChanged<PoiModel> onPoiTapped;
@@ -38,11 +40,21 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   final IPoiRepository _poiRepository = PoiRepositoryImpl();
   RouteResult? _renderedNavRoute;
   int _navListenerGeneration = 0;
+  int _routeMarkerSyncGeneration = 0;
+  int _memoryMarkerSyncGeneration = 0;
   String? _lastAppliedMapStyle;
 
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
   ViewportSearchBloc get viewportBloc => context.read<ViewportSearchBloc>();
   RoutePreviewCubit get routePreviewCubit => context.read<RoutePreviewCubit>();
+
+  bool get _hasActiveRouteOrNavigation {
+    final previewState = routePreviewCubit.state;
+    final navigationState = context.read<NavigationBloc>().state;
+    return previewState.isLoading ||
+        previewState.isSuccess ||
+        navigationState.isNavigating;
+  }
 
   @override
   void didChangeDependencies() {
@@ -100,6 +112,32 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     }
   }
 
+  void _onSymbolTapped(Symbol symbol) {
+    if (_hasActiveRouteOrNavigation || !mounted) return;
+    final poi = _symbolManager.getPoiBySymbolId(symbol.id);
+    if (poi != null) {
+      // Resolve by the native symbol id, never by approximate coordinates.
+      // Several POIs can be close together or share a building coordinate.
+      widget.onPoiTapped(poi);
+    }
+  }
+
+  void _onFeatureTapped(
+    Point<double> point,
+    LatLng latLng,
+    String id,
+    String layerId,
+    Annotation? annotation,
+  ) {
+    // Native symbols have their own exact id-based callback above. The
+    // generic feature callback also receives them, so do not resolve them a
+    // second time through rendered-feature heuristics.
+    if (annotation is Symbol || _hasActiveRouteOrNavigation || !mounted) {
+      return;
+    }
+    unawaited(_handleRenderedFeatureTap(point, latLng));
+  }
+
   void _onCameraIdle() {
     _cameraController.handleCameraIdle(
       controller: _mapController,
@@ -120,8 +158,26 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   /// Xóa ghim đơn lẻ khi đóng thẻ POI
-  void clearSelectedPoiMarker() {
-    _symbolManager.clearSelectedPoiMarker(_mapController);
+  void clearSelectedPoiMarker({bool restoreSearchResults = true}) {
+    _symbolManager.clearSelectedPoiMarker(
+      _mapController,
+      restoreSearchResults: restoreSearchResults,
+    );
+  }
+
+  /// Ẩn search markers ngay khi người dùng bắt đầu mở chỉ đường.
+  /// Danh sách POI vẫn được MapSymbolManager giữ lại để restore sau đó.
+  Future<void> hideSearchResultMarkers() {
+    return _symbolManager.hideSearchResultMarkers(_mapController);
+  }
+
+  Future<void> clearSearchResults() {
+    return _symbolManager.clearSearchResults(_mapController);
+  }
+
+  /// Lưu snapshot kết quả mà không render thêm marker native.
+  void cacheSearchResultPois(List<PoiModel> pois) {
+    _symbolManager.cacheSearchResultPois(pois);
   }
 
   /// Xóa sạch toàn bộ ghim trên bản đồ
@@ -129,8 +185,42 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     _symbolManager.clearAll(_mapController);
   }
 
+  /// Chỉ hiển thị các POI có ý nghĩa cá nhân với người dùng: đã lưu hoặc đã
+  /// thực sự đến. Các POI nền đại trà đã bị tắt trong offline style.
+  Future<void> refreshMemoryMarkers() async {
+    final generation = ++_memoryMarkerSyncGeneration;
+    final favorites = context.read<FavoritesCubit>().state.favorites;
+    List<PoiModel> visited = const [];
+    try {
+      visited = await VisitedPoiServiceImpl.instance.getVisitedPois();
+    } catch (e, stack) {
+      DLog.warning('⚠️ Không thể tải POI đã đến để render marker: $e', stack);
+    }
+    if (!mounted || generation != _memoryMarkerSyncGeneration) return;
+
+    final merged = <String, PoiModel>{};
+    for (final poi in [...favorites, ...visited]) {
+      // Favorites and visited history may identify the same physical POI
+      // differently; use coordinates for the visual marker identity.
+      final key =
+          'loc:${poi.lat.toStringAsFixed(6)}:${poi.lon.toStringAsFixed(6)}';
+      // Keep the richer favorite record when the same destination also
+      // appears in visit history (visited fallback records may only contain
+      // coordinates and a generic category).
+      merged.putIfAbsent(key, () => poi);
+    }
+    await _symbolManager.renderMemoryPois(
+      _mapController,
+      merged.values.toList(),
+    );
+  }
+
   /// Xử lý tap trên bản đồ: kiểm tra xem có tap vào marker không
   Future<void> _onMapClick(Point<double> point, LatLng latLng) async {
+    // Route preview/navigation đang giữ quyền tương tác với map. Không mở
+    // POI mới rồi vô tình tạo lại selected red marker trên route.
+    if (_hasActiveRouteOrNavigation) return;
+
     final poi =
         _symbolManager.getPoiAtLocation(latLng.latitude, latLng.longitude);
     if (poi != null && mounted) {
@@ -141,10 +231,25 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     // POI tìm kiếm của app nằm ở native symbol; các địa điểm có sẵn trên bản
     // đồ lại nằm trong vector tile. Query rendered features để cả hai loại
     // điểm đều đi qua cùng callback mở marker/bottom sheet.
+    await _handleRenderedFeatureTap(point, latLng);
+  }
+
+  Future<void> _handleRenderedFeatureTap(
+    Point<double> point,
+    LatLng latLng,
+  ) async {
+    if (_hasActiveRouteOrNavigation || !mounted) return;
     final renderedPoi = await _queryRenderedPoi(point, latLng);
     if (renderedPoi != null && mounted) {
       widget.onPoiTapped(renderedPoi);
     }
+  }
+
+  @override
+  void dispose() {
+    _mapController?.onSymbolTapped.remove(_onSymbolTapped);
+    _mapController?.onFeatureTapped.remove(_onFeatureTapped);
+    super.dispose();
   }
 
   Future<PoiModel?> _queryRenderedPoi(
@@ -269,15 +374,23 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     );
   }
 
-  /// Hiển thị danh sách kết quả tìm kiếm và fit camera bao quanh
-  void showSearchResults(List<PoiModel> pois) {
-    _symbolManager.showSearchResults(_mapController, pois);
+  /// Hiển thị danh sách kết quả tìm kiếm và tùy chọn fit camera bao quanh.
+  void showSearchResults(
+    List<PoiModel> pois, {
+    bool fitBounds = true,
+  }) {
+    _symbolManager.showSearchResults(
+      _mapController,
+      pois,
+      fitBounds: fitBounds,
+    );
   }
 
   /// Chuyển tiếp sự kiện chạm giữ (Long Press) trên bản đồ trực tiếp sang Cubit
   void _onMapLongClick(Point<double> point, LatLng latLng) {
     DLog.info(
         '👆 [Map] Long press detected at: (${latLng.latitude.toStringAsFixed(5)}, ${latLng.longitude.toStringAsFixed(5)})');
+    hideSearchResultMarkers();
     routePreviewCubit.previewRouteToCoordinate(latLng);
   }
 
@@ -285,6 +398,12 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
+        BlocListener<FavoritesCubit, FavoritesState>(
+          listenWhen: (prev, curr) => prev.favorites != curr.favorites,
+          listener: (context, state) {
+            unawaited(refreshMemoryMarkers());
+          },
+        ),
         BlocListener<MapDisplayCubit, MapDisplayState>(
           listenWhen: (prev, curr) =>
               prev.cameraAction != curr.cameraAction ||
@@ -312,9 +431,22 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           listenWhen: (prev, curr) =>
               prev.pois != curr.pois || prev.status != curr.status,
           listener: (context, state) {
+            // Khi route preview/dẫn đường đang active, camera có thể làm
+            // viewport search phát sinh state mới. Không render lại các
+            // search marker trong giai đoạn này; route flow sẽ khôi phục
+            // danh sách cũ sau khi kết thúc.
+            if (_hasActiveRouteOrNavigation) return;
+
             if (state.status == ViewportSearchStatus.success) {
               if (state.selectedCategory == CategoryConstants.all) {
-                _symbolManager.renderPoiList(_mapController, state.pois);
+                if (state.pois.length == 1) {
+                  // Một kết quả sẽ được Home chọn và render bằng selected
+                  // marker; chỉ cache snapshot để không tạo hai pin chồng
+                  // lên nhau.
+                  _symbolManager.cacheSearchResultPois(state.pois);
+                } else {
+                  _symbolManager.renderPoiList(_mapController, state.pois);
+                }
               }
             } else if (state.status == ViewportSearchStatus.empty) {
               if (state.selectedCategory == CategoryConstants.all) {
@@ -330,26 +462,50 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           listenWhen: (prev, curr) =>
               prev.status != curr.status ||
               prev.routeResult != curr.routeResult,
-          listener: (context, state) {
+          listener: (context, state) async {
+            final syncGeneration = ++_routeMarkerSyncGeneration;
+
+            if (state.isLoading || state.isSuccess) {
+              // Chỉ gỡ search symbols. Destination marker vẫn do
+              // MapRouteManager vẽ riêng sau khi route tính xong.
+              await _symbolManager.hideSearchResultMarkers(_mapController);
+              if (!mounted || syncGeneration != _routeMarkerSyncGeneration) {
+                return;
+              }
+            }
+
             if (state.isSuccess && state.routeResult != null) {
-              _routeManager.drawRoute(
+              await _routeManager.drawRoute(
                 controller: _mapController,
                 routeResult: state.routeResult!,
                 origin: state.origin!,
                 destination: state.destination!,
                 destinationName: state.destinationName,
               );
+              if (!mounted || syncGeneration != _routeMarkerSyncGeneration) {
+                return;
+              }
               _routeManager.fitRouteBounds(
                 controller: _mapController,
                 routeResult: state.routeResult!,
                 origin: state.origin,
                 destination: state.destination,
               );
-            } else if (state.isInitial) {
-              _routeManager.clearRoute(_mapController);
-            } else if (state.isError && state.errorMessageKey != null) {
-              _routeManager.clearRoute(_mapController);
-              showError(tr(state.errorMessageKey!));
+            } else if (state.isInitial || state.isError) {
+              await _routeManager.clearRoute(_mapController);
+              if (!mounted || syncGeneration != _routeMarkerSyncGeneration) {
+                return;
+              }
+
+              // Nếu navigation vẫn đang chạy thì search markers phải tiếp
+              // tục ẩn; NavigationListener sẽ khôi phục khi thật sự thoát.
+              if (!_hasActiveRouteOrNavigation) {
+                await _symbolManager.restoreSearchResultMarkers(_mapController);
+              }
+
+              if (state.isError && state.errorMessageKey != null) {
+                showError(tr(state.errorMessageKey!));
+              }
             }
           },
         ),
@@ -365,6 +521,12 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           listener: (context, navState) async {
             final gen = ++_navListenerGeneration;
             if (navState.isNavigating) {
+              // Navigation có thể được bắt đầu trực tiếp từ route drawing,
+              // không đi qua RoutePreviewCubit. Vẫn phải ẩn search markers ở
+              // đây để map chỉ còn route và destination marker.
+              await _symbolManager.hideSearchResultMarkers(_mapController);
+              if (!mounted || gen != _navListenerGeneration) return;
+
               // 0. Nếu lộ trình thay đổi (khởi chạy hoặc reroute mới), vẽ lộ trình trước
               if (navState.currentRoute != null &&
                   navState.currentRoute != _renderedNavRoute &&
@@ -409,7 +571,16 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
             } else if (navState.status == NavigationStatus.stopped ||
                 navState.status == NavigationStatus.initial) {
               _renderedNavRoute = null;
-              _routeManager.clearRoute(_mapController);
+              await _routeManager.clearRoute(_mapController);
+              if (!mounted || gen != _navListenerGeneration) return;
+
+              // Route preview có thể vẫn còn mở sau khi stop navigation;
+              // chỉ restore khi cả hai chế độ route đều đã kết thúc.
+              if (!_hasActiveRouteOrNavigation) {
+                await _symbolManager.restoreSearchResultMarkers(_mapController);
+              }
+            } else if (navState.status == NavigationStatus.arrived) {
+              await refreshMemoryMarkers();
             }
           },
         ),
@@ -419,33 +590,52 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
             prev.status != curr.status ||
             (prev.styleString != curr.styleString && _mapController == null),
         builder: (context, state) {
-          return Stack(
+          return BlocBuilder<NavigationBloc, NavigationState>(
+            buildWhen: (prev, curr) =>
+                prev.isNavigating != curr.isNavigating,
+            builder: (context, navState) {
+              final isNavigating = navState.isNavigating;
+              return Stack(
             children: [
               MapView(
                 key: const Key('map_view_main'),
                 styleString: state.styleString,
                 nativeCompassEnabled: false,
+                myLocationRenderMode: isNavigating
+                    ? MyLocationRenderMode.compass
+                    : MyLocationRenderMode.normal,
                 onMapCreated: (controller) {
                   _mapController = controller;
+                  controller.onSymbolTapped.add(_onSymbolTapped);
+                  controller.onFeatureTapped.add(_onFeatureTapped);
                   _lastAppliedMapStyle = state.styleString;
                   displayCubit.onMapCreated();
                 },
                 onStyleLoadedCallback: () async {
+                  final navigationBloc = context.read<NavigationBloc>();
                   _symbolManager.resetAssetLoaded();
                   _routeManager.resetAssetLoaded();
                   await _symbolManager.loadMarkerAssets(_mapController,
                       force: true);
                   await _symbolManager.initLayers(_mapController);
-                  await _symbolManager.renderSovereigntySymbols(_mapController);
                   await _routeManager.loadMarkerAssets(_mapController,
                       force: true);
                   if (!mounted) return;
+
+                  await refreshMemoryMarkers();
 
                   // 1. Khôi phục POI markers và selected POI marker (nếu có
                   // category/search đang active). Await để không tranh chấp
                   // với listener vừa nhận trạng thái style mới.
                   final viewportState = viewportBloc.state;
-                  if (viewportState.status == ViewportSearchStatus.success &&
+                  final previewState = routePreviewCubit.state;
+                  final currentNavigationState = navigationBloc.state;
+                  final routeOrNavigationActive =
+                      previewState.isLoading ||
+                      previewState.isSuccess ||
+                      currentNavigationState.isNavigating;
+                  if (!routeOrNavigationActive &&
+                      viewportState.status == ViewportSearchStatus.success &&
                       viewportState.selectedCategory != CategoryConstants.all &&
                       viewportState.pois.isNotEmpty) {
                     await _symbolManager.renderPoiList(
@@ -453,7 +643,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                       viewportState.pois,
                     );
                   }
-                  if (displayCubit.state.selectedPoi != null) {
+                  if (!routeOrNavigationActive &&
+                      displayCubit.state.selectedPoi != null) {
                     await setSelectedPoiMarker(displayCubit.state.selectedPoi!);
                   }
 
@@ -461,7 +652,6 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   await displayCubit.onStyleLoaded();
 
                   // 2. Khôi phục Route Preview nếu đang mở
-                  final previewState = routePreviewCubit.state;
                   if (previewState.isSuccess &&
                       previewState.routeResult != null &&
                       previewState.origin != null &&
@@ -476,8 +666,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   }
 
                   // 3. Khôi phục Navigation Polyline nếu đang dẫn đường
-                  if (!context.mounted) return;
-                  final navState = context.read<NavigationBloc>().state;
+                  if (!mounted) return;
+                  final navState = navigationBloc.state;
                   if (navState.isNavigating &&
                       navState.currentRoute != null &&
                       navState.origin != null &&
@@ -513,6 +703,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                   onRetry: displayCubit.locateMe,
                 ),
             ],
+              );
+            },
           );
         },
       ),

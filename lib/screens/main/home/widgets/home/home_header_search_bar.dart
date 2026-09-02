@@ -11,7 +11,9 @@ class HomeHeaderSearchBar extends StatelessWidget {
   final double topPadding;
   final ValueChanged<PoiModel> onPoiSelected;
   final void Function(List<PoiModel> pois, String? query) onSearchResults;
+  final ValueChanged<SearchResultPayload>? onAreaSearch;
   final ValueChanged<String?> onCategorySelected;
+  final VoidCallback? onSearchOpened;
   final String? activeSearchText;
   final VoidCallback? onClearSearch;
 
@@ -20,7 +22,9 @@ class HomeHeaderSearchBar extends StatelessWidget {
     required this.topPadding,
     required this.onPoiSelected,
     required this.onSearchResults,
+    this.onAreaSearch,
     required this.onCategorySelected,
+    this.onSearchOpened,
     this.activeSearchText,
     this.onClearSearch,
   });
@@ -39,6 +43,9 @@ class HomeHeaderSearchBar extends StatelessWidget {
             onClearSearch: onClearSearch,
             onPoiSelected: onPoiSelected,
             onTap: () {
+              // Bắt đầu một search workflow mới thì bỏ context marker/list
+              // hiện tại ngay cả khi người dùng sau đó bấm Back.
+              onSearchOpened?.call();
               final mapState = context.read<MapDisplayCubit>().state;
               // Ưu tiên GPS để kết quả gần người dùng. Khi GPS chưa sẵn
               // sàng, dùng tâm camera hiện tại thay vì tìm toàn bộ dữ liệu.
@@ -49,7 +56,9 @@ class HomeHeaderSearchBar extends StatelessWidget {
               ).then((result) {
                 if (result != null && context.mounted) {
                   if (result is SearchResultPayload) {
-                    if (result.isSingle && result.selectedPoi != null) {
+                    if (result.isArea) {
+                      onAreaSearch?.call(result);
+                    } else if (result.isSingle && result.selectedPoi != null) {
                       onPoiSelected(result.selectedPoi!);
                     } else if (result.isAll && result.allResults != null) {
                       onSearchResults(result.allResults!, result.submittedQuery);

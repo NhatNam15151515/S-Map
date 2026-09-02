@@ -12,13 +12,22 @@ class RecentSearchServiceImpl implements IRecentSearchService {
 
   final SharedPreferences? _customPrefs;
   final Box<dynamic>? _customBox;
+  final IFireStoreService? _fireStoreService;
+  final IFirebaseAuthService? _authService;
   Box<dynamic>? _box;
+
+  static IFireStoreService? defaultFireStoreService;
+  static IFirebaseAuthService? defaultAuthService;
 
   RecentSearchServiceImpl({
     SharedPreferences? customPrefs,
     Box<dynamic>? customBox,
+    IFireStoreService? fireStoreService,
+    IFirebaseAuthService? authService,
   })  : _customPrefs = customPrefs,
-        _customBox = customBox;
+        _customBox = customBox,
+        _fireStoreService = fireStoreService ?? defaultFireStoreService,
+        _authService = authService ?? defaultAuthService;
 
   static final RecentSearchServiceImpl instance = RecentSearchServiceImpl();
 
@@ -28,6 +37,9 @@ class RecentSearchServiceImpl implements IRecentSearchService {
 
     if (_box != null && _box!.isOpen) return _box!;
     try {
+      // The app opens this box during bootstrap. Do not implicitly open it
+      // here: detached tests/consumers intentionally use the documented
+      // SharedPreferences fallback when Hive has not been initialized.
       if (Hive.isBoxOpen(boxName)) {
         _box = Hive.box<dynamic>(boxName);
         return _box;
@@ -43,19 +55,67 @@ class RecentSearchServiceImpl implements IRecentSearchService {
     return await SharedPreferences.getInstance();
   }
 
+  String? get _userId => _authService?.currentUser?.uid;
+
+  Future<void> _saveLocal(List<String> values) async {
+    final box = await _getBox();
+    if (box != null) {
+      await box.put(_storageKey, values);
+      return;
+    }
+    final prefs = await _getPrefs();
+    await prefs.setStringList(_storageKey, values);
+  }
+
+  List<String> _mergeSearches(
+    Iterable<String> first,
+    Iterable<String> second,
+  ) {
+    final result = <String>[];
+    final seen = <String>{};
+    for (final value in [...first, ...second]) {
+      final clean = value.trim();
+      final key = clean.toLowerCase();
+      if (clean.isEmpty || !seen.add(key)) continue;
+      result.add(clean);
+      if (result.length == _maxRecentSearches) break;
+    }
+    return result;
+  }
+
   @override
   Future<List<String>> getRecentSearches() async {
+    List<String> local;
     final box = await _getBox();
     if (box != null) {
       final val = box.get(_storageKey);
       if (val is List) {
-        return List<String>.from(val.map((e) => e.toString()));
+        local = List<String>.from(val.map((e) => e.toString()));
+      } else {
+        local = [];
       }
-      return [];
+    } else {
+      final prefs = await _getPrefs();
+      local = List<String>.from(prefs.getStringList(_storageKey) ?? []);
     }
 
-    final prefs = await _getPrefs();
-    return List<String>.from(prefs.getStringList(_storageKey) ?? []);
+    final userId = _userId;
+    final fireStoreService = _fireStoreService;
+    if (userId == null || fireStoreService == null) return local;
+
+    try {
+      final cloud = await fireStoreService.getSearchQueries(userId);
+      final merged = _mergeSearches(cloud, local);
+      if (merged.length != local.length ||
+          !merged.asMap().entries.every((entry) => entry.value == local[entry.key])) {
+        await _saveLocal(merged);
+      }
+      return merged;
+    } catch (_) {
+      // Search must remain usable offline; the local history is authoritative
+      // until Firestore becomes available again.
+      return local;
+    }
   }
 
   @override
@@ -75,14 +135,15 @@ class RecentSearchServiceImpl implements IRecentSearchService {
       currentList.removeRange(_maxRecentSearches, currentList.length);
     }
 
-    final box = await _getBox();
-    if (box != null) {
-      await box.put(_storageKey, currentList);
-      return;
-    }
+    await _saveLocal(currentList);
 
-    final prefs = await _getPrefs();
-    await prefs.setStringList(_storageKey, currentList);
+    final userId = _userId;
+    final fireStoreService = _fireStoreService;
+    if (userId != null && fireStoreService != null) {
+      try {
+        await fireStoreService.saveSearchQuery(userId, cleanQuery);
+      } catch (_) {}
+    }
   }
 
   @override
@@ -94,14 +155,15 @@ class RecentSearchServiceImpl implements IRecentSearchService {
     currentList
         .removeWhere((item) => item.toLowerCase() == cleanQuery.toLowerCase());
 
-    final box = await _getBox();
-    if (box != null) {
-      await box.put(_storageKey, currentList);
-      return;
-    }
+    await _saveLocal(currentList);
 
-    final prefs = await _getPrefs();
-    await prefs.setStringList(_storageKey, currentList);
+    final userId = _userId;
+    final fireStoreService = _fireStoreService;
+    if (userId != null && fireStoreService != null) {
+      try {
+        await fireStoreService.deleteSearchQuery(userId, cleanQuery);
+      } catch (_) {}
+    }
   }
 
   @override
@@ -109,10 +171,17 @@ class RecentSearchServiceImpl implements IRecentSearchService {
     final box = await _getBox();
     if (box != null) {
       await box.delete(_storageKey);
-      return;
+    } else {
+      final prefs = await _getPrefs();
+      await prefs.remove(_storageKey);
     }
 
-    final prefs = await _getPrefs();
-    await prefs.remove(_storageKey);
+    final userId = _userId;
+    final fireStoreService = _fireStoreService;
+    if (userId != null && fireStoreService != null) {
+      try {
+        await fireStoreService.clearSearchQueries(userId);
+      } catch (_) {}
+    }
   }
 }

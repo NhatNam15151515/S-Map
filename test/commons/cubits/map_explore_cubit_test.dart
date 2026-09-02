@@ -41,6 +41,50 @@ class MockFireStoreService implements IFireStoreService {
   Stream<QuerySnapshot?> streamSavedPlaces(String userId) => const Stream.empty();
 
   @override
+  Future<List<Map<String, dynamic>>> getSavedPlaces(String userId) async => [];
+
+  @override
+  Future<void> deleteSavedPlace(String userId, String poiKey) async {}
+
+  @override
+  Future<void> clearSavedPlaces(String userId) async {}
+
+  @override
+  Future<void> saveSearchQuery(String userId, String query) async {}
+
+  @override
+  Future<List<String>> getSearchQueries(String userId, {int limit = 20}) async => [];
+
+  @override
+  Future<void> deleteSearchQuery(String userId, String query) async {}
+
+  @override
+  Future<void> clearSearchQueries(String userId) async {}
+
+  @override
+  Future<void> saveVisitedPlace(
+      String userId, Map<String, dynamic> placeData) async {}
+
+  @override
+  Future<List<Map<String, dynamic>>> getVisitedPlaces(String userId) async => [];
+
+  @override
+  Future<void> clearVisitedPlaces(String userId) async {}
+
+  @override
+  Future<void> saveCustomRoute(
+      String userId, Map<String, dynamic> routeData) async {}
+
+  @override
+  Future<List<Map<String, dynamic>>> getCustomRoutes(String userId) async => [];
+
+  @override
+  Future<void> deleteCustomRoute(String userId, String routeId) async {}
+
+  @override
+  Future<void> clearCustomRoutes(String userId) async {}
+
+  @override
   Future<void> syncTrip(String userId, TripRecordModel trip) async {}
 
   @override

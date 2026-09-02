@@ -35,8 +35,6 @@ class _SearchScreenContentState extends State<SearchScreenContent>
     super.dispose();
   }
 
-  String? _submittedQuery;
-
   void _onPoiSelected(PoiModel poi) {
     final cubit = context.read<SearchCubit>();
     cubit.addRecentSearch(poi.name);
@@ -44,43 +42,52 @@ class _SearchScreenContentState extends State<SearchScreenContent>
   }
 
   void _onCategorySelected(String category) {
-    _submittedQuery = null;
     _textController.text = category;
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: category.length),
     );
-    context.read<SearchCubit>().search(category);
+    _submitAreaSearch(category: category);
   }
 
   void _onKeywordSelected(String keyword) {
-    _submittedQuery = null;
     _textController.text = keyword;
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: keyword.length),
     );
-    context.read<SearchCubit>().search(keyword);
+    _submitAreaSearch(query: keyword);
   }
 
   void _onSubmitted(String query) {
     final clean = query.trim();
     if (clean.isEmpty) return;
-    final cubit = context.read<SearchCubit>();
-    if (cubit.state.results.isNotEmpty && cubit.state.query == clean) {
-      cubit.addRecentSearch(clean);
-      context.pop(
-        SearchResultPayload.all(
-          allResults: cubit.state.results,
-          submittedQuery: clean,
-        ),
-      );
+    _submitAreaSearch(query: clean);
+  }
+
+  /// Submit chỉ trả intent về Home. Home dùng cùng một progressive engine với
+  /// category chip; kết quả realtime trên SearchScreen chỉ có vai trò gợi ý.
+  void _submitAreaSearch({String? query, String? category}) {
+    final cleanQuery = query?.trim();
+    final cleanCategory = category?.trim();
+    if ((cleanQuery == null || cleanQuery.isEmpty) &&
+        (cleanCategory == null || cleanCategory.isEmpty)) {
       return;
     }
-    _submittedQuery = clean;
-    cubit.search(clean);
+
+    if (cleanQuery != null && cleanQuery.isNotEmpty) {
+      context.read<SearchCubit>().addRecentSearch(cleanQuery);
+    }
+
+    context.pop(
+      SearchResultPayload.areaSearch(
+        submittedQuery: cleanQuery?.isNotEmpty == true ? cleanQuery : null,
+        searchCategory:
+            cleanCategory?.isNotEmpty == true ? cleanCategory : null,
+        searchCenter: context.read<SearchCubit>().state.userLocation,
+      ),
+    );
   }
 
   void _onClear() {
-    _submittedQuery = null;
     _textController.clear();
     context.read<SearchCubit>().clearSearch();
   }
@@ -98,7 +105,6 @@ class _SearchScreenContentState extends State<SearchScreenContent>
               controller: _textController,
               focusNode: _focusNode,
               onQueryChanged: (query) {
-                _submittedQuery = null;
                 searchCubit.onQueryChanged(query);
               },
               onSubmitted: _onSubmitted,
@@ -108,25 +114,7 @@ class _SearchScreenContentState extends State<SearchScreenContent>
 
             // 2. Main Content: Recent/Category or Search Results
             Expanded(
-              child: BlocConsumer<SearchCubit, SearchState>(
-                listenWhen: (prev, curr) =>
-                    _submittedQuery != null &&
-                    curr.query == _submittedQuery &&
-                    (curr.isSuccess || curr.isError || curr.isInitial),
-                listener: (context, state) {
-                  final submitted = _submittedQuery;
-                  _submittedQuery = null;
-                  if (state.isSuccess &&
-                      state.results.isNotEmpty &&
-                      submitted != null) {
-                    context.pop(
-                      SearchResultPayload.all(
-                        allResults: state.results,
-                        submittedQuery: submitted,
-                      ),
-                    );
-                  }
-                },
+              child: BlocBuilder<SearchCubit, SearchState>(
                 builder: (context, state) {
                   final isQueryEmpty =
                       state.query.isEmpty && state.results.isEmpty;

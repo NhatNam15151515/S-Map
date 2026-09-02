@@ -142,8 +142,6 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
               onStyleLoadedCallback: () async {
                 _routeManager.resetAssetLoaded();
                 await _routeManager.loadMarkerAssets(_mapController);
-                final symbolManager = MapSymbolManager();
-                await symbolManager.renderSovereigntySymbols(_mapController);
                 final drawState = drawingBloc.state;
                 if (drawState.points.isNotEmpty ||
                     drawState.fullPolyline.isNotEmpty) {

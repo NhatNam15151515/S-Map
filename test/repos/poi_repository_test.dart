@@ -399,6 +399,54 @@ void main() {
       expect(hcmFood.any((e) => e.name == 'Phở Hòa Pasteur'), isTrue);
       expect(hcmFood.every((e) => e.category == 'food'), isTrue);
     });
+
+    test('searchInBounds returns nearest candidates before applying the limit',
+        () async {
+      final candidates = [
+        {
+          'name': 'Coffee Center',
+          'name_ascii': 'Coffee Center',
+          'category': 'coffee',
+          'sub_category': 'cafe',
+          'lat': 10.775,
+          'lon': 106.675,
+          'city': 'TP.HCM',
+        },
+        {
+          'name': 'Coffee East',
+          'name_ascii': 'Coffee East',
+          'category': 'coffee',
+          'sub_category': 'cafe',
+          'lat': 10.775,
+          'lon': 106.676,
+          'city': 'TP.HCM',
+        },
+        {
+          'name': 'Coffee West',
+          'name_ascii': 'Coffee West',
+          'category': 'coffee',
+          'sub_category': 'cafe',
+          'lat': 10.775,
+          'lon': 106.61,
+          'city': 'TP.HCM',
+        },
+      ];
+      for (final candidate in candidates) {
+        await db.insert('poi', candidate);
+      }
+
+      final results = await poiRepo.searchInBounds(
+        minLat: 10.70,
+        maxLat: 10.85,
+        minLon: 106.60,
+        maxLon: 106.75,
+        category: 'coffee',
+        limit: 2,
+      );
+
+      expect(results.map((poi) => poi.name).toList(),
+          ['Coffee Center', 'Coffee East']);
+    });
   });
 
   group('PoiRepository - ID & Benchmark Tests', () {

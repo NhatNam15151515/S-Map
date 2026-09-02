@@ -9,6 +9,7 @@ import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:s_map/routers/routers.dart';
+import 'package:s_map/services/services.dart';
 
 class MyApp extends StatefulWidget {
   final ThemeMode initialThemeMode;
@@ -21,17 +22,20 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late AppCubit appCubit;
   late AuthCubit authCubit;
+  late MapDisplayCubit mapDisplayCubit;
   late NotificationCubit notificationCubit;
   late FavoritesCubit favoritesCubit;
   late SavedRoutesCubit savedRoutesCubit;
   late RoutePreviewCubit routePreviewCubit;
   late NavigationBloc navigationBloc;
+  late SyncBloc syncBloc;
 
   @override
   void initState() {
     super.initState();
     appCubit = AppCubit(initialThemeMode: widget.initialThemeMode);
     authCubit = AuthCubit();
+    mapDisplayCubit = MapDisplayCubit();
     notificationCubit = NotificationCubit();
     favoritesCubit = FavoritesCubit();
     savedRoutesCubit = SavedRoutesCubit();
@@ -42,6 +46,11 @@ class _MyAppState extends State<MyApp> {
       routingRepository: AppReposProvider.instance.routingRepos,
       tripRepository: AppReposProvider.instance.tripRepos,
     );
+    syncBloc = SyncBloc(
+      authService: FirebaseAuthService.instance,
+      authRepos: AppReposProvider.instance.authRepos,
+      autoStartOnQueue: true,
+    );
     Routes.instance.applyWithAuthState(authCubit);
     authCubit.onAppStarted();
   }
@@ -49,9 +58,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     favoritesCubit.close();
+    mapDisplayCubit.close();
     savedRoutesCubit.close();
     routePreviewCubit.close();
     navigationBloc.close();
+    syncBloc.close();
     super.dispose();
   }
 
@@ -61,16 +72,30 @@ class _MyAppState extends State<MyApp> {
       providers: [
         BlocProvider.value(value: appCubit),
         BlocProvider.value(value: authCubit),
+        BlocProvider.value(value: mapDisplayCubit),
         BlocProvider.value(value: notificationCubit),
         BlocProvider.value(value: favoritesCubit),
         BlocProvider.value(value: savedRoutesCubit),
         BlocProvider.value(value: routePreviewCubit),
         BlocProvider.value(value: navigationBloc),
+        BlocProvider.value(value: syncBloc),
       ],
-      child: BlocBuilder<AppCubit, AppState>(
-        bloc: appCubit,
-        builder: (context, state) {
-          return EasyLocalization(
+      child: BlocListener<AuthCubit, AuthState>(
+        bloc: authCubit,
+        listenWhen: (previous, current) =>
+            previous.type != current.type && current.isAuthenticated,
+        listener: (context, state) {
+          // Firebase Auth can finish restoring/signing in after the first
+          // FavoritesCubit load. Reload here so cloud-saved POIs appear on
+          // the map and in the Saved screen immediately.
+          favoritesCubit.loadFavorites();
+          savedRoutesCubit.loadSavedRoutes();
+          syncBloc.add(const SyncStarted());
+        },
+        child: BlocBuilder<AppCubit, AppState>(
+          bloc: appCubit,
+          builder: (context, state) {
+            return EasyLocalization(
             useOnlyLangCode: true,
             supportedLocales:
                 SupportedLocale.values.map((e) => e.locale).toList(),
@@ -110,8 +135,9 @@ class _MyAppState extends State<MyApp> {
                 );
               },
             ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

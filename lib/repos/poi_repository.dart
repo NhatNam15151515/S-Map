@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -11,12 +13,23 @@ typedef PoiRepository = IPoiRepository;
 class PoiRepositoryImpl implements IPoiRepository {
   final IPoiDatabaseService _dbService;
   final Database? _directDb;
+  final SearchCacheService _searchCache;
+  final bool _cacheEnabled;
+
+  static final Map<String, Future<List<PoiModel>>> _inFlightSearches = {};
+  static final Map<String, Future<List<PoiModel>>> _inFlightBoundsSearches = {};
+  static final Map<String, Future<List<String>>> _inFlightSuggestions = {};
 
   PoiRepositoryImpl({
     IPoiDatabaseService? dbService,
     Database? directDb,
+    SearchCacheService? searchCache,
   })  : _dbService = dbService ?? PoiDatabaseServiceImpl.instance,
-        _directDb = directDb;
+        _directDb = directDb,
+        _searchCache = searchCache ?? SearchCacheService.instance,
+        // Direct/custom databases are primarily used by tests or isolated
+        // consumers. Do not let their data leak into the shared app cache.
+        _cacheEnabled = directDb == null && dbService == null;
 
   Future<Database> _getDb() async {
     final direct = _directDb;
@@ -80,16 +93,25 @@ class PoiRepositoryImpl implements IPoiRepository {
     List<String> queryTokens,
     Map<String, dynamic> row,
   ) {
-    final numberTokens = queryTokens
-        .where(_containsNumberRegExp.hasMatch)
-        .toList();
+    // Chỉ số đầu tiên trong query được xem là số nhà. Các số phía sau
+    // thường là thành phần hành chính (ví dụ "Quận 1"), không được dùng để
+    // loại bỏ một địa chỉ hợp lệ khi OSM thiếu hoặc khác tên admin.
+    final houseNumberIndex =
+        queryTokens.indexWhere(_containsNumberRegExp.hasMatch);
+    final numberTokens = houseNumberIndex >= 0
+        ? [queryTokens[houseNumberIndex]]
+        : const <String>[];
     final candidateNumberTokens = _tokenizeSearchText(
       [row['housenumber'], row['address']].whereType<String>().join(' '),
     );
     if (!_matchesSearchTokens(numberTokens, candidateNumberTokens)) return false;
 
     final streetQueryTokens = queryTokens
-        .where((token) => !_containsNumberRegExp.hasMatch(token))
+        .asMap()
+        .entries
+        .where((entry) => entry.key != houseNumberIndex)
+        .map((entry) => entry.value)
+        .where((token) => !token.contains(RegExp(r'^\d+$')))
         .toList();
     final candidateStreetTokens = _tokenizeSearchText(
       [row['street'], row['address']].whereType<String>().join(' '),
@@ -371,12 +393,53 @@ class PoiRepositoryImpl implements IPoiRepository {
       return [];
     }
 
+    final cleanQuery = query.trim();
+    if (!_cacheEnabled) {
+      return _searchUncached(cleanQuery, limit: limit);
+    }
+
+    final key = _searchCacheKey(cleanQuery, limit: limit);
+    final cached = _searchCache.getPois(key, limit: limit);
+    if (cached != null) {
+      return cached;
+    }
+
+    final pending = _inFlightSearches[key];
+    if (pending != null) return List<PoiModel>.of(await pending);
+
+    final future = _searchUncached(cleanQuery, limit: limit);
+    _inFlightSearches[key] = future;
+    try {
+      final results = await future;
+      _searchCache.putPois(key, results);
+      return results;
+    } finally {
+      if (identical(_inFlightSearches[key], future)) {
+        _inFlightSearches.remove(key);
+      }
+    }
+  }
+
+  Future<List<PoiModel>> _searchUncached(
+    String query, {
+    required int limit,
+  }) async {
+    if (!Validator.instance.isValidSearchQuery(query)) {
+      return [];
+    }
+
     final hasDiacritics = Validator.instance.hasDiacritics(query);
 
     if (hasDiacritics) {
       // Người dùng gõ có dấu: Ưu tiên FTS có dấu trước
-      final exactResults = await searchByName(query, limit: limit);
-      final addressResults = await _searchAddressFields(query, limit: limit);
+      // Hai nhánh độc lập nên chạy song song để giảm thời gian phản hồi lần
+      // đầu; các lần sau sẽ được phục vụ từ SearchCacheService.
+      final initialResults = await Future.wait([
+        searchByName(query, limit: limit),
+        _searchAddressFields(query, limit: limit),
+      ]);
+      final exactResults = initialResults[0];
+      final addressResults = initialResults[1];
       if (exactResults.length >= limit && addressResults.isEmpty) {
         return exactResults;
       }
@@ -451,6 +514,63 @@ class PoiRepositoryImpl implements IPoiRepository {
     String? category,
     int limit = 50,
   }) async {
+    if (!_cacheEnabled) {
+      return _searchInBoundsUncached(
+        minLat: minLat,
+        maxLat: maxLat,
+        minLon: minLon,
+        maxLon: maxLon,
+        query: query,
+        category: category,
+        limit: limit,
+      );
+    }
+
+    final key = _boundsSearchCacheKey(
+      minLat: minLat,
+      maxLat: maxLat,
+      minLon: minLon,
+      maxLon: maxLon,
+      query: query,
+      category: category,
+      limit: limit,
+    );
+    final cached = _searchCache.getPois(key, limit: limit);
+    if (cached != null) return cached;
+
+    final pending = _inFlightBoundsSearches[key];
+    if (pending != null) return List<PoiModel>.of(await pending);
+
+    final future = _searchInBoundsUncached(
+      minLat: minLat,
+      maxLat: maxLat,
+      minLon: minLon,
+      maxLon: maxLon,
+      query: query,
+      category: category,
+      limit: limit,
+    );
+    _inFlightBoundsSearches[key] = future;
+    try {
+      final results = await future;
+      _searchCache.putPois(key, results);
+      return results;
+    } finally {
+      if (identical(_inFlightBoundsSearches[key], future)) {
+        _inFlightBoundsSearches.remove(key);
+      }
+    }
+  }
+
+  Future<List<PoiModel>> _searchInBoundsUncached({
+    required double minLat,
+    required double maxLat,
+    required double minLon,
+    required double maxLon,
+    String? query,
+    String? category,
+    int limit = 50,
+  }) async {
     final db = await _getDb();
     final cleanQuery = query != null ? _sanitizeFtsQuery(query) : '';
     final cleanAscii = cleanQuery.isNotEmpty
@@ -466,6 +586,16 @@ class PoiRepositoryImpl implements IPoiRepository {
       'lon >= ? AND lon <= ?',
     ];
     final whereArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
+    // Không để SQLite trả về 50 dòng đầu theo thứ tự vật lý của DB. Dữ liệu
+    // OSM thường được ghi theo từng khu vực, nên cách đó có thể làm toàn bộ
+    // kết quả dồn về một phía dù trong bbox còn nhiều POI gần tâm hơn.
+    // Đây là khoảng cách xấp xỉ để chọn candidate; SearchResultRanker sẽ
+    // tính lại khoảng cách địa lý chính xác ở lớp orchestration.
+    final centerLat = ((minLat + maxLat) / 2).toStringAsFixed(8);
+    final centerLon = ((minLon + maxLon) / 2).toStringAsFixed(8);
+    final orderBy =
+        '((lat - $centerLat) * (lat - $centerLat) + '
+        '(lon - $centerLon) * (lon - $centerLon)) ASC';
 
     if (cleanQuery.isNotEmpty) {
       whereClauses.add(
@@ -499,6 +629,7 @@ class PoiRepositoryImpl implements IPoiRepository {
         'poi',
         where: whereClauses.join(' AND '),
         whereArgs: whereArgs,
+        orderBy: orderBy,
         limit: limit,
       );
       return results.map(PoiModel.fromMap).toList();
@@ -516,6 +647,7 @@ class PoiRepositoryImpl implements IPoiRepository {
           'poi',
           where: legacyClauses.join(' AND '),
           whereArgs: legacyArgs,
+          orderBy: orderBy,
           limit: limit,
         );
         return results.map(PoiModel.fromMap).toList();
@@ -527,6 +659,36 @@ class PoiRepositoryImpl implements IPoiRepository {
 
   @override
   Future<List<String>> getSuggestions(String query, {int limit = 10}) async {
+    if (query.trim().isEmpty) return [];
+
+    if (!_cacheEnabled) {
+      return _getSuggestionsUncached(query, limit: limit);
+    }
+
+    final key = _suggestionsCacheKey(query, limit: limit);
+    final cached = _searchCache.getSuggestions(key, limit: limit);
+    if (cached != null) return cached;
+
+    final pending = _inFlightSuggestions[key];
+    if (pending != null) return List<String>.of(await pending);
+
+    final future = _getSuggestionsUncached(query, limit: limit);
+    _inFlightSuggestions[key] = future;
+    try {
+      final results = await future;
+      _searchCache.putSuggestions(key, results);
+      return results;
+    } finally {
+      if (identical(_inFlightSuggestions[key], future)) {
+        _inFlightSuggestions.remove(key);
+      }
+    }
+  }
+
+  Future<List<String>> _getSuggestionsUncached(
+    String query, {
+    required int limit,
+  }) async {
     if (query.trim().isEmpty) return [];
 
     final cleanQuery = _sanitizeFtsQuery(AppUtils.instance.toAscii(query));
@@ -582,5 +744,43 @@ class PoiRepositoryImpl implements IPoiRepository {
 
     if (results.isEmpty) return null;
     return PoiModel.fromMap(results.first);
+  }
+
+  String _searchCacheKey(String query, {required int limit}) {
+    // Có dấu/không dấu đi qua các nhánh FTS khác nhau; không gộp hai loại này
+    // vào một cache key để tránh dùng nhầm result set trong các edge case OSM.
+    final mode = Validator.instance.hasDiacritics(query) ? 'accent' : 'ascii';
+    return '${SearchCacheService.cacheVersion}|search|$mode|'
+        '${_normalizeCacheText(query)}|limit:$limit';
+  }
+
+  String _suggestionsCacheKey(String query, {required int limit}) =>
+      '${SearchCacheService.cacheVersion}|suggestions|${_normalizeCacheText(query)}|limit:$limit';
+
+  String _boundsSearchCacheKey({
+    required double minLat,
+    required double maxLat,
+    required double minLon,
+    required double maxLon,
+    String? query,
+    String? category,
+    required int limit,
+  }) {
+    String coordinate(double value) => value.toStringAsFixed(5);
+
+    return '${SearchCacheService.cacheVersion}|bounds|'
+        '${coordinate(minLat)}:${coordinate(maxLat)}:'
+        '${coordinate(minLon)}:${coordinate(maxLon)}|'
+        'query:${_normalizeCacheText(query)}|'
+        'category:${_normalizeCacheText(category)}|limit:$limit';
+  }
+
+  String _normalizeCacheText(String? value) {
+    return AppUtils.instance
+        .toAscii(value ?? '')
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ');
   }
 }

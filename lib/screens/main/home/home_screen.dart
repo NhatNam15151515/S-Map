@@ -13,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final MapDisplayCubit _mapCubit;
   late final MapExploreCubit _exploreCubit;
   late final ViewportSearchBloc _viewportBloc;
   NavigationBloc? _localNavigationBloc;
@@ -21,14 +20,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _mapCubit = MapDisplayCubit();
     _exploreCubit = MapExploreCubit()..watchExplorePlaces();
     _viewportBloc = ViewportSearchBloc();
   }
 
   @override
   void dispose() {
-    _mapCubit.close();
     _exploreCubit.close();
     _viewportBloc.close();
     _localNavigationBloc?.close();
@@ -49,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return MultiBlocProvider(
       providers: [
-        BlocProvider.value(value: _mapCubit),
         BlocProvider.value(value: _exploreCubit),
         BlocProvider.value(value: _viewportBloc),
         BlocProvider.value(value: navBloc),

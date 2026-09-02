@@ -15,12 +15,14 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   final ISyncRepository _syncRepository;
   final IFirebaseAuthService _authService;
   final IAuthRepos _authRepos;
+  final bool _autoStartOnQueue;
   StreamSubscription<int>? _queueSubscription;
 
   SyncBloc({
     ISyncRepository? syncRepository,
     IFirebaseAuthService? authService,
     IAuthRepos? authRepos,
+    bool autoStartOnQueue = false,
   })  : _syncRepository = syncRepository ??
             (AppReposProvider.isInitialized
                 ? AppReposProvider.instance.syncRepos
@@ -30,6 +32,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
             (AppReposProvider.isInitialized
                 ? AppReposProvider.instance.authRepos
                 : const NoOpAuthRepos()),
+        _autoStartOnQueue = autoStartOnQueue,
         super(const SyncState()) {
     on<SyncStarted>(_onSyncStarted, transformer: droppable());
     on<SyncTripQueued>(_onSyncTripQueued);
@@ -145,6 +148,11 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   ) {
     if (!isClosed && !emit.isDone) {
       emit(state.copyWith(pendingCount: event.count));
+    }
+    // TripService writes locally first and adds the trip to this queue. Drain
+    // it automatically whenever a new pending record appears.
+    if (_autoStartOnQueue && event.count > 0 && !isClosed) {
+      add(const SyncStarted());
     }
   }
 

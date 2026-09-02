@@ -11,6 +11,11 @@ class ViewportSearchState extends Equatable {
   final LatLngBounds? bounds;
   final String selectedCategory;
   final String? errorMessageKey;
+  final double? resolvedZoomLevel;
+  final LatLng? searchCenter;
+  final String? searchQuery;
+  final bool fitBoundsMode;
+  final bool isAreaSearch;
 
   const ViewportSearchState({
     this.status = ViewportSearchStatus.initial,
@@ -18,6 +23,11 @@ class ViewportSearchState extends Equatable {
     this.bounds,
     this.selectedCategory = CategoryConstants.all,
     this.errorMessageKey,
+    this.resolvedZoomLevel,
+    this.searchCenter,
+    this.searchQuery,
+    this.fitBoundsMode = false,
+    this.isAreaSearch = false,
   });
 
   bool get isInitial => status == ViewportSearchStatus.initial;
@@ -33,8 +43,16 @@ class ViewportSearchState extends Equatable {
     LatLngBounds? bounds,
     String? selectedCategory,
     String? errorMessageKey,
+    double? resolvedZoomLevel,
+    LatLng? searchCenter,
+    String? searchQuery,
+    bool? fitBoundsMode,
+    bool? isAreaSearch,
     bool clearError = false,
     bool clearBounds = false,
+    bool clearResolvedZoomLevel = false,
+    bool clearSearchCenter = false,
+    bool clearSearchQuery = false,
   }) {
     return ViewportSearchState(
       status: status ?? this.status,
@@ -42,6 +60,13 @@ class ViewportSearchState extends Equatable {
       bounds: clearBounds ? null : (bounds ?? this.bounds),
       selectedCategory: selectedCategory ?? this.selectedCategory,
       errorMessageKey: clearError ? null : (errorMessageKey ?? this.errorMessageKey),
+      resolvedZoomLevel: clearResolvedZoomLevel
+          ? null
+          : (resolvedZoomLevel ?? this.resolvedZoomLevel),
+      searchCenter: clearSearchCenter ? null : (searchCenter ?? this.searchCenter),
+      searchQuery: clearSearchQuery ? null : (searchQuery ?? this.searchQuery),
+      fitBoundsMode: fitBoundsMode ?? this.fitBoundsMode,
+      isAreaSearch: isAreaSearch ?? this.isAreaSearch,
     );
   }
 
@@ -52,5 +77,10 @@ class ViewportSearchState extends Equatable {
         bounds,
         selectedCategory,
         errorMessageKey,
+        resolvedZoomLevel,
+        searchCenter,
+        searchQuery,
+        fitBoundsMode,
+        isAreaSearch,
       ];
 }

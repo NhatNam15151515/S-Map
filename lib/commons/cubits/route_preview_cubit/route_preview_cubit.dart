@@ -12,6 +12,7 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
   final IRoutingRepository _routingRepository;
   final ILocationService _locationService;
   int _currentGeneration = 0;
+  int _previewRequestGeneration = 0;
 
   /// Optional global default service resolver set by the composition root
   static ILocationService? defaultLocationService;
@@ -50,8 +51,10 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
 
   /// Kích hoạt tính toán lộ trình xe máy đến một POI cụ thể từ vị trí hiện tại
   Future<void> previewRouteToPoi(PoiModel poi) async {
+    final previewGeneration = ++_previewRequestGeneration;
     DLog.info('🔍 [RoutePreviewCubit] previewRouteToPoi: "${poi.name}" (${poi.lat}, ${poi.lon})');
     final userPos = await _getUserPosition();
+    if (previewGeneration != _previewRequestGeneration || isClosed) return;
     await getRoute(
       origin: RoutePoint(lat: userPos.latitude, lon: userPos.longitude),
       destination: RoutePoint(lat: poi.lat, lon: poi.lon),
@@ -61,8 +64,10 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
 
   /// Kích hoạt tính toán lộ trình xe máy đến tọa độ bất kỳ (ví dụ khi Long Press trên Map)
   Future<void> previewRouteToCoordinate(LatLng target, {String? targetName}) async {
+    final previewGeneration = ++_previewRequestGeneration;
     DLog.info('🔍 [RoutePreviewCubit] previewRouteToCoordinate: (${target.latitude}, ${target.longitude}) - name: "$targetName"');
     final userPos = await _getUserPosition();
+    if (previewGeneration != _previewRequestGeneration || isClosed) return;
     await getRoute(
       origin: RoutePoint(lat: userPos.latitude, lon: userPos.longitude),
       destination: RoutePoint(lat: target.latitude, lon: target.longitude),
@@ -165,6 +170,7 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
   void clearRoute() {
     DLog.info('🧹 [RoutePreviewCubit] Clearing route preview state');
     _currentGeneration++;
+    _previewRequestGeneration++;
     emit(const RoutePreviewState());
   }
 }

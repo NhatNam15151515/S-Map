@@ -22,6 +22,26 @@ abstract class IFireStoreService {
   // --- SAVED PLACES METHODS ---
   Future<void> savePlace(String userId, Map<String, dynamic> placeData);
   Stream<QuerySnapshot?> streamSavedPlaces(String userId);
+  Future<List<Map<String, dynamic>>> getSavedPlaces(String userId);
+  Future<void> deleteSavedPlace(String userId, String poiKey);
+  Future<void> clearSavedPlaces(String userId);
+
+  // --- USER SEARCH & VISITED PLACE METHODS ---
+  Future<void> saveSearchQuery(String userId, String query);
+  Future<List<String>> getSearchQueries(String userId, {int limit = 20});
+  Future<void> deleteSearchQuery(String userId, String query);
+  Future<void> clearSearchQueries(String userId);
+  Future<void> saveVisitedPlace(
+      String userId, Map<String, dynamic> placeData);
+  Future<List<Map<String, dynamic>>> getVisitedPlaces(String userId);
+  Future<void> clearVisitedPlaces(String userId);
+
+  // --- CUSTOM ROUTE METHODS ---
+  Future<void> saveCustomRoute(
+      String userId, Map<String, dynamic> routeData);
+  Future<List<Map<String, dynamic>>> getCustomRoutes(String userId);
+  Future<void> deleteCustomRoute(String userId, String routeId);
+  Future<void> clearCustomRoutes(String userId);
 
   // --- TRIP & STATS SYNC METHODS ---
   Future<void> syncTrip(String userId, TripRecordModel trip);

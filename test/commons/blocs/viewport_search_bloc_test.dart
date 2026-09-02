@@ -10,6 +10,7 @@ import 'package:s_map/models/models.dart';
 
 class FakePoiRepository implements IPoiRepository {
   List<PoiModel> mockPois = [];
+  List<PoiModel> globalSearchPois = [];
   Duration delay = Duration.zero;
   bool shouldThrow = false;
   VoidCallback? onSearchStarted;
@@ -57,7 +58,8 @@ class FakePoiRepository implements IPoiRepository {
   }
 
   @override
-  Future<List<PoiModel>> search(String query, {int limit = 20}) async => [];
+  Future<List<PoiModel>> search(String query, {int limit = 20}) async =>
+      globalSearchPois.take(limit).toList();
 
   @override
   Future<List<PoiModel>> searchByName(String query, {int limit = 20}) async => [];
@@ -318,6 +320,64 @@ void main() {
       expectLater(bloc.stream, emitsInOrder(expectedStates));
 
       bloc.add(SearchInViewportRequested(sampleBounds));
+    });
+
+    test('ProgressiveAreaSearch expands category radius only when needed',
+        () async {
+      fakeRepo.mockPois = [
+        const PoiModel(
+          id: 10,
+          name: 'Cà phê ngoại ô',
+          nameAscii: 'Ca phe ngoai o',
+          category: 'coffee',
+          lat: 10.90,
+          lon: 106.7009,
+        ),
+      ];
+
+      bloc.add(const ProgressiveAreaSearch(
+        center: LatLng(10.7769, 106.7009),
+        category: 'coffee',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emitsThrough(predicate<ViewportSearchState>((state) {
+          return state.isSuccess &&
+              state.resolvedZoomLevel == 12.0 &&
+              state.searchCenter == const LatLng(10.7769, 106.7009) &&
+              state.pois.single.id == 10;
+        })),
+      );
+    });
+
+    test('ProgressiveAreaSearch keeps named text result outside local bias',
+        () async {
+      fakeRepo.globalSearchPois = [
+        const PoiModel(
+          id: 11,
+          name: 'Khách sạn Rex',
+          nameAscii: 'Khach san Rex',
+          category: 'hotel',
+          lat: 21.0285,
+          lon: 105.8542,
+        ),
+      ];
+
+      bloc.add(const ProgressiveAreaSearch(
+        center: LatLng(10.7769, 106.7009),
+        query: 'Rex',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emitsThrough(predicate<ViewportSearchState>((state) {
+          return state.isSuccess &&
+              state.resolvedZoomLevel == 13.0 &&
+              state.isAreaSearch &&
+              state.pois.single.name == 'Khách sạn Rex';
+        })),
+      );
     });
   });
 }

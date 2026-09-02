@@ -11,6 +11,53 @@
       "tileSize": 256,
       "maxzoom": 19,
       "attribution": "© OpenStreetMap contributors"
+    },
+    "smap-sovereignty-source": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [112.3394, 16.5367]
+            },
+            "properties": {
+              "name": "Quần đảo Hoàng Sa\n(Việt Nam)",
+              "textSize": 13,
+              "textColor": "#D32F2F",
+              "letterSpacing": 0
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [111.9197, 8.6433]
+            },
+            "properties": {
+              "name": "Quần đảo Trường Sa\n(Việt Nam)",
+              "textSize": 13,
+              "textColor": "#D32F2F",
+              "letterSpacing": 0
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [113.5, 13.5]
+            },
+            "properties": {
+              "name": "BIỂN ĐÔNG",
+              "textSize": 15,
+              "textColor": "#1976D2",
+              "letterSpacing": 0.2
+            }
+          }
+        ]
+      }
     }
   },
   "layers": [
@@ -27,6 +74,24 @@
       "source": "osm-tiles",
       "minzoom": 0,
       "maxzoom": 22
+    },
+    {
+      "id": "smap-sovereignty-layer",
+      "type": "symbol",
+      "source": "smap-sovereignty-source",
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-size": ["get", "textSize"],
+        "text-anchor": "center",
+        "text-letter-spacing": ["get", "letterSpacing"],
+        "text-allow-overlap": true,
+        "text-ignore-placement": true
+      },
+      "paint": {
+        "text-color": ["get", "textColor"],
+        "text-halo-color": "#FFFFFF",
+        "text-halo-width": 2.0
+      }
     }
   ]
 }

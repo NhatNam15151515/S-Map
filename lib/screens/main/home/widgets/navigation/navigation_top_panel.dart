@@ -6,7 +6,10 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
-/// Top HUD Banner hiển thị chỉ dẫn điều hướng Turn-by-Turn (Khoảng cách, Icon rẽ, Tên đường, Preview bước tiếp theo)
+/// Top HUD Banner hiển thị chỉ dẫn điều hướng Turn-by-Turn theo kiểu Google Maps:
+/// - Icon rẽ lớn bên trái + khoảng cách
+/// - "về hướng [Tên đường]" — tên đường cụ thể hoặc chỉ dẫn hành động
+/// - Sub-panel: "Sau đó ➜ [hướng rẽ tiếp theo]"
 class NavigationTopPanel extends StatelessWidget {
   final double? topPadding;
 
@@ -39,10 +42,14 @@ class NavigationTopPanel extends StatelessWidget {
         final icon = RouteFormatHelper.getInstructionIcon(
           currentInstruction.type,
         );
-        final title = RouteFormatHelper.getInstructionTitle(currentInstruction);
+        final streetName = RouteFormatHelper.getInstructionTitle(currentInstruction);
         final distanceStr = RouteFormatHelper.formatDistance(
           state.distanceToNextInstruction,
         );
+
+        // Xây dựng tiêu đề: "về hướng [Tên đường]"
+        final toward = tr(LocaleKeys.routing_toward_direction);
+        final hasStreetName = currentInstruction.streetName.isNotEmpty;
 
         return Positioned(
           top: (topPadding ?? MediaQuery.paddingOf(context).top) + 8,
@@ -51,7 +58,7 @@ class NavigationTopPanel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. Reroute Status Indicator (nếu đang tính lại đường)
+              // 1. Reroute Status Indicator
               if (state.isRerouting)
                 Container(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -91,20 +98,14 @@ class NavigationTopPanel extends StatelessWidget {
                   ),
                 ),
 
-              // 2. Main Maneuver Banner
+              // 2. Main Maneuver Banner — Kiểu Google Maps
               Container(
                 decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: state.isPreAnnounced
-                        ? themeColors.statsSuccess
-                        : colorScheme.outline.withAlpha(60),
-                    width: state.isPreAnnounced ? 1.8 : 0.8,
-                  ),
+                  color: themeColors.statsSuccess,
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: colorScheme.shadow.withValues(alpha: 0.15),
+                      color: colorScheme.shadow.withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -113,76 +114,52 @@ class NavigationTopPanel extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Main Step Card
+                    // Main instruction card
                     Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Maneuver Icon Container
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary.withAlpha(25),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              icon,
-                              color: colorScheme.primary,
-                              size: 36,
-                            ),
+                          // Maneuver Icon — lớn, trắng
+                          Icon(
+                            icon,
+                            color: themeColors.onStatsSuccess,
+                            size: 44,
                           ),
                           const SizedBox(width: 14),
 
-                          // Distance & Instruction Street Name
+                          // Chỉ dẫn: "về hướng [Tên đường]" + khoảng cách
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      distanceStr,
-                                      style: colorScheme.onSurface.textTheme
-                                          .boldStyle
-                                          .copyWith(
-                                        fontSize: 22,
-                                        letterSpacing: -0.5,
-                                      ),
-                                    ),
-                                    if (state.isPreAnnounced) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: themeColors.statsSuccess
-                                              .withAlpha(200),
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          tr(LocaleKeys.routing_prepare_turn),
-                                          style: themeColors.onStatsSuccess.textTheme
-                                              .semiBoldStyle
-                                              .copyWith(fontSize: 10),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
+                                // Dòng 1: Khoảng cách tới ngã rẽ
+                                Text(
+                                  distanceStr,
+                                  style: themeColors.onStatsSuccess.textTheme
+                                      .boldStyle
+                                      .copyWith(
+                                    fontSize: 28,
+                                    letterSpacing: -0.5,
+                                    height: 1.1,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
+                                // Dòng 2: "về hướng [Tên đường]" hoặc chỉ dẫn hành động
                                 Text(
-                                  title,
+                                  hasStreetName
+                                      ? '$toward $streetName'
+                                      : streetName,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: colorScheme.onSurfaceVariant.textTheme
+                                  style: themeColors.onStatsSuccess.textTheme
                                       .mediumStyle
                                       .copyWith(
                                     fontSize: 15,
+                                    height: 1.2,
                                   ),
                                 ),
                               ],
@@ -192,35 +169,35 @@ class NavigationTopPanel extends StatelessWidget {
                       ),
                     ),
 
-                    // 3. Next Turn Preview (nếu có chặng rẽ tiếp theo)
+                    // 3. Next Turn Preview — "Sau đó ➜ [hướng rẽ tiếp theo]"
                     if (nextInstruction != null)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 8,
+                          vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          color: themeColors.statsSuccess.withValues(alpha: 0.85),
                           borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(15),
+                            bottom: Radius.circular(14),
                           ),
                         ),
                         child: Row(
                           children: [
                             Text(
-                              '${tr(LocaleKeys.routing_then_turn)}: ',
-                              style: colorScheme.onSurfaceVariant.textTheme.regularStyle
-                                  .copyWith(
-                                fontSize: 12,
-                              ),
+                              tr(LocaleKeys.routing_then_turn),
+                              style: themeColors.onStatsSuccess.textTheme
+                                  .regularStyle
+                                  .copyWith(fontSize: 13),
                             ),
+                            const SizedBox(width: 6),
                             Icon(
                               RouteFormatHelper.getInstructionIcon(
                                 nextInstruction.type,
                               ),
-                              color: colorScheme.onSurfaceVariant,
-                              size: 16,
+                              color: themeColors.onStatsSuccess,
+                              size: 20,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -230,11 +207,9 @@ class NavigationTopPanel extends StatelessWidget {
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: colorScheme.onSurface.textTheme
+                                style: themeColors.onStatsSuccess.textTheme
                                     .semiBoldStyle
-                                    .copyWith(
-                                  fontSize: 12,
-                                ),
+                                    .copyWith(fontSize: 13),
                               ),
                             ),
                           ],

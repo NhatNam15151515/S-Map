@@ -230,3 +230,23 @@ class NoOpActiveTripService implements IActiveTripService {
   Future<bool> hasActiveSession() async => false;
 }
 
+/// Fallback / No-Op implementation for IVisitedPoiService.
+class NoOpVisitedPoiService implements IVisitedPoiService {
+  const NoOpVisitedPoiService();
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<List<PoiModel>> getVisitedPois() async => const [];
+
+  @override
+  Future<void> recordVisited(PoiModel poi) async {}
+
+  @override
+  Future<void> clearVisitedPois() async {}
+
+  @override
+  Stream<List<PoiModel>> watchVisitedPois() => const Stream.empty();
+}
+

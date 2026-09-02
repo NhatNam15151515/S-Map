@@ -32,3 +32,4 @@ export 'i_trip_repository.dart';
 export 'i_trip_service.dart';
 export 'i_trip_sync_service.dart';
 export 'i_turn_by_turn_engine.dart';
+export 'i_visited_poi_service.dart';

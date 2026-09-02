@@ -129,4 +129,40 @@ class RouteFormatHelper {
     }
     return tr(LocaleKeys.routing_continue_straight);
   }
+
+  /// Lấy mô tả hành động rẽ/đi từ InstructionType (ví dụ: "Rẽ trái", "Đi thẳng")
+  static String getInstructionActionText(InstructionType type) {
+    switch (type) {
+      case InstructionType.turnSharpLeft:
+        return tr(LocaleKeys.routing_action_turn_sharp_left);
+      case InstructionType.turnLeft:
+        return tr(LocaleKeys.routing_action_turn_left);
+      case InstructionType.turnSlightLeft:
+        return tr(LocaleKeys.routing_action_turn_slight_left);
+      case InstructionType.continueStraight:
+        return tr(LocaleKeys.routing_continue_straight);
+      case InstructionType.turnSlightRight:
+        return tr(LocaleKeys.routing_action_turn_slight_right);
+      case InstructionType.turnRight:
+        return tr(LocaleKeys.routing_action_turn_right);
+      case InstructionType.turnSharpRight:
+        return tr(LocaleKeys.routing_action_turn_sharp_right);
+      case InstructionType.arrive:
+      case InstructionType.reachedVia:
+        return tr(LocaleKeys.routing_action_arrive);
+      case InstructionType.uTurnLeft:
+      case InstructionType.uTurnUnknown:
+      case InstructionType.uTurnRight:
+        return tr(LocaleKeys.routing_action_u_turn);
+      case InstructionType.useRoundabout:
+      case InstructionType.leaveRoundabout:
+        return tr(LocaleKeys.routing_action_roundabout);
+      case InstructionType.keepLeft:
+        return tr(LocaleKeys.routing_action_keep_left);
+      case InstructionType.keepRight:
+        return tr(LocaleKeys.routing_action_keep_right);
+      case InstructionType.unknown:
+        return tr(LocaleKeys.routing_continue_straight);
+    }
+  }
 }

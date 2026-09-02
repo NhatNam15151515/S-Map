@@ -1,9 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
 import 'viewport_search_event.dart';
 import 'viewport_search_state.dart';
@@ -32,6 +34,11 @@ class ViewportSearchBloc
 
     on<ViewportCategoryFilterChanged>(
       _onCategoryFilterChanged,
+      transformer: restartable(),
+    );
+
+    on<ProgressiveAreaSearch>(
+      _onProgressiveAreaSearch,
       transformer: restartable(),
     );
 
@@ -85,6 +92,121 @@ class ViewportSearchBloc
     }
   }
 
+  Future<void> _onProgressiveAreaSearch(
+    ProgressiveAreaSearch event,
+    Emitter<ViewportSearchState> emit,
+  ) async {
+    final gen = ++_queryGeneration;
+    final category = _normalizeCategory(event.category);
+    final query = category == CategoryConstants.all
+        ? _cleanQuery(event.query)
+        : null;
+    _currentCategory = category;
+
+    emit(state.copyWith(
+      status: ViewportSearchStatus.loading,
+      pois: const [],
+      selectedCategory: category,
+      searchCenter: event.center,
+      searchQuery: query,
+      isAreaSearch: true,
+      fitBoundsMode: false,
+      clearBounds: true,
+      clearError: true,
+      clearResolvedZoomLevel: true,
+    ));
+
+    var globalTextCandidates = const <PoiModel>[];
+    var globalTextLoaded = false;
+
+    try {
+      for (final entry in MapConstants.areaSearchZoomToRadiusKm.entries) {
+        if (entry.key > event.initialZoom) continue;
+        if (emit.isDone || gen != _queryGeneration) return;
+
+        final radiusKm = entry.value;
+        final bounds = MapConstants.boundsFromCenter(event.center, radiusKm);
+        final localCandidates = await _poiRepository.searchInBounds(
+          minLat: bounds.southwest.latitude,
+          maxLat: bounds.northeast.latitude,
+          minLon: bounds.southwest.longitude,
+          maxLon: bounds.northeast.longitude,
+          query: query,
+          category: category == CategoryConstants.all ? null : category,
+          limit: event.limit,
+        );
+
+        if (query != null && !globalTextLoaded) {
+          globalTextLoaded = true;
+          // Text search của Google dùng location bias, không phải hard
+          // radius. Lấy thêm ứng viên toàn cục rồi rank relevance + distance.
+          globalTextCandidates = await _poiRepository.search(
+            query,
+            limit: event.limit < 100 ? 100 : event.limit,
+          );
+        }
+
+        final radiusCandidates = localCandidates
+            .where((poi) => _isWithinRadius(poi, event.center, radiusKm))
+            .toList();
+        final candidates = query == null
+            ? radiusCandidates
+            : [...radiusCandidates, ...globalTextCandidates];
+
+        if (candidates.isNotEmpty) {
+          final pois = SearchResultRanker.rank(
+            candidates,
+            center: event.center,
+            query: query,
+            limit: event.limit,
+          );
+          if (pois.isEmpty) continue;
+
+          if (emit.isDone || gen != _queryGeneration) return;
+          emit(state.copyWith(
+            status: ViewportSearchStatus.success,
+            pois: pois,
+            bounds: bounds,
+            selectedCategory: category,
+            searchCenter: event.center,
+            searchQuery: query,
+            resolvedZoomLevel: entry.key,
+            // Keep the resolved bias level for telemetry/tests. Home decides
+            // the final camera behavior: one POI focuses it, multiple POIs
+            // fit the complete result bounds.
+            fitBoundsMode: false,
+            isAreaSearch: true,
+            clearError: true,
+          ));
+          return;
+        }
+      }
+
+      if (emit.isDone || gen != _queryGeneration) return;
+      emit(state.copyWith(
+        status: ViewportSearchStatus.empty,
+        pois: const [],
+        selectedCategory: category,
+        searchCenter: event.center,
+        searchQuery: query,
+        resolvedZoomLevel: MapConstants.areaSearchMinZoom,
+        fitBoundsMode: false,
+        isAreaSearch: true,
+        clearError: true,
+      ));
+    } catch (_) {
+      if (emit.isDone || gen != _queryGeneration) return;
+      emit(state.copyWith(
+        status: ViewportSearchStatus.error,
+        errorMessageKey: LocaleKeys.no_pois_in_viewport,
+        selectedCategory: category,
+        searchCenter: event.center,
+        searchQuery: query,
+        isAreaSearch: true,
+      ));
+    }
+  }
+
   void _onClearViewportSearch(
     ClearViewportSearch event,
     Emitter<ViewportSearchState> emit,
@@ -107,6 +229,11 @@ class ViewportSearchBloc
       status: ViewportSearchStatus.loading,
       bounds: bounds,
       selectedCategory: category,
+      isAreaSearch: false,
+      clearSearchCenter: true,
+      clearSearchQuery: true,
+      clearResolvedZoomLevel: true,
+      fitBoundsMode: false,
       clearError: true,
     ));
 
@@ -145,6 +272,7 @@ class ViewportSearchBloc
           pois: const [],
           bounds: bounds,
           selectedCategory: category,
+          isAreaSearch: false,
           clearError: true,
         ));
       } else {
@@ -153,6 +281,7 @@ class ViewportSearchBloc
           pois: pois,
           bounds: bounds,
           selectedCategory: category,
+          isAreaSearch: false,
           clearError: true,
         ));
       }
@@ -162,7 +291,29 @@ class ViewportSearchBloc
         status: ViewportSearchStatus.error,
         errorMessageKey: LocaleKeys.no_pois_in_viewport,
         bounds: bounds,
+        isAreaSearch: false,
       ));
     }
   }
+
+  String _normalizeCategory(String? category) {
+    final clean = category?.trim().toLowerCase() ?? '';
+    return clean.isEmpty ? CategoryConstants.all : clean;
+  }
+
+  String? _cleanQuery(String? query) {
+    final clean = query?.trim() ?? '';
+    return clean.isEmpty ? null : clean;
+  }
+
+  bool _isWithinRadius(PoiModel poi, LatLng center, double radiusKm) {
+    final distance = AppUtils.instance.calculateDistance(
+      center.latitude,
+      center.longitude,
+      poi.lat,
+      poi.lon,
+    );
+    return distance <= radiusKm * 1.05;
+  }
+
 }
