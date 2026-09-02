@@ -449,6 +449,7 @@ class MapSymbolManager {
   Future<void> hideSearchResultMarkers(
     MapLibreMapController? controller,
   ) async {
+    if (_searchResultSymbols.isEmpty) return;
     final generation = ++_renderGeneration;
     final symbolsToRemove = List<Symbol>.of(_searchResultSymbols);
     _searchResultSymbols.clear();

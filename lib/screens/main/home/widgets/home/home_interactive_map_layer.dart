@@ -521,17 +521,13 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
           listener: (context, navState) async {
             final gen = ++_navListenerGeneration;
             if (navState.isNavigating) {
-              // Navigation có thể được bắt đầu trực tiếp từ route drawing,
-              // không đi qua RoutePreviewCubit. Vẫn phải ẩn search markers ở
-              // đây để map chỉ còn route và destination marker.
-              await _symbolManager.hideSearchResultMarkers(_mapController);
-              if (!mounted || gen != _navListenerGeneration) return;
-
               // 0. Nếu lộ trình thay đổi (khởi chạy hoặc reroute mới), vẽ lộ trình trước
               if (navState.currentRoute != null &&
                   navState.currentRoute != _renderedNavRoute &&
                   navState.origin != null &&
                   navState.destination != null) {
+                await _symbolManager.hideSearchResultMarkers(_mapController);
+                if (!mounted || gen != _navListenerGeneration) return;
                 final isSuccess = await _routeManager.drawRoute(
                   controller: _mapController,
                   routeResult: navState.currentRoute!,
@@ -599,13 +595,27 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               final isNavigating = navState.isNavigating;
               return Stack(
             children: [
-              MapView(
-                key: const Key('map_view_main'),
-                styleString: state.styleString,
-                nativeCompassEnabled: false,
-                myLocationRenderMode: isNavigating
-                    ? MyLocationRenderMode.compass
-                    : MyLocationRenderMode.normal,
+              Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerMove: (event) {
+                  // Khi đang dẫn đường và người dùng vuốt/xoay bản đồ với khoảng cách > 2px:
+                  // Ngay lập tức tạm dừng follow để người dùng thoải mái lướt xem đường
+                  if (isNavigating && displayCubit.state.isFollowingUser) {
+                    if (event.delta.distanceSquared > 4) {
+                      displayCubit.unfollowUser();
+                    }
+                  }
+                },
+                child: MapView(
+                  key: const Key('map_view_main'),
+                  styleString: state.styleString,
+                  nativeCompassEnabled: false,
+                  myLocationTrackingMode: isNavigating
+                      ? MyLocationTrackingMode.none
+                      : MyLocationTrackingMode.tracking,
+                  myLocationRenderMode: isNavigating
+                      ? MyLocationRenderMode.compass
+                      : MyLocationRenderMode.normal,
                 onMapCreated: (controller) {
                   _mapController = controller;
                   controller.onSymbolTapped.add(_onSymbolTapped);
@@ -691,6 +701,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 onMapClick: _onMapClick,
                 onMapLongClick: _onMapLongClick,
               ),
+            ),
               if (state.status == MapDisplayStatus.loading)
                 const Positioned.fill(
                   child: Center(

@@ -139,8 +139,8 @@ class NavigationTopPanel extends StatelessWidget {
                                 // Dòng 1: Khoảng cách tới ngã rẽ
                                 Text(
                                   distanceStr,
-                                  style: onPanelColor.textTheme.boldStyle
-                                      .copyWith(
+                                  style:
+                                      onPanelColor.textTheme.boldStyle.copyWith(
                                     fontSize: 28,
                                     letterSpacing: -0.5,
                                     height: 1.1,
@@ -150,7 +150,7 @@ class NavigationTopPanel extends StatelessWidget {
                                 // Dòng 2: "Rẽ trái vào Nguyễn Văn A" hoặc chỉ "Đi thẳng"
                                 Text(
                                   currentInstruction.streetName.isNotEmpty
-                                      ? '$actionText ${streetName}'
+                                      ? '$actionText $streetName'
                                       : actionText,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,

@@ -15,6 +15,7 @@ class MapView extends StatelessWidget {
   final void Function(Point<double> point, LatLng latLng)? onMapLongClick;
   final bool nativeCompassEnabled;
   final MyLocationRenderMode myLocationRenderMode;
+  final MyLocationTrackingMode myLocationTrackingMode;
 
   const MapView({
     super.key,
@@ -29,6 +30,7 @@ class MapView extends StatelessWidget {
     this.onMapLongClick,
     this.nativeCompassEnabled = true,
     this.myLocationRenderMode = MyLocationRenderMode.normal,
+    this.myLocationTrackingMode = MyLocationTrackingMode.tracking,
   });
 
   @override
@@ -75,7 +77,7 @@ class MapView extends StatelessWidget {
       onMapCreated: onMapCreated,
       onStyleLoadedCallback: onStyleLoadedCallback,
       myLocationEnabled: true,
-      myLocationTrackingMode: MyLocationTrackingMode.tracking,
+      myLocationTrackingMode: myLocationTrackingMode,
       myLocationRenderMode: myLocationRenderMode,
       // Home disables the native compass because MapControls renders the
       // themed compass together with the other map actions. Other map

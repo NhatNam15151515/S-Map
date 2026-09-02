@@ -370,6 +370,15 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     ));
   }
 
+  /// Tạm dừng bám theo người dùng khi người dùng lướt/xoay bản đồ thủ công
+  void unfollowUser() {
+    if (!state.isFollowingUser) return;
+    _stopCompassListening();
+    emit(state.copyWith(
+      isFollowingUser: false,
+    ));
+  }
+
   void clearError() {
     if (state.errorMessageKey != null) {
       emit(state.copyWith(clearError: true));
