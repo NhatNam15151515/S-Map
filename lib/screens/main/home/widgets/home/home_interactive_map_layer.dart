@@ -547,17 +547,19 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
               if (!mounted || gen != _navListenerGeneration) return;
 
-              // 1. Cập nhật camera dẫn đường 3D: Heading-up + Dynamic zoom theo tốc độ + Tilt 50
+              // 1. Cập nhật camera: chỉ khi user đang follow (chưa kéo map ra)
               if (navState.currentLat != null && navState.currentLon != null) {
-                _cameraController.updateNavigationCamera(
-                  controller: _mapController,
-                  lat: navState.currentLat!,
-                  lon: navState.currentLon!,
-                  heading: navState.currentHeading,
-                  speedKmh: navState.currentSpeedKmh,
-                );
+                if (displayCubit.state.isFollowingUser) {
+                  _cameraController.updateNavigationCamera(
+                    controller: _mapController,
+                    lat: navState.currentLat!,
+                    lon: navState.currentLon!,
+                    heading: navState.currentHeading,
+                    speedKmh: navState.currentSpeedKmh,
+                  );
+                }
 
-                // 2. Làm mờ đoạn đường đã đi qua (Dimming passed polyline)
+                // 2. Làm mờ đoạn đường đã đi qua (luôn thực hiện)
                 if (navState.currentRoute != null &&
                     navState.currentRoute == _renderedNavRoute &&
                     gen == _navListenerGeneration) {

@@ -8,7 +8,7 @@ import 'package:s_map/generated/locale_keys.g.dart';
 
 /// Top HUD Banner hiển thị chỉ dẫn điều hướng Turn-by-Turn theo kiểu Google Maps:
 /// - Icon rẽ lớn bên trái + khoảng cách
-/// - "về hướng [Tên đường]" — tên đường cụ thể hoặc chỉ dẫn hành động
+/// - Tên đường + chỉ dẫn hành động (rẽ trái/phải/thẳng...)
 /// - Sub-panel: "Sau đó ➜ [hướng rẽ tiếp theo]"
 class NavigationTopPanel extends StatelessWidget {
   final double? topPadding;
@@ -18,7 +18,6 @@ class NavigationTopPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
-    final themeColors = context.themeColors;
 
     return BlocBuilder<NavigationBloc, NavigationState>(
       buildWhen: (prev, curr) =>
@@ -42,14 +41,19 @@ class NavigationTopPanel extends StatelessWidget {
         final icon = RouteFormatHelper.getInstructionIcon(
           currentInstruction.type,
         );
-        final streetName = RouteFormatHelper.getInstructionTitle(currentInstruction);
+        final streetName =
+            RouteFormatHelper.getInstructionTitle(currentInstruction);
         final distanceStr = RouteFormatHelper.formatDistance(
           state.distanceToNextInstruction,
         );
+        // Mô tả hành động rẽ (rẽ trái, đi thẳng, quay đầu...)
+        final actionText = RouteFormatHelper.getInstructionActionText(
+          currentInstruction.type,
+        );
 
-        // Xây dựng tiêu đề: "về hướng [Tên đường]"
-        final toward = tr(LocaleKeys.routing_toward_direction);
-        final hasStreetName = currentInstruction.streetName.isNotEmpty;
+        // Sử dụng màu primary (sMapTeal) của app thay vì statsSuccess
+        final panelColor = colorScheme.primary;
+        final onPanelColor = colorScheme.onPrimary;
 
         return Positioned(
           top: (topPadding ?? MediaQuery.paddingOf(context).top) + 8,
@@ -65,7 +69,7 @@ class NavigationTopPanel extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: colorScheme.primary,
+                    color: panelColor,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -84,13 +88,13 @@ class NavigationTopPanel extends StatelessWidget {
                         child: CircularProgressIndicator(
                           strokeWidth: 2.0,
                           valueColor:
-                              AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
+                              AlwaysStoppedAnimation<Color>(onPanelColor),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         tr(LocaleKeys.routing_rerouting),
-                        style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
+                        style: onPanelColor.textTheme.boldStyle.copyWith(
                           fontSize: 12,
                         ),
                       ),
@@ -98,10 +102,10 @@ class NavigationTopPanel extends StatelessWidget {
                   ),
                 ),
 
-              // 2. Main Maneuver Banner — Kiểu Google Maps
+              // 2. Main Maneuver Banner
               Container(
                 decoration: BoxDecoration(
-                  color: themeColors.statsSuccess,
+                  color: panelColor,
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
@@ -124,14 +128,10 @@ class NavigationTopPanel extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Maneuver Icon — lớn, trắng
-                          Icon(
-                            icon,
-                            color: themeColors.onStatsSuccess,
-                            size: 44,
-                          ),
+                          Icon(icon, color: onPanelColor, size: 44),
                           const SizedBox(width: 14),
 
-                          // Chỉ dẫn: "về hướng [Tên đường]" + khoảng cách
+                          // Chỉ dẫn: khoảng cách + hành động + tên đường
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,8 +139,7 @@ class NavigationTopPanel extends StatelessWidget {
                                 // Dòng 1: Khoảng cách tới ngã rẽ
                                 Text(
                                   distanceStr,
-                                  style: themeColors.onStatsSuccess.textTheme
-                                      .boldStyle
+                                  style: onPanelColor.textTheme.boldStyle
                                       .copyWith(
                                     fontSize: 28,
                                     letterSpacing: -0.5,
@@ -148,15 +147,14 @@ class NavigationTopPanel extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                // Dòng 2: "về hướng [Tên đường]" hoặc chỉ dẫn hành động
+                                // Dòng 2: "Rẽ trái vào Nguyễn Văn A" hoặc chỉ "Đi thẳng"
                                 Text(
-                                  hasStreetName
-                                      ? '$toward $streetName'
-                                      : streetName,
+                                  currentInstruction.streetName.isNotEmpty
+                                      ? '$actionText ${streetName}'
+                                      : actionText,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: themeColors.onStatsSuccess.textTheme
-                                      .mediumStyle
+                                  style: onPanelColor.textTheme.mediumStyle
                                       .copyWith(
                                     fontSize: 15,
                                     height: 1.2,
@@ -178,17 +176,23 @@ class NavigationTopPanel extends StatelessWidget {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: themeColors.statsSuccess.withValues(alpha: 0.85),
+                          color: panelColor.withValues(alpha: 0.85),
                           borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(14),
+                          ),
+                          // Đường kẻ phân cách nhẹ
+                          border: Border(
+                            top: BorderSide(
+                              color: onPanelColor.withValues(alpha: 0.2),
+                              width: 0.5,
+                            ),
                           ),
                         ),
                         child: Row(
                           children: [
                             Text(
                               tr(LocaleKeys.routing_then_turn),
-                              style: themeColors.onStatsSuccess.textTheme
-                                  .regularStyle
+                              style: onPanelColor.textTheme.regularStyle
                                   .copyWith(fontSize: 13),
                             ),
                             const SizedBox(width: 6),
@@ -196,7 +200,7 @@ class NavigationTopPanel extends StatelessWidget {
                               RouteFormatHelper.getInstructionIcon(
                                 nextInstruction.type,
                               ),
-                              color: themeColors.onStatsSuccess,
+                              color: onPanelColor,
                               size: 20,
                             ),
                             const SizedBox(width: 6),
@@ -207,8 +211,7 @@ class NavigationTopPanel extends StatelessWidget {
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: themeColors.onStatsSuccess.textTheme
-                                    .semiBoldStyle
+                                style: onPanelColor.textTheme.semiBoldStyle
                                     .copyWith(fontSize: 13),
                               ),
                             ),
