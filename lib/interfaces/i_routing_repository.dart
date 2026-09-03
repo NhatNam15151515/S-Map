@@ -11,6 +11,14 @@ abstract class IRoutingRepository {
     String? vehicleProfile,
   });
 
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  });
+
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,

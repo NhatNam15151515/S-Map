@@ -26,6 +26,7 @@ class RouteDrawingState extends Equatable {
   final String profile;
   final int requestGeneration;
   final CustomRouteModel? savedRoute;
+  final bool isStraightLineMode;
 
   const RouteDrawingState({
     this.status = RouteDrawingStatus.initial,
@@ -41,6 +42,7 @@ class RouteDrawingState extends Equatable {
     this.profile = RoutingConstants.defaultProfile,
     this.requestGeneration = 0,
     this.savedRoute,
+    this.isStraightLineMode = false,
   });
 
   bool get canUndo => points.isNotEmpty;
@@ -63,6 +65,7 @@ class RouteDrawingState extends Equatable {
     String? profile,
     int? requestGeneration,
     CustomRouteModel? savedRoute,
+    bool? isStraightLineMode,
     bool clearWarning = false,
     bool clearError = false,
     bool clearSavedRoute = false,
@@ -83,6 +86,7 @@ class RouteDrawingState extends Equatable {
       profile: profile ?? this.profile,
       requestGeneration: requestGeneration ?? this.requestGeneration,
       savedRoute: clearSavedRoute ? null : (savedRoute ?? this.savedRoute),
+      isStraightLineMode: isStraightLineMode ?? this.isStraightLineMode,
     );
   }
 
@@ -101,5 +105,6 @@ class RouteDrawingState extends Equatable {
         profile,
         requestGeneration,
         savedRoute,
+        isStraightLineMode,
       ];
 }

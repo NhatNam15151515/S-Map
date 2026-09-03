@@ -30,6 +30,24 @@ class MockRoutingRepo implements IRoutingRepository {
       );
 
   @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    final route = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: vehicleProfile,
+    );
+    return [route];
+  }
+
+  @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,

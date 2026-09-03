@@ -197,13 +197,16 @@ void main() {
 
     test('isEngineReady and dispose lifecycle operations', () async {
       mockService.readyState = false;
+      mockService.initSuccess = false;
       expect(await repository.isEngineReady(), isFalse);
+      mockService.initSuccess = true;
       await repository.initializeEngine('/path.ghz');
       expect(await repository.isEngineReady(), isTrue);
 
       final disposed = await repository.dispose();
       expect(disposed, isTrue);
       expect(mockService.disposeCalled, isTrue);
+      mockService.initSuccess = false;
       expect(await repository.isEngineReady(), isFalse);
     });
 
@@ -433,6 +436,8 @@ void main() {
       // Complete init afterwards
       initCompleter.complete(true);
       await pendingSnap;
+      service.initCompleter = null;
+      service.initSuccess = false;
 
       // isEngineReady should remain false
       expect(await repo.isEngineReady(), isFalse);

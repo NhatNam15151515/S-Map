@@ -474,20 +474,22 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               }
             }
 
-            if (state.isSuccess && state.routeResult != null) {
+            if (state.isSuccess && state.currentRoute != null) {
               await _routeManager.drawRoute(
                 controller: _mapController,
-                routeResult: state.routeResult!,
+                routeResult: state.currentRoute!,
                 origin: state.origin!,
                 destination: state.destination!,
                 destinationName: state.destinationName,
+                alternativeRoutes: state.alternativeRoutes,
+                selectedRouteIndex: state.selectedRouteIndex,
               );
               if (!mounted || syncGeneration != _routeMarkerSyncGeneration) {
                 return;
               }
               _routeManager.fitRouteBounds(
                 controller: _mapController,
-                routeResult: state.routeResult!,
+                routeResult: state.currentRoute!,
                 origin: state.origin,
                 destination: state.destination,
               );
@@ -548,9 +550,10 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
                 if (displayCubit.state.isFollowingUser) {
                   _cameraController.updateNavigationCamera(
                     controller: _mapController,
-                    lat: navState.currentLat!,
-                    lon: navState.currentLon!,
-                    heading: navState.currentHeading,
+                    lat: navState.displayLat ?? navState.currentLat!,
+                    lon: navState.displayLon ?? navState.currentLon!,
+                    gpsHeading: navState.currentHeading,
+                    compassHeading: displayCubit.state.compassHeading,
                     speedKmh: navState.currentSpeedKmh,
                   );
                 }

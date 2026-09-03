@@ -259,6 +259,94 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     }
   }
 
+  Future<void> _handleSelectOriginForRoute() async {
+    final mapState = displayCubit.state;
+    final searchCenter = mapState.currentPosition ?? mapState.center;
+    final result = await context.push<dynamic>(
+      AppRoutes.search,
+      extra: searchCenter,
+    );
+    if (!mounted || result == null) return;
+
+    final routeState = routePreviewCubit.state;
+    final currentDest = routeState.destination;
+    if (currentDest == null) return;
+
+    if (result is SearchResultPayload && result.isLocation) {
+      final pos = result.searchCenter ?? mapState.currentPosition;
+      if (pos != null) {
+        routePreviewCubit.previewRouteBetweenPoints(
+          origin: RoutePoint(lat: pos.latitude, lon: pos.longitude),
+          destination: currentDest,
+          originName: null,
+          destinationName: routeState.destinationName,
+          profile: routeState.profile,
+        );
+      }
+    } else if (result is SearchResultPayload && result.isSingle) {
+      final poi = result.selectedPoi!;
+      routePreviewCubit.previewRouteBetweenPoints(
+        origin: RoutePoint(lat: poi.lat, lon: poi.lon),
+        destination: currentDest,
+        originName: poi.name,
+        destinationName: routeState.destinationName,
+        profile: routeState.profile,
+      );
+    } else if (result is PoiModel) {
+      routePreviewCubit.previewRouteBetweenPoints(
+        origin: RoutePoint(lat: result.lat, lon: result.lon),
+        destination: currentDest,
+        originName: result.name,
+        destinationName: routeState.destinationName,
+        profile: routeState.profile,
+      );
+    }
+  }
+
+  Future<void> _handleSelectDestinationForRoute() async {
+    final mapState = displayCubit.state;
+    final searchCenter = mapState.currentPosition ?? mapState.center;
+    final result = await context.push<dynamic>(
+      AppRoutes.search,
+      extra: searchCenter,
+    );
+    if (!mounted || result == null) return;
+
+    final routeState = routePreviewCubit.state;
+    final currentOrigin = routeState.origin;
+    if (currentOrigin == null) return;
+
+    if (result is SearchResultPayload && result.isLocation) {
+      final pos = result.searchCenter ?? mapState.currentPosition;
+      if (pos != null) {
+        routePreviewCubit.previewRouteBetweenPoints(
+          origin: currentOrigin,
+          destination: RoutePoint(lat: pos.latitude, lon: pos.longitude),
+          originName: routeState.originName,
+          destinationName: null,
+          profile: routeState.profile,
+        );
+      }
+    } else if (result is SearchResultPayload && result.isSingle) {
+      final poi = result.selectedPoi!;
+      routePreviewCubit.previewRouteBetweenPoints(
+        origin: currentOrigin,
+        destination: RoutePoint(lat: poi.lat, lon: poi.lon),
+        originName: routeState.originName,
+        destinationName: poi.name,
+        profile: routeState.profile,
+      );
+    } else if (result is PoiModel) {
+      routePreviewCubit.previewRouteBetweenPoints(
+        origin: currentOrigin,
+        destination: RoutePoint(lat: result.lat, lon: result.lon),
+        originName: routeState.originName,
+        destinationName: result.name,
+        profile: routeState.profile,
+      );
+    }
+  }
+
   void _handleClosePoiCard() {
     _mapLayerKey.currentState?.clearSelectedPoiMarker();
     displayCubit.clearSelectedPoi();
@@ -564,7 +652,20 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                       ),
                     ],
 
-                    // 6. Route Preview Bottom Sheet (Hiển thị khi Route đang xem trước)
+                    // 6. Direction Header (Google Maps Style: Origin/Destination/Swap/Profile)
+                    if (isRouteActive)
+                      RouteDirectionHeader(
+                        topPadding: topPadding,
+                        onSelectOrigin: _handleSelectOriginForRoute,
+                        onSelectDestination: _handleSelectDestinationForRoute,
+                        onClose: () {
+                          DLog.info(
+                              '❌ [HomeScreen] Close Route Preview tapped');
+                          routePreviewCubit.clearRoute();
+                        },
+                      ),
+
+                    // 7. Route Preview Bottom Sheet (Hiển thị khi Route đang xem trước)
                     if (isRouteActive)
                       Positioned(
                         bottom: 0,

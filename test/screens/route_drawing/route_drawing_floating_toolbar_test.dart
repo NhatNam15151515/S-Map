@@ -132,5 +132,35 @@ void main() {
       await tester.pumpAndSettle();
       expect(clearCalled, isTrue);
     });
+
+    testWidgets('straight-line mode button renders and triggers toggle callback', (tester) async {
+      bool toggleStraightLineCalled = false;
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingFloatingToolbar(
+            canUndo: false,
+            canRedo: false,
+            canClear: false,
+            hasPoints: false,
+            isStraightLineMode: true,
+            onToggleStraightLineMode: () => toggleStraightLineCalled = true,
+            onUndo: () {},
+            onRedo: () {},
+            onClear: () {},
+            onFitBounds: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final toggleFinder = find.byKey(const Key('route_drawing_toggle_straight_line_btn'));
+      expect(toggleFinder, findsOneWidget);
+      expect(find.byIcon(Icons.airplanemode_active_rounded), findsOneWidget);
+
+      await tester.tap(toggleFinder);
+      await tester.pump();
+      expect(toggleStraightLineCalled, isTrue);
+    });
   });
 }

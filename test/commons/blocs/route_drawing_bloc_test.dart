@@ -75,6 +75,24 @@ class MockRoutingRepository implements IRoutingRepository {
   }
 
   @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    final route = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: vehicleProfile,
+    );
+    return [route];
+  }
+
+  @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,
@@ -1142,6 +1160,95 @@ void main() {
       expect(bloc.state.points.length, 1);
       expect(bloc.state.segments, isEmpty);
       expect(bloc.state.totalDistance, 0.0);
+    });
+
+    test('RouteDrawingReverseRoute inverts waypoints and polylines cleanly', () async {
+      // Add P1 and P2
+      bloc.add(const RouteDrawingEndpointsSelected(
+        origin: RoutePoint(lat: 10.7700, lon: 106.7000),
+        destination: RoutePoint(lat: 10.7800, lon: 106.7100),
+      ));
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      expect(bloc.state.points.first.originalLat, 10.7700);
+      expect(bloc.state.points.last.originalLat, 10.7800);
+
+      // Trigger Reverse
+      bloc.add(const RouteDrawingReverseRoute());
+      final reversedState = await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      expect(reversedState.points.first.originalLat, 10.7800);
+      expect(reversedState.points.last.originalLat, 10.7700);
+      expect(reversedState.totalDistance, 1200.0);
+    });
+
+    test('RouteDrawingChangeProfile updates profile and recalculates routes', () async {
+      bloc.add(const RouteDrawingEndpointsSelected(
+        origin: RoutePoint(lat: 10.7700, lon: 106.7000),
+        destination: RoutePoint(lat: 10.7800, lon: 106.7100),
+      ));
+      await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      expect(bloc.state.profile, RoutingConstants.defaultProfile);
+
+      bloc.add(const RouteDrawingChangeProfile('foot'));
+      final updatedProfileState = await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      expect(updatedProfileState.profile, 'foot');
+      expect(updatedProfileState.hasRoute, isTrue);
+    });
+
+    test('RouteDrawingToggleStraightLineMode toggles isStraightLineMode flag', () async {
+      expect(bloc.state.isStraightLineMode, isFalse);
+
+      bloc.add(const RouteDrawingToggleStraightLineMode());
+      await pumpEventQueue();
+      expect(bloc.state.isStraightLineMode, isTrue);
+
+      bloc.add(const RouteDrawingToggleStraightLineMode());
+      await pumpEventQueue();
+      expect(bloc.state.isStraightLineMode, isFalse);
+    });
+
+    test('RouteDrawingPointTapped in straight-line mode connects direct segment without routing repo call', () async {
+      // Bật chế độ đường chim bay
+      bloc.add(const RouteDrawingToggleStraightLineMode());
+      await pumpEventQueue();
+
+      // Tap điểm P1 qua sông/công viên (không gọi snap hay routing)
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7700, lon: 106.7000));
+      final s1 = await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
+
+      expect(s1.points.length, 1);
+      expect(s1.points.first.originalLat, 10.7700);
+      expect(s1.points.first.isSnapped, isFalse);
+      expect(mockRepository.calculateRouteCallCount, 0);
+
+      // Tap điểm P2
+      bloc.add(const RouteDrawingPointTapped(lat: 10.7800, lon: 106.7100));
+      final s2 = await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+
+      expect(s2.points.length, 2);
+      expect(s2.segments.length, 1);
+      expect(s2.segments.first.isStraightLine, isTrue);
+      expect(s2.segments.first.routeTitle, 'Đường chim bay');
+      expect(s2.segments.first.points.length, 2);
+      expect(s2.totalDistance, greaterThan(0.0));
+      expect(mockRepository.calculateRouteCallCount, 0,
+          reason: 'Straight-line mode must NOT call GraphHopper routing API');
+
+      // Đảo chiều (Reverse) bảo toàn isStraightLine
+      bloc.add(const RouteDrawingReverseRoute());
+      final s3 = await bloc.stream
+          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
+      expect(s3.segments.first.isStraightLine, isTrue);
+      expect(s3.points.first.originalLat, 10.7800);
     });
   });
 }

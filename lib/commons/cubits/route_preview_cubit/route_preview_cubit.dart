@@ -58,6 +58,7 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
     await getRoute(
       origin: RoutePoint(lat: userPos.latitude, lon: userPos.longitude),
       destination: RoutePoint(lat: poi.lat, lon: poi.lon),
+      originName: null,
       destinationName: poi.name,
     );
   }
@@ -71,7 +72,25 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
     await getRoute(
       origin: RoutePoint(lat: userPos.latitude, lon: userPos.longitude),
       destination: RoutePoint(lat: target.latitude, lon: target.longitude),
+      originName: null,
       destinationName: targetName,
+    );
+  }
+
+  /// Kích hoạt tính toán lộ trình giữa 2 điểm bất kỳ (Origin và Destination)
+  Future<void> previewRouteBetweenPoints({
+    required RoutePoint origin,
+    required RoutePoint destination,
+    String? originName,
+    String? destinationName,
+    String? profile,
+  }) async {
+    await getRoute(
+      origin: origin,
+      destination: destination,
+      originName: originName,
+      destinationName: destinationName,
+      profile: profile,
     );
   }
 
@@ -79,19 +98,22 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
   Future<void> getRoute({
     required RoutePoint origin,
     required RoutePoint destination,
+    String? originName,
     String? destinationName,
     String? profile,
   }) async {
     final selectedProfile = profile ?? state.profile;
     final generation = ++_currentGeneration;
 
-    DLog.info('🏍️ [RoutePreviewCubit] Calculating motorcycle route [Gen #$generation]: from (${origin.lat.toStringAsFixed(5)}, ${origin.lon.toStringAsFixed(5)}) to (${destination.lat.toStringAsFixed(5)}, ${destination.lon.toStringAsFixed(5)}) | Profile: $selectedProfile | Dest: "$destinationName"');
+    DLog.info('🏍️ [RoutePreviewCubit] Calculating route [Gen #$generation]: from "${originName ?? 'my_location'}" (${origin.lat.toStringAsFixed(5)}, ${origin.lon.toStringAsFixed(5)}) to "${destinationName ?? 'destination'}" (${destination.lat.toStringAsFixed(5)}, ${destination.lon.toStringAsFixed(5)}) | Profile: $selectedProfile');
 
     emit(state.copyWith(
       status: RoutePreviewStatus.loading,
       origin: origin,
       destination: destination,
+      originName: originName,
       destinationName: destinationName,
+      clearOriginName: originName == null,
       clearDestinationName: destinationName == null,
       profile: selectedProfile,
       requestGeneration: generation,
@@ -99,7 +121,7 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
     ));
 
     try {
-      final result = await _routingRepository.calculateRoute(
+      final routes = await _routingRepository.calculateAlternativeRoutes(
         fromLat: origin.lat,
         fromLon: origin.lon,
         toLat: destination.lat,
@@ -112,24 +134,30 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
         return;
       }
 
-      if (result.isSuccess) {
-        DLog.info('✅ [RoutePreviewCubit] Route calculated successfully: distance = ${(result.distance / 1000).toStringAsFixed(2)}km, time = ${(result.time / 60000).round()} mins, waypoints = ${result.points.length}');
+      final result = routes.isNotEmpty ? routes.first : null;
+
+      if (result != null && result.isSuccess) {
+        DLog.info('✅ [RoutePreviewCubit] Route calculated successfully: distance = ${(result.distance / 1000).toStringAsFixed(2)}km, time = ${(result.time / 60000).round()} mins, waypoints = ${result.points.length}, alternatives = ${routes.length}');
         emit(state.copyWith(
           status: RoutePreviewStatus.success,
           routeResult: result,
+          alternativeRoutes: routes,
+          selectedRouteIndex: 0,
           origin: origin,
           destination: destination,
+          originName: originName,
           destinationName: destinationName,
+          clearOriginName: originName == null,
           clearDestinationName: destinationName == null,
           profile: selectedProfile,
           requestGeneration: generation,
           clearError: true,
         ));
       } else {
-        DLog.error('❌ [RoutePreviewCubit] Route calculation failed: ${result.errorMessage}');
+        DLog.error('❌ [RoutePreviewCubit] Route calculation failed: ${result?.errorMessage}');
         emit(state.copyWith(
           status: RoutePreviewStatus.error,
-          errorMessageKey: result.errorMessage ?? RoutingConstants.errNoRouteFound,
+          errorMessageKey: result?.errorMessage ?? RoutingConstants.errNoRouteFound,
           requestGeneration: generation,
           clearRoute: true,
         ));
@@ -144,6 +172,24 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
         clearRoute: true,
       ));
     }
+  }
+
+  /// Hoán đổi điểm xuất phát và điểm đến (Swap A <-> B)
+  Future<void> swapEndpoints() async {
+    if (state.origin == null || state.destination == null) return;
+    DLog.info('🔄 [RoutePreviewCubit] Swapping origin and destination');
+    final oldOrigin = state.origin!;
+    final oldDest = state.destination!;
+    final oldOriginName = state.originName;
+    final oldDestName = state.destinationName;
+
+    await getRoute(
+      origin: oldDest,
+      destination: oldOrigin,
+      originName: oldDestName,
+      destinationName: oldOriginName,
+      profile: state.profile,
+    );
   }
 
   /// Thay đổi phương tiện di chuyển và tự động tính lại lộ trình
@@ -161,9 +207,40 @@ class RoutePreviewCubit extends Cubit<RoutePreviewState> {
     await getRoute(
       origin: state.origin!,
       destination: state.destination!,
+      originName: state.originName,
       destinationName: state.destinationName,
       profile: newProfile,
     );
+  }
+
+  /// Lựa chọn lộ trình thay thế trong danh sách đã tính toán
+  void selectAlternativeRoute(int index) {
+    if (state.alternativeRoutes.isEmpty ||
+        index < 0 ||
+        index >= state.alternativeRoutes.length) {
+      return;
+    }
+    if (state.selectedRouteIndex == index) return;
+
+    final selected = state.alternativeRoutes[index];
+    DLog.info(
+        '🔀 [RoutePreviewCubit] Selecting alternative route #$index: distance = ${(selected.distance / 1000).toStringAsFixed(2)}km, time = ${(selected.time / 60000).round()} mins');
+
+    emit(state.copyWith(
+      selectedRouteIndex: index,
+      routeResult: selected,
+    ));
+  }
+
+  /// Nạp danh sách các phương án lộ trình thay thế
+  void setAlternativeRoutes(List<RouteResult> routes, {int initialIndex = 0}) {
+    if (routes.isEmpty) return;
+    final validIndex = initialIndex.clamp(0, routes.length - 1);
+    emit(state.copyWith(
+      alternativeRoutes: routes,
+      selectedRouteIndex: validIndex,
+      routeResult: routes[validIndex],
+    ));
   }
 
   /// Dọn sạch toàn bộ lộ trình và đưa trạng thái về ban đầu

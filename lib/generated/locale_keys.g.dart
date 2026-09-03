@@ -238,6 +238,11 @@ abstract class  LocaleKeys {
   static const route_drawing_ui_use_my_location_origin = 'route_drawing_ui.use_my_location_origin';
   static const route_drawing_ui_use_selected_destination = 'route_drawing_ui.use_selected_destination';
   static const route_drawing_ui_custom_route_drawing = 'route_drawing_ui.custom_route_drawing';
+  static const route_drawing_ui_straight_line_mode_tooltip_on = 'route_drawing_ui.straight_line_mode_tooltip_on';
+  static const route_drawing_ui_straight_line_mode_tooltip_off = 'route_drawing_ui.straight_line_mode_tooltip_off';
+  static const route_drawing_ui_straight_line_mode_active_badge = 'route_drawing_ui.straight_line_mode_active_badge';
+  static const route_drawing_ui_center_add_start_point = 'route_drawing_ui.center_add_start_point';
+  static const route_drawing_ui_center_add_next_point = 'route_drawing_ui.center_add_next_point';
   static const route_drawing_ui = 'route_drawing_ui';
   static const stats_dashboard_title = 'stats_dashboard.title';
   static const stats_dashboard_range_today = 'stats_dashboard.range_today';

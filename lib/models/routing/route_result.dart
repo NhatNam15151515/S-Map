@@ -10,6 +10,9 @@ class RouteResult extends Equatable {
   final List<RouteInstruction> instructions;
   final String? errorMessage;
   final int calculationTimeMs;
+  final String? routeTitle;
+  final bool isAlternative;
+  final bool isStraightLine;
 
   const RouteResult({
     required this.isSuccess,
@@ -20,6 +23,9 @@ class RouteResult extends Equatable {
     this.instructions = const [],
     this.errorMessage,
     this.calculationTimeMs = 0,
+    this.routeTitle,
+    this.isAlternative = false,
+    this.isStraightLine = false,
   });
 
   bool get isFailure => !isSuccess;
@@ -89,6 +95,34 @@ class RouteResult extends Equatable {
         'calculationTimeMs': calculationTimeMs,
       };
 
+  RouteResult copyWith({
+    bool? isSuccess,
+    double? distance,
+    int? time,
+    List<List<double>>? points,
+    List<double>? bbox,
+    List<RouteInstruction>? instructions,
+    String? errorMessage,
+    int? calculationTimeMs,
+    String? routeTitle,
+    bool? isAlternative,
+    bool? isStraightLine,
+  }) {
+    return RouteResult(
+      isSuccess: isSuccess ?? this.isSuccess,
+      distance: distance ?? this.distance,
+      time: time ?? this.time,
+      points: points ?? this.points,
+      bbox: bbox ?? this.bbox,
+      instructions: instructions ?? this.instructions,
+      errorMessage: errorMessage ?? this.errorMessage,
+      calculationTimeMs: calculationTimeMs ?? this.calculationTimeMs,
+      routeTitle: routeTitle ?? this.routeTitle,
+      isAlternative: isAlternative ?? this.isAlternative,
+      isStraightLine: isStraightLine ?? this.isStraightLine,
+    );
+  }
+
   @override
   List<Object?> get props => [
         isSuccess,
@@ -99,5 +133,8 @@ class RouteResult extends Equatable {
         instructions,
         errorMessage,
         calculationTimeMs,
+        routeTitle,
+        isAlternative,
+        isStraightLine,
       ];
 }

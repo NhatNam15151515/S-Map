@@ -194,8 +194,6 @@ void main() {
       // Subtitle now contains distance prefix
       expect(find.textContaining('49 Bát Đàn, Hoàn Kiếm'), findsOneWidget);
       expect(find.textContaining('m •'), findsOneWidget);
-
-      await mapDisplayCubit.close();
     });
   });
 }

@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'package:s_map/commons/usecases/usecases.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 
@@ -25,6 +27,11 @@ class NavigationState extends Equatable {
   final double? currentSpeedKmh;
   final double? currentHeading;
   final double? currentAccuracy;
+
+  // Map-matched road snapped coordinates (Google Maps style)
+  final double? snappedLat;
+  final double? snappedLon;
+  final bool isSnappedToRoute;
 
   // Navigation tracking properties
   final int currentSegmentIndex;
@@ -73,6 +80,9 @@ class NavigationState extends Equatable {
     this.currentSpeedKmh,
     this.currentHeading,
     this.currentAccuracy,
+    this.snappedLat,
+    this.snappedLon,
+    this.isSnappedToRoute = false,
     this.currentSegmentIndex = 0,
     this.distanceToRoute = 0.0,
     this.isOffRoute = false,
@@ -98,12 +108,20 @@ class NavigationState extends Equatable {
     this.pendingResumeSession,
   });
 
+  /// Toạ độ hiển thị tối ưu: Ưu tiên toạ độ đã được snap vào tim đường nếu đang on-route
+  double? get displayLat =>
+      isSnappedToRoute ? (snappedLat ?? currentLat) : currentLat;
+  double? get displayLon =>
+      isSnappedToRoute ? (snappedLon ?? currentLon) : currentLon;
+
   bool get isNavigating =>
       status == NavigationStatus.navigating ||
       status == NavigationStatus.rerouting;
 
   bool get hasRoute =>
-      currentRoute != null && currentRoute!.isSuccess && currentRoute!.hasPoints;
+      currentRoute != null &&
+      currentRoute!.isSuccess &&
+      currentRoute!.hasPoints;
 
   bool get hasInstructions =>
       currentRoute != null && currentRoute!.hasInstructions;
@@ -125,6 +143,10 @@ class NavigationState extends Equatable {
     double? currentHeading,
     double? currentAccuracy,
     bool clearCurrentPosition = false,
+    double? snappedLat,
+    double? snappedLon,
+    bool? isSnappedToRoute,
+    bool clearSnappedCoordinates = false,
     int? currentSegmentIndex,
     double? distanceToRoute,
     bool? isOffRoute,
@@ -168,9 +190,19 @@ class NavigationState extends Equatable {
       profile: profile ?? this.profile,
       currentLat: clearCurrentPosition ? null : (currentLat ?? this.currentLat),
       currentLon: clearCurrentPosition ? null : (currentLon ?? this.currentLon),
-      currentSpeedKmh: clearCurrentPosition ? null : (currentSpeedKmh ?? this.currentSpeedKmh),
-      currentHeading: clearCurrentPosition ? null : (currentHeading ?? this.currentHeading),
-      currentAccuracy: clearCurrentPosition ? null : (currentAccuracy ?? this.currentAccuracy),
+      currentSpeedKmh: clearCurrentPosition
+          ? null
+          : (currentSpeedKmh ?? this.currentSpeedKmh),
+      currentHeading:
+          clearCurrentPosition ? null : (currentHeading ?? this.currentHeading),
+      currentAccuracy: clearCurrentPosition
+          ? null
+          : (currentAccuracy ?? this.currentAccuracy),
+      snappedLat:
+          clearSnappedCoordinates ? null : (snappedLat ?? this.snappedLat),
+      snappedLon:
+          clearSnappedCoordinates ? null : (snappedLon ?? this.snappedLon),
+      isSnappedToRoute: isSnappedToRoute ?? this.isSnappedToRoute,
       currentSegmentIndex: currentSegmentIndex ?? this.currentSegmentIndex,
       distanceToRoute: distanceToRoute ?? this.distanceToRoute,
       isOffRoute: isOffRoute ?? this.isOffRoute,
@@ -190,8 +222,7 @@ class NavigationState extends Equatable {
       remainingDistance: remainingDistance ?? this.remainingDistance,
       remainingDurationMs: remainingDurationMs ?? this.remainingDurationMs,
       isPreAnnounced: isPreAnnounced ?? this.isPreAnnounced,
-      tripSummary:
-          clearTripSummary ? null : (tripSummary ?? this.tripSummary),
+      tripSummary: clearTripSummary ? null : (tripSummary ?? this.tripSummary),
       tripStartTime:
           clearTripStartTime ? null : (tripStartTime ?? this.tripStartTime),
       maxSpeedKmh: maxSpeedKmh ?? this.maxSpeedKmh,
@@ -224,6 +255,9 @@ class NavigationState extends Equatable {
         currentSpeedKmh,
         currentHeading,
         currentAccuracy,
+        snappedLat,
+        snappedLon,
+        isSnappedToRoute,
         currentSegmentIndex,
         distanceToRoute,
         isOffRoute,
@@ -248,4 +282,211 @@ class NavigationState extends Equatable {
         promptBatteryOptimizationOem,
         pendingResumeSession,
       ];
+
+  /// Chuyển đổi trạng thái sang ActiveTripSnapshot để lưu vào bộ nhớ tạm
+  ActiveTripSnapshot? toSnapshot({required TripMetricsTracker metrics}) {
+    if (!isNavigating ||
+        currentRoute == null ||
+        origin == null ||
+        destination == null) {
+      return null;
+    }
+
+    return ActiveTripSnapshot(
+      origin: origin!,
+      destination: destination!,
+      destinationName: destinationName,
+      profile: profile,
+      initialRoute: currentRoute!,
+      currentSegmentIndex: currentSegmentIndex,
+      currentInstructionIndex: currentInstructionIndex,
+      tripStartTime: tripStartTime ?? DateTime.now(),
+      lastSavedTime: DateTime.now(),
+      totalDistanceTraveledMeters: metrics.totalDistanceTraveledMeters,
+      maxSpeedKmh: metrics.maxSpeedKmh,
+      speedSampleSum: metrics.speedSampleSum,
+      speedSampleCount: metrics.speedSampleCount,
+      lastKnownLat: currentLat,
+      lastKnownLon: currentLon,
+    );
+  }
+
+  /// Khởi tạo trạng thái bắt đầu phiên dẫn đường mới
+  static NavigationState start({
+    required RouteResult initialRoute,
+    required RoutePoint origin,
+    required RoutePoint destination,
+    required String? destinationName,
+    required String profile,
+    required InstructionProgress initialProgress,
+    required DeviceOemType? promptBatteryOptimizationOem,
+  }) {
+    return NavigationState(
+      status: NavigationStatus.navigating,
+      currentRoute: initialRoute,
+      origin: origin,
+      destination: destination,
+      destinationName: destinationName,
+      profile: profile,
+      currentSegmentIndex: 0,
+      distanceToRoute: 0.0,
+      isOffRoute: false,
+      isRerouting: false,
+      rerouteCount: 0,
+      currentInstructionIndex: initialProgress.currentInstructionIndex,
+      currentInstruction: initialProgress.currentInstruction,
+      nextInstruction: initialProgress.nextInstruction,
+      distanceToNextInstruction: initialProgress.distanceToNextInstruction,
+      remainingDistance: initialProgress.remainingDistance,
+      remainingDurationMs: initialProgress.remainingDurationMs,
+      isPreAnnounced: initialProgress.isPreAnnounced,
+      tripStartTime: DateTime.now(),
+      promptBatteryOptimizationOem: promptBatteryOptimizationOem,
+    );
+  }
+
+  /// Khởi tạo trạng thái khôi phục từ snapshot lưu trữ
+  static NavigationState resume({
+    required ActiveTripSnapshot snapshot,
+    required InstructionProgress progress,
+    required DeviceOemType? promptBatteryOptimizationOem,
+  }) {
+    return NavigationState(
+      status: NavigationStatus.navigating,
+      currentRoute: snapshot.initialRoute,
+      origin: snapshot.origin,
+      destination: snapshot.destination,
+      destinationName: snapshot.destinationName,
+      profile: snapshot.profile,
+      currentLat: snapshot.lastKnownLat,
+      currentLon: snapshot.lastKnownLon,
+      currentSegmentIndex: snapshot.currentSegmentIndex,
+      distanceToRoute: 0.0,
+      isOffRoute: false,
+      isRerouting: false,
+      rerouteCount: 0,
+      currentInstructionIndex: progress.currentInstructionIndex,
+      currentInstruction: progress.currentInstruction,
+      nextInstruction: progress.nextInstruction,
+      distanceToNextInstruction: progress.distanceToNextInstruction,
+      remainingDistance: progress.remainingDistance,
+      remainingDurationMs: progress.remainingDurationMs,
+      isPreAnnounced: progress.isPreAnnounced,
+      tripStartTime: snapshot.tripStartTime,
+      maxSpeedKmh: snapshot.maxSpeedKmh,
+      totalDistanceTraveledMeters: snapshot.totalDistanceTraveledMeters,
+      speedSampleSum: snapshot.speedSampleSum,
+      speedSampleCount: snapshot.speedSampleCount,
+      promptBatteryOptimizationOem: promptBatteryOptimizationOem,
+    );
+  }
+
+  /// Cập nhật trạng thái sau một chu kỳ GPS tracking hợp lệ
+  NavigationState copyWithTick({
+    required TrackingTickResult tick,
+    required double currentLat,
+    required double currentLon,
+    required double? currentSpeedKmh,
+    required double? currentHeading,
+    required double? currentAccuracy,
+    required TripMetricsTracker metrics,
+  }) {
+    final progress = tick.progress;
+    return copyWith(
+      currentLat: currentLat,
+      currentLon: currentLon,
+      snappedLat: tick.snappedLat,
+      snappedLon: tick.snappedLon,
+      isSnappedToRoute: tick.isSnapped,
+      currentSpeedKmh: currentSpeedKmh,
+      currentHeading: currentHeading,
+      currentAccuracy: currentAccuracy,
+      currentSegmentIndex: tick.offRouteStatus.segmentIndex,
+      distanceToRoute: tick.offRouteStatus.distanceToRoute,
+      isOffRoute: tick.offRouteStatus.isOffRoute,
+      currentInstructionIndex: progress.currentInstructionIndex,
+      currentInstruction: progress.currentInstruction,
+      clearCurrentInstruction: progress.currentInstruction == null,
+      nextInstruction: progress.nextInstruction,
+      clearNextInstruction: progress.nextInstruction == null,
+      distanceToNextInstruction: progress.distanceToNextInstruction,
+      remainingDistance: progress.remainingDistance,
+      remainingDurationMs: progress.remainingDurationMs,
+      isPreAnnounced: progress.isPreAnnounced,
+      maxSpeedKmh: metrics.maxSpeedKmh,
+      totalDistanceTraveledMeters: metrics.totalDistanceTraveledMeters,
+      speedSampleSum: metrics.speedSampleSum,
+      speedSampleCount: metrics.speedSampleCount,
+    );
+  }
+
+  /// Cập nhật trạng thái khi người dùng đã đến đích
+  NavigationState copyWithArrival({
+    required double currentLat,
+    required double currentLon,
+    required double? currentSpeedKmh,
+    required double? currentHeading,
+    required double? currentAccuracy,
+    required int currentInstructionIndex,
+    required RouteInstruction? currentInstruction,
+    required RouteInstruction? nextInstruction,
+    required TripMetricsTracker metrics,
+    required TripSummary tripSummary,
+  }) {
+    return copyWith(
+      status: NavigationStatus.arrived,
+      currentLat: currentLat,
+      currentLon: currentLon,
+      currentSpeedKmh: currentSpeedKmh,
+      currentHeading: currentHeading,
+      currentAccuracy: currentAccuracy,
+      currentInstructionIndex: currentInstructionIndex,
+      currentInstruction: currentInstruction,
+      clearCurrentInstruction: currentInstruction == null,
+      nextInstruction: nextInstruction,
+      clearNextInstruction: nextInstruction == null,
+      distanceToNextInstruction: 0.0,
+      remainingDistance: 0.0,
+      remainingDurationMs: 0,
+      isPreAnnounced: false,
+      isOffRoute: false,
+      distanceToRoute: 0.0,
+      maxSpeedKmh: metrics.maxSpeedKmh,
+      totalDistanceTraveledMeters: metrics.totalDistanceTraveledMeters,
+      speedSampleSum: metrics.speedSampleSum,
+      speedSampleCount: metrics.speedSampleCount,
+      tripSummary: tripSummary,
+    );
+  }
+
+  /// Cập nhật trạng thái khi tính lại đường (Reroute) thành công
+  NavigationState copyWithRerouteSuccess({
+    required RouteResult newRoute,
+    required RoutePoint newOrigin,
+    required InstructionProgress newProgress,
+    required int requestGeneration,
+    required String messageKey,
+  }) {
+    return copyWith(
+      status: NavigationStatus.navigating,
+      currentRoute: newRoute,
+      origin: newOrigin,
+      currentSegmentIndex: 0,
+      isOffRoute: false,
+      isRerouting: false,
+      rerouteCount: rerouteCount + 1,
+      requestGeneration: requestGeneration,
+      currentInstructionIndex: newProgress.currentInstructionIndex,
+      currentInstruction: newProgress.currentInstruction,
+      clearCurrentInstruction: newProgress.currentInstruction == null,
+      nextInstruction: newProgress.nextInstruction,
+      clearNextInstruction: newProgress.nextInstruction == null,
+      distanceToNextInstruction: newProgress.distanceToNextInstruction,
+      remainingDistance: newProgress.remainingDistance,
+      remainingDurationMs: newProgress.remainingDurationMs,
+      isPreAnnounced: newProgress.isPreAnnounced,
+      messageKey: messageKey,
+      clearError: true,
+    );
+  }
 }

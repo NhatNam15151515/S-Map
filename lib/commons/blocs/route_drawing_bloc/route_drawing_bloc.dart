@@ -3,6 +3,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -39,6 +40,26 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     on<RouteDrawingClearRoute>(_onClearRoute);
     on<RouteDrawingSaveRoute>(_onSaveRoute);
     on<RouteDrawingLoadRoute>(_onLoadRoute);
+    on<RouteDrawingReverseRoute>(_onReverseRoute);
+    on<RouteDrawingChangeProfile>(_onChangeProfile, transformer: restartable());
+    on<RouteDrawingToggleStraightLineMode>(_onToggleStraightLineMode);
+  }
+
+  void _onToggleStraightLineMode(
+    RouteDrawingToggleStraightLineMode event,
+    Emitter<RouteDrawingState> emit,
+  ) {
+    final nextMode = !state.isStraightLineMode;
+    DLog.info('✈️ [RouteDrawingBloc] Straight-line mode toggled: $nextMode');
+    emit(state.copyWith(isStraightLineMode: nextMode));
+  }
+
+  /// Vận tốc ước tính trung bình theo profile phương tiện (km/h) cho đường chim bay
+  static double _getProfileSpeedKmh(String profile) {
+    if (profile == RoutingConstants.profileFoot) return 4.5;
+    if (profile == RoutingConstants.profileBike) return 12.0;
+    if (profile == RoutingConstants.profileCar) return 30.0;
+    return 20.0; // default moped / motorcycle
   }
 
   /// Nối tất cả các điểm tọa độ từ các segment lại thành một chuỗi Polyline duy nhất
@@ -151,6 +172,85 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     final generation = ++_currentGeneration;
     DLog.info(
         '📍 [RouteDrawingBloc] Point tapped: (${event.lat}, ${event.lon}) [Gen #$generation]');
+
+    final isStraight = event.isStraightLine ?? state.isStraightLineMode;
+
+    if (isStraight) {
+      // ✈️ CHẾ ĐỘ ĐƯỜNG CHIM BAY (Direct Line / Beeline Mode)
+      // Bỏ qua Snap-to-road và GraphHopper calculateRoute
+      final effectivePoint = SnappedRoadPoint(
+        originalLat: event.lat,
+        originalLon: event.lon,
+        snappedLat: event.lat,
+        snappedLon: event.lon,
+        isSnapped: false,
+        distanceToRoad: 0.0,
+      );
+
+      if (state.points.isEmpty) {
+        DLog.info(
+            '✈️ [RouteDrawingBloc] Added origin point in straight-line mode: (${event.lat}, ${event.lon})');
+        emit(state.copyWith(
+          status: RouteDrawingStatus.pointAdded,
+          points: [effectivePoint],
+          segments: const [],
+          fullPolyline: const [],
+          totalDistance: 0.0,
+          totalTime: 0,
+          redoPoints: const [],
+          redoSegments: const [],
+          clearWarning: true,
+          clearError: true,
+        ));
+        return;
+      }
+
+      final prevPoint = state.points.last;
+      final distanceKm = AppUtils.instance.calculateDistance(
+        prevPoint.snappedLat,
+        prevPoint.snappedLon,
+        effectivePoint.snappedLat,
+        effectivePoint.snappedLon,
+      );
+      final distanceMeters = distanceKm * 1000.0;
+      final speedKmh = _getProfileSpeedKmh(state.profile);
+      final durationMs = (distanceKm / speedKmh * 3600000).round();
+
+      final straightLineRoute = RouteResult(
+        isSuccess: true,
+        distance: distanceMeters,
+        time: durationMs,
+        points: [
+          [prevPoint.snappedLat, prevPoint.snappedLon],
+          [effectivePoint.snappedLat, effectivePoint.snappedLon],
+        ],
+        routeTitle: 'Đường chim bay',
+        isStraightLine: true,
+      );
+
+      final newPoints = [...state.points, effectivePoint];
+      final newSegments = [...state.segments, straightLineRoute];
+      final newPolyline = _buildFullPolyline(newSegments);
+      final newDistance = state.totalDistance + straightLineRoute.distance;
+      final newTime = state.totalTime + straightLineRoute.time;
+
+      DLog.info(
+          '✈️ [RouteDrawingBloc] Straight-line segment connected: +${straightLineRoute.distance.toStringAsFixed(1)}m, total=${newDistance.toStringAsFixed(1)}m, points=${newPoints.length}');
+
+      emit(state.copyWith(
+        status: RouteDrawingStatus.routeUpdated,
+        points: newPoints,
+        segments: newSegments,
+        fullPolyline: newPolyline,
+        totalDistance: newDistance,
+        totalTime: newTime,
+        redoPoints: const [],
+        redoSegments: const [],
+        clearWarning: true,
+        clearError: true,
+      ));
+      return;
+    }
 
     emit(state.copyWith(
       status: RouteDrawingStatus.loading,
@@ -476,7 +576,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     DLog.info(
         '💾 [RouteDrawingBloc] Save route: "${event.name}" [Gen #$saveGeneration]');
     if (state.points.length < 2 || !state.hasRoute) {
-      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) return;
+      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) {
+        return;
+      }
       emit(state.copyWith(
         status: RouteDrawingStatus.warning,
         warningMessageKey: LocaleKeys.routing_error_generic,
@@ -509,7 +611,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
 
       await _customRouteRepository.saveRoute(customRoute);
 
-      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) return;
+      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) {
+        return;
+      }
 
       DLog.info(
           '💾 [RouteDrawingBloc] Route saved to Hive: "${customRoute.name}" (${customRoute.id})');
@@ -520,7 +624,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         clearError: true,
       ));
     } catch (e, stack) {
-      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) return;
+      if (isClosed || emit.isDone || saveGeneration != _currentGeneration) {
+        return;
+      }
       DLog.error('❌ [RouteDrawingBloc] Error saving route: $e', e, stack);
       emit(state.copyWith(
         status: RouteDrawingStatus.error,
@@ -565,6 +671,140 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       redoSegments: const [],
       savedRoute: route,
       requestGeneration: _currentGeneration,
+    ));
+  }
+
+  void _onReverseRoute(
+    RouteDrawingReverseRoute event,
+    Emitter<RouteDrawingState> emit,
+  ) {
+    if (state.points.length < 2) return;
+
+    _currentGeneration++;
+    DLog.info(
+        '🔄 [RouteDrawingBloc] Reversing route with ${state.points.length} points [Gen #$_currentGeneration]');
+
+    final reversedPoints = state.points.reversed.toList();
+    final reversedPolyline = state.fullPolyline.reversed.toList();
+
+    final reversedSegments = state.segments.reversed.map((seg) {
+      return RouteResult(
+        isSuccess: seg.isSuccess,
+        distance: seg.distance,
+        time: seg.time,
+        points: seg.points.reversed.toList(),
+        instructions: seg.instructions.reversed.toList(),
+        errorMessage: seg.errorMessage,
+        routeTitle: seg.routeTitle,
+        isAlternative: seg.isAlternative,
+        isStraightLine: seg.isStraightLine,
+      );
+    }).toList();
+
+    emit(state.copyWith(
+      status: RouteDrawingStatus.routeUpdated,
+      points: reversedPoints,
+      segments: reversedSegments,
+      fullPolyline: reversedPolyline,
+      redoPoints: const [],
+      redoSegments: const [],
+      requestGeneration: _currentGeneration,
+      clearWarning: true,
+      clearError: true,
+    ));
+  }
+
+  Future<void> _onChangeProfile(
+    RouteDrawingChangeProfile event,
+    Emitter<RouteDrawingState> emit,
+  ) async {
+    if (state.profile == event.profile) return;
+
+    final generation = ++_currentGeneration;
+    DLog.info(
+        '🚗 [RouteDrawingBloc] Changing profile to "${event.profile}" [Gen #$generation]');
+
+    if (state.points.length < 2) {
+      emit(state.copyWith(profile: event.profile));
+      return;
+    }
+
+    emit(state.copyWith(
+      status: RouteDrawingStatus.loading,
+      profile: event.profile,
+      requestGeneration: generation,
+      clearWarning: true,
+      clearError: true,
+    ));
+
+    final newSegments = <RouteResult>[];
+    double totalDist = 0.0;
+    int totalTime = 0;
+
+    for (int i = 0; i < state.points.length - 1; i++) {
+      final from = state.points[i];
+      final to = state.points[i + 1];
+
+      // Nếu segment này là đường chim bay, bảo toàn đường thẳng và chỉ ước lượng lại thời gian theo profile mới
+      if (i < state.segments.length && state.segments[i].isStraightLine) {
+        final origSeg = state.segments[i];
+        final distKm = origSeg.distance / 1000.0;
+        final speedKmh = _getProfileSpeedKmh(event.profile);
+        final newTime = (distKm / speedKmh * 3600000).round();
+        final updatedSeg = origSeg.copyWith(time: newTime);
+        newSegments.add(updatedSeg);
+        totalDist += updatedSeg.distance;
+        totalTime += updatedSeg.time;
+        continue;
+      }
+
+      final seg = await _routingRepository.calculateRoute(
+        fromLat: from.snappedLat,
+        fromLon: from.snappedLon,
+        toLat: to.snappedLat,
+        toLon: to.snappedLon,
+        vehicleProfile: event.profile,
+      );
+
+      if (generation != _currentGeneration || isClosed || emit.isDone) return;
+
+      if (seg.isSuccess) {
+        newSegments.add(seg);
+        totalDist += seg.distance;
+        totalTime += seg.time;
+      } else {
+        final distKm = AppUtils.instance.calculateDistance(
+          from.snappedLat,
+          from.snappedLon,
+          to.snappedLat,
+          to.snappedLon,
+        );
+        final distMeters = distKm * 1000.0;
+        final estTimeMs = ((distMeters / (15.0 / 3.6)) * 1000).round();
+        final fallback = RouteResult(
+          isSuccess: true,
+          distance: distMeters,
+          time: estTimeMs,
+          points: [
+            [from.snappedLat, from.snappedLon],
+            [to.snappedLat, to.snappedLon],
+          ],
+        );
+        newSegments.add(fallback);
+        totalDist += distMeters;
+        totalTime += estTimeMs;
+      }
+    }
+
+    final newPolyline = _buildFullPolyline(newSegments);
+    emit(state.copyWith(
+      status: RouteDrawingStatus.routeUpdated,
+      segments: newSegments,
+      fullPolyline: newPolyline,
+      totalDistance: totalDist,
+      totalTime: totalTime,
+      clearWarning: true,
+      clearError: true,
     ));
   }
 }

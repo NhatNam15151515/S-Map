@@ -273,7 +273,7 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
 
   /// Switch to North-up mode (bearing = 0° / North at the top)
   Future<void> setNorthUp() async {
-    await _stopCompassListening();
+    _stopCompassListening();
     emit(state.copyWith(
       orientationMode: MapOrientationMode.northUp,
       rotation: 0.0,
@@ -310,8 +310,8 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     );
   }
 
-  Future<void> _stopCompassListening() async {
-    await _compassSubscription?.cancel();
+  void _stopCompassListening() {
+    _compassSubscription?.cancel();
     _compassSubscription = null;
     _lastRotatedHeading = null;
   }
@@ -465,10 +465,10 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
   }
 
   @override
-  Future<void> close() async {
-    await _mapStyleSubscription?.cancel();
+  Future<void> close() {
+    _mapStyleSubscription?.cancel();
     _mapStyleSubscription = null;
-    await _stopCompassListening();
+    _stopCompassListening();
     return super.close();
   }
 }

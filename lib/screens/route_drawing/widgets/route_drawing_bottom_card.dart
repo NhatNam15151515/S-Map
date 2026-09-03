@@ -9,6 +9,7 @@ class RouteDrawingBottomCard extends StatelessWidget {
   final double distanceMeters;
   final int durationMs;
   final bool isLoading;
+  final bool isStraightLineMode;
   final VoidCallback onSavePressed;
   final VoidCallback onNavigatePressed;
 
@@ -18,6 +19,7 @@ class RouteDrawingBottomCard extends StatelessWidget {
     required this.distanceMeters,
     required this.durationMs,
     required this.isLoading,
+    this.isStraightLineMode = false,
     required this.onSavePressed,
     required this.onNavigatePressed,
   });
@@ -142,7 +144,39 @@ class RouteDrawingBottomCard extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (isStraightLineMode) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.airplanemode_active_rounded,
+                  size: 14,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  tr(LocaleKeys.route_drawing_ui_straight_line_mode_active_badge),
+                  style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         // Stats Summary Row
         Row(
           children: [

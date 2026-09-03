@@ -19,9 +19,15 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   final VoidCallback onRedo;
   final VoidCallback onClear;
   final VoidCallback onFitBounds;
+  final VoidCallback? onReverseRoute;
+  final bool canReverse;
+  final VoidCallback? onToggleCrosshair;
+  final bool isCrosshairActive;
   final VoidCallback? onToggleMyLocationOrigin;
   final VoidCallback? onToggleMarkerDestination;
   final VoidCallback? onRemoveMarkerDestination;
+  final bool isStraightLineMode;
+  final VoidCallback? onToggleStraightLineMode;
 
   const RouteDrawingFloatingToolbar({
     super.key,
@@ -38,9 +44,15 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     required this.onRedo,
     required this.onClear,
     required this.onFitBounds,
+    this.onReverseRoute,
+    this.canReverse = false,
+    this.onToggleCrosshair,
+    this.isCrosshairActive = true,
     this.onToggleMyLocationOrigin,
     this.onToggleMarkerDestination,
     this.onRemoveMarkerDestination,
+    this.isStraightLineMode = false,
+    this.onToggleStraightLineMode,
   });
 
   void _showClearConfirmDialog(BuildContext context) {
@@ -191,6 +203,45 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
               isPrimary: true,
               onPressed: onFitBounds,
             ),
+            if (onReverseRoute != null) ...[
+              const SizedBox(height: 6),
+              _buildToolbarButton(
+                context: context,
+                key: const Key('route_drawing_reverse_button'),
+                icon: HeroIcons.arrowsRightLeft,
+                tooltip: 'Đảo chiều lộ trình',
+                isEnabled: canReverse,
+                onPressed: onReverseRoute!,
+              ),
+            ],
+            if (onToggleCrosshair != null) ...[
+              const SizedBox(height: 6),
+              _buildToolbarButton(
+                context: context,
+                key: const Key('route_drawing_crosshair_button'),
+                icon: HeroIcons.plusCircle,
+                tooltip: isCrosshairActive
+                    ? 'Tắt tâm ngắm vẽ đường'
+                    : 'Bật tâm ngắm vẽ đường',
+                isEnabled: true,
+                isActive: isCrosshairActive,
+                onPressed: onToggleCrosshair!,
+              ),
+            ],
+            if (onToggleStraightLineMode != null) ...[
+              const SizedBox(height: 6),
+              _buildToolbarButton(
+                context: context,
+                key: const Key('route_drawing_toggle_straight_line_btn'),
+                materialIcon: Icons.airplanemode_active_rounded,
+                tooltip: isStraightLineMode
+                    ? tr(LocaleKeys.route_drawing_ui_straight_line_mode_tooltip_off)
+                    : tr(LocaleKeys.route_drawing_ui_straight_line_mode_tooltip_on),
+                isEnabled: true,
+                isActive: isStraightLineMode,
+                onPressed: onToggleStraightLineMode!,
+              ),
+            ],
             const SizedBox(height: 6),
             Divider(
               height: 1,
@@ -217,7 +268,8 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   Widget _buildToolbarButton({
     required BuildContext context,
     required Key key,
-    required HeroIcons icon,
+    HeroIcons? icon,
+    IconData? materialIcon,
     required String tooltip,
     required bool isEnabled,
     required VoidCallback onPressed,
@@ -243,16 +295,23 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
       iconColor = colorScheme.onSurface;
     }
 
-    final iconWidget = isLoading
-        ? SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-            ),
-          )
-        : HeroIcon(icon, size: 20, color: iconColor);
+    final Widget iconWidget;
+    if (isLoading) {
+      iconWidget = SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+        ),
+      );
+    } else if (materialIcon != null) {
+      iconWidget = Icon(materialIcon, size: 20, color: iconColor);
+    } else if (icon != null) {
+      iconWidget = HeroIcon(icon, size: 20, color: iconColor);
+    } else {
+      iconWidget = const SizedBox(width: 20, height: 20);
+    }
 
     Widget button = IconButton(
       key: key,

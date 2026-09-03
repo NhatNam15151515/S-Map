@@ -45,6 +45,24 @@ class MockRoutingRepository implements IRoutingRepository {
   }
 
   @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    final route = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: vehicleProfile,
+    );
+    return [route];
+  }
+
+  @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,
@@ -342,22 +360,24 @@ void main() {
       );
       mockRoutingRepo.nextCalculateResult = rerouteResult;
 
-      // Emit a GPS position clearly far away from the resumed route (> 50m)
-      mockLocationService.emitPosition(
-        Position(
-          latitude: 10.8000,
-          longitude: 106.7300,
-          timestamp: DateTime.now(),
-          accuracy: 5.0,
-          altitude: 10.0,
-          altitudeAccuracy: 1.0,
-          heading: 90.0,
-          headingAccuracy: 1.0,
-          speed: 8.33,
-          speedAccuracy: 1.0,
-        ),
-      );
-      await pumpEventQueue();
+      // Emit 3 consecutive GPS positions clearly far away from the resumed route (> 50m) to satisfy 3-tick hysteresis
+      for (int i = 0; i < 3; i++) {
+        mockLocationService.emitPosition(
+          Position(
+            latitude: 10.8000,
+            longitude: 106.7300,
+            timestamp: DateTime.now(),
+            accuracy: 5.0,
+            altitude: 10.0,
+            altitudeAccuracy: 1.0,
+            heading: 90.0,
+            headingAccuracy: 1.0,
+            speed: 8.33,
+            speedAccuracy: 1.0,
+          ),
+        );
+        await pumpEventQueue();
+      }
 
       // Verify routing repository was called with exact GPS position and snapshot destination
       expect(mockRoutingRepo.calculateRouteCallCount, equals(1));

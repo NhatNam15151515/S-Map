@@ -1,6 +1,8 @@
 export 'app_colors.dart';
 export 'app_image.dart';
 export 'app_utils.dart';
+export 'circular_ema_filter.dart';
+export 'douglas_peucker.dart';
 export 'map_camera_controller.dart';
 export 'map_drawing_route_manager.dart';
 export 'map_route_manager.dart';
@@ -10,4 +12,5 @@ export 'poi_category_helper.dart';
 export 'popup_utils.dart';
 export 'route_format_helper.dart';
 export 'search_result_ranker.dart';
+export 'trip_metrics_tracker.dart';
 export 'turn_by_turn_engine.dart';

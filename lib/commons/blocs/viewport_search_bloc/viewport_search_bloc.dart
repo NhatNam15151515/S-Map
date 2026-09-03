@@ -1,11 +1,11 @@
+import 'dart:math' as math;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
+import 'package:s_map/commons/usecases/progressive_area_search_usecase.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
 import 'viewport_search_event.dart';
 import 'viewport_search_state.dart';
@@ -13,14 +13,21 @@ import 'viewport_search_state.dart';
 class ViewportSearchBloc
     extends Bloc<ViewportSearchEvent, ViewportSearchState> {
   final IPoiRepository _poiRepository;
+  final ProgressiveAreaSearchUseCase _progressiveAreaSearchUseCase;
   String _currentCategory = CategoryConstants.all;
   int _queryGeneration = 0;
   DateTime? _lastClearedAt;
 
   String get currentCategory => _currentCategory;
 
-  ViewportSearchBloc({IPoiRepository? poiRepository})
-      : _poiRepository = poiRepository ?? PoiRepositoryImpl(),
+  ViewportSearchBloc({
+    IPoiRepository? poiRepository,
+    ProgressiveAreaSearchUseCase? progressiveAreaSearchUseCase,
+  })  : _poiRepository = poiRepository ?? PoiRepositoryImpl(),
+        _progressiveAreaSearchUseCase = progressiveAreaSearchUseCase ??
+            ProgressiveAreaSearchUseCase(
+              poiRepository: poiRepository ?? PoiRepositoryImpl(),
+            ),
         super(const ViewportSearchState()) {
     on<SearchInViewportRequested>(
       _onSearchInViewport,
@@ -98,9 +105,8 @@ class ViewportSearchBloc
   ) async {
     final gen = ++_queryGeneration;
     final category = _normalizeCategory(event.category);
-    final query = category == CategoryConstants.all
-        ? _cleanQuery(event.query)
-        : null;
+    final query =
+        category == CategoryConstants.all ? _cleanQuery(event.query) : null;
     _currentCategory = category;
 
     emit(state.copyWith(
@@ -116,84 +122,44 @@ class ViewportSearchBloc
       clearResolvedZoomLevel: true,
     ));
 
-    var globalTextCandidates = const <PoiModel>[];
-    var globalTextLoaded = false;
-
     try {
-      for (final entry in MapConstants.areaSearchZoomToRadiusKm.entries) {
-        if (entry.key > event.initialZoom) continue;
-        if (emit.isDone || gen != _queryGeneration) return;
-
-        final radiusKm = entry.value;
-        final bounds = MapConstants.boundsFromCenter(event.center, radiusKm);
-        final localCandidates = await _poiRepository.searchInBounds(
-          minLat: bounds.southwest.latitude,
-          maxLat: bounds.northeast.latitude,
-          minLon: bounds.southwest.longitude,
-          maxLon: bounds.northeast.longitude,
-          query: query,
-          category: category == CategoryConstants.all ? null : category,
-          limit: event.limit,
-        );
-
-        if (query != null && !globalTextLoaded) {
-          globalTextLoaded = true;
-          // Text search của Google dùng location bias, không phải hard
-          // radius. Lấy thêm ứng viên toàn cục rồi rank relevance + distance.
-          globalTextCandidates = await _poiRepository.search(
-            query,
-            limit: event.limit < 100 ? 100 : event.limit,
-          );
-        }
-
-        final radiusCandidates = localCandidates
-            .where((poi) => _isWithinRadius(poi, event.center, radiusKm))
-            .toList();
-        final candidates = query == null
-            ? radiusCandidates
-            : [...radiusCandidates, ...globalTextCandidates];
-
-        if (candidates.isNotEmpty) {
-          final pois = SearchResultRanker.rank(
-            candidates,
-            center: event.center,
-            query: query,
-            limit: event.limit,
-          );
-          if (pois.isEmpty) continue;
-
-          if (emit.isDone || gen != _queryGeneration) return;
-          emit(state.copyWith(
-            status: ViewportSearchStatus.success,
-            pois: pois,
-            bounds: bounds,
-            selectedCategory: category,
-            searchCenter: event.center,
-            searchQuery: query,
-            resolvedZoomLevel: entry.key,
-            // Keep the resolved bias level for telemetry/tests. Home decides
-            // the final camera behavior: one POI focuses it, multiple POIs
-            // fit the complete result bounds.
-            fitBoundsMode: false,
-            isAreaSearch: true,
-            clearError: true,
-          ));
-          return;
-        }
-      }
+      final result = await _progressiveAreaSearchUseCase.execute(
+        center: event.center,
+        initialZoom: event.initialZoom,
+        query: query,
+        category: category,
+        limit: event.limit,
+        isCancelled: () => emit.isDone || gen != _queryGeneration,
+      );
 
       if (emit.isDone || gen != _queryGeneration) return;
-      emit(state.copyWith(
-        status: ViewportSearchStatus.empty,
-        pois: const [],
-        selectedCategory: category,
-        searchCenter: event.center,
-        searchQuery: query,
-        resolvedZoomLevel: MapConstants.areaSearchMinZoom,
-        fitBoundsMode: false,
-        isAreaSearch: true,
-        clearError: true,
-      ));
+
+      if (result.isSuccess) {
+        emit(state.copyWith(
+          status: ViewportSearchStatus.success,
+          pois: result.pois,
+          bounds: result.bounds,
+          selectedCategory: category,
+          searchCenter: event.center,
+          searchQuery: query,
+          resolvedZoomLevel: result.resolvedZoomLevel,
+          fitBoundsMode: false,
+          isAreaSearch: true,
+          clearError: true,
+        ));
+      } else {
+        emit(state.copyWith(
+          status: ViewportSearchStatus.empty,
+          pois: const [],
+          selectedCategory: category,
+          searchCenter: event.center,
+          searchQuery: query,
+          resolvedZoomLevel: result.resolvedZoomLevel,
+          fitBoundsMode: false,
+          isAreaSearch: true,
+          clearError: true,
+        ));
+      }
     } catch (_) {
       if (emit.isDone || gen != _queryGeneration) return;
       emit(state.copyWith(
@@ -238,18 +204,14 @@ class ViewportSearchBloc
     ));
 
     try {
-      final double minLat = bounds.southwest.latitude < bounds.northeast.latitude
-          ? bounds.southwest.latitude
-          : bounds.northeast.latitude;
-      final double maxLat = bounds.southwest.latitude > bounds.northeast.latitude
-          ? bounds.southwest.latitude
-          : bounds.northeast.latitude;
-      final double minLon = bounds.southwest.longitude < bounds.northeast.longitude
-          ? bounds.southwest.longitude
-          : bounds.northeast.longitude;
-      final double maxLon = bounds.southwest.longitude > bounds.northeast.longitude
-          ? bounds.southwest.longitude
-          : bounds.northeast.longitude;
+      final double minLat =
+          math.min(bounds.southwest.latitude, bounds.northeast.latitude);
+      final double maxLat =
+          math.max(bounds.southwest.latitude, bounds.northeast.latitude);
+      final double minLon =
+          math.min(bounds.southwest.longitude, bounds.northeast.longitude);
+      final double maxLon =
+          math.max(bounds.southwest.longitude, bounds.northeast.longitude);
 
       final pois = await _poiRepository.searchInBounds(
         minLat: minLat,
@@ -305,15 +267,4 @@ class ViewportSearchBloc
     final clean = query?.trim() ?? '';
     return clean.isEmpty ? null : clean;
   }
-
-  bool _isWithinRadius(PoiModel poi, LatLng center, double radiusKm) {
-    final distance = AppUtils.instance.calculateDistance(
-      center.latitude,
-      center.longitude,
-      poi.lat,
-      poi.lon,
-    );
-    return distance <= radiusKm * 1.05;
-  }
-
 }

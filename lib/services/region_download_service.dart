@@ -396,7 +396,16 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       inputStream.close();
 
       if (tempZipFile.existsSync()) {
-        tempZipFile.deleteSync();
+        try {
+          tempZipFile.deleteSync();
+        } catch (_) {
+          await Future.delayed(const Duration(milliseconds: 50));
+          if (tempZipFile.existsSync()) {
+            try {
+              await tempZipFile.delete();
+            } catch (_) {}
+          }
+        }
       }
 
       // Hoán đổi stagingDir vào targetDir nguyên tử có backup phục hồi

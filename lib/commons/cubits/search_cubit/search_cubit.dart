@@ -116,11 +116,18 @@ class SearchCubit extends Cubit<SearchState> {
         limit: 50,
       );
 
-      // Lọc các từ khóa trong Recent Searches khớp với query (chuyển về toLowerCase)
+      // Lọc các từ khóa trong Recent Searches khớp với query
+      final hasDiacritics = Validator.instance.hasDiacritics(query);
+      final lowerQuery = query.toLowerCase();
       final asciiQuery = AppUtils.instance.toAscii(query).toLowerCase();
       final matchedRecents = state.recentSearches.where((recent) {
+        final lowerRecent = recent.toLowerCase();
+        if (hasDiacritics) {
+          return lowerRecent.contains(lowerQuery);
+        }
         final asciiRecent = AppUtils.instance.toAscii(recent).toLowerCase();
-        return asciiRecent.contains(asciiQuery);
+        return lowerRecent.contains(lowerQuery) ||
+            asciiRecent.contains(asciiQuery);
       }).toList();
 
       // Hợp nhất gợi ý: Ưu tiên Recent Search -> Gợi ý từ POI Database

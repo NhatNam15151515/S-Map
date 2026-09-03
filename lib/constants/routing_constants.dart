@@ -24,6 +24,8 @@ class RoutingConstants {
   static const String profileMotorcycle = 'motorcycle';
   static const String profileMoped = 'moped';
   static const String profileCar = 'car';
+  static const String profileBike = 'bike';
+  static const String profileFoot = 'foot';
   static const String defaultProfile = profileMopedVn;
 
   // Error Messages

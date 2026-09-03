@@ -245,6 +245,80 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   }
 
   @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    final primaryProfile = vehicleProfile ?? RoutingConstants.profileMopedVn;
+    DLog.info(
+        '🔀 [RoutingRepository] calculateAlternativeRoutes requested: ($fromLat, $fromLon) -> ($toLat, $toLon) | profile: $primaryProfile');
+
+    // 1. Tính toán lộ trình chính (Primary Route)
+    final primaryRoute = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: primaryProfile,
+    );
+
+    if (!primaryRoute.isSuccess || !primaryRoute.hasPoints) {
+      return [primaryRoute];
+    }
+
+    // 2. Tìm lộ trình thay thế (Alternative Route) bằng chiến lược Profile Duality
+    // Xe máy (moped_vn) thử nghiệm đối trọng với Car profile (chọn đường lớn, đại lộ)
+    // hoặc ngược lại để tìm một hướng di chuyển hoàn toàn khác biệt.
+    final altProfile = (primaryProfile == RoutingConstants.profileMopedVn)
+        ? RoutingConstants.profileCar
+        : (primaryProfile == RoutingConstants.profileCar
+            ? RoutingConstants.profileMopedVn
+            : null);
+
+    if (altProfile != null) {
+      try {
+        final altRoute = await calculateRoute(
+          fromLat: fromLat,
+          fromLon: fromLon,
+          toLat: toLat,
+          toLon: toLon,
+          vehicleProfile: altProfile,
+        );
+
+        if (altRoute.isSuccess && altRoute.hasPoints) {
+          final distanceDiff = (altRoute.distance - primaryRoute.distance).abs();
+          // Kiểm tra xem lộ trình phụ có thực sự khác biệt không (chênh lệch quãng đường >= 3% hoặc số điểm polyline khác nhau)
+          final isDistinct = distanceDiff > (primaryRoute.distance * 0.03) ||
+              (altRoute.points.length != primaryRoute.points.length);
+
+          if (isDistinct) {
+            final namedPrimary = primaryRoute.copyWith(
+              routeTitle: 'Nhanh nhất',
+            );
+            final namedAlt = altRoute.copyWith(
+              routeTitle: altProfile == RoutingConstants.profileCar
+                  ? 'Qua đại lộ chính'
+                  : 'Đường tránh',
+              isAlternative: true,
+            );
+            DLog.info(
+                '✅ [RoutingRepository] Found distinct alternative route: Primary=${primaryRoute.distance}m vs Alt=${altRoute.distance}m');
+            return [namedPrimary, namedAlt];
+          }
+        }
+      } catch (e) {
+        DLog.warning(
+            '⚠️ [RoutingRepository] Failed to calculate alternative route: $e');
+      }
+    }
+
+    return [primaryRoute.copyWith(routeTitle: 'Lộ trình tối ưu')];
+  }
+
+  @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,

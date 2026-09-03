@@ -3,6 +3,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/douglas_peucker.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 
@@ -11,6 +12,7 @@ class MapRouteManager {
   Line? _routeLine;
   Line? _routeCasingLine;
   Line? _passedRouteLine;
+  final List<Line> _alternativeLines = [];
   int _renderGeneration = 0;
   int _progressGeneration = 0;
   bool _isAssetLoaded = false;
@@ -46,10 +48,16 @@ class MapRouteManager {
     _destinationSymbol = null;
   }
 
-  /// Chuyển đổi danh sách [lat, lon] sang List<LatLng> an toàn
-  static List<LatLng> parseRoutePoints(List<List<double>> rawPoints) {
+  /// Chuyển đổi danh sách [lat, lon] sang List<LatLng> an toàn với tuỳ chọn tối ưu đỉnh
+  static List<LatLng> parseRoutePoints(
+    List<List<double>> rawPoints, {
+    bool simplify = false,
+  }) {
+    final effectivePoints = (simplify && rawPoints.length > 100)
+        ? DouglasPeucker.simplify(rawPoints, toleranceMeters: 1.5)
+        : rawPoints;
     final points = <LatLng>[];
-    for (final p in rawPoints) {
+    for (final p in effectivePoints) {
       if (p.length >= 2) {
         points.add(LatLng(p[0], p[1]));
       }
@@ -79,13 +87,15 @@ class MapRouteManager {
     );
   }
 
-  /// Vẽ Polyline lộ trình và gắn Marker điểm đầu / điểm cuối
+  /// Vẽ Polyline lộ trình và gắn Marker điểm đầu / điểm cuối (hỗ trợ nhiều lộ trình thay thế)
   Future<bool> drawRoute({
     required MapLibreMapController? controller,
     required RouteResult routeResult,
     required RoutePoint origin,
     required RoutePoint destination,
     String? destinationName,
+    List<RouteResult> alternativeRoutes = const [],
+    int selectedRouteIndex = 0,
   }) async {
     if (controller == null || !routeResult.isSuccess || !routeResult.hasPoints) {
       return false;
@@ -93,15 +103,17 @@ class MapRouteManager {
 
     final generation = ++_renderGeneration;
     final progressGen = ++_progressGeneration;
-    final latLngs = parseRoutePoints(routeResult.points);
+    final latLngs = parseRoutePoints(routeResult.points, simplify: true);
     if (latLngs.isEmpty) return false;
 
     _lastPassedSegmentIndex = -1;
-    DLog.info('🗺️ [MapRouteManager] Drawing route on map [Gen #$generation]: ${latLngs.length} points | Destination: "$destinationName"');
+    DLog.info('🗺️ [MapRouteManager] Drawing route on map [Gen #$generation]: ${latLngs.length} points | Destination: "$destinationName" | Alternatives: ${alternativeRoutes.length}');
 
     Line? casingLine;
     Line? mainLine;
     Symbol? destinationSymbol;
+    final drawnAltLines = <Line>[];
+
     try {
       await loadMarkerAssets(controller);
       if (generation != _renderGeneration || progressGen != _progressGeneration) return false;
@@ -109,6 +121,26 @@ class MapRouteManager {
       // Xóa đường và marker cũ trước khi vẽ mới
       await _clearLinesAndSymbols(controller);
       if (generation != _renderGeneration || progressGen != _progressGeneration) return false;
+
+      // 0. Vẽ các đường phụ (Alternative Routes) trước để nằm bên dưới đường chính
+      for (int i = 0; i < alternativeRoutes.length; i++) {
+        if (i == selectedRouteIndex) continue;
+        final alt = alternativeRoutes[i];
+        if (!alt.isSuccess || !alt.hasPoints) continue;
+        final altLatLngs = parseRoutePoints(alt.points, simplify: true);
+        if (altLatLngs.isEmpty) continue;
+
+        final altLine = await controller.addLine(
+          LineOptions(
+            geometry: altLatLngs,
+            lineColor: '#94A3B8',
+            lineWidth: RoutingConstants.routeMainLineWidth - 1.5,
+            lineOpacity: 0.70,
+            lineJoin: RoutingConstants.routeLineJoin,
+          ),
+        );
+        drawnAltLines.add(altLine);
+      }
 
       // 1. Tạo Casing Line (Viền đậm bên dưới tạo độ nổi khối)
       casingLine = await controller.addLine(
@@ -147,12 +179,16 @@ class MapRouteManager {
 
       if (generation != _renderGeneration || progressGen != _progressGeneration) {
         DLog.info('⏭️ [MapRouteManager] Discarding stale drawn route objects (Current #$_renderGeneration vs #$generation)');
+        for (final l in drawnAltLines) {
+          await _removeOrphan(controller, line: l);
+        }
         await _removeOrphan(controller, line: casingLine);
         await _removeOrphan(controller, line: mainLine);
         await _removeOrphan(controller, symbol: destinationSymbol);
         return false;
       }
 
+      _alternativeLines.addAll(drawnAltLines);
       _routeCasingLine = casingLine;
       _routeLine = mainLine;
       _destinationSymbol = destinationSymbol;
@@ -161,6 +197,9 @@ class MapRouteManager {
     } catch (e, stack) {
       // Nếu native destination symbol lỗi sau khi line đã tạo, dọn cả ba
       // object để route manager không giữ một route thiếu marker.
+      for (final l in drawnAltLines) {
+        await _removeOrphan(controller, line: l);
+      }
       await _removeOrphan(controller, line: casingLine);
       await _removeOrphan(controller, line: mainLine);
       await _removeOrphan(controller, symbol: destinationSymbol);
@@ -329,6 +368,13 @@ class MapRouteManager {
 
   Future<void> _clearLinesAndSymbols(MapLibreMapController? controller) async {
     if (controller == null) return;
+
+    for (final altLine in _alternativeLines) {
+      try {
+        await controller.removeLine(altLine);
+      } catch (_) {}
+    }
+    _alternativeLines.clear();
 
     if (_passedRouteLine != null) {
       try {

@@ -1,6 +1,7 @@
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/map_display_cubit/map_display_state.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/circular_ema_filter.dart';
 import 'package:s_map/constants/constants.dart';
 
 /// Quản lý các thao tác điều khiển camera, tính toán tâm khung nhìn và ngưỡng dịch chuyển camera.
@@ -112,31 +113,64 @@ class MapCameraController {
     return RoutingConstants.navZoomHighSpeed;
   }
 
+  final CircularEmaFilter _bearingFilter = CircularEmaFilter(defaultAlpha: 0.25);
+  double? _lastValidBearing;
+
   /// Cập nhật Camera theo góc nhìn dẫn đường 3D (Heading-up + Tilt + Dynamic Zoom)
+  /// Cập nhật Camera theo góc nhìn dẫn đường 3D (Heading-up + Tilt + Dynamic Zoom)
+  ///
+  /// Áp dụng bộ lọc Circular EMA và chiến lược Sensor Fusion thực thụ (GPS Bearing + Hardware Compass):
+  /// * Tốc độ >= 8.0 km/h: Ưu tiên GPS motion vector (gpsHeading) vì độ ổn định cực cao khi chuyển động (alpha = 0.25).
+  /// * Tốc độ từ 3.0 đến 8.0 km/h: Chuyển tiếp kết hợp giữa GPS và La bàn (alpha = 0.15).
+  /// * Tốc độ < 3.0 km/h (đứng yên/dừng đèn đỏ): GPS không thể tính vector. Chuyển sang cảm biến La bàn từ trường
+  ///   (compassHeading) với alpha = 0.08 để chống rung chấn tay lái xe máy nhưng vẫn mượt mà xoay theo góc quay đầu xe.
   void updateNavigationCamera({
     required MapLibreMapController? controller,
     required double lat,
     required double lon,
-    required double? heading,
+    required double? gpsHeading,
+    double? compassHeading,
     required double? speedKmh,
     double tilt = RoutingConstants.navCameraTilt,
   }) {
     if (controller == null) return;
     final zoom = calculateDynamicZoom(speedKmh);
+
+    final double targetBearing;
+    final double alpha;
+
+    if (gpsHeading != null && (speedKmh == null || speedKmh >= 8.0)) {
+      targetBearing = gpsHeading;
+      alpha = 0.25;
+      _lastValidBearing = gpsHeading;
+    } else if (speedKmh != null && speedKmh >= 3.0) {
+      targetBearing = gpsHeading ?? compassHeading ?? _lastValidBearing ?? 0.0;
+      alpha = 0.15;
+      if (gpsHeading != null) _lastValidBearing = gpsHeading;
+    } else {
+      // Khi dừng đèn đỏ hoặc đứng yên: Ưu tiên la bàn phần cứng (compassHeading)
+      targetBearing = compassHeading ?? _lastValidBearing ?? gpsHeading ?? 0.0;
+      alpha = 0.08;
+    }
+
+    final effectiveBearing = _bearingFilter.filter(targetBearing, alpha: alpha);
+
     controller.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: LatLng(lat, lon),
           zoom: zoom,
-          bearing: heading ?? 0.0,
+          bearing: effectiveBearing,
           tilt: tilt,
         ),
       ),
     );
   }
 
-  /// Reset vị trí tìm kiếm đã lưu
+  /// Reset vị trí tìm kiếm đã lưu và bộ lọc la bàn
   void reset() {
     lastSearchedBounds = null;
+    _lastValidBearing = null;
+    _bearingFilter.reset();
   }
 }

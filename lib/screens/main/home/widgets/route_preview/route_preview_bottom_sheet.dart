@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class RoutePreviewBottomSheet extends StatelessWidget {
@@ -79,6 +80,15 @@ class RoutePreviewBottomSheet extends StatelessWidget {
         final durationStr = RouteFormatHelper.formatDuration(route.time);
         final etaTimeStr = RouteFormatHelper.formatEtaClockTime(route.time);
 
+        final IconData vehicleIcon;
+        if (state.profile == RoutingConstants.profileCar) {
+          vehicleIcon = Icons.directions_car_rounded;
+        } else if (state.profile == RoutingConstants.profileFoot) {
+          vehicleIcon = Icons.directions_walk_rounded;
+        } else {
+          vehicleIcon = Icons.two_wheeler_rounded;
+        }
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           padding: const EdgeInsets.all(16),
@@ -100,7 +110,7 @@ class RoutePreviewBottomSheet extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. Info Header Row (Motorcycle Icon + Duration/Distance + Close Button)
+              // 1. Info Header Row (Vehicle Icon + Duration/Distance + Close Button)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -113,7 +123,7 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.two_wheeler_rounded,
+                      vehicleIcon,
                       color: colorScheme.primary,
                       size: 24,
                     ),
@@ -145,7 +155,17 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                             ),
                           ],
                         ),
-                        if (state.destinationName != null &&
+                        if (state.originName != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '${state.originName} → ${state.destinationName ?? tr(LocaleKeys.routing_destination_fallback)}',
+                            style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
+                              fontSize: 13,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ] else if (state.destinationName != null &&
                             state.destinationName!.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Text(
@@ -181,6 +201,82 @@ class RoutePreviewBottomSheet extends StatelessWidget {
                   ),
                 ],
               ),
+
+              // 1.5. Alternative Routes Selector (Hiển thị khi có nhiều hơn 1 lộ trình)
+              if (state.hasAlternativeRoutes) ...[
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(state.alternativeRoutes.length, (index) {
+                      final alt = state.alternativeRoutes[index];
+                      final isSelected = index == state.selectedRouteIndex;
+                      final altDurationStr =
+                          RouteFormatHelper.formatDuration(alt.time);
+                      final altDistanceStr =
+                          RouteFormatHelper.formatDistance(alt.distance);
+                      final title = alt.routeTitle ?? 'Lộ trình ${index + 1}';
+
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () {
+                            context
+                                .read<RoutePreviewCubit>()
+                                .selectAlternativeRoute(index);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? colorScheme.primary.withValues(alpha: 0.12)
+                                  : colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : colorScheme.outline.withValues(alpha: 0.2),
+                                width: isSelected ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isSelected
+                                      ? Icons.check_circle_rounded
+                                      : Icons.radio_button_unchecked_rounded,
+                                  size: 15,
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '$title: $altDurationStr ($altDistanceStr)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               // 2. Action: Start Navigation & Custom Route Buttons

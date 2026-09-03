@@ -477,6 +477,10 @@ void main() {
 
       final empty = await poiRepo.getSuggestions('');
       expect(empty, isEmpty);
+
+      final accentedSuggestions = await poiRepo.getSuggestions('Phở');
+      expect(accentedSuggestions, isNotEmpty);
+      expect(accentedSuggestions.every((s) => s.contains('Phở')), isTrue);
     });
   });
 }

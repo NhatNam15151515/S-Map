@@ -243,7 +243,12 @@
     "profile_foot": "Walking",
     "use_my_location_origin": "My Location (Origin)",
     "use_selected_destination": "Selected Marker (Destination)",
-    "custom_route_drawing": "Custom Route"
+    "custom_route_drawing": "Custom Route",
+    "straight_line_mode_tooltip_on": "Enable direct line (As-the-crow-flies)",
+    "straight_line_mode_tooltip_off": "Disable direct line (Follow roads)",
+    "straight_line_mode_active_badge": "Direct Line",
+    "center_add_start_point": "Set starting point at center",
+    "center_add_next_point": "Add point at center"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",

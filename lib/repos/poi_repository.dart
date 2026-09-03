@@ -127,8 +127,8 @@ class PoiRepositoryImpl implements IPoiRepository {
     });
   }
 
-  /// Tìm theo các trường địa chỉ đã có trong DB, kể cả khi DB cũ chưa có
-  /// cột address_ascii trong FTS index.
+  /// Tìm theo các trường địa chỉ trong DB bằng FTS5 push-down predicate,
+  /// kết hợp cả số nhà lẫn tên đường thay vì chỉ quét số nhà trên toàn bảng.
   Future<List<PoiModel>> _searchAddressFields(
     String query, {
     int limit = 20,
@@ -139,10 +139,61 @@ class PoiRepositoryImpl implements IPoiRepository {
       return [];
     }
 
+    final db = await _getDb();
     final numberTokens = queryTokens
         .where(_containsNumberRegExp.hasMatch)
         .toSet()
         .toList();
+    final nonNumberTokens = queryTokens
+        .where((token) => !_containsNumberRegExp.hasMatch(token))
+        .toList();
+
+    // 1. Thử truy vấn qua FTS5 với push-down predicate (cả số nhà lẫn tên đường)
+    if (numberTokens.isNotEmpty && nonNumberTokens.isNotEmpty) {
+      try {
+        final numPattern = numberTokens.map((n) => '"$n"*').join(' OR ');
+        final streetPattern = nonNumberTokens.map((s) => '"$s"*').join(' AND ');
+        final ftsPattern = '($numPattern) AND ($streetPattern)';
+
+        final ftsRows = await db.rawQuery(
+          '''
+          SELECT p.*
+          FROM poi_fts f
+          JOIN poi p ON f.rowid = p.id
+          WHERE poi_fts MATCH ?
+          LIMIT ?
+          ''',
+          [ftsPattern, limit * 3],
+        );
+
+        if (ftsRows.isNotEmpty) {
+          final exactMatches = <PoiModel>[];
+          final relaxedMatches = <PoiModel>[];
+          for (final row in ftsRows) {
+            final addressText = [
+              row['address'],
+              row['street'],
+              row['housenumber'],
+              row['city'],
+              row['admin_aliases'],
+            ].whereType<String>().join(' ');
+            final addressTokens = _tokenizeSearchText(addressText);
+            if (_matchesSearchTokens(queryTokens, addressTokens)) {
+              exactMatches.add(PoiModel.fromMap(row));
+            } else if (_matchesAddressCoreTokens(queryTokens, row)) {
+              relaxedMatches.add(PoiModel.fromMap(row));
+            }
+          }
+          if (exactMatches.isNotEmpty || relaxedMatches.isNotEmpty) {
+            return [...exactMatches, ...relaxedMatches].take(limit).toList();
+          }
+        }
+      } catch (_) {
+        // Fallback xuống câu query LIKE nếu bảng FTS5 không khả dụng
+      }
+    }
+
+    // 2. Fallback tìm kiếm SQL trực tiếp với LIMIT an toàn (tránh Full Table Scan vô tận)
     final candidateClauses = <String>[];
     final candidateArgs = <String>[];
     for (final numberToken in numberTokens) {
@@ -152,12 +203,12 @@ class PoiRepositoryImpl implements IPoiRepository {
       }
     }
 
-    final db = await _getDb();
     try {
       final rows = await db.query(
         'poi',
         where: candidateClauses.join(' OR '),
         whereArgs: candidateArgs,
+        limit: 200,
       );
 
       final exactMatches = <PoiModel>[];
@@ -289,7 +340,13 @@ class PoiRepositoryImpl implements IPoiRepository {
     if (cleanQuery.isEmpty) return matchedSovereign;
 
     final db = await _getDb();
-    final ftsPattern = '"$cleanQuery"*';
+    final words = cleanQuery
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    final ftsPattern = words.length > 1
+        ? '("$cleanQuery"*) OR (${words.map((w) => '"$w"*').join(' AND ')})'
+        : '"$cleanQuery"*';
 
     try {
       final List<Map<String, dynamic>> results = await db.rawQuery(
@@ -298,6 +355,7 @@ class PoiRepositoryImpl implements IPoiRepository {
         FROM poi_fts f
         JOIN poi p ON f.rowid = p.id
         WHERE poi_fts MATCH ?
+        ORDER BY bm25(poi_fts) ASC
         LIMIT ?
         ''',
         [ftsPattern, limit],
@@ -336,8 +394,15 @@ class PoiRepositoryImpl implements IPoiRepository {
     if (cleanQuery.isEmpty) return matchedSovereign;
 
     final db = await _getDb();
+    final words = cleanQuery
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    final tokenPattern = words.length > 1
+        ? ' OR (name_ascii: ${words.map((w) => '"$w"*').join(' AND ')})'
+        : '';
     final ftsPattern =
-        '(name_ascii: "$cleanQuery"* OR address: "$cleanQuery"* OR admin_aliases: "$cleanQuery"*)';
+        '(name_ascii: "$cleanQuery"* OR address: "$cleanQuery"* OR admin_aliases: "$cleanQuery"*$tokenPattern)';
 
     try {
       final List<Map<String, dynamic>> results = await db.rawQuery(
@@ -346,6 +411,7 @@ class PoiRepositoryImpl implements IPoiRepository {
         FROM poi_fts f
         JOIN poi p ON f.rowid = p.id
         WHERE poi_fts MATCH ?
+        ORDER BY bm25(poi_fts) ASC
         LIMIT ?
         ''',
         [ftsPattern, limit],
@@ -452,7 +518,7 @@ class PoiRepositoryImpl implements IPoiRepository {
 
       return _mergeUniqueResults(
         addressResults,
-        [...exactResults, ...asciiResults, ...streetResults],
+        [...exactResults, ...streetResults, ...asciiResults],
         limit: limit,
       );
     } else {
@@ -689,14 +755,18 @@ class PoiRepositoryImpl implements IPoiRepository {
     String query, {
     required int limit,
   }) async {
-    if (query.trim().isEmpty) return [];
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
 
-    final cleanQuery = _sanitizeFtsQuery(AppUtils.instance.toAscii(query));
+    final hasDiacritics = Validator.instance.hasDiacritics(trimmed);
+    final cleanQuery = _sanitizeFtsQuery(trimmed);
     if (cleanQuery.isEmpty) return [];
 
     final db = await _getDb();
-    final ftsPattern =
-        '(name_ascii: "$cleanQuery"* OR admin_aliases: "$cleanQuery"*)';
+    final cleanAscii = _sanitizeFtsQuery(AppUtils.instance.toAscii(trimmed));
+    final ftsPattern = hasDiacritics
+        ? '(name: "$cleanQuery"* OR address: "$cleanQuery"*)'
+        : '(name_ascii: "$cleanAscii"* OR admin_aliases: "$cleanAscii"*)';
 
     try {
       final List<Map<String, dynamic>> results = await db.rawQuery(
@@ -705,6 +775,7 @@ class PoiRepositoryImpl implements IPoiRepository {
         FROM poi_fts f
         JOIN poi p ON f.rowid = p.id
         WHERE poi_fts MATCH ?
+        ORDER BY bm25(poi_fts) ASC
         LIMIT ?
         ''',
         [ftsPattern, limit],
@@ -719,10 +790,10 @@ class PoiRepositoryImpl implements IPoiRepository {
         '''
         SELECT DISTINCT name
         FROM poi
-        WHERE name_ascii LIKE ?
+        WHERE ${hasDiacritics ? 'name LIKE ?' : 'name_ascii LIKE ?'}
         LIMIT ?
         ''',
-        ['%$cleanQuery%', limit],
+        [hasDiacritics ? '%$cleanQuery%' : '%$cleanAscii%', limit],
       );
 
       return fallbackResults
@@ -776,10 +847,10 @@ class PoiRepositoryImpl implements IPoiRepository {
   }
 
   String _normalizeCacheText(String? value) {
-    return AppUtils.instance
-        .toAscii(value ?? '')
+    if (value == null || value.isEmpty) return '';
+    return value
         .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .replaceAll(RegExp(r'[^\p{L}\p{M}\p{N}]+', unicode: true), ' ')
         .trim()
         .replaceAll(RegExp(r'\s+'), ' ');
   }

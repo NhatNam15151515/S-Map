@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -53,6 +54,7 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
   bool _isResolvingMyLocationOrigin = false;
   bool _isMarkerDestinationActive = false;
   bool _isDestinationPickerActive = true;
+  bool _isCrosshairActive = true;
   LatLng? _markerDestination;
 
   @override
@@ -317,6 +319,24 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     });
   }
 
+  void _handleAddPointAtCenter() {
+    final center = _mapLayerKey.currentState?.currentCenter ??
+        _mapDisplayCubit.state.center;
+    if (center == null) return;
+    HapticFeedback.lightImpact();
+    _drawingBloc.add(
+      RouteDrawingPointTapped(
+        lat: center.latitude,
+        lon: center.longitude,
+      ),
+    );
+  }
+
+  void _handleReverseRoute() {
+    HapticFeedback.mediumImpact();
+    _drawingBloc.add(const RouteDrawingReverseRoute());
+  }
+
   @override
   void dispose() {
     if (widget.drawingBloc == null) {
@@ -428,7 +448,10 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
               if (widget.mapLayerBuilder != null)
                 widget.mapLayerBuilder!()
               else
-                RouteDrawingMapLayer(key: _mapLayerKey),
+                RouteDrawingMapLayer(
+                  key: _mapLayerKey,
+                  isCrosshairActive: _isCrosshairActive,
+                ),
 
               // 2. Floating Top Bar
               RouteDrawingTopBar(
@@ -442,9 +465,85 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                   child: Center(
                     child: Icon(Icons.flag_rounded, size: 42),
                   ),
+                )
+              else if (_isCrosshairActive)
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () {
+                    if (!state.isLoading) {
+                      _handleAddPointAtCenter();
+                    }
+                  },
+                  child: Center(
+                    child: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.85),
+                                width: 2.0,
+                              ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.12),
+                            ),
+                          ),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Theme.of(context).colorScheme.primary,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.25),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Reticle cross lines
+                          Positioned(
+                            top: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 1.5,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: 1.5,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
 
-              // 3. Floating Toolbar (Undo, Redo, Clear, Fit Bounds, Origin/Dest Toggles)
+              // 3. Floating Toolbar (Undo, Redo, Clear, Fit Bounds, Reverse, Crosshair, Origin/Dest Toggles)
               RouteDrawingFloatingToolbar(
                 canUndo: state.canUndo,
                 canRedo: state.canRedo,
@@ -453,19 +552,29 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                 isMyLocationOrigin: _isMyLocationOriginActive,
                 isResolvingMyLocation: _isResolvingMyLocationOrigin,
                 isMarkerDestination: _isMarkerDestinationActive,
-                // Luôn hiển thị cờ để người dùng có thể bật chế độ chọn
-                // đích từ tâm bản đồ ngay cả khi chưa có POI tìm kiếm.
                 hasMarkerDestination: true,
                 onLocateMe: _handleLocateMe,
                 onUndo: () =>
                     _drawingBloc.add(const RouteDrawingUndoLastPoint()),
                 onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
+                onReverseRoute: _handleReverseRoute,
+                canReverse: state.points.length >= 2,
+                isCrosshairActive: _isCrosshairActive,
+                onToggleCrosshair: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _isCrosshairActive = !_isCrosshairActive);
+                },
                 onClear: () {
                   setState(() {
                     _isMyLocationOriginActive = false;
                     _isMarkerDestinationActive = false;
                   });
                   _drawingBloc.add(const RouteDrawingClearRoute());
+                },
+                isStraightLineMode: state.isStraightLineMode,
+                onToggleStraightLineMode: () {
+                  HapticFeedback.selectionClick();
+                  _drawingBloc.add(const RouteDrawingToggleStraightLineMode());
                 },
                 onFitBounds: () => _mapLayerKey.currentState?.fitRouteBounds(),
                 onToggleMyLocationOrigin: _handleToggleMyLocationOrigin,
@@ -475,12 +584,54 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                     : null,
               ),
 
-              // 4. Bottom Summary & Action Card
+              // 4. Center Crosshair Add Waypoint Floating Button
+              if (_isCrosshairActive && !_isDestinationPickerActive)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: MediaQuery.paddingOf(context).bottom +
+                      (state.points.length >= 2 ? 190 : 130),
+                  child: Center(
+                    child: ElevatedButton.icon(
+                      key: const Key('route_drawing_add_point_center_btn'),
+                      onPressed:
+                          state.isLoading ? null : _handleAddPointAtCenter,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        elevation: 6,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        shadowColor: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.4),
+                      ),
+                      icon: const Icon(Icons.add_location_alt_rounded, size: 20),
+                      label: Text(
+                        state.points.isEmpty
+                            ? tr(LocaleKeys.route_drawing_ui_center_add_start_point)
+                            : tr(LocaleKeys.route_drawing_ui_center_add_next_point),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 5. Bottom Summary & Action Card
               RouteDrawingBottomCard(
                 pointCount: state.pointCount,
                 distanceMeters: state.totalDistance,
                 durationMs: state.totalTime,
                 isLoading: state.isLoading,
+                isStraightLineMode: state.isStraightLineMode,
                 onSavePressed: () => _handleSaveRoute(context, state),
                 onNavigatePressed: () => _handleNavigate(context, state),
               ),

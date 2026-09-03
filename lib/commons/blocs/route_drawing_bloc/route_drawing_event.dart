@@ -12,14 +12,21 @@ abstract class RouteDrawingEvent extends Equatable {
 class RouteDrawingPointTapped extends RouteDrawingEvent {
   final double lat;
   final double lon;
+  final bool? isStraightLine;
 
   const RouteDrawingPointTapped({
     required this.lat,
     required this.lon,
+    this.isStraightLine,
   });
 
   @override
-  List<Object?> get props => [lat, lon];
+  List<Object?> get props => [lat, lon, isStraightLine];
+}
+
+/// Bật / Tắt chế độ vẽ đường chim bay (Direct Line / As-the-crow-flies Mode)
+class RouteDrawingToggleStraightLineMode extends RouteDrawingEvent {
+  const RouteDrawingToggleStraightLineMode();
 }
 
 /// Khởi tạo cặp điểm đầu/cuối trong một transaction.
@@ -72,3 +79,19 @@ class RouteDrawingLoadRoute extends RouteDrawingEvent {
   @override
   List<Object?> get props => [route];
 }
+
+/// Đảo chiều toàn bộ lộ trình đang vẽ (từ A -> B thành B -> A)
+class RouteDrawingReverseRoute extends RouteDrawingEvent {
+  const RouteDrawingReverseRoute();
+}
+
+/// Thay đổi cấu hình phương tiện dẫn đường (xe máy, ô tô, đi bộ)
+class RouteDrawingChangeProfile extends RouteDrawingEvent {
+  final String profile;
+
+  const RouteDrawingChangeProfile(this.profile);
+
+  @override
+  List<Object?> get props => [profile];
+}
+

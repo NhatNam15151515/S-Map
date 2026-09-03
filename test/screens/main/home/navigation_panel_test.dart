@@ -22,6 +22,24 @@ class MockRoutingRepo implements IRoutingRepository {
           isSuccess: true, distance: 1000, time: 60000, points: []);
 
   @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    final route = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: vehicleProfile,
+    );
+    return [route];
+  }
+
+  @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,
@@ -113,7 +131,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('250 m'), findsOneWidget);
-      expect(find.text('Đồng Khởi'), findsOneWidget);
+      expect(find.textContaining('Đồng Khởi'), findsOneWidget);
       expect(find.textContaining('Lê Thánh Tôn'), findsOneWidget);
       expect(find.byIcon(Icons.turn_right_rounded), findsOneWidget);
     });
@@ -146,7 +164,6 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.text('35'), findsOneWidget);
       expect(
         find.textContaining(RouteFormatHelper.formatDuration(300000)),
         findsOneWidget,

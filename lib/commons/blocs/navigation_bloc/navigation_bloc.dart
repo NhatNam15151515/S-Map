@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:s_map/commons/fallbacks/fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
+import 'package:s_map/commons/usecases/usecases.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -16,23 +17,27 @@ import 'navigation_state.dart';
 export 'navigation_event.dart';
 export 'navigation_state.dart';
 
+/// Bộ điều khiển máy trạng thái dẫn đường (Lean Navigation Finite State Machine)
+///
+/// Tuân thủ nguyên tắc Clean Architecture chuẩn Google:
+/// * Thao tác chuyển đổi trạng thái giao diện được tối ưu hoá qua [NavigationState].
+/// * Ủy quyền số liệu và deadband cho [TripMetricsTracker].
+/// * Ủy quyền lưu trữ và hoàn tất chuyến đi cho [NavigationPersistenceCoordinator].
+/// * Ủy quyền chính sách thiết bị cho [NavigationDevicePolicy].
+/// * Ủy quyền tính toán toạ độ và snap cho [NavigationTrackingCoordinator].
 class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final IRoutingRepository _routingRepository;
   final ILocationService _locationService;
-  final IOffRouteDetector _offRouteDetector;
-  final ITurnByTurnEngine _turnByTurnEngine;
-  final IDeviceInfoService _deviceInfoService;
-  final ITripRepository _tripRepository;
-  final IActiveTripService _activeTripService;
-  final IVisitedPoiService _visitedPoiService;
+
+  // Domain Subsystems
+  final TripMetricsTracker _metricsTracker;
+  final NavigationPersistenceCoordinator _persistenceCoordinator;
+  final NavigationDevicePolicy _devicePolicy;
+  final NavigationTrackingCoordinator _trackingCoordinator;
 
   StreamSubscription<Position>? _locationSubscription;
-  Timer? _autoSaveTimer;
   int _requestGeneration = 0;
   DateTime? _lastRerouteTime;
-  double? _lastValidDistanceLat;
-  double? _lastValidDistanceLon;
-  bool _hasMovedDuringNavigation = false;
 
   /// Optional global default service resolvers set by the composition root
   static ILocationService? defaultLocationService;
@@ -41,11 +46,16 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   static IActiveTripService? defaultActiveTripService;
   static IVisitedPoiService? defaultVisitedPoiService;
 
-  /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 2 giây)
-  static const Duration _rerouteCooldown = Duration(seconds: 2);
+  /// Số nhịp GPS liên tiếp phát hiện lệch tuyến bắt buộc trước khi kích hoạt Reroute
+  static const int minConsecutiveOffRouteTicks = 3;
 
-  /// Chu kỳ lưu snapshot phiên điều hướng định kỳ vào Hive (mỗi 30 giây)
-  static const Duration _autoSaveInterval = Duration(seconds: 30);
+  /// Ngưỡng vận tốc tối thiểu (km/h) để cho phép tự động tính lại đường (tránh trôi dạt khi đứng yên)
+  static const double minMovingSpeedForRerouteKmh = 5.0;
+
+  /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 6 giây)
+  static const Duration _rerouteCooldown = Duration(seconds: 6);
+
+  int _consecutiveOffRouteTicks = 0;
 
   NavigationBloc({
     required IRoutingRepository routingRepository,
@@ -56,24 +66,41 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     IDeviceInfoService? deviceInfoService,
     IActiveTripService? activeTripService,
     IVisitedPoiService? visitedPoiService,
+    TripMetricsTracker? metricsTracker,
+    NavigationPersistenceCoordinator? persistenceCoordinator,
+    NavigationDevicePolicy? devicePolicy,
+    NavigationTrackingCoordinator? trackingCoordinator,
   })  : _routingRepository = routingRepository,
-        _tripRepository = tripRepository,
         _locationService = locationService ??
             defaultLocationService ??
             const NoOpLocationService(),
-        _offRouteDetector = offRouteDetector ?? const OffRouteDetector(),
-        _turnByTurnEngine = turnByTurnEngine ??
-            defaultTurnByTurnEngine ??
-            const TurnByTurnEngine(),
-        _deviceInfoService = deviceInfoService ??
-            defaultDeviceInfoService ??
-            const NoOpDeviceInfoService(),
-        _activeTripService = activeTripService ??
-            defaultActiveTripService ??
-            const NoOpActiveTripService(),
-        _visitedPoiService = visitedPoiService ??
-            defaultVisitedPoiService ??
-            const NoOpVisitedPoiService(),
+        _metricsTracker = metricsTracker ?? TripMetricsTracker(),
+        _persistenceCoordinator = persistenceCoordinator ??
+            NavigationPersistenceCoordinator(
+              tripRepository: tripRepository,
+              activeTripService: activeTripService ??
+                  defaultActiveTripService ??
+                  const NoOpActiveTripService(),
+              visitedPoiService: visitedPoiService ??
+                  defaultVisitedPoiService ??
+                  const NoOpVisitedPoiService(),
+            ),
+        _devicePolicy = devicePolicy ??
+            NavigationDevicePolicy(
+              locationService: locationService ??
+                  defaultLocationService ??
+                  const NoOpLocationService(),
+              deviceInfoService: deviceInfoService ??
+                  defaultDeviceInfoService ??
+                  const NoOpDeviceInfoService(),
+            ),
+        _trackingCoordinator = trackingCoordinator ??
+            NavigationTrackingCoordinator(
+              turnByTurnEngine: turnByTurnEngine ??
+                  defaultTurnByTurnEngine ??
+                  const TurnByTurnEngine(),
+              offRouteDetector: offRouteDetector ?? const OffRouteDetector(),
+            ),
         super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
@@ -92,55 +119,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     );
   }
 
-  void _startAutoSaveTimer() {
-    _autoSaveTimer?.cancel();
-    _autoSaveTimer = Timer.periodic(_autoSaveInterval, (_) {
-      if (!isClosed) {
-        add(const SaveActiveSessionSnapshot());
-      }
-    });
-  }
-
-  void _stopAutoSaveTimer() {
-    _autoSaveTimer?.cancel();
-    _autoSaveTimer = null;
-  }
-
-  ActiveTripSnapshot? _buildSnapshotFromState() {
-    if (!state.isNavigating ||
-        state.currentRoute == null ||
-        state.origin == null ||
-        state.destination == null) {
-      return null;
-    }
-
-    return ActiveTripSnapshot(
-      origin: state.origin!,
-      destination: state.destination!,
-      destinationName: state.destinationName,
-      profile: state.profile,
-      initialRoute: state.currentRoute!,
-      currentSegmentIndex: state.currentSegmentIndex,
-      currentInstructionIndex: state.currentInstructionIndex,
-      tripStartTime: state.tripStartTime ?? DateTime.now(),
-      lastSavedTime: DateTime.now(),
-      totalDistanceTraveledMeters: state.totalDistanceTraveledMeters,
-      maxSpeedKmh: state.maxSpeedKmh,
-      speedSampleSum: state.speedSampleSum,
-      speedSampleCount: state.speedSampleCount,
-      lastKnownLat: state.currentLat,
-      lastKnownLon: state.currentLon,
-    );
-  }
-
-  Future<void> _clearActiveSessionSafely() async {
-    try {
-      await _activeTripService.clearActiveSession();
-    } catch (e, stack) {
-      DLog.error(
-          '❌ [NavigationBloc] Failed to clear active session: $e', e, stack);
-    }
-  }
+  ActiveTripSnapshot? _buildSnapshotFromState() =>
+      state.toSnapshot(metrics: _metricsTracker);
 
   Future<void> _onCheckActiveSession(
     CheckActiveSession event,
@@ -149,7 +129,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     if (state.isNavigating) return;
 
     try {
-      final session = await _activeTripService.getActiveSession();
+      final session = await _persistenceCoordinator.getActiveSession();
       if (isClosed || emit.isDone) return;
       if (session != null && session.isValid()) {
         DLog.info(
@@ -169,11 +149,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     Emitter<NavigationState> emit,
   ) async {
     final snapshot = event.snapshot;
-    if (!snapshot.isValid()) {
-      DLog.warning(
-        '⚠️ [NavigationBloc] Cannot resume: active session expired (> 24h)',
-      );
-      unawaited(_clearActiveSessionSafely());
+    if (await _persistenceCoordinator.isSessionExpired(snapshot)) {
       emit(state.copyWith(clearPendingResumeSession: true));
       return;
     }
@@ -183,104 +159,44 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     );
 
     final generation = ++_requestGeneration;
-    await _locationSubscription?.cancel();
-    _locationSubscription = null;
-    _stopAutoSaveTimer();
+    await _cancelGpsSubscription();
+    _persistenceCoordinator.stopAutoSave();
 
     if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
     _lastRerouteTime = null;
-    _lastValidDistanceLat = snapshot.lastKnownLat;
-    _lastValidDistanceLon = snapshot.lastKnownLon;
+    _metricsTracker.restoreFromSnapshot(snapshot);
 
-    DeviceOemType? promptOem;
-    try {
-      final isIgnored = await _locationService.isBatteryOptimizationIgnored();
-      if (!isIgnored) {
-        final oemType = await _deviceInfoService.getDeviceOemType();
-        if (oemType.isAggressiveOem) {
-          promptOem = oemType;
-        }
-      }
-    } catch (e) {
-      DLog.error('Lỗi kiểm tra battery optimization khi resume: $e');
-    }
-
+    final promptOem = await _devicePolicy.checkBatteryOptimizationPrompt();
     if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
-    final progress = _turnByTurnEngine.updateProgress(
+    final progress = _trackingCoordinator.processLocationTick(
       currentLat: snapshot.lastKnownLat ?? snapshot.origin.lat,
       currentLon: snapshot.lastKnownLon ?? snapshot.origin.lon,
-      instructions: snapshot.initialRoute.instructions,
-      currentInstructionIndex: snapshot.currentInstructionIndex,
-    );
-
-    emit(state.copyWith(
-      status: NavigationStatus.navigating,
-      currentRoute: snapshot.initialRoute,
-      origin: snapshot.origin,
+      route: snapshot.initialRoute,
       destination: snapshot.destination,
-      destinationName: snapshot.destinationName,
-      clearDestinationName: snapshot.destinationName == null,
-      profile: snapshot.profile,
-      currentLat: snapshot.lastKnownLat,
-      currentLon: snapshot.lastKnownLon,
       currentSegmentIndex: snapshot.currentSegmentIndex,
-      distanceToRoute: 0.0,
-      isOffRoute: false,
-      isRerouting: false,
-      rerouteCount: 0,
-      currentInstructionIndex: progress.currentInstructionIndex,
-      currentInstruction: progress.currentInstruction,
-      clearCurrentInstruction: progress.currentInstruction == null,
-      nextInstruction: progress.nextInstruction,
-      clearNextInstruction: progress.nextInstruction == null,
-      distanceToNextInstruction: progress.distanceToNextInstruction,
-      remainingDistance: progress.remainingDistance,
-      remainingDurationMs: progress.remainingDurationMs,
-      isPreAnnounced: progress.isPreAnnounced,
-      tripStartTime: snapshot.tripStartTime,
-      maxSpeedKmh: snapshot.maxSpeedKmh,
-      totalDistanceTraveledMeters: snapshot.totalDistanceTraveledMeters,
-      speedSampleSum: snapshot.speedSampleSum,
-      speedSampleCount: snapshot.speedSampleCount,
-      clearPendingResumeSession: true,
-      clearTripSummary: true,
-      clearError: true,
-      clearMessage: true,
+      currentInstructionIndex: snapshot.currentInstructionIndex,
+      hasMoved: false,
+    ).progress;
+
+    emit(NavigationState.resume(
+      snapshot: snapshot,
+      progress: progress,
       promptBatteryOptimizationOem: promptOem,
     ));
 
-    _startAutoSaveTimer();
+    _persistenceCoordinator.startAutoSave(() {
+      if (!isClosed) add(const SaveActiveSessionSnapshot());
+    });
     add(const SaveActiveSessionSnapshot());
 
-    await _locationService.requestNotificationPermission();
-
+    await _devicePolicy.requestNotificationPermission();
     if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
     final destName = snapshot.destinationName ??
         LocaleKeys.routing_destination_fallback.tr();
-    final stream = _locationService.getPositionStream(
-      enableBackground: true,
-      notificationTitle: LocaleKeys.routing_foreground_notification_title.tr(),
-      notificationText: LocaleKeys.routing_foreground_notification_text.tr(
-        args: [destName],
-      ),
-      intervalDuration: const Duration(seconds: 1),
-      enableWakeLock: true,
-    );
-
-    _locationSubscription = stream.listen(
-      (position) {
-        if (!isClosed) {
-          add(LocationUpdated.fromPosition(position));
-        }
-      },
-      onError: (error) {
-        DLog.error(
-            '❌ [NavigationBloc] GPS Position Stream error on resume: $error');
-      },
-    );
+    _listenGpsStream(destName);
   }
 
   Future<void> _onDiscardActiveSession(
@@ -288,14 +204,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     Emitter<NavigationState> emit,
   ) async {
     DLog.info('🗑️ [NavigationBloc] Discarding pending active trip session');
-    try {
-      await _activeTripService.clearActiveSession();
-    } catch (e, stack) {
-      DLog.error(
-          '❌ [NavigationBloc] Error clearing discarded active session: $e',
-          e,
-          stack);
-    }
+    await _persistenceCoordinator.clearActiveSessionSafely();
     if (isClosed || emit.isDone) return;
     emit(state.copyWith(clearPendingResumeSession: true));
   }
@@ -308,7 +217,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     if (snapshot == null) return;
 
     try {
-      await _activeTripService.saveActiveSession(snapshot);
+      await _persistenceCoordinator.saveActiveSession(snapshot);
     } catch (e, stack) {
       if (isClosed || emit.isDone) return;
       DLog.warning(
@@ -328,111 +237,50 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         '🚀 [NavigationBloc] Starting Navigation to "${event.destinationName}" (${event.destination.lat}, ${event.destination.lon})');
 
     final generation = ++_requestGeneration;
-    await _locationSubscription?.cancel();
-    _locationSubscription = null;
-    _stopAutoSaveTimer();
+    await _cancelGpsSubscription();
+    _persistenceCoordinator.stopAutoSave();
 
     if (generation != _requestGeneration || isClosed) return;
 
     _lastRerouteTime = null;
-    _lastValidDistanceLat = null;
-    _lastValidDistanceLon = null;
-    _hasMovedDuringNavigation = false;
+    _consecutiveOffRouteTicks = 0;
+    _metricsTracker.reset();
 
-    DeviceOemType? promptOem;
-    try {
-      final isIgnored = await _locationService.isBatteryOptimizationIgnored();
-      if (!isIgnored) {
-        final oemType = await _deviceInfoService.getDeviceOemType();
-        if (oemType.isAggressiveOem) {
-          promptOem = oemType;
-        }
-      }
-    } catch (e) {
-      DLog.error('Lỗi kiểm tra battery optimization khi bắt đầu: $e');
-    }
-
+    final promptOem = await _devicePolicy.checkBatteryOptimizationPrompt();
     if (generation != _requestGeneration || isClosed) return;
 
-    final initialProgress = _turnByTurnEngine.initializeProgress(
+    final initialProgress = _trackingCoordinator.initializeProgress(
       event.initialRoute.instructions,
     );
 
-    emit(state.copyWith(
-      status: NavigationStatus.navigating,
-      currentRoute: event.initialRoute,
+    emit(NavigationState.start(
+      initialRoute: event.initialRoute,
       origin: event.origin,
       destination: event.destination,
       destinationName: event.destinationName,
-      clearDestinationName: event.destinationName == null,
       profile: event.profile,
-      currentSegmentIndex: 0,
-      distanceToRoute: 0.0,
-      isOffRoute: false,
-      isRerouting: false,
-      rerouteCount: 0,
-      currentInstructionIndex: initialProgress.currentInstructionIndex,
-      currentInstruction: initialProgress.currentInstruction,
-      clearCurrentInstruction: initialProgress.currentInstruction == null,
-      nextInstruction: initialProgress.nextInstruction,
-      clearNextInstruction: initialProgress.nextInstruction == null,
-      distanceToNextInstruction: initialProgress.distanceToNextInstruction,
-      remainingDistance: initialProgress.remainingDistance,
-      remainingDurationMs: initialProgress.remainingDurationMs,
-      isPreAnnounced: initialProgress.isPreAnnounced,
-      clearCurrentPosition: true,
-      tripStartTime: DateTime.now(),
-      maxSpeedKmh: 0.0,
-      totalDistanceTraveledMeters: 0.0,
-      speedSampleSum: 0.0,
-      speedSampleCount: 0,
-      clearTripSummary: true,
-      clearPendingResumeSession: true,
-      clearError: true,
-      clearMessage: true,
+      initialProgress: initialProgress,
       promptBatteryOptimizationOem: promptOem,
     ));
 
-    _startAutoSaveTimer();
+    _persistenceCoordinator.startAutoSave(() {
+      if (!isClosed) add(const SaveActiveSessionSnapshot());
+    });
     add(const SaveActiveSessionSnapshot());
 
-    await _locationService.requestNotificationPermission();
-
+    await _devicePolicy.requestNotificationPermission();
     if (generation != _requestGeneration || isClosed) return;
 
     final destName =
         event.destinationName ?? LocaleKeys.routing_destination_fallback.tr();
-    final stream = _locationService.getPositionStream(
-      enableBackground: true,
-      notificationTitle: LocaleKeys.routing_foreground_notification_title.tr(),
-      notificationText: LocaleKeys.routing_foreground_notification_text.tr(
-        args: [destName],
-      ),
-      intervalDuration: const Duration(seconds: 1),
-      enableWakeLock: true,
-    );
-
-    _locationSubscription = stream.listen(
-      (position) {
-        if (!isClosed) {
-          add(LocationUpdated.fromPosition(position));
-        }
-      },
-      onError: (error) {
-        DLog.error('❌ [NavigationBloc] GPS Position Stream error: $error');
-      },
-    );
+    _listenGpsStream(destName);
   }
 
   Future<void> _onAllowBatteryOptimization(
     AllowBatteryOptimization event,
     Emitter<NavigationState> emit,
   ) async {
-    try {
-      await _locationService.requestIgnoreBatteryOptimization();
-    } catch (e) {
-      DLog.error('Lỗi khi request ignore battery optimization: $e');
-    }
+    await _devicePolicy.requestIgnoreBatteryOptimization();
     if (isClosed || emit.isDone) return;
     emit(state.copyWith(clearPromptBatteryOptimization: true));
   }
@@ -463,22 +311,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         ? event.speed! * RoutingConstants.msToKmhFactor
         : null;
 
-    // 0. Cập nhật thống kê vận tốc và quãng đường tích lũy
-    final currentMaxSpeed = speedKmh != null && speedKmh > state.maxSpeedKmh
-        ? speedKmh
-        : state.maxSpeedKmh;
-    final newSampleSum = speedKmh != null && speedKmh > 0
-        ? state.speedSampleSum + speedKmh
-        : state.speedSampleSum;
-    final newSampleCount = speedKmh != null && speedKmh > 0
-        ? state.speedSampleCount + 1
-        : state.speedSampleCount;
-
     final accuracy = event.accuracy;
     final isAccuracyAcceptable =
         accuracy == null || accuracy <= RoutingConstants.maxGpsAccuracyMeters;
 
-    // Nếu GPS fix kém chính xác (> 35m), chỉ cập nhật tọa độ hiển thị, không chạy engine/reroute
+    // Nếu GPS fix kém chính xác (> 35m), chỉ cập nhật toạ độ hiển thị, không chạy engine/reroute
     if (!isAccuracyAcceptable) {
       emit(state.copyWith(
         currentLat: currentLat,
@@ -486,185 +323,73 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         currentSpeedKmh: speedKmh,
         currentHeading: event.heading,
         currentAccuracy: event.accuracy,
-        maxSpeedKmh: currentMaxSpeed,
-        speedSampleSum: newSampleSum,
-        speedSampleCount: newSampleCount,
       ));
       return;
     }
 
-    double addedDistance = 0.0;
-    if (_lastValidDistanceLat != null && _lastValidDistanceLon != null) {
-      final deltaKm = AppUtils.instance.calculateDistance(
-        _lastValidDistanceLat!,
-        _lastValidDistanceLon!,
-        currentLat,
-        currentLon,
-      );
-      final deltaMeters = deltaKm * RoutingConstants.metersPerKm;
-      // Bỏ qua rung lắc GPS khi dừng xe (< 1m) và bước nhảy đột biến (> 200m)
-      if (deltaMeters >= RoutingConstants.minGpsMovementDeltaMeters &&
-          deltaMeters <= RoutingConstants.maxGpsJumpDeltaMeters) {
-        addedDistance = deltaMeters;
-        _hasMovedDuringNavigation = true;
-        _lastValidDistanceLat = currentLat;
-        _lastValidDistanceLon = currentLon;
-      }
-    } else {
-      _lastValidDistanceLat = currentLat;
-      _lastValidDistanceLon = currentLon;
-    }
-
-    final totalDistanceTraveled =
-        state.totalDistanceTraveledMeters + addedDistance;
-
-    // 1. Cập nhật tiến trình chỉ dẫn (Turn-by-turn Instruction Engine)
-    final progress = _turnByTurnEngine.updateProgress(
-      currentLat: currentLat,
-      currentLon: currentLon,
-      instructions: state.currentRoute!.instructions,
-      currentInstructionIndex: state.currentInstructionIndex,
+    // 0. Tích luỹ số liệu vận tốc và quãng đường vào MetricsTracker
+    _metricsTracker.recordFix(
+      lat: currentLat,
+      lon: currentLon,
+      speedKmh: speedKmh,
     );
 
-    // 2. Kiểm tra đã đến đích chưa (thông qua engine hoặc khoảng cách đích)
-    // GPS thường phát ngay một fix đầu tiên khi vừa bấm "Bắt đầu". Không
-    // được coi fix đứng yên đó là đã hoàn thành, đặc biệt với route tự vẽ có
-    // một instruction bao trùm toàn bộ polyline.
-    bool isArrived = progress.hasArrived && _hasMovedDuringNavigation;
-    if (!isArrived && state.destination != null) {
-      final distToDestKm = AppUtils.instance.calculateDistance(
-        currentLat,
-        currentLon,
-        state.destination!.lat,
-        state.destination!.lon,
-      );
-      final distToDestMeters = distToDestKm * RoutingConstants.metersPerKm;
-      if (_hasMovedDuringNavigation &&
-          distToDestMeters <= _turnByTurnEngine.arrivalThresholdMeters) {
-        isArrived = true;
-      }
-    }
+    // 1. Phân tích chu kỳ vị trí thông qua TrackingCoordinator
+    final tick = _trackingCoordinator.processLocationTick(
+      currentLat: currentLat,
+      currentLon: currentLon,
+      route: state.currentRoute!,
+      destination: state.destination,
+      currentSegmentIndex: state.currentSegmentIndex,
+      currentInstructionIndex: state.currentInstructionIndex,
+      hasMoved: _metricsTracker.hasMoved,
+    );
 
-    if (isArrived) {
+    // 2. Xử lý khi đã đến đích
+    if (tick.isArrived) {
       DLog.info('🏁 [NavigationBloc] User arrived at destination!');
       _requestGeneration++;
-      _locationSubscription?.cancel();
-      _locationSubscription = null;
-      _stopAutoSaveTimer();
-      unawaited(_clearActiveSessionSafely());
+      await _cancelGpsSubscription();
 
-      final now = DateTime.now();
-      final startTime = state.tripStartTime ?? now;
-      final tripDuration = now.difference(startTime);
-      final avgSpeed = tripDuration.inMilliseconds > 0
-          ? (totalDistanceTraveled / RoutingConstants.metersPerKm) /
-              (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
-          : 0.0;
-
-      final summary = TripSummary(
-        duration: tripDuration,
-        distanceMeters: totalDistanceTraveled,
-        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
-        topSpeedKmh: currentMaxSpeed,
+      final result = await _persistenceCoordinator.finalizeTrip(
+        metrics: _metricsTracker,
+        startTime: state.tripStartTime,
+        destination: state.destination,
         destinationName: state.destinationName,
-        hasArrived: true,
-      );
-
-      final tripRecord = TripRecordModel(
-        id: 'trip_${now.microsecondsSinceEpoch}_${now.hashCode.abs()}',
-        startTime: startTime,
-        endTime: now,
-        durationMs: tripDuration.inMilliseconds,
-        distanceMeters: totalDistanceTraveled,
-        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
-        topSpeedKmh: currentMaxSpeed,
-        destinationName: state.destinationName,
-        originName: null,
-        hasArrived: true,
-        vehicleProfile: state.profile,
+        profile: state.profile,
         polyline: state.currentRoute?.points,
-        createdAt: now,
+        hasArrived: true,
       );
-      unawaited(_saveTripSafely(tripRecord));
-      await _recordVisitedDestinationSafely();
       if (isClosed) return;
 
-      emit(state.copyWith(
-        status: NavigationStatus.arrived,
+      emit(state.copyWithArrival(
         currentLat: currentLat,
         currentLon: currentLon,
         currentSpeedKmh: speedKmh,
         currentHeading: event.heading,
         currentAccuracy: event.accuracy,
-        currentInstructionIndex: progress.currentInstructionIndex,
-        currentInstruction: progress.currentInstruction,
-        clearCurrentInstruction: progress.currentInstruction == null,
-        nextInstruction: progress.nextInstruction,
-        clearNextInstruction: progress.nextInstruction == null,
-        distanceToNextInstruction: 0.0,
-        remainingDistance: 0.0,
-        remainingDurationMs: 0,
-        isPreAnnounced: false,
-        isOffRoute: false,
-        distanceToRoute: 0.0,
-        maxSpeedKmh: currentMaxSpeed,
-        totalDistanceTraveledMeters: totalDistanceTraveled,
-        speedSampleSum: newSampleSum,
-        speedSampleCount: newSampleCount,
-        tripSummary: summary,
+        currentInstructionIndex: tick.progress.currentInstructionIndex,
+        currentInstruction: tick.progress.currentInstruction,
+        nextInstruction: tick.progress.nextInstruction,
+        metrics: _metricsTracker,
+        tripSummary: result.summary,
       ));
       return;
     }
 
-    // 3. Kiểm tra lệch tuyến (Off-route detection)
-    final routePoints = state.currentRoute!.points;
-    final offRouteStatus = _offRouteDetector.checkOffRoute(
-      currentLat: currentLat,
-      currentLon: currentLon,
-      routePoints: routePoints,
-      currentSegmentIndex: state.currentSegmentIndex,
-      lookAheadSegments: 5,
-    );
-
-    emit(state.copyWith(
+    // 3. Cập nhật toạ độ và chỉ dẫn đường (có map-matched snapping)
+    emit(state.copyWithTick(
+      tick: tick,
       currentLat: currentLat,
       currentLon: currentLon,
       currentSpeedKmh: speedKmh,
       currentHeading: event.heading,
       currentAccuracy: event.accuracy,
-      currentSegmentIndex: offRouteStatus.segmentIndex,
-      distanceToRoute: offRouteStatus.distanceToRoute,
-      isOffRoute: offRouteStatus.isOffRoute,
-      currentInstructionIndex: progress.currentInstructionIndex,
-      currentInstruction: progress.currentInstruction,
-      clearCurrentInstruction: progress.currentInstruction == null,
-      nextInstruction: progress.nextInstruction,
-      clearNextInstruction: progress.nextInstruction == null,
-      distanceToNextInstruction: progress.distanceToNextInstruction,
-      remainingDistance: progress.remainingDistance,
-      remainingDurationMs: progress.remainingDurationMs,
-      isPreAnnounced: progress.isPreAnnounced,
-      maxSpeedKmh: currentMaxSpeed,
-      totalDistanceTraveledMeters: totalDistanceTraveled,
-      speedSampleSum: newSampleSum,
-      speedSampleCount: newSampleCount,
+      metrics: _metricsTracker,
     ));
 
-    // 4. Tự động kích hoạt tính lại đường (Reroute) khi phát hiện lệch tuyến > 50m
-    if (offRouteStatus.isOffRoute && !state.isRerouting) {
-      final now = DateTime.now();
-      final canReroute = _lastRerouteTime == null ||
-          now.difference(_lastRerouteTime!) >= _rerouteCooldown;
-
-      if (canReroute) {
-        _lastRerouteTime = now;
-        DLog.info(
-            '🔄 [NavigationBloc] Auto-triggering reroute due to off-route (${offRouteStatus.distanceToRoute.toStringAsFixed(1)}m > 50m)');
-        add(RerouteRequested(
-          currentPosition: RoutePoint(lat: currentLat, lon: currentLon),
-        ));
-      }
-    }
+    // 4. Tự động kích hoạt tính lại đường (Reroute) khi phát hiện lệch tuyến > 50m (kèm Hysteresis)
+    _checkAutoReroute(tick, currentLat, currentLon, speedKmh);
   }
 
   Future<void> _onRerouteRequested(
@@ -706,30 +431,16 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       if (newRoute.isSuccess && newRoute.hasPoints) {
         DLog.info(
             '✅ [NavigationBloc] Reroute calculated successfully: ${(newRoute.distance / 1000).toStringAsFixed(2)}km, ${(newRoute.time / 60000).round()} mins');
-        final newProgress = _turnByTurnEngine.initializeProgress(
+        final newProgress = _trackingCoordinator.initializeProgress(
           newRoute.instructions,
         );
 
-        emit(state.copyWith(
-          status: NavigationStatus.navigating,
-          currentRoute: newRoute,
-          origin: event.currentPosition,
-          currentSegmentIndex: 0,
-          isOffRoute: false,
-          isRerouting: false,
-          rerouteCount: state.rerouteCount + 1,
+        emit(state.copyWithRerouteSuccess(
+          newRoute: newRoute,
+          newOrigin: event.currentPosition,
+          newProgress: newProgress,
           requestGeneration: generation,
-          currentInstructionIndex: newProgress.currentInstructionIndex,
-          currentInstruction: newProgress.currentInstruction,
-          clearCurrentInstruction: newProgress.currentInstruction == null,
-          nextInstruction: newProgress.nextInstruction,
-          clearNextInstruction: newProgress.nextInstruction == null,
-          distanceToNextInstruction: newProgress.distanceToNextInstruction,
-          remainingDistance: newProgress.remainingDistance,
-          remainingDurationMs: newProgress.remainingDurationMs,
-          isPreAnnounced: newProgress.isPreAnnounced,
           messageKey: LocaleKeys.routing_reroute_success,
-          clearError: true,
         ));
         add(const SaveActiveSessionSnapshot());
       } else {
@@ -763,106 +474,38 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     final generation = ++_requestGeneration;
     DLog.info('🛑 [NavigationBloc] Stopping navigation [Gen #$generation]');
 
-    _stopAutoSaveTimer();
-    unawaited(_clearActiveSessionSafely());
-
-    await _locationSubscription?.cancel();
-    _locationSubscription = null;
-    _lastValidDistanceLat = null;
-    _lastValidDistanceLon = null;
+    await _cancelGpsSubscription();
 
     if (isClosed || emit.isDone || generation != _requestGeneration) return;
 
     if (state.status == NavigationStatus.arrived ||
         state.status == NavigationStatus.stopped) {
       if (state.status != NavigationStatus.stopped) {
-        emit(state.copyWith(
-          status: NavigationStatus.stopped,
-        ));
+        emit(state.copyWith(status: NavigationStatus.stopped));
       }
       return;
     }
 
     if (state.tripStartTime != null) {
-      final now = DateTime.now();
-      final startTime = state.tripStartTime!;
-      final tripDuration = now.difference(startTime);
-      final avgSpeed = tripDuration.inMilliseconds > 0
-          ? (state.totalDistanceTraveledMeters / RoutingConstants.metersPerKm) /
-              (tripDuration.inMilliseconds / RoutingConstants.msPerHour)
-          : 0.0;
-
-      final summary = TripSummary(
-        duration: tripDuration,
-        distanceMeters: state.totalDistanceTraveledMeters,
-        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
-        topSpeedKmh: state.maxSpeedKmh,
+      final result = await _persistenceCoordinator.finalizeTrip(
+        metrics: _metricsTracker,
+        startTime: state.tripStartTime,
+        destination: state.destination,
         destinationName: state.destinationName,
-        hasArrived: false,
-      );
-
-      final tripRecord = TripRecordModel(
-        id: 'trip_${now.microsecondsSinceEpoch}_${now.hashCode.abs()}',
-        startTime: startTime,
-        endTime: now,
-        durationMs: tripDuration.inMilliseconds,
-        distanceMeters: state.totalDistanceTraveledMeters,
-        avgSpeedKmh: avgSpeed.isFinite ? avgSpeed : 0.0,
-        topSpeedKmh: state.maxSpeedKmh,
-        destinationName: state.destinationName,
-        originName: null,
-        hasArrived: false,
-        vehicleProfile: state.profile,
+        profile: state.profile,
         polyline: state.currentRoute?.points,
-        createdAt: now,
+        hasArrived: false,
       );
 
       emit(state.copyWith(
         status: NavigationStatus.stopped,
-        tripSummary: summary,
+        tripSummary: result.summary,
       ));
-
-      unawaited(_saveTripSafely(tripRecord));
     } else {
       emit(state.copyWith(
         status: NavigationStatus.stopped,
         clearTripSummary: true,
       ));
-    }
-  }
-
-  Future<void> _saveTripSafely(TripRecordModel trip) async {
-    try {
-      await _tripRepository.saveTrip(trip);
-    } catch (e, stack) {
-      DLog.error('❌ [NavigationBloc] Failed to auto-save trip: $e', e, stack);
-    }
-  }
-
-  Future<void> _recordVisitedDestinationSafely() async {
-    final destination = state.destination;
-    if (destination == null) return;
-
-    final name = state.destinationName?.trim();
-    final displayName = name == null || name.isEmpty ? 'Điểm đã đến' : name;
-    final poi = PoiModel(
-      // A route destination does not always carry an OSM id. Coordinates
-      // provide a stable fallback key for the local/cloud visited history.
-      osmId:
-          'visited:${destination.lat.toStringAsFixed(6)}:${destination.lon.toStringAsFixed(6)}',
-      name: displayName,
-      nameAscii: AppUtils.instance.toAscii(displayName),
-      category: 'place',
-      lat: destination.lat,
-      lon: destination.lon,
-    );
-
-    try {
-      await _visitedPoiService.recordVisited(poi);
-    } catch (e, stack) {
-      // Arrival and trip completion must not fail if persistence is
-      // temporarily unavailable.
-      DLog.warning('⚠️ Không thể lưu POI đã đến: $e', stack);
     }
   }
 
@@ -872,18 +515,93 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   ) async {
     DLog.info('🧹 [NavigationBloc] Clearing navigation state back to initial');
     final generation = ++_requestGeneration;
-    _stopAutoSaveTimer();
-    unawaited(_clearActiveSessionSafely());
+    _persistenceCoordinator.stopAutoSave();
+    unawaited(_persistenceCoordinator.clearActiveSessionSafely());
 
-    await _locationSubscription?.cancel();
-    _locationSubscription = null;
+    await _cancelGpsSubscription();
 
     if (generation != _requestGeneration || isClosed) return;
 
     _lastRerouteTime = null;
-    _lastValidDistanceLat = null;
-    _lastValidDistanceLon = null;
+    _metricsTracker.reset();
+    _consecutiveOffRouteTicks = 0;
     emit(const NavigationState());
+  }
+
+  void _checkAutoReroute(
+    TrackingTickResult tick,
+    double currentLat,
+    double currentLon,
+    double? speedKmh,
+  ) {
+    if (!tick.isOffRoute) {
+      _consecutiveOffRouteTicks = 0;
+      return;
+    }
+
+    _consecutiveOffRouteTicks++;
+
+    if (_consecutiveOffRouteTicks < minConsecutiveOffRouteTicks) {
+      DLog.info(
+          '⏳ [NavigationBloc] Off-route detected ($_consecutiveOffRouteTicks/$minConsecutiveOffRouteTicks ticks, dist: ${tick.distanceToRoute.toStringAsFixed(1)}m). Awaiting confirmation window.');
+      return;
+    }
+
+    // Xe được coi là đứng yên nếu cảm biến vận tốc ghi nhận < 5.0 km/h (khi dừng đèn đỏ).
+    // Nếu thiết bị không cung cấp vận tốc, fallback kiểm tra xem đã có dịch chuyển thực tế chưa.
+    final isStationary = speedKmh != null
+        ? speedKmh < minMovingSpeedForRerouteKmh
+        : !_metricsTracker.hasMoved;
+
+    if (isStationary) {
+      DLog.info(
+          '🛑 [NavigationBloc] Off-route suppressed: vehicle is stationary (${speedKmh?.toStringAsFixed(1)} km/h).');
+      return;
+    }
+
+    if (!state.isRerouting) {
+      final now = DateTime.now();
+      final canReroute = _lastRerouteTime == null ||
+          now.difference(_lastRerouteTime!) >= _rerouteCooldown;
+
+      if (canReroute) {
+        _lastRerouteTime = now;
+        _consecutiveOffRouteTicks = 0;
+        DLog.info(
+            '🔄 [NavigationBloc] Auto-triggering reroute after 3 confirmed off-route ticks (${tick.distanceToRoute.toStringAsFixed(1)}m > 50m)');
+        add(RerouteRequested(
+          currentPosition: RoutePoint(lat: currentLat, lon: currentLon),
+        ));
+      }
+    }
+  }
+
+  Future<void> _cancelGpsSubscription() async {
+    await _locationSubscription?.cancel();
+    _locationSubscription = null;
+  }
+
+  void _listenGpsStream(String destName) {
+    final stream = _locationService.getPositionStream(
+      enableBackground: true,
+      notificationTitle: LocaleKeys.routing_foreground_notification_title.tr(),
+      notificationText: LocaleKeys.routing_foreground_notification_text.tr(
+        args: [destName],
+      ),
+      intervalDuration: const Duration(seconds: 1),
+      enableWakeLock: true,
+    );
+
+    _locationSubscription = stream.listen(
+      (position) {
+        if (!isClosed) {
+          add(LocationUpdated.fromPosition(position));
+        }
+      },
+      onError: (error) {
+        DLog.error('❌ [NavigationBloc] GPS Position Stream error: $error');
+      },
+    );
   }
 
   @override
@@ -891,12 +609,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     DLog.info(
         '🧹 [NavigationBloc] Disposing NavigationBloc and cancelling GPS listeners');
     _requestGeneration++;
-    _stopAutoSaveTimer();
+    _persistenceCoordinator.dispose();
     _lastRerouteTime = null;
-    _lastValidDistanceLat = null;
-    _lastValidDistanceLon = null;
-    await _locationSubscription?.cancel();
-    _locationSubscription = null;
+    _metricsTracker.reset();
+    await _cancelGpsSubscription();
     return super.close();
   }
 }

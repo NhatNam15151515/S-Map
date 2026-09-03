@@ -110,5 +110,25 @@ void main() {
       await tester.pump();
       expect(navigateCalled, isTrue);
     });
+
+    testWidgets('displays straight-line mode active badge when isStraightLineMode is true', (tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 2,
+            distanceMeters: 1200,
+            durationMs: 60000,
+            isLoading: false,
+            isStraightLineMode: true,
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đường chim bay'), findsOneWidget);
+      expect(find.byIcon(Icons.airplanemode_active_rounded), findsOneWidget);
+    });
   });
 }

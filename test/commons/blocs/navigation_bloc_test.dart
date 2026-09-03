@@ -49,6 +49,24 @@ class MockRoutingRepository implements IRoutingRepository {
   }
 
   @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    final route = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: vehicleProfile,
+    );
+    return [route];
+  }
+
+  @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,
@@ -337,6 +355,10 @@ void main() {
               state.currentSpeedKmh != null &&
               state.currentSpeedKmh! > 29.0 &&
               state.isOffRoute == false &&
+              state.isSnappedToRoute == true &&
+              state.snappedLat != null &&
+              state.snappedLon != null &&
+              state.displayLat != null &&
               mockRoutingRepo.calculateRouteCallCount == 0;
         })),
       );
@@ -363,27 +385,34 @@ void main() {
       ));
       await Future.delayed(const Duration(milliseconds: 10));
 
-      // Gửi vị trí lệch hẳn sang đường Nam Kỳ Khởi Nghĩa (>150m)
-      bloc.add(const LocationUpdated(
-        latitude: 10.7760,
-        longitude: 106.6970,
-        speed: 7.0,
-        heading: 90.0,
-      ));
+      // Gửi 3 nhịp vị trí lệch liên tiếp (>150m) kèm vận tốc 7 km/h để thỏa mãn cửa sổ Hysteresis
+      for (int i = 0; i < 3; i++) {
+        bloc.add(const LocationUpdated(
+          latitude: 10.7760,
+          longitude: 106.6970,
+          speed: 7.0,
+          heading: 90.0,
+        ));
+      }
 
       // Kỳ vọng phát hiện off-route -> chuyển sang rerouting -> hoàn tất reroute thành công
       await expectLater(
         bloc.stream,
         emitsInOrder([
-          // 1. Phát hiện off-route
+          // Nhịp 1 & 2: Phát hiện off-route nhưng đang chờ cửa sổ xác nhận
           predicate<NavigationState>((state) =>
               state.isOffRoute == true && state.distanceToRoute > 50.0),
-          // 2. Chuyển trạng thái rerouting
+          predicate<NavigationState>((state) =>
+              state.isOffRoute == true && state.distanceToRoute > 50.0),
+          // Nhịp 3: Xác nhận đủ 3 nhịp liên tiếp
+          predicate<NavigationState>((state) =>
+              state.isOffRoute == true && state.distanceToRoute > 50.0),
+          // Chuyển trạng thái rerouting
           predicate<NavigationState>((state) =>
               state.status == NavigationStatus.rerouting &&
               state.isRerouting == true &&
               state.messageKey == LocaleKeys.routing_rerouting),
-          // 3. Nhận route mới thành công
+          // Nhận route mới thành công
           predicate<NavigationState>((state) =>
               state.status == NavigationStatus.navigating &&
               state.currentRoute == reroutedRoute &&
@@ -399,6 +428,44 @@ void main() {
       expect(mockRoutingRepo.lastFromLon, equals(106.6970));
       expect(mockRoutingRepo.lastToLat, equals(destination.lat));
       expect(mockRoutingRepo.lastToLon, equals(destination.lon));
+    });
+
+    test('Single off-route tick or zero speed stationary drift suppresses reroute', () async {
+      bloc.add(const StartNavigation(
+        initialRoute: sampleInitialRoute,
+        origin: origin,
+        destination: destination,
+        destinationName: 'Nhà hát Thành Phố',
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // 1. Chỉ gửi 1 nhịp lệch duy nhất khi đang chạy
+      bloc.add(const LocationUpdated(
+        latitude: 10.7760,
+        longitude: 106.6970,
+        speed: 7.0,
+        heading: 90.0,
+      ));
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      // Reroute KHÔNG được phép kích hoạt vì chưa đủ 3 nhịp
+      expect(mockRoutingRepo.calculateRouteCallCount, equals(0));
+      expect(bloc.state.status, equals(NavigationStatus.navigating));
+
+      // 2. Gửi 5 nhịp liên tiếp nhưng vận tốc = 0 km/h (đang dừng đèn đỏ, GPS bị trôi dạt)
+      for (int i = 0; i < 5; i++) {
+        bloc.add(const LocationUpdated(
+          latitude: 10.7760,
+          longitude: 106.6970,
+          speed: 0.0,
+          heading: 90.0,
+        ));
+      }
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      // Vẫn KHÔNG được phép reroute vì xe đang đứng yên!
+      expect(mockRoutingRepo.calculateRouteCallCount, equals(0));
+      expect(bloc.state.isRerouting, isFalse);
     });
 
     test('LocationUpdated within 20m of destination marks status as arrived', () async {

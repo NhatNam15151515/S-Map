@@ -243,7 +243,12 @@
     "profile_foot": "Đi bộ",
     "use_my_location_origin": "Vị trí của tôi (Điểm xuất phát)",
     "use_selected_destination": "Điểm đến đã chọn (Điểm kết thúc)",
-    "custom_route_drawing": "Tự vẽ lộ trình"
+    "custom_route_drawing": "Tự vẽ lộ trình",
+    "straight_line_mode_tooltip_on": "Bật đường chim bay (Nối thẳng)",
+    "straight_line_mode_tooltip_off": "Tắt đường chim bay (Bám theo đường)",
+    "straight_line_mode_active_badge": "Đường chim bay",
+    "center_add_start_point": "Đặt điểm bắt đầu tại tâm",
+    "center_add_next_point": "Thêm điểm tại tâm"
   },
   "stats_dashboard": {
     "title": "Thống kê chuyến đi",

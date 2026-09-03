@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
@@ -10,7 +11,12 @@ import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/screens/main/home/widgets/map/map_view.dart';
 
 class RouteDrawingMapLayer extends StatefulWidget {
-  const RouteDrawingMapLayer({super.key});
+  final bool isCrosshairActive;
+
+  const RouteDrawingMapLayer({
+    super.key,
+    this.isCrosshairActive = false,
+  });
 
   @override
   State<RouteDrawingMapLayer> createState() => RouteDrawingMapLayerState();
@@ -22,6 +28,9 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
   final MapCameraController _cameraController = MapCameraController();
   String? _lastShownMapError;
   String? _lastAppliedMapStyle;
+
+  LatLng? get currentCenter =>
+      _mapController?.cameraPosition?.target ?? displayCubit.state.center;
 
   RouteDrawingBloc get drawingBloc => context.read<RouteDrawingBloc>();
   MapDisplayCubit get displayCubit => context.read<MapDisplayCubit>();
@@ -66,10 +75,17 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
 
   void _onMapClick(Point<double> point, LatLng latLng) {
     if (drawingBloc.state.isLoading) return;
+
+    final targetLatLng = widget.isCrosshairActive
+        ? (currentCenter ?? latLng)
+        : latLng;
+
+    HapticFeedback.lightImpact();
+
     drawingBloc.add(
       RouteDrawingPointTapped(
-        lat: latLng.latitude,
-        lon: latLng.longitude,
+        lat: targetLatLng.latitude,
+        lon: targetLatLng.longitude,
       ),
     );
   }

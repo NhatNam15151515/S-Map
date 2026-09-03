@@ -49,6 +49,30 @@ class FakeRoutingRepository implements IRoutingRepository {
         );
   }
 
+  List<RouteResult>? customAlternativeRoutes;
+
+  @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    if (customAlternativeRoutes != null) {
+      callCount++;
+      return customAlternativeRoutes!;
+    }
+    final primary = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: vehicleProfile,
+    );
+    return [primary];
+  }
+
   @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
@@ -241,6 +265,8 @@ void main() {
 
       expect(cubit.state.status, equals(RoutePreviewStatus.success));
       expect(cubit.state.destinationName, equals('Phở Bát Đàn'));
+      expect(cubit.state.originName, isNull);
+      expect(cubit.state.isOriginCurrentLocation, isTrue);
       expect(cubit.state.origin?.lat, equals(21.0285));
       expect(cubit.state.destination?.lat, equals(21.0350));
       expect(fakeRepo.callCount, equals(1));
@@ -252,6 +278,8 @@ void main() {
       await cubit.previewRouteToCoordinate(const LatLng(21.0400, 105.8500));
 
       expect(cubit.state.status, equals(RoutePreviewStatus.success));
+      expect(cubit.state.originName, isNull);
+      expect(cubit.state.isOriginCurrentLocation, isTrue);
       expect(cubit.state.destination?.lat, closeTo(21.0400, 0.0001));
       expect(cubit.state.destination?.lon, closeTo(105.8500, 0.0001));
       expect(cubit.state.destinationName, isNull);
@@ -424,6 +452,138 @@ void main() {
 
       expect(fakeRepo.callCount, equals(1),
           reason: 'Should not recalculate for same profile');
+    });
+
+    test(
+        '[RTP-07] previewRouteBetweenPoints calculates route between custom endpoints',
+        () async {
+      const customOrigin = RoutePoint(lat: 10.7769, lon: 106.7009);
+      const customDest = RoutePoint(lat: 10.8231, lon: 106.6297);
+
+      await cubit.previewRouteBetweenPoints(
+        origin: customOrigin,
+        destination: customDest,
+        originName: 'Nhà thờ Đức Bà',
+        destinationName: 'Sân bay Tân Sơn Nhất',
+      );
+
+      expect(cubit.state.isSuccess, isTrue);
+      expect(cubit.state.origin?.lat, equals(10.7769));
+      expect(cubit.state.destination?.lat, equals(10.8231));
+      expect(cubit.state.originName, equals('Nhà thờ Đức Bà'));
+      expect(cubit.state.destinationName, equals('Sân bay Tân Sơn Nhất'));
+    });
+
+    test(
+        '[RTP-08] swapEndpoints reverses origin and destination and recalculates',
+        () async {
+      const pointA = RoutePoint(lat: 10.7769, lon: 106.7009);
+      const pointB = RoutePoint(lat: 10.8231, lon: 106.6297);
+
+      await cubit.previewRouteBetweenPoints(
+        origin: pointA,
+        destination: pointB,
+        originName: 'Điểm A',
+        destinationName: 'Điểm B',
+      );
+
+      expect(cubit.state.origin?.lat, equals(10.7769));
+      expect(cubit.state.destination?.lat, equals(10.8231));
+      expect(cubit.state.originName, equals('Điểm A'));
+      expect(cubit.state.destinationName, equals('Điểm B'));
+
+      await cubit.swapEndpoints();
+
+      expect(cubit.state.origin?.lat, equals(10.8231));
+      expect(cubit.state.destination?.lat, equals(10.7769));
+      expect(cubit.state.originName, equals('Điểm B'));
+      expect(cubit.state.destinationName, equals('Điểm A'));
+      expect(fakeRepo.callCount, equals(2));
+    });
+
+    test(
+        '[RTP-09] selectAlternativeRoute switches active route without network call',
+        () async {
+      const route1 = RouteResult(
+        isSuccess: true,
+        distance: 5000.0,
+        time: 600000,
+        points: [
+          [10.0, 106.0],
+          [10.1, 106.1]
+        ],
+        routeTitle: 'Đường ngắn nhất',
+      );
+      const route2 = RouteResult(
+        isSuccess: true,
+        distance: 6200.0,
+        time: 550000,
+        points: [
+          [10.0, 106.0],
+          [10.05, 106.05],
+          [10.1, 106.1]
+        ],
+        routeTitle: 'Qua đại lộ (Tránh kẹt xe)',
+        isAlternative: true,
+      );
+
+      cubit.setAlternativeRoutes([route1, route2], initialIndex: 0);
+
+      expect(cubit.state.alternativeRoutes.length, equals(2));
+      expect(cubit.state.hasAlternativeRoutes, isTrue);
+      expect(cubit.state.selectedRouteIndex, equals(0));
+      expect(cubit.state.currentRoute?.distance, equals(5000.0));
+
+      // Chuyển sang route 2
+      cubit.selectAlternativeRoute(1);
+
+      expect(cubit.state.selectedRouteIndex, equals(1));
+      expect(cubit.state.currentRoute?.distance, equals(6200.0));
+      expect(cubit.state.currentRoute?.routeTitle,
+          equals('Qua đại lộ (Tránh kẹt xe)'));
+      expect(fakeRepo.callCount, equals(0),
+          reason:
+              'Switching alternative route must be 0ms instant without network');
+    });
+
+    test(
+        '[RTP-10] getRoute populates multiple alternative routes from repository',
+        () async {
+      const route1 = RouteResult(
+        isSuccess: true,
+        distance: 5000.0,
+        time: 600000,
+        points: [
+          [10.0, 106.0],
+          [10.1, 106.1]
+        ],
+        routeTitle: 'Nhanh nhất',
+      );
+      const route2 = RouteResult(
+        isSuccess: true,
+        distance: 5800.0,
+        time: 660000,
+        points: [
+          [10.0, 106.0],
+          [10.05, 106.05],
+          [10.1, 106.1]
+        ],
+        routeTitle: 'Qua đại lộ chính',
+        isAlternative: true,
+      );
+
+      fakeRepo.customAlternativeRoutes = [route1, route2];
+
+      await cubit.getRoute(
+        origin: const RoutePoint(lat: 10.0, lon: 106.0),
+        destination: const RoutePoint(lat: 10.1, lon: 106.1),
+      );
+
+      expect(cubit.state.isSuccess, isTrue);
+      expect(cubit.state.hasAlternativeRoutes, isTrue);
+      expect(cubit.state.alternativeRoutes.length, equals(2));
+      expect(cubit.state.selectedRouteIndex, equals(0));
+      expect(cubit.state.currentRoute?.routeTitle, equals('Nhanh nhất'));
     });
   });
 }

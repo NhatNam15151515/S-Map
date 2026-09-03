@@ -38,6 +38,24 @@ class FakeRoutingRepository implements IRoutingRepository {
   }
 
   @override
+  Future<List<RouteResult>> calculateAlternativeRoutes({
+    required double fromLat,
+    required double fromLon,
+    required double toLat,
+    required double toLon,
+    String? vehicleProfile,
+  }) async {
+    final route = await calculateRoute(
+      fromLat: fromLat,
+      fromLon: fromLon,
+      toLat: toLat,
+      toLon: toLon,
+      vehicleProfile: vehicleProfile,
+    );
+    return [route];
+  }
+
+  @override
   Future<SnappedRoadPoint> snapToRoad({
     required double lat,
     required double lon,
@@ -172,6 +190,64 @@ void main() {
       await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pump();
       expect(closed, isTrue);
+
+      await cubit.close();
+    });
+
+    testWidgets(
+        'renders alternative routes selector chips and switches selection on tap',
+        (tester) async {
+      final fakeRepo = FakeRoutingRepository();
+      final cubit = RoutePreviewCubit(routingRepository: fakeRepo);
+
+      const route1 = RouteResult(
+        isSuccess: true,
+        distance: 3500.0,
+        time: 420000,
+        points: [
+          [21.0285, 105.8542],
+          [21.0350, 105.8450]
+        ],
+        routeTitle: 'Nhanh nhất',
+      );
+      const route2 = RouteResult(
+        isSuccess: true,
+        distance: 4200.0,
+        time: 500000,
+        points: [
+          [21.0285, 105.8542],
+          [21.0300, 105.8500],
+          [21.0350, 105.8450]
+        ],
+        routeTitle: 'Tránh kẹt xe',
+        isAlternative: true,
+      );
+
+      await cubit.getRoute(
+        origin: origin,
+        destination: destination,
+        destinationName: 'Phở Bát Đàn',
+      );
+      cubit.setAlternativeRoutes([route1, route2], initialIndex: 0);
+
+      await tester.pumpWidget(createTestableWidget(
+        RoutePreviewBottomSheet(
+          onClose: () {},
+          onStartNavigation: () {},
+        ),
+        cubit: cubit,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Nhanh nhất'), findsOneWidget);
+      expect(find.textContaining('Tránh kẹt xe'), findsOneWidget);
+
+      // Tap on alternative route 2
+      await tester.tap(find.textContaining('Tránh kẹt xe'));
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.selectedRouteIndex, equals(1));
+      expect(cubit.state.currentRoute?.routeTitle, equals('Tránh kẹt xe'));
 
       await cubit.close();
     });

@@ -9,13 +9,15 @@ class SearchResultPayload extends Equatable {
   final String? searchCategory;
   final LatLng? searchCenter;
   final bool isAreaSearch;
+  final bool isCurrentLocation;
 
   const SearchResultPayload.single(this.selectedPoi)
       : allResults = null,
         submittedQuery = null,
         searchCategory = null,
         searchCenter = null,
-        isAreaSearch = false;
+        isAreaSearch = false,
+        isCurrentLocation = false;
 
   const SearchResultPayload.all({
     required this.allResults,
@@ -23,7 +25,8 @@ class SearchResultPayload extends Equatable {
   })  : selectedPoi = null,
         searchCategory = null,
         searchCenter = null,
-        isAreaSearch = false;
+        isAreaSearch = false,
+        isCurrentLocation = false;
 
   const SearchResultPayload.areaSearch({
     this.submittedQuery,
@@ -31,11 +34,21 @@ class SearchResultPayload extends Equatable {
     this.searchCenter,
   })  : selectedPoi = null,
         allResults = null,
-        isAreaSearch = true;
+        isAreaSearch = true,
+        isCurrentLocation = false;
+
+  const SearchResultPayload.currentLocation(this.searchCenter)
+      : selectedPoi = null,
+        allResults = null,
+        submittedQuery = null,
+        searchCategory = null,
+        isAreaSearch = false,
+        isCurrentLocation = true;
 
   bool get isSingle => selectedPoi != null;
   bool get isAll => allResults != null && allResults!.isNotEmpty;
   bool get isArea => isAreaSearch;
+  bool get isLocation => isCurrentLocation;
 
   @override
   List<Object?> get props => [
@@ -45,5 +58,6 @@ class SearchResultPayload extends Equatable {
         searchCategory,
         searchCenter,
         isAreaSearch,
+        isCurrentLocation,
       ];
 }
