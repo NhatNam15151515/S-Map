@@ -227,7 +227,7 @@ class Routes extends NavigatorObserver {
           child: Shimmer.fromColors(
             baseColor: colorScheme.primary,
             highlightColor: colorScheme.primary.withValues(alpha: 0.4),
-            child: AppAsset.logo.image.build(
+            child: AppAsset.logoOf(context).image.build(
               size: const Size(40, 40),
             ),
           ),

@@ -19,7 +19,7 @@ class MaintenancePopup extends StatelessWidget with AppMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppAsset.logo.image.build(
+              AppAsset.logoOf(context).image.build(
                 size: const Size(240, 240),
               ),
               Text(

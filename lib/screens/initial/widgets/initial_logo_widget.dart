@@ -27,7 +27,7 @@ class InitialLogoWidget extends StatelessWidget {
             color: colorScheme.onPrimary.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: AppAsset.logo.image.build(
+          child: AppAsset.logoOf(context).image.build(
             size: const Size(64, 64),
             color: colorScheme.onPrimary,
           ),

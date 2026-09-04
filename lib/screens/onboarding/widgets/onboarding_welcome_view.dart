@@ -36,7 +36,7 @@ class OnboardingWelcomeView extends StatelessWidget {
                 ),
               ],
             ),
-            child: AppAsset.logo.image.build(size: Size(100.w, 100.w)),
+            child: AppAsset.logoOf(context).image.build(size: Size(100.w, 100.w)),
           ),
           SizedBox(height: 32.h),
           Text(

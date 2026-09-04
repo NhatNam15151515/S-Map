@@ -4,14 +4,14 @@
       "android": {
         "default": {
           "projectId": "vn-s-map",
-          "appId": "1:779346109460:android:11b0bd1bdd7dd8629b7301",
+          "appId": "1:495182969568:android:c4083fca783d0d9cd46e85",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "ios": {
         "default": {
           "projectId": "vn-s-map",
-          "appId": "1:779346109460:ios:43c1a3e120f0b4dd9b7301",
+          "appId": "1:495182969568:ios:c4083fca783d0d9cd46e85",
           "uploadDebugSymbols": true,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
         }
@@ -20,8 +20,8 @@
         "lib/firebase_options.dart": {
           "projectId": "vn-s-map",
           "configurations": {
-            "android": "1:779346109460:android:11b0bd1bdd7dd8629b7301",
-            "ios": "1:779346109460:ios:43c1a3e120f0b4dd9b7301"
+            "android": "1:495182969568:android:c4083fca783d0d9cd46e85",
+            "ios": "1:495182969568:ios:c4083fca783d0d9cd46e85"
           }
         }
       }

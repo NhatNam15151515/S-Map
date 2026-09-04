@@ -44,9 +44,8 @@ class LoginHeaderWidget extends StatelessWidget {
                 ),
               ],
             ),
-            child: AppAsset.logo.image.build(
+            child: AppAsset.logoOf(context).image.build(
               size: const Size(56, 56),
-              color: colorScheme.primary,
             ),
           ),
           const SizedBox(height: 16),
