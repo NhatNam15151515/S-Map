@@ -27,6 +27,10 @@ class UserScreen extends StatelessWidget with AppMixin, AuthMixin {
 
   @override
   Widget build(BuildContext context) {
+    final isAuthenticated = context.select<AuthCubit, bool>(
+      (c) => c.state.isAuthenticated,
+    );
+
     return Scaffold(
       appBar: TitleAppBar(
         title: tr(LocaleKeys.profile),
@@ -39,7 +43,8 @@ class UserScreen extends StatelessWidget with AppMixin, AuthMixin {
             UserProfileCard(
               username: currentProfile.username,
               appName: appName,
-              onViewProfile: () => UserProfileDetailDialog.show(context, currentProfile),
+              onViewProfile: () =>
+                  UserProfileDetailDialog.show(context, currentProfile),
             ),
 
             // 2. Navigation menu items
@@ -88,15 +93,23 @@ class UserScreen extends StatelessWidget with AppMixin, AuthMixin {
 
             const SizedBox(height: 8),
 
-            // 4. Logout action
+            // 4. Auth action (Login if unauthenticated, Logout if authenticated)
             UserMenuCard(
               children: [
-                UserMenuTile(
-                  icon: Icons.logout_rounded,
-                  title: tr(LocaleKeys.logOut),
-                  onTap: () => authCubit.onLogout(),
-                  isDestructive: true,
-                ),
+                if (isAuthenticated)
+                  UserMenuTile(
+                    icon: Icons.logout_rounded,
+                    title: tr(LocaleKeys.logOut),
+                    onTap: () => authCubit.onLogout(),
+                    isDestructive: true,
+                  )
+                else
+                  UserMenuTile(
+                    icon: Icons.login_rounded,
+                    title: tr(LocaleKeys.login),
+                    onTap: () => context.push(AppRoutes.login),
+                    isDestructive: false,
+                  ),
               ],
             ),
           ],

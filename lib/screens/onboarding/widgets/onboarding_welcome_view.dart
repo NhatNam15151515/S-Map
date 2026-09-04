@@ -17,64 +17,71 @@ class OnboardingWelcomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Spacer(),
-          Container(
-            padding: EdgeInsets.all(20.r),
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.25),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: AppAsset.logoOf(context).image.build(size: Size(100.w, 100.w)),
-          ),
-          SizedBox(height: 32.h),
-          Text(
-            tr(LocaleKeys.onboarding_welcome_title),
-            style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(fontSize: 28.sp),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            tr(LocaleKeys.onboarding_welcome_subtitle),
-            style: colorScheme.onPrimary.textTheme.regularStyle
-                .copyWith(fontSize: 16.sp, height: 1.5),
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            height: 56.h,
-            child: ElevatedButton(
-              onPressed: onContinue,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.surface,
-                foregroundColor: colorScheme.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28.r),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                tr(LocaleKeys.onboarding_continue_btn),
-                style: colorScheme.primary.textTheme.boldStyle
-                    .copyWith(fontSize: 18.sp),
-              ),
+    return Column(
+      children: [
+        SizedBox(height: 12.h),
+        // Logo bung to full màn hình, chiếm trọn phần không gian chủ đạo
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            child: Center(
+              child: AppAsset.logoOf(context).image.build(
+                    fit: BoxFit.contain,
+                  ),
             ),
           ),
-          SizedBox(height: 32.h),
-        ],
-      ),
+        ),
+        SizedBox(height: 20.h),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                tr(LocaleKeys.onboarding_welcome_title),
+                style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
+                  fontSize: 26.sp,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                tr(LocaleKeys.onboarding_welcome_subtitle),
+                style:
+                    colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
+                  fontSize: 15.sp,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 32.h),
+              SizedBox(
+                width: double.infinity,
+                height: 56.h,
+                child: ElevatedButton(
+                  onPressed: onContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28.r),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Text(
+                    tr(LocaleKeys.onboarding_continue_btn),
+                    style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
+                      fontSize: 18.sp,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 28.h),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

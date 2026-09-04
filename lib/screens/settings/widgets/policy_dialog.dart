@@ -1,5 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 
 class PolicyDialog extends StatelessWidget {
   final String title;
@@ -53,7 +55,7 @@ class PolicyDialog extends StatelessWidget {
         TextButton(
           onPressed: () => context.safePop(),
           child: Text(
-            'Đóng',
+            tr(LocaleKeys.close),
             style: TextStyle(
               color: colorScheme.primary,
               fontWeight: FontWeight.w600,

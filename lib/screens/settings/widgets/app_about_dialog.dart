@@ -1,5 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 
 class AppAboutDialog extends StatelessWidget {
   final String appName;
@@ -51,12 +53,12 @@ class AppAboutDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Phiên bản: $appVersion',
+            tr(LocaleKeys.versionPrefix, args: [appVersion]),
             style: colorScheme.onSurfaceVariant.textTheme.textStyle,
           ),
           const SizedBox(height: 12),
           Text(
-            'S-Map là ứng dụng bản đồ số và dẫn đường ngoại tuyến tối ưu cho người dùng Việt Nam. Hỗ trợ tìm kiếm địa điểm, dẫn đường bằng giọng nói cho xe máy và quản lý bản đồ offline 63 tỉnh thành.',
+            tr(LocaleKeys.aboutAppDesc),
             style: colorScheme.onSurface.textTheme.textStyle.copyWith(
               fontSize: 14,
               height: 1.4,
@@ -68,7 +70,7 @@ class AppAboutDialog extends StatelessWidget {
         TextButton(
           onPressed: () => context.safePop(),
           child: Text(
-            'Đóng',
+            tr(LocaleKeys.close),
             style: TextStyle(
               color: colorScheme.primary,
               fontWeight: FontWeight.w600,

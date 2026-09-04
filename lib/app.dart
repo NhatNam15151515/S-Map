@@ -9,6 +9,7 @@ import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/localizations/app_localization.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:s_map/routers/routers.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:s_map/services/services.dart';
 
 class MyApp extends StatefulWidget {
@@ -53,6 +54,19 @@ class _MyAppState extends State<MyApp> {
     );
     Routes.instance.applyWithAuthState(authCubit);
     authCubit.onAppStarted();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        FlutterNativeSplash.remove();
+      } catch (_) {}
+    });
+
+    // Fallback: đảm bảo Native Splash luôn được gỡ bỏ sau tối đa 2.5 giây
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      try {
+        FlutterNativeSplash.remove();
+      } catch (_) {}
+    });
   }
 
   @override

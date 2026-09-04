@@ -330,5 +330,13 @@ abstract class  LocaleKeys {
   static const onboarding_ready_subtitle = 'onboarding_ready_subtitle';
   static const onboarding_lets_go_btn = 'onboarding_lets_go_btn';
   static const onboarding_retry_btn = 'onboarding_retry_btn';
+  static const mapTypeContent = 'mapTypeContent';
+  static const privacyPolicyContent = 'privacyPolicyContent';
+  static const termAndConditionContent = 'termAndConditionContent';
+  static const loginSyncSubtitle = 'loginSyncSubtitle';
+  static const appVersionNumber = 'appVersionNumber';
+  static const close = 'close';
+  static const aboutAppDesc = 'aboutAppDesc';
+  static const versionPrefix = 'versionPrefix';
 
 }

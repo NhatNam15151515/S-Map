@@ -41,3 +41,12 @@
 -keepclassmembers class com.vnsmap.app.routing.models.** { *; }
 -keep class javax.lang.model.** { *; }
 
+# ------------------------------------------------------------------------------
+# Flutter Secure Storage & AndroidX Security Crypto (Prevent R8 stripping KeyStore)
+# ------------------------------------------------------------------------------
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
+-dontwarn com.it_nomads.fluttersecurestorage.**
+
+

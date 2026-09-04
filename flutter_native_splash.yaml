@@ -11,11 +11,11 @@ flutter_native_splash:
   # splash screen to a png image.  This is useful for gradients. The image will be stretch to the
   # size of the app. Only one parameter can be used, color and background_image cannot both be set.
   color: "#ffffff"
-  image: "assets/images/white-s-map-logo-removed-background.png"
+  image: "assets/images/black-s-map-logo-removed-background.png"
 
   # Dark mode
   color_dark: "#121212"
-  image_dark: "assets/images/black-s-map-logo-removed-background.png"
+  image_dark: "assets/images/white-s-map-logo-removed-background.png"
 
   # The android, ios and web parameters can be used to disable generating a splash screen on a given
   # platform.

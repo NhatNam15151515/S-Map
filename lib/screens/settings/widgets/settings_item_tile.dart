@@ -7,6 +7,7 @@ class SettingsItemTile extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final bool isDestructive;
 
   const SettingsItemTile({
     super.key,
@@ -15,11 +16,17 @@ class SettingsItemTile extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
+    this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final activeColor =
+        isDestructive ? colorScheme.error : colorScheme.primary;
+    final textColor =
+        isDestructive ? colorScheme.error : colorScheme.onSurface;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -32,10 +39,10 @@ class SettingsItemTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  color: activeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 20, color: colorScheme.primary),
+                child: Icon(icon, size: 20, color: activeColor),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -44,7 +51,7 @@ class SettingsItemTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: colorScheme.onSurface.textTheme.boldStyle
+                      style: textColor.textTheme.boldStyle
                           .copyWith(fontSize: 15),
                     ),
                     if (subtitle != null) ...[
@@ -60,7 +67,7 @@ class SettingsItemTile extends StatelessWidget {
               ),
               if (trailing != null)
                 trailing!
-              else
+              else if (!isDestructive)
                 Icon(
                   Icons.chevron_right_rounded,
                   color: colorScheme.onSurfaceVariant,

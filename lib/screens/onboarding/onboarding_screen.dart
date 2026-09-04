@@ -27,7 +27,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
 
   void _goToPage(int page) {
     if (!mounted || !_pageController.hasClients) return;
-    _currentPageIndex = page;
+    setState(() {
+      _currentPageIndex = page;
+    });
     _pageController.animateToPage(
       page,
       duration: const Duration(milliseconds: 300),
@@ -61,17 +63,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
           }
         },
         child: Scaffold(
-          body: Container(
+          body: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.primary,
-                ],
-              ),
+              gradient: _currentPageIndex == 0
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primary,
+                      ],
+                    ),
+              color: _currentPageIndex == 0
+                  ? Theme.of(context).colorScheme.surface
+                  : null,
             ),
             child: SafeArea(
               child: BlocConsumer<DownloadRegionCubit, DownloadRegionState>(
@@ -111,7 +119,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                 builder: (context, state) {
                   return PageView(
                     controller: _pageController,
-                    onPageChanged: (index) => _currentPageIndex = index,
+                    onPageChanged: (index) {
+                      if (_currentPageIndex != index) {
+                        setState(() => _currentPageIndex = index);
+                      }
+                    },
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
                       OnboardingWelcomeView(

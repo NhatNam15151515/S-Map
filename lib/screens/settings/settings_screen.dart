@@ -66,7 +66,9 @@ class SettingsScreen extends StatelessWidget with AppMixin {
                 SettingsItemTile(
                   icon: Icons.language_rounded,
                   title: tr(LocaleKeys.language),
-                  subtitle: currentLocale == SupportedLocale.vi ? 'Tiếng Việt' : 'English',
+                  subtitle: currentLocale == SupportedLocale.vi
+                      ? tr(LocaleKeys.vietnamese)
+                      : tr(LocaleKeys.english),
                   onTap: () => LanguageDialog.show(context, currentLocale),
                 ),
                 const SettingsDivider(),
@@ -77,7 +79,7 @@ class SettingsScreen extends StatelessWidget with AppMixin {
                   onTap: () => PolicyDialog.show(
                     context,
                     title: tr(LocaleKeys.mapType),
-                    content: 'Bản đồ chuẩn vector độ nét cao tối ưu cho giao thông tại Việt Nam.',
+                    content: tr(LocaleKeys.mapTypeContent),
                   ),
                 ),
               ],
@@ -99,7 +101,7 @@ class SettingsScreen extends StatelessWidget with AppMixin {
                   onTap: () => AppAboutDialog.show(
                     context,
                     appName: appCubit.state.appName,
-                    appVersion: '1.0.0',
+                    appVersion: tr(LocaleKeys.appVersionNumber),
                   ),
                 ),
                 const SettingsDivider(),
@@ -109,7 +111,7 @@ class SettingsScreen extends StatelessWidget with AppMixin {
                   onTap: () => PolicyDialog.show(
                     context,
                     title: tr(LocaleKeys.privacyPolicy),
-                    content: 'S-Map tôn trọng và cam kết bảo vệ quyền riêng tư của bạn. Dữ liệu vị trí chỉ được sử dụng cho mục đích dẫn đường và tìm kiếm địa điểm ngoại tuyến cục bộ trên thiết bị.',
+                    content: tr(LocaleKeys.privacyPolicyContent),
                   ),
                 ),
                 const SettingsDivider(),
@@ -119,9 +121,35 @@ class SettingsScreen extends StatelessWidget with AppMixin {
                   onTap: () => PolicyDialog.show(
                     context,
                     title: tr(LocaleKeys.termAndCondition),
-                    content: 'Khi sử dụng ứng dụng S-Map, bạn đồng ý tuân thủ luật an toàn giao thông đường bộ và các quy định hiện hành.',
+                    content: tr(LocaleKeys.termAndConditionContent),
                   ),
                 ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // 3. Account Section
+            SettingsSectionTitle(title: tr(LocaleKeys.account)),
+            SettingsGroupCard(
+              children: [
+                if (context.select<AuthCubit, bool>((c) => c.state.isAuthenticated))
+                  SettingsItemTile(
+                    icon: Icons.logout_rounded,
+                    title: tr(LocaleKeys.logOut),
+                    isDestructive: true,
+                    onTap: () {
+                      authCubit.onLogout();
+                      context.pop();
+                    },
+                  )
+                else
+                  SettingsItemTile(
+                    icon: Icons.login_rounded,
+                    title: tr(LocaleKeys.login),
+                    subtitle: tr(LocaleKeys.loginSyncSubtitle),
+                    onTap: () => context.push(AppRoutes.login),
+                  ),
               ],
             ),
           ],

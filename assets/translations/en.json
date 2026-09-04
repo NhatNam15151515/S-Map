@@ -336,5 +336,13 @@
   "onboarding_ready_title": "All done!",
   "onboarding_ready_subtitle": "Your offline map is ready to use.",
   "onboarding_lets_go_btn": "Let's Go!",
-  "onboarding_retry_btn": "Retry"
+  "onboarding_retry_btn": "Retry",
+  "mapTypeContent": "High-definition vector map optimized for transportation in Vietnam.",
+  "privacyPolicyContent": "S-Map respects and commits to protecting your privacy. Location data is only used for local offline navigation and search on your device.",
+  "termAndConditionContent": "By using S-Map, you agree to comply with road traffic safety laws and applicable regulations.",
+  "loginSyncSubtitle": "Sign in to sync offline data",
+  "appVersionNumber": "1.0.0",
+  "close": "Close",
+  "aboutAppDesc": "S-Map is a digital map and offline navigation app optimized for users in Vietnam. Supports place search, voice navigation for motorbikes, and offline map management for 63 provinces.",
+  "versionPrefix": "Version: {}"
 }

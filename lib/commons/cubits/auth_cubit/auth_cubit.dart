@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:s_map/commons/cubits/auth_cubit/auth_state.dart';
@@ -54,65 +55,108 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> onAppStarted() async {
-    // checkpoint to clear secure storage on 1st install
-    if (await _sharedPreferences.get1stInstall()) {
-      await _secureStorage.onLogOutClear();
-      await _sharedPreferences.save1stInstall();
-    }
-
-    final hasCompletedOnboarding = await _sharedPreferences
-        .getOnboardingCompleted()
-        .catchError((_) => false);
-
-    if (isClosed) return;
-
-    // 1. Đọc profile người dùng đã lưu từ SecureStorage
-    User? profile = await _secureStorage.getStoredProfile();
-    if (isClosed) return;
-
-    // 2. Nếu SecureStorage chưa có, kiểm tra phiên đăng nhập từ Firebase
-    if (profile == null) {
+    try {
+      // 1. Checkpoint to clear secure storage on 1st install (fast timeout)
       try {
-        final fbProfile = await _authRepos.getProfile();
-        if (isClosed) return;
-        if (fbProfile != null &&
-            (fbProfile.id != null || fbProfile.username != null)) {
-          profile = fbProfile;
+        final is1st = await _sharedPreferences
+            .get1stInstall()
+            .timeout(const Duration(milliseconds: 800), onTimeout: () => false);
+        if (is1st) {
+          await _secureStorage
+              .onLogOutClear()
+              .timeout(const Duration(milliseconds: 800));
+          await _sharedPreferences.save1stInstall();
         }
       } catch (e) {
-        DLog.error('Lỗi khôi phục phiên người dùng: $e');
+        DLog.warning('1st install checkpoint error: $e');
       }
-    }
 
-    if (profile != null) {
+      final hasCompletedOnboarding = await _sharedPreferences
+          .getOnboardingCompleted()
+          .timeout(const Duration(milliseconds: 800), onTimeout: () => false)
+          .catchError((_) => false);
+
       if (isClosed) return;
-      final reqAuth = await _secureStorage.getReqAuth();
+
+      // 2. Đọc profile người dùng đã lưu từ SecureStorage với timeout ngắn
+      User? profile;
+      try {
+        profile = await _secureStorage
+            .getStoredProfile()
+            .timeout(const Duration(milliseconds: 800), onTimeout: () => null);
+      } catch (e) {
+        DLog.warning('Error reading stored profile: $e');
+      }
       if (isClosed) return;
-      faceIdAcceptStream.value = reqAuth;
-      await onAuthenticated(profile);
-    } else {
-      if (isClosed) return;
-      if (state.isInitial) {
-        if (!hasCompletedOnboarding) {
-          emit(state.copyWith(type: AuthStateType.onboarding));
-        } else {
-          emit(state.copyWith(type: AuthStateType.unAuthenticated));
+
+      // 3. Nếu SecureStorage chưa có, kiểm tra phiên đăng nhập từ authRepos
+      if (profile == null) {
+        try {
+          final fbProfile = await _authRepos
+              .getProfile()
+              .timeout(const Duration(seconds: 2), onTimeout: () => null);
+          if (isClosed) return;
+          if (fbProfile != null &&
+              (fbProfile.id != null || fbProfile.username != null)) {
+            profile = fbProfile;
+          }
+        } catch (e) {
+          DLog.error('Lỗi khôi phục phiên người dùng: $e');
         }
       }
+
+      if (profile != null) {
+        if (isClosed) return;
+        bool reqAuth = false;
+        try {
+          reqAuth = await _secureStorage
+              .getReqAuth()
+              .timeout(const Duration(milliseconds: 500), onTimeout: () => false);
+        } catch (_) {}
+        if (isClosed) return;
+        faceIdAcceptStream.value = reqAuth;
+        await onAuthenticated(profile);
+      } else {
+        if (isClosed) return;
+        if (state.isInitial) {
+          if (!hasCompletedOnboarding) {
+            emit(state.copyWith(type: AuthStateType.onboarding));
+          } else {
+            emit(state.copyWith(type: AuthStateType.unAuthenticated));
+          }
+        }
+      }
+    } catch (e, stack) {
+      DLog.error('onAppStarted error: $e', stack);
+      if (isClosed) return;
+      if (state.isInitial) {
+        emit(state.copyWith(type: AuthStateType.onboarding));
+      }
+    } finally {
+      try {
+        FlutterNativeSplash.remove();
+      } catch (_) {}
     }
-    FlutterNativeSplash.remove();
   }
 
   Future<void> onAuthenticated(User user) async {
     final token = user.id ?? 'token_${DateTime.now().millisecondsSinceEpoch}';
-    await _secureStorage.saveAuthToken(token);
-    await _secureStorage.saveProfile(user);
+    try {
+      await _secureStorage
+          .saveAuthToken(token)
+          .timeout(const Duration(milliseconds: 800));
+      await _secureStorage
+          .saveProfile(user)
+          .timeout(const Duration(milliseconds: 800));
+    } catch (_) {}
     if (isClosed) return;
     emit(state.copyWith(
       type: AuthStateType.authenticated,
       loggedInProfile: user,
     ));
-    await getAfterAuthStateEmitted();
+    try {
+      await getAfterAuthStateEmitted().timeout(const Duration(milliseconds: 800));
+    } catch (_) {}
   }
 
   Future<void> onLoggedIn(User user) async {

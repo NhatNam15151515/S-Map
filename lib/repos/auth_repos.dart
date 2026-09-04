@@ -38,7 +38,9 @@ class AuthReposImpl implements IAuthRepos {
     final fbUser = _authService.currentUser;
     if (fbUser != null) {
       try {
-        final profile = await _fireStore.getUserProfile(fbUser.uid);
+        final profile = await _fireStore
+            .getUserProfile(fbUser.uid)
+            .timeout(const Duration(milliseconds: 1500), onTimeout: () => null);
         if (profile != null) return profile;
       } catch (e) {
         DLog.error("Firestore getProfile error: $e");

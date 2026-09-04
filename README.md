@@ -32,17 +32,20 @@
 ## ⚙️ Thiết Lập Môi Trường & Build
 
 ### 1. Cài đặt phụ thuộc
+
 ```bash
 flutter pub get
 ```
 
 ### 2. Sinh mã Localization
+
 ```bash
 flutter pub run easy_localization:generate -S assets/translations -f keys -o locale_keys.g.dart
 flutter pub run easy_localization:generate -S assets/translations
 ```
 
 ### 3. Khởi chạy theo Flavor
+
 ```bash
 # Môi trường Development
 flutter run -t lib/main.dart --dart-define-from-file=.env/dev.json
@@ -52,6 +55,7 @@ flutter run -t lib/main.dart --dart-define-from-file=.env/pro.json
 ```
 
 ### 4. Đóng gói ứng dụng (Android APK / Bundle)
+
 ```bash
 # Release APK Prod
 flutter build apk -t lib/main.dart --dart-define-from-file=.env/pro.json

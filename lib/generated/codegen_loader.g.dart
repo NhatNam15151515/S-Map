@@ -352,7 +352,15 @@ class CodegenLoader extends AssetLoader{
   "onboarding_ready_title": "All done!",
   "onboarding_ready_subtitle": "Your offline map is ready to use.",
   "onboarding_lets_go_btn": "Let's Go!",
-  "onboarding_retry_btn": "Retry"
+  "onboarding_retry_btn": "Retry",
+  "mapTypeContent": "High-definition vector map optimized for transportation in Vietnam.",
+  "privacyPolicyContent": "S-Map respects and commits to protecting your privacy. Location data is only used for local offline navigation and search on your device.",
+  "termAndConditionContent": "By using S-Map, you agree to comply with road traffic safety laws and applicable regulations.",
+  "loginSyncSubtitle": "Sign in to sync offline data",
+  "appVersionNumber": "1.0.0",
+  "close": "Close",
+  "aboutAppDesc": "S-Map is a digital map and offline navigation app optimized for users in Vietnam. Supports place search, voice navigation for motorbikes, and offline map management for 63 provinces.",
+  "versionPrefix": "Version: {}"
 };
 static const Map<String,dynamic> _vi = {
   "loginToYourAccount": "Đăng nhập vào tài khoản",
@@ -692,7 +700,15 @@ static const Map<String,dynamic> _vi = {
   "onboarding_ready_title": "Hoàn tất!",
   "onboarding_ready_subtitle": "Bản đồ của bạn đã sẵn sàng sử dụng ngoại tuyến.",
   "onboarding_lets_go_btn": "Khám phá ngay",
-  "onboarding_retry_btn": "Thử lại"
+  "onboarding_retry_btn": "Thử lại",
+  "mapTypeContent": "Bản đồ chuẩn vector độ nét cao tối ưu cho giao thông tại Việt Nam.",
+  "privacyPolicyContent": "S-Map tôn trọng và cam kết bảo vệ quyền riêng tư của bạn. Dữ liệu vị trí chỉ được sử dụng cho mục đích dẫn đường và tìm kiếm địa điểm ngoại tuyến cục bộ trên thiết bị.",
+  "termAndConditionContent": "Khi sử dụng ứng dụng S-Map, bạn đồng ý tuân thủ luật an toàn giao thông đường bộ và các quy định hiện hành.",
+  "loginSyncSubtitle": "Đăng nhập để đồng bộ dữ liệu ngoại tuyến",
+  "appVersionNumber": "1.0.0",
+  "close": "Đóng",
+  "aboutAppDesc": "S-Map là ứng dụng bản đồ số và dẫn đường ngoại tuyến tối ưu cho người dùng Việt Nam. Hỗ trợ tìm kiếm địa điểm, dẫn đường bằng giọng nói cho xe máy và quản lý bản đồ offline 63 tỉnh thành.",
+  "versionPrefix": "Phiên bản: {}"
 };
 static const Map<String, Map<String,dynamic>> mapLocales = {"en": _en, "vi": _vi};
 }

@@ -3,7 +3,10 @@ import 'flavor_enum.dart';
 class Flavor {
 
   Flavor._() {
-    currentFlavor = FlavorEnum.values.firstWhere((element) => element.name == name);
+    currentFlavor = FlavorEnum.values.firstWhere(
+      (element) => element.name == name,
+      orElse: () => FlavorEnum.dev,
+    );
   }
 
   late FlavorEnum currentFlavor;

@@ -41,6 +41,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:495182969568:android:c4083fca783d0d9cd46e85",
+        "android_client_info": {
+          "package_name": "com.vnsmap.app.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "495182969568-fvs19etk25pk47i3gqgatpmhipc9a8ed.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vnsmap.app.dev",
+            "certificate_hash": "002e3a046583204540de845b3bbe317fafd17c7f"
+          }
+        },
+        {
+          "client_id": "495182969568-86n8vjbstj6tunmrt1nqi2e9sddl0m5e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBd3_1M-0IErOc-NdHjC9mgAdS03Cx7DHQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "495182969568-86n8vjbstj6tunmrt1nqi2e9sddl0m5e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

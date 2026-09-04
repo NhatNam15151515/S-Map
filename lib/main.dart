@@ -12,20 +12,23 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/flavor/flavor.dart';
 import 'package:s_map/repos/repos.dart';
+import 'dart:io';
 import 'package:s_map/services/services.dart';
 
 void main() async {
+  stderr.writeln('🚀 [S-MAP] bootstrap started');
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  
+  // Preserve native splash during async initialization
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  await Hive.initFlutter();
-  // Open the region metadata before MapStyleService.init(). The map style
-  // service uses this already-initialized box to discover a previously
-  // downloaded PMTiles package during the first app frame.
-  await Hive.openBox<dynamic>(RegionDownloadServiceImpl.boxName);
-  await Hive.openBox<dynamic>(RecentSearchServiceImpl.boxName);
-  await Hive.openBox<dynamic>(FavoritesServiceImpl.boxName);
-  await Hive.openBox<dynamic>(VisitedPoiServiceImpl.boxName);
+  // Safeguard: Always dismiss native splash after at most 3.5 seconds
+  // in case any service initialization stalls or throws unexpectedly.
+  Future.delayed(const Duration(milliseconds: 3500), () {
+    try {
+      FlutterNativeSplash.remove();
+    } catch (_) {}
+  });
 
   // Setup default service resolvers & AppReposProvider (Composition Root)
   CustomRouteServiceImpl.defaultFireStoreService = FireStoreService.instance;
@@ -60,7 +63,23 @@ void main() async {
   NavigationBloc.defaultVisitedPoiService = VisitedPoiServiceImpl.instance;
   ListenComingNotification.messagingServiceResolver = FirebaseMessagingService.instance;
 
-  await EasyLocalization.ensureInitialized();
+  try {
+    await Hive.initFlutter();
+    await Future.wait([
+      Hive.openBox<dynamic>(RegionDownloadServiceImpl.boxName),
+      Hive.openBox<dynamic>(RecentSearchServiceImpl.boxName),
+      Hive.openBox<dynamic>(FavoritesServiceImpl.boxName),
+      Hive.openBox<dynamic>(VisitedPoiServiceImpl.boxName),
+    ]);
+  } catch (e) {
+    debugPrint("Hive initialization notice: $e");
+  }
+
+  try {
+    await EasyLocalization.ensureInitialized();
+  } catch (e) {
+    debugPrint("EasyLocalization notice: $e");
+  }
 
   try {
     if (Firebase.apps.isEmpty) {
@@ -88,21 +107,42 @@ void main() async {
   }
 
   LicenseRegistry.addLicense(() async* {
-    final license = await rootBundle.loadString('assets/fonts/OFL.txt');
-    yield LicenseEntryWithLineBreaks(['assets', 'fonts'], license);
+    try {
+      final license = await rootBundle.loadString('assets/fonts/OFL.txt');
+      yield LicenseEntryWithLineBreaks(['assets', 'fonts'], license);
+    } catch (_) {}
   });
 
-  await LocalNotificationService.instance.init();
-  await MapStyleService.instance.init();
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  try {
+    await LocalNotificationService.instance.init();
+  } catch (e) {
+    debugPrint("LocalNotificationService notice: $e");
+  }
 
-  final savedThemeStr = await AppSharedPreferences().getThemeMode();
-  final initialThemeMode = savedThemeStr != null 
-      ? AppCubit.parseThemeMode(savedThemeStr) 
-      : ThemeMode.system;
+  try {
+    await MapStyleService.instance.init();
+  } catch (e) {
+    debugPrint("MapStyleService notice: $e");
+  }
 
+  try {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  } catch (_) {}
+
+  ThemeMode initialThemeMode = ThemeMode.system;
+  try {
+    final savedThemeStr = await AppSharedPreferences().getThemeMode().timeout(
+      const Duration(seconds: 1),
+      onTimeout: () => null,
+    );
+    if (savedThemeStr != null) {
+      initialThemeMode = AppCubit.parseThemeMode(savedThemeStr);
+    }
+  } catch (_) {}
+
+  stderr.writeln('🚀 [S-MAP] calling runApp with theme: $initialThemeMode');
   runApp(MyApp(initialThemeMode: initialThemeMode));
 }

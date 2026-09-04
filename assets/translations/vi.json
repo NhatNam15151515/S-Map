@@ -336,5 +336,13 @@
   "onboarding_ready_title": "Hoàn tất!",
   "onboarding_ready_subtitle": "Bản đồ của bạn đã sẵn sàng sử dụng ngoại tuyến.",
   "onboarding_lets_go_btn": "Khám phá ngay",
-  "onboarding_retry_btn": "Thử lại"
+  "onboarding_retry_btn": "Thử lại",
+  "mapTypeContent": "Bản đồ chuẩn vector độ nét cao tối ưu cho giao thông tại Việt Nam.",
+  "privacyPolicyContent": "S-Map tôn trọng và cam kết bảo vệ quyền riêng tư của bạn. Dữ liệu vị trí chỉ được sử dụng cho mục đích dẫn đường và tìm kiếm địa điểm ngoại tuyến cục bộ trên thiết bị.",
+  "termAndConditionContent": "Khi sử dụng ứng dụng S-Map, bạn đồng ý tuân thủ luật an toàn giao thông đường bộ và các quy định hiện hành.",
+  "loginSyncSubtitle": "Đăng nhập để đồng bộ dữ liệu ngoại tuyến",
+  "appVersionNumber": "1.0.0",
+  "close": "Đóng",
+  "aboutAppDesc": "S-Map là ứng dụng bản đồ số và dẫn đường ngoại tuyến tối ưu cho người dùng Việt Nam. Hỗ trợ tìm kiếm địa điểm, dẫn đường bằng giọng nói cho xe máy và quản lý bản đồ offline 63 tỉnh thành.",
+  "versionPrefix": "Phiên bản: {}"
 }
