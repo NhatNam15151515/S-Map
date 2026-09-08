@@ -1,8 +1,8 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/commons/utils/utils.dart';
 
+/// Danh sách chip lọc chuyến đi theo phương tiện (Tất cả, Xe máy, Ô tô, Đi bộ).
 class StatsVehicleFilterChips extends StatelessWidget {
   final String? selectedProfile;
   final ValueChanged<String?> onProfileSelected;
@@ -15,47 +15,10 @@ class StatsVehicleFilterChips extends StatelessWidget {
     this.profileCounts = const {},
   });
 
-  int _getCountForProfile(String? profile) {
-    if (profile == null) {
-      return profileCounts.values.fold(0, (a, b) => a + b);
-    }
-    if (profile == 'motorcycle') {
-      return (profileCounts['motorcycle'] ?? 0) +
-          (profileCounts['moped_vn'] ?? 0) +
-          (profileCounts['moped'] ?? 0);
-    }
-    if (profile == 'walking') {
-      return (profileCounts['walking'] ?? 0) + (profileCounts['foot'] ?? 0);
-    }
-    return profileCounts[profile] ?? 0;
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
-
-    final filters = [
-      (
-        null,
-        tr(LocaleKeys.stats_dashboard_filter_all),
-        Icons.all_inclusive_rounded
-      ),
-      (
-        'motorcycle',
-        tr(LocaleKeys.stats_dashboard_filter_motorcycle),
-        Icons.two_wheeler_rounded
-      ),
-      (
-        'car',
-        tr(LocaleKeys.stats_dashboard_filter_car),
-        Icons.directions_car_rounded
-      ),
-      (
-        'walking',
-        tr(LocaleKeys.stats_dashboard_filter_walking),
-        Icons.directions_walk_rounded
-      ),
-    ];
+    final filters = TripFormatHelper.getVehicleFilterOptions();
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -66,7 +29,8 @@ class StatsVehicleFilterChips extends StatelessWidget {
           final label = item.$2;
           final icon = item.$3;
           final isSelected = profile == selectedProfile;
-          final count = _getCountForProfile(profile);
+          final count =
+              TripFormatHelper.getProfileTripCount(profileCounts, profile);
 
           final textColor =
               isSelected ? colorScheme.onPrimary : colorScheme.onSurface;
@@ -105,8 +69,10 @@ class StatsVehicleFilterChips extends StatelessWidget {
                       child: Text(
                         '$count',
                         style: isSelected
-                            ? colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(fontSize: 10)
-                            : colorScheme.primary.textTheme.semiBoldStyle.copyWith(fontSize: 10),
+                            ? colorScheme.onPrimary.textTheme.semiBoldStyle
+                                .copyWith(fontSize: 10)
+                            : colorScheme.primary.textTheme.semiBoldStyle
+                                .copyWith(fontSize: 10),
                       ),
                     ),
                   ],

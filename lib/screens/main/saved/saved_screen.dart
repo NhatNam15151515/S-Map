@@ -19,9 +19,12 @@ class SavedScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(
             tr(LocaleKeys.savedPlaces),
-            style: colorScheme.onSurface.textTheme.boldStyle.copyWith(fontSize: 20),
+            style: colorScheme.onSurface.textTheme.subTitleStyle.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          centerTitle: false,
+          centerTitle: true,
           elevation: 0,
           backgroundColor: colorScheme.surface,
           actions: [

@@ -45,12 +45,14 @@
   "feature_under_development": "Tính năng đang được phát triển",
   "cancel": "Huỷ",
   "confirm": "Đồng ý",
+  "retry": "Thử lại",
   "reviews": "Đánh giá",
   "only": "Chỉ",
   "viewDetails": "Xem chi tiết",
   "viewProfile": "Xem hồ sơ",
   "account": "Tài khoản",
   "home": "Trang chủ",
+  "activity": "Hoạt động",
   "now": "Bây giờ",
   "secondS": "giây",
   "minuteS": "phút",
@@ -248,7 +250,12 @@
     "straight_line_mode_tooltip_off": "Tắt đường chim bay (Bám theo đường)",
     "straight_line_mode_active_badge": "Đường chim bay",
     "center_add_start_point": "Đặt điểm bắt đầu tại tâm",
-    "center_add_next_point": "Thêm điểm tại tâm"
+    "center_add_next_point": "Thêm điểm tại tâm",
+    "view_drawing": "Xem bản vẽ",
+    "remove_destination": "Xóa điểm kết thúc",
+    "reverse_route": "Đảo chiều lộ trình",
+    "crosshair_tooltip_on": "Bật tâm ngắm vẽ đường",
+    "crosshair_tooltip_off": "Tắt tâm ngắm vẽ đường"
   },
   "stats_dashboard": {
     "title": "Thống kê chuyến đi",
@@ -301,7 +308,12 @@
     "speed_unit": "{} km/h",
     "distance_value": "{} km",
     "avg_speed_value": "{} km/h",
-    "top_speed_value": "{} km/h"
+    "top_speed_value": "{} km/h",
+    "detail_stopped_point": "Điểm dừng",
+    "detail_streets_traveled": "Các con đường đã đi",
+    "detail_leg_street": "Cung đường {}",
+    "detail_street_avg_speed": "TB",
+    "detail_street_max_speed": "Tối đa"
   },
   "auth_guest_name": "Khách_{}",
   "offline_maps_vietnam_name": "Bản đồ Toàn quốc Việt Nam",

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -112,38 +113,30 @@ class ResumeTripDialog extends StatelessWidget {
 
             // Stats Preview Box (nếu đã di chuyển hoặc có thời gian)
             if (snapshot.totalDistanceTraveledMeters > 0 || timePassed.inSeconds > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: colorScheme.outline.withValues(alpha: 0.2),
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem(
-                      context,
+              Row(
+                children: [
+                  Expanded(
+                    child: AppMetricCard(
+                      layout: AppMetricCardLayout.horizontal,
                       icon: Icons.straighten_rounded,
                       label: tr(LocaleKeys.routing_trip_distance),
                       value: distanceStr,
+                      backgroundColor: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
                     ),
-                    Container(
-                      width: 1,
-                      height: 28,
-                      color: colorScheme.outline.withValues(alpha: 0.2),
-                    ),
-                    _buildStatItem(
-                      context,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: AppMetricCard(
+                      layout: AppMetricCardLayout.horizontal,
                       icon: Icons.timer_outlined,
                       label: tr(LocaleKeys.routing_trip_duration),
                       value: durationStr,
+                      backgroundColor: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             const SizedBox(height: 24),
 
@@ -196,40 +189,6 @@ class ResumeTripDialog extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    final colorScheme = context.colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: colorScheme.primary),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
-                fontSize: 11,
-              ),
-            ),
-            Text(
-              value,
-              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

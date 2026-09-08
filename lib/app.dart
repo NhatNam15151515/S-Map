@@ -24,7 +24,6 @@ class _MyAppState extends State<MyApp> {
   late AppCubit appCubit;
   late AuthCubit authCubit;
   late MapDisplayCubit mapDisplayCubit;
-  late NotificationCubit notificationCubit;
   late FavoritesCubit favoritesCubit;
   late SavedRoutesCubit savedRoutesCubit;
   late RoutePreviewCubit routePreviewCubit;
@@ -37,7 +36,6 @@ class _MyAppState extends State<MyApp> {
     appCubit = AppCubit(initialThemeMode: widget.initialThemeMode);
     authCubit = AuthCubit();
     mapDisplayCubit = MapDisplayCubit();
-    notificationCubit = NotificationCubit();
     favoritesCubit = FavoritesCubit();
     savedRoutesCubit = SavedRoutesCubit();
     routePreviewCubit = RoutePreviewCubit(
@@ -87,7 +85,6 @@ class _MyAppState extends State<MyApp> {
         BlocProvider.value(value: appCubit),
         BlocProvider.value(value: authCubit),
         BlocProvider.value(value: mapDisplayCubit),
-        BlocProvider.value(value: notificationCubit),
         BlocProvider.value(value: favoritesCubit),
         BlocProvider.value(value: savedRoutesCubit),
         BlocProvider.value(value: routePreviewCubit),

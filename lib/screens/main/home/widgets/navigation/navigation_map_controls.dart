@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
+import 'navigation_speedometer.dart';
 
 /// Floating controls bên phải khi đang dẫn đường.
 ///
-/// Hiển thị:
+/// Quản lý layout vị trí của:
 /// - Nút la bàn (compass) để toggle heading-up ↔ north-up
 /// - Nút recenter để khóa camera về vị trí hiện tại khi user đã kéo map
-/// - Nút tròn tốc độ km/h
+/// - [NavigationSpeedometer] hiển thị tốc độ km/h
 class NavigationMapControls extends StatelessWidget {
   final MapDisplayCubit displayCubit;
   final VoidCallback onRecenter;
@@ -27,138 +26,56 @@ class NavigationMapControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
 
-    return BlocBuilder<MapDisplayCubit, MapDisplayState>(
-      buildWhen: (prev, curr) =>
-          prev.rotation != curr.rotation ||
-          prev.orientationMode != curr.orientationMode ||
-          prev.isFollowingUser != curr.isFollowingUser,
-      builder: (context, mapState) {
-        final isFollowing = mapState.isFollowingUser;
-
-        return BlocBuilder<NavigationBloc, NavigationState>(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 1. Compass button (lắng nghe rotation & orientationMode)
+        BlocBuilder<MapDisplayCubit, MapDisplayState>(
           buildWhen: (prev, curr) =>
-              prev.currentSpeedKmh != curr.currentSpeedKmh,
-          builder: (context, navState) {
-            final speedStr =
-                RouteFormatHelper.formatSpeed(navState.currentSpeedKmh);
-
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 1. Compass button
-                MapCompassButton(
-                  rotation: mapState.rotation,
-                  orientationMode: mapState.orientationMode,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    displayCubit.toggleOrientationMode();
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // 2. Recenter button (chỉ hiện khi user đã kéo map ra)
-                if (!isFollowing) ...[
-                  _buildCircleButton(
-                    colorScheme: colorScheme,
-                    onTap: () {
-                      HapticFeedback.mediumImpact();
-                      onRecenter();
-                    },
-                    child: Icon(
-                      Icons.near_me_rounded,
-                      color: colorScheme.primary,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // 3. Speedometer circle
-                _buildSpeedCircle(
-                  colorScheme: colorScheme,
-                  speedStr: speedStr,
-                ),
-              ],
+              prev.rotation != curr.rotation ||
+              prev.orientationMode != curr.orientationMode,
+          builder: (context, mapState) {
+            return MapCompassButton(
+              rotation: mapState.rotation,
+              orientationMode: mapState.orientationMode,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                displayCubit.toggleOrientationMode();
+              },
             );
           },
-        );
-      },
-    );
-  }
-
-  Widget _buildCircleButton({
-    required ColorScheme colorScheme,
-    required VoidCallback onTap,
-    required Widget child,
-  }) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: Center(child: child),
         ),
-      ),
-    );
-  }
+        const SizedBox(height: 12),
 
-  Widget _buildSpeedCircle({
-    required ColorScheme colorScheme,
-    required String speedStr,
-  }) {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.15),
-          width: 0.8,
+        // 2. Recenter button (chỉ lắng nghe trạng thái isFollowingUser)
+        BlocBuilder<MapDisplayCubit, MapDisplayState>(
+          buildWhen: (prev, curr) =>
+              prev.isFollowingUser != curr.isFollowingUser,
+          builder: (context, mapState) {
+            if (mapState.isFollowingUser) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: MapCircleIconButton(
+                size: 48,
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  onRecenter();
+                },
+                child: Icon(
+                  Icons.near_me_rounded,
+                  color: colorScheme.primary,
+                  size: 22,
+                ),
+              ),
+            );
+          },
         ),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            speedStr,
-            style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-              fontSize: 18,
-              letterSpacing: -0.5,
-              height: 1.0,
-            ),
-          ),
-          Text(
-            'km/h',
-            style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
-              fontSize: 9,
-              height: 1.2,
-            ),
-          ),
-        ],
-      ),
+
+        // 3. Speedometer circle (độc lập, tự lắng nghe NavigationBloc)
+        const NavigationSpeedometer(),
+      ],
     );
   }
 }

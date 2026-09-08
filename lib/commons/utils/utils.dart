@@ -12,5 +12,7 @@ export 'poi_category_helper.dart';
 export 'popup_utils.dart';
 export 'route_format_helper.dart';
 export 'search_result_ranker.dart';
+export 'trip_address_resolver.dart';
+export 'trip_format_helper.dart';
 export 'trip_metrics_tracker.dart';
 export 'turn_by_turn_engine.dart';

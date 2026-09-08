@@ -1,7 +1,8 @@
-import 'package:flutter/services.dart';
+import 'dart:ui';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/map_marker_helper.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 
@@ -20,12 +21,10 @@ class MapDrawingRouteManager {
   Future<void> loadMarkerAssets(MapLibreMapController? controller) async {
     if (controller == null || _isAssetLoaded) return;
     try {
-      final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
-      final bytes = byteData.buffer.asUint8List();
-      await controller.addImage(RoutingConstants.markerImageKey, bytes);
+      await MapMarkerHelper.loadCommonMapMarkers(controller);
       _isAssetLoaded = true;
       DLog.info(
-          '🗺️ [MapDrawingRouteManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine (${AppAsset.redMarker.fullPath})');
+          '🗺️ [MapDrawingRouteManager] Common marker assets loaded into map engine via MapMarkerHelper');
     } catch (e, stack) {
       DLog.warning(
           '⚠️ [MapDrawingRouteManager] Failed to load marker asset: $e', stack);
@@ -47,9 +46,9 @@ class MapDrawingRouteManager {
         _wpSourceId,
         _wpLayerId,
         SymbolLayerProperties(
-          iconImage: RoutingConstants.markerImageKey,
+          iconImage: [Expressions.get, 'iconImage'],
           iconSize: [Expressions.get, 'iconSize'],
-          iconAnchor: 'bottom',
+          iconAnchor: [Expressions.get, 'iconAnchor'],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
           textField: [Expressions.get, 'name'],
@@ -210,6 +209,8 @@ class MapDrawingRouteManager {
             'coordinates': [pt.snappedLon, pt.snappedLat],
           },
           'properties': {
+            'iconImage': RoutingConstants.markerImageKey,
+            'iconAnchor': 'bottom',
             'name': label,
             'iconSize': (i == 0 || i == points.length - 1 ? 1.1 : 0.85) *
                 MapConstants.markerIconScale,
@@ -231,21 +232,143 @@ class MapDrawingRouteManager {
     }
   }
 
+  /// Vẽ toàn bộ lộ trình lịch sử chuyến đi và các markers đặc thù:
+  /// - Điểm bắt đầu: Start Circle xanh lá
+  /// - Điểm đích: RedMarker (nếu hoàn thành) hoặc Stop Circle đỏ dấu || (nếu dừng giữa chừng)
+  Future<bool> drawTripHistoryRoute({
+    required MapLibreMapController? controller,
+    required List<LatLng> polylineLatLngs,
+    required bool hasArrived,
+    Color? startColor,
+    Color? stopColor,
+  }) async {
+    if (controller == null || polylineLatLngs.isEmpty) return false;
+    final generation = ++_renderGeneration;
+
+    try {
+      await MapMarkerHelper.loadCommonMapMarkers(
+        controller,
+        startColor: startColor,
+        stopColor: stopColor,
+      );
+      if (generation != _renderGeneration) return false;
+
+      await _removeExisting(controller);
+      if (generation != _renderGeneration) return false;
+
+      // 1. Vẽ Polyline kết nối
+      if (polylineLatLngs.length >= 2) {
+        final casing = await controller.addLine(
+          LineOptions(
+            geometry: polylineLatLngs,
+            lineColor: AppColors.sMapDarkTeal.toHex,
+            lineWidth: RoutingConstants.routeCasingLineWidth,
+            lineOpacity: 0.9,
+            lineJoin: RoutingConstants.routeLineJoin,
+          ),
+        );
+        if (generation != _renderGeneration) {
+          await controller.removeLine(casing);
+          return false;
+        }
+        _casingLine = casing;
+
+        final mainLine = await controller.addLine(
+          LineOptions(
+            geometry: polylineLatLngs,
+            lineColor: AppColors.sMapTeal.toHex,
+            lineWidth: RoutingConstants.routeMainLineWidth,
+            lineOpacity: 1.0,
+            lineJoin: RoutingConstants.routeLineJoin,
+          ),
+        );
+        if (generation != _renderGeneration) {
+          await controller.removeLine(mainLine);
+          return false;
+        }
+        _routeLine = mainLine;
+      }
+
+      // 2. Vẽ Waypoint Symbols cho Start và End/Stop
+      await _initWpLayer(controller);
+      final features = <Map<String, dynamic>>[];
+
+      // Start Marker (Xanh lá)
+      final startPt = polylineLatLngs.first;
+      features.add({
+        'type': 'Feature',
+        'geometry': {
+          'type': 'Point',
+          'coordinates': [startPt.longitude, startPt.latitude],
+        },
+        'properties': {
+          'iconImage': MapMarkerHelper.startMarkerId,
+          'iconAnchor': 'center',
+          'iconSize': 1.15,
+          'name': '',
+          'zIndex': 10,
+        },
+      });
+
+      // End / Stop Marker
+      if (polylineLatLngs.length > 1) {
+        final endPt = polylineLatLngs.last;
+        final isFinish = hasArrived;
+        features.add({
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [endPt.longitude, endPt.latitude],
+          },
+          'properties': {
+            'iconImage': isFinish
+                ? MapMarkerHelper.finishMarkerId
+                : MapMarkerHelper.stopMarkerId,
+            'iconAnchor': isFinish ? 'bottom' : 'center',
+            'iconSize': isFinish ? 1.40 : 1.30,
+            'name': '',
+            'zIndex': 10,
+          },
+        });
+      }
+
+      if (generation != _renderGeneration) return false;
+      await controller.setGeoJsonSource(_wpSourceId, {
+        'type': 'FeatureCollection',
+        'features': features,
+      });
+
+      return true;
+    } catch (e, stack) {
+      DLog.error(
+          '❌ [MapDrawingRouteManager] Error drawing trip history: $e', e, stack);
+      return false;
+    }
+  }
+
   /// Tự động zoom camera bao quanh các điểm đã vẽ
   Future<void> fitRouteBounds({
     required MapLibreMapController? controller,
     required List<SnappedRoadPoint> points,
     List<RoutePoint>? fullPolyline,
+    List<LatLng>? customLatLngs,
+    double? paddingTop,
+    double? paddingBottom,
+    double? paddingLeft,
+    double? paddingRight,
   }) async {
-    if (controller == null || points.isEmpty) return;
+    if (controller == null) return;
 
     List<LatLng> allPoints = [];
-    if (fullPolyline != null && fullPolyline.isNotEmpty) {
+    if (customLatLngs != null && customLatLngs.isNotEmpty) {
+      allPoints = customLatLngs;
+    } else if (fullPolyline != null && fullPolyline.isNotEmpty) {
       allPoints = parseRoutePoints(fullPolyline);
-    } else {
+    } else if (points.isNotEmpty) {
       allPoints =
           points.map((p) => LatLng(p.snappedLat, p.snappedLon)).toList();
     }
+    if (allPoints.isEmpty) return;
 
     final bounds = calculateBounds(allPoints);
     if (bounds == null) return;
@@ -254,10 +377,10 @@ class MapDrawingRouteManager {
       await controller.animateCamera(
         CameraUpdate.newLatLngBounds(
           bounds,
-          left: RoutingConstants.routeFitPaddingLeft,
-          right: RoutingConstants.routeFitPaddingRight,
-          top: RoutingConstants.routeFitPaddingTop,
-          bottom: RoutingConstants.routeFitPaddingBottom,
+          left: paddingLeft ?? RoutingConstants.routeFitPaddingLeft,
+          right: paddingRight ?? RoutingConstants.routeFitPaddingRight,
+          top: paddingTop ?? RoutingConstants.routeFitPaddingTop,
+          bottom: paddingBottom ?? RoutingConstants.routeFitPaddingBottom,
         ),
       );
     } catch (e) {

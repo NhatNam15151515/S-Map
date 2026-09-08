@@ -54,6 +54,24 @@ class TripChartData extends Equatable {
   bool get isEmpty => bars.isEmpty || totalDistanceKm == 0.0;
   bool get isNotEmpty => !isEmpty;
 
+  /// Giá trị trần tối đa của trục tung Y-axis được làm tròn chuẩn
+  double get maxY {
+    final rawMax = maxDistanceKm <= 0 ? 5.0 : (maxDistanceKm * 1.25);
+    return rawMax.ceilToDouble();
+  }
+
+  /// Bước nhảy (interval) tối ưu chia đều trên trục tung Y-axis
+  double get yAxisInterval {
+    final m = maxY;
+    if (m <= 2) return 0.5;
+    if (m <= 6) return 1.0;
+    if (m <= 15) return 2.0;
+    if (m <= 30) return 5.0;
+    if (m <= 60) return 10.0;
+    if (m <= 150) return 25.0;
+    return (m / 4).ceilToDouble();
+  }
+
   /// Lọc danh sách chuyến đi theo khoảng thời gian được chỉ định
   static List<TripRecordModel> filterTripsByTimeRange(
     List<TripRecordModel> trips,

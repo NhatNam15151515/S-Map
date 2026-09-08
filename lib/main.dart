@@ -9,7 +9,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:s_map/app.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/flavor/flavor.dart';
 import 'package:s_map/repos/repos.dart';
 import 'dart:io';
@@ -33,6 +32,8 @@ void main() async {
   // Setup default service resolvers & AppReposProvider (Composition Root)
   CustomRouteServiceImpl.defaultFireStoreService = FireStoreService.instance;
   CustomRouteServiceImpl.defaultAuthService = FirebaseAuthService.instance;
+  TripServiceImpl.defaultFireStoreService = FireStoreService.instance;
+  TripServiceImpl.defaultAuthService = FirebaseAuthService.instance;
   AppReposProvider.init(routingService: RoutingServiceImpl.instance);
   MapDisplayCubit.defaultLocationService = LocationService.instance;
   MapDisplayCubit.defaultCompassService = CompassService.instance;
@@ -61,7 +62,6 @@ void main() async {
   NavigationBloc.defaultDeviceInfoService = DeviceInfoService.instance;
   NavigationBloc.defaultActiveTripService = ActiveTripServiceImpl.instance;
   NavigationBloc.defaultVisitedPoiService = VisitedPoiServiceImpl.instance;
-  ListenComingNotification.messagingServiceResolver = FirebaseMessagingService.instance;
 
   try {
     await Hive.initFlutter();
@@ -112,12 +112,6 @@ void main() async {
       yield LicenseEntryWithLineBreaks(['assets', 'fonts'], license);
     } catch (_) {}
   });
-
-  try {
-    await LocalNotificationService.instance.init();
-  } catch (e) {
-    debugPrint("LocalNotificationService notice: $e");
-  }
 
   try {
     await MapStyleService.instance.init();

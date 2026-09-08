@@ -94,8 +94,6 @@ class MockFireStoreService implements IFireStoreService {
   @override
   CollectionReference? get usersCollection => null;
   @override
-  CollectionReference? get notificationsCollection => null;
-  @override
   CollectionReference? get savedPlacesCollection => null;
   @override
   CollectionReference? get placesCollection => null;
@@ -106,8 +104,6 @@ class MockFireStoreService implements IFireStoreService {
   Future<void> saveUserProfile(User user) async {}
   @override
   Future<User?> getUserProfile(String userId) async => null;
-  @override
-  Future<List<NotificationModel>> getNotifications({int limit = 20}) async => [];
   @override
   Future<List<PlaceModel>> getExplorePlaces({String? category, int limit = 10}) async => [];
   @override

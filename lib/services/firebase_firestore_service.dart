@@ -32,8 +32,6 @@ class FireStoreService implements IFireStoreService {
   @override
   CollectionReference? get usersCollection => _fs?.collection('users');
   @override
-  CollectionReference? get notificationsCollection => _fs?.collection('notifications');
-  @override
   /// Legacy root collection kept only so existing data can be migrated. New
   /// user data must always use users/{uid}/saved_places.
   CollectionReference? get savedPlacesCollection => _fs?.collection('saved_places');
@@ -73,26 +71,6 @@ class FireStoreService implements IFireStoreService {
       DLog.error("Firestore getUserProfile error: $e");
     }
     return null;
-  }
-
-  // --- NOTIFICATION METHODS ---
-  @override
-  Future<List<NotificationModel>> getNotifications({int limit = 20}) async {
-    if (notificationsCollection == null) return [];
-    try {
-      final snapshot = await notificationsCollection!
-          .orderBy('createdDate', descending: true)
-          .limit(limit)
-          .get();
-
-      return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return NotificationModel.fromJson(data);
-      }).toList();
-    } catch (_) {
-      return [];
-    }
   }
 
   // --- PLACES METHODS ---
@@ -731,7 +709,13 @@ class FireStoreService implements IFireStoreService {
     if (_fs == null) return [];
     try {
       final userTrips = _fs!.collection('users').doc(userId).collection('trips');
-      final snapshot = await userTrips.orderBy('startTime', descending: true).get();
+      QuerySnapshot<Map<String, dynamic>> snapshot;
+      try {
+        snapshot = await userTrips.orderBy('startTime', descending: true).get();
+      } catch (e) {
+        DLog.warning("Firestore orderBy startTime error, fallback to get(): $e");
+        snapshot = await userTrips.get();
+      }
       return snapshot.docs
           .map((doc) => TripRecordModel.fromMap(
                 _decodeNestedArrayField(doc.data(), 'polyline'),

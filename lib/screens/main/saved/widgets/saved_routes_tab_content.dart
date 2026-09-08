@@ -2,10 +2,10 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -51,13 +51,13 @@ class SavedRoutesTabContent extends StatelessWidget {
 
     try {
       context.read<NavigationBloc>().add(
-        StartNavigation(
-          initialRoute: customRoute,
-          origin: originPoint,
-          destination: destPoint,
-          destinationName: customName,
-        ),
-      );
+            StartNavigation(
+              initialRoute: customRoute,
+              origin: originPoint,
+              destination: destPoint,
+              destinationName: customName,
+            ),
+          );
     } catch (_) {}
 
     context.go(AppRoutes.home);
@@ -71,52 +71,17 @@ class SavedRoutesTabContent extends StatelessWidget {
   }
 
   void _showDeleteConfirmDialog(BuildContext context, CustomRouteModel route) {
-    final colorScheme = context.colorScheme;
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          tr(LocaleKeys.route_drawing_ui_delete_confirm_title),
-          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-            fontSize: 16,
-          ),
-        ),
-        content: Text(
-          tr(
-            LocaleKeys.route_drawing_ui_delete_confirm_desc,
-            args: [route.name],
-          ),
-          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => dialogCtx.safePop(),
-            child: Text(
-              tr(LocaleKeys.cancel),
-              style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.error,
-              foregroundColor: colorScheme.onError,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () {
-              dialogCtx.safePop();
-              context.read<SavedRoutesCubit>().deleteRoute(route.id);
-            },
-            child: Text(
-              tr(LocaleKeys.route_drawing_ui_delete_route),
-              style: colorScheme.onError.textTheme.boldStyle,
-            ),
-          ),
-        ],
+    AppConfirmDialog.show(
+      context,
+      title: tr(LocaleKeys.route_drawing_ui_delete_confirm_title),
+      message: tr(
+        LocaleKeys.route_drawing_ui_delete_confirm_desc,
+        args: [route.name],
       ),
+      confirmText: tr(LocaleKeys.route_drawing_ui_delete_route),
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
+      onConfirm: () => context.read<SavedRoutesCubit>().deleteRoute(route.id),
     );
   }
 
@@ -150,8 +115,6 @@ class SavedRoutesTabContent extends StatelessWidget {
             separatorBuilder: (context, index) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final route = state.routes[index];
-              final distanceKm = route.totalDistance / 1000.0;
-              final durationMinutes = (route.totalTime / 60000.0).round();
 
               return Container(
                 decoration: BoxDecoration(
@@ -179,7 +142,8 @@ class SavedRoutesTabContent extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: colorScheme.primary.withValues(alpha: 0.12),
+                              color:
+                                  colorScheme.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -195,7 +159,9 @@ class SavedRoutesTabContent extends StatelessWidget {
                               children: [
                                 Text(
                                   route.name,
-                                  style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
+                                  style: colorScheme
+                                      .onSurface.textTheme.boldStyle
+                                      .copyWith(
                                     fontSize: 15,
                                   ),
                                   maxLines: 1,
@@ -203,8 +169,12 @@ class SavedRoutesTabContent extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${distanceKm.toStringAsFixed(1)} km • $durationMinutes phút • ${route.waypoints.length} điểm',
-                                  style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+                                  '${RouteFormatHelper.formatDistance(route.totalDistance)} • ${RouteFormatHelper.formatDuration(route.totalTime)} • ${tr(LocaleKeys.route_drawing_ui_waypoints_count, args: [
+                                        route.waypoints.length.toString()
+                                      ])}',
+                                  style: colorScheme
+                                      .onSurfaceVariant.textTheme.textStyle
+                                      .copyWith(
                                     fontSize: 12,
                                   ),
                                 ),
@@ -212,20 +182,24 @@ class SavedRoutesTabContent extends StatelessWidget {
                             ),
                           ),
                           IconButton(
-                            icon: HeroIcon(
-                              HeroIcons.trash,
+                            icon: Icon(
+                              Icons.bookmark_remove_rounded,
                               size: 18,
-                              color: colorScheme.outline.withAlpha(150),
+                              color: colorScheme.error,
                             ),
-                            onPressed: () => _showDeleteConfirmDialog(context, route),
+                            onPressed: () =>
+                                _showDeleteConfirmDialog(context, route),
                           ),
                         ],
                       ),
-                      if (route.description != null && route.description!.isNotEmpty) ...[
+                      if (route.description != null &&
+                          route.description!.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Text(
                           route.description!,
-                          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+                          style: colorScheme
+                              .onSurfaceVariant.textTheme.textStyle
+                              .copyWith(
                             fontSize: 13,
                           ),
                           maxLines: 2,
@@ -234,39 +208,57 @@ class SavedRoutesTabContent extends StatelessWidget {
                       ],
                       const SizedBox(height: 10),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              side: BorderSide(color: colorScheme.outline.withAlpha(80)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                side: BorderSide(
+                                    color: colorScheme.outline.withAlpha(80)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
+                              icon: Icon(Icons.edit_rounded,
+                                  size: 16, color: colorScheme.onSurface),
+                              label: Text(
+                                tr(LocaleKeys.route_drawing_ui_view_drawing),
+                                style: colorScheme
+                                    .onSurface.textTheme.mediumStyle
+                                    .copyWith(fontSize: 13),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onPressed: () =>
+                                  _onOpenInRouteDrawing(context, route),
                             ),
-                            icon: Icon(Icons.edit_rounded, size: 16, color: colorScheme.onSurface),
-                            label: Text(
-                              'Xem bản vẽ',
-                              style: colorScheme.onSurface.textTheme.mediumStyle.copyWith(fontSize: 13),
-                            ),
-                            onPressed: () => _onOpenInRouteDrawing(context, route),
                           ),
                           const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: colorScheme.primary,
-                              foregroundColor: colorScheme.onPrimary,
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme.primary,
+                                foregroundColor: colorScheme.onPrimary,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
+                              icon: const Icon(Icons.navigation_rounded,
+                                  size: 16),
+                              label: Text(
+                                tr(LocaleKeys.navigation),
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onPressed: () =>
+                                  _onStartNavigation(context, route),
                             ),
-                            icon: const Icon(Icons.navigation_rounded, size: 16),
-                            label: const Text(
-                              'Dẫn đường',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                            ),
-                            onPressed: () => _onStartNavigation(context, route),
                           ),
                         ],
                       ),

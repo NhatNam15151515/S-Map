@@ -8,9 +8,6 @@ class NoOpFireStoreService implements IFireStoreService {
   CollectionReference? get usersCollection => null;
 
   @override
-  CollectionReference? get notificationsCollection => null;
-
-  @override
   CollectionReference? get savedPlacesCollection => null;
 
   @override
@@ -24,9 +21,6 @@ class NoOpFireStoreService implements IFireStoreService {
 
   @override
   Future<User?> getUserProfile(String userId) async => null;
-
-  @override
-  Future<List<NotificationModel>> getNotifications({int limit = 20}) async => [];
 
   @override
   Future<List<PlaceModel>> getExplorePlaces({String? category, int limit = 10}) async => [];

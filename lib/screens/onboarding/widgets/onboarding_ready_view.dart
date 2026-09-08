@@ -37,8 +37,8 @@ class OnboardingReadyView extends StatelessWidget {
           SizedBox(height: 32.h),
           Text(
             tr(LocaleKeys.onboarding_ready_title),
-            style:
-                colorScheme.onPrimary.textTheme.boldStyle.copyWith(fontSize: 28.sp),
+            style: colorScheme.onPrimary.textTheme.boldStyle
+                .copyWith(fontSize: 28.sp),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -50,7 +50,7 @@ class OnboardingReadyView extends StatelessWidget {
           const Spacer(),
           SizedBox(
             width: double.infinity,
-            height: 56.h,
+            height: 70.h,
             child: ElevatedButton(
               onPressed: onLetsGo,
               style: ElevatedButton.styleFrom(

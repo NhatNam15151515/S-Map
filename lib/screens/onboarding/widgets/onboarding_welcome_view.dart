@@ -40,7 +40,7 @@ class OnboardingWelcomeView extends StatelessWidget {
               Text(
                 tr(LocaleKeys.onboarding_welcome_title),
                 style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-                  fontSize: 26.sp,
+                  fontSize: 28.sp,
                   letterSpacing: -0.5,
                 ),
                 textAlign: TextAlign.center,
@@ -48,8 +48,8 @@ class OnboardingWelcomeView extends StatelessWidget {
               SizedBox(height: 10.h),
               Text(
                 tr(LocaleKeys.onboarding_welcome_subtitle),
-                style:
-                    colorScheme.onSurfaceVariant.textTheme.regularStyle.copyWith(
+                style: colorScheme.onSurfaceVariant.textTheme.regularStyle
+                    .copyWith(
                   fontSize: 15.sp,
                   height: 1.4,
                 ),
@@ -58,7 +58,7 @@ class OnboardingWelcomeView extends StatelessWidget {
               SizedBox(height: 32.h),
               SizedBox(
                 width: double.infinity,
-                height: 56.h,
+                height: 70.h,
                 child: ElevatedButton(
                   onPressed: onContinue,
                   style: ElevatedButton.styleFrom(

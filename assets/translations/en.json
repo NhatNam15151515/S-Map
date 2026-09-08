@@ -45,12 +45,14 @@
   "feature_under_development": "Feature under development",
   "cancel": "Cancel",
   "confirm": "Confirm",
+  "retry": "Retry",
   "reviews": "Reviews",
   "only": "Only",
   "viewDetails": "View Details",
   "viewProfile": "View Profile",
   "account": "Account",
   "home": "Home",
+  "activity": "Activity",
   "now": "Now",
   "secondS": "Second(s)",
   "minuteS": "Minute(s)",
@@ -248,7 +250,12 @@
     "straight_line_mode_tooltip_off": "Disable direct line (Follow roads)",
     "straight_line_mode_active_badge": "Direct Line",
     "center_add_start_point": "Set starting point at center",
-    "center_add_next_point": "Add point at center"
+    "center_add_next_point": "Add point at center",
+    "view_drawing": "View Drawing",
+    "remove_destination": "Remove destination point",
+    "reverse_route": "Reverse route",
+    "crosshair_tooltip_on": "Enable drawing crosshair",
+    "crosshair_tooltip_off": "Disable drawing crosshair"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",
@@ -301,7 +308,12 @@
     "speed_unit": "{} km/h",
     "distance_value": "{} km",
     "avg_speed_value": "{} km/h",
-    "top_speed_value": "{} km/h"
+    "top_speed_value": "{} km/h",
+    "detail_stopped_point": "Stopped Point",
+    "detail_streets_traveled": "Streets Traveled",
+    "detail_leg_street": "Route Segment {}",
+    "detail_street_avg_speed": "Avg",
+    "detail_street_max_speed": "Max"
   },
   "auth_guest_name": "Guest_{}",
   "offline_maps_vietnam_name": "Vietnam Nationwide Map",

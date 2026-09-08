@@ -4,7 +4,6 @@ import 'package:s_map/services/services.dart';
 
 class AppReposProvider {
   final IAuthRepos authRepos;
-  final INotificationRepos notiRepos;
   final IPoiRepository poiRepos;
   final IRoutingRepository routingRepos;
   final ICustomRouteRepository customRouteRepos;
@@ -13,7 +12,6 @@ class AppReposProvider {
 
   AppReposProvider({
     IAuthRepos? authRepos,
-    INotificationRepos? notiRepos,
     IPoiRepository? poiRepos,
     IRoutingRepository? routingRepos,
     ICustomRouteRepository? customRouteRepos,
@@ -21,7 +19,6 @@ class AppReposProvider {
     ISyncRepository? syncRepos,
     IRoutingService? routingService,
   })  : authRepos = authRepos ?? AuthReposImpl(),
-        notiRepos = notiRepos ?? NotificationReposImpl(),
         poiRepos = poiRepos ?? PoiRepositoryImpl(),
         customRouteRepos = customRouteRepos ??
             CustomRouteRepositoryImpl(
@@ -66,7 +63,6 @@ class AppReposProvider {
   static void init({
     required IRoutingService routingService,
     IAuthRepos? authRepos,
-    INotificationRepos? notiRepos,
     IPoiRepository? poiRepos,
     IRoutingRepository? routingRepos,
     ICustomRouteRepository? customRouteRepos,
@@ -76,7 +72,6 @@ class AppReposProvider {
     _instance = AppReposProvider(
       routingService: routingService,
       authRepos: authRepos,
-      notiRepos: notiRepos,
       poiRepos: poiRepos,
       routingRepos: routingRepos,
       customRouteRepos: customRouteRepos,

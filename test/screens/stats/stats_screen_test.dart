@@ -122,7 +122,6 @@ void main() {
 
       expect(find.byKey(const Key('stats_clear_all_btn')), findsOneWidget);
       expect(find.byKey(const Key('stats_range_thisWeek')), findsOneWidget);
-      expect(find.byKey(const Key('stats_profile_all')), findsOneWidget);
       expect(find.byKey(const Key('kpi_card_distance')), findsOneWidget);
       expect(find.byKey(const Key('trip_item_stats_screen_trip_1')), findsOneWidget);
       expect(find.text('Địa điểm B'), findsOneWidget);

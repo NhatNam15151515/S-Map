@@ -1,9 +1,9 @@
-import 'package:flutter/services.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/utils/douglas_peucker.dart';
+import 'package:s_map/commons/utils/map_marker_helper.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 
@@ -24,11 +24,9 @@ class MapRouteManager {
     if (controller == null) return;
     if (_isAssetLoaded && !force) return;
     try {
-      final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
-      final bytes = byteData.buffer.asUint8List();
-      await controller.addImage(RoutingConstants.markerImageKey, bytes);
+      await MapMarkerHelper.loadCommonMapMarkers(controller);
       _isAssetLoaded = true;
-      DLog.info('🗺️ [MapRouteManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine');
+      DLog.info('🗺️ [MapRouteManager] Common marker assets loaded into map engine via MapMarkerHelper');
     } catch (e, stack) {
       final errorText = e.toString().toLowerCase();
       if (errorText.contains('already') && errorText.contains('image')) {

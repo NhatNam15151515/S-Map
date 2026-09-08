@@ -41,10 +41,14 @@ class PoiQuickCard extends StatelessWidget {
 
   Widget _buildCard(BuildContext context, LatLng? effectiveLocation) {
     final colorScheme = context.colorScheme;
-    final icon = PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
-    final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);
-    final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
-    final categoryLabel = tr(PoiCategoryHelper.getCategoryLocaleKey(poi.category));
+    final icon =
+        PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
+    final iconColor = PoiCategoryHelper.getIconColor(poi.category,
+        subCategory: poi.subCategory);
+    final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category,
+        subCategory: poi.subCategory);
+    final categoryLabel =
+        tr(PoiCategoryHelper.getCategoryLocaleKey(poi.category));
     final address = PoiCategoryHelper.formatAddress(poi);
 
     String? distStr;
@@ -63,13 +67,16 @@ class PoiQuickCard extends StatelessWidget {
       } else if (estMinutes >= 60) {
         final hours = estMinutes ~/ 60;
         final mins = estMinutes % 60;
-        etaStr = mins > 0 ? '$hours ${tr(LocaleKeys.hourS)} $mins ${tr(LocaleKeys.minuteS)}' : '$hours ${tr(LocaleKeys.hourS)}';
+        etaStr = mins > 0
+            ? '$hours ${tr(LocaleKeys.hourS)} $mins ${tr(LocaleKeys.minuteS)}'
+            : '$hours ${tr(LocaleKeys.hourS)}';
       } else {
         etaStr = '~$estMinutes ${tr(LocaleKeys.minuteS)}';
       }
     }
 
-    final latLonStr = '${poi.lat.toStringAsFixed(5)}, ${poi.lon.toStringAsFixed(5)}';
+    final latLonStr =
+        '${poi.lat.toStringAsFixed(5)}, ${poi.lon.toStringAsFixed(5)}';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -116,12 +123,15 @@ class PoiQuickCard extends StatelessWidget {
                   children: [
                     Text(
                       poi.name,
-                      style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
+                      style: colorScheme.onSurface.textTheme.semiBoldStyle
+                          .copyWith(
                         fontSize: 16,
                         height: 1.25,
                       ),
                     ),
-                    if (categoryLabel.isNotEmpty || (poi.subCategory != null && poi.subCategory!.isNotEmpty)) ...[
+                    if (categoryLabel.isNotEmpty ||
+                        (poi.subCategory != null &&
+                            poi.subCategory!.isNotEmpty)) ...[
                       const SizedBox(height: 4),
                       Wrap(
                         spacing: 6,
@@ -129,30 +139,37 @@ class PoiQuickCard extends StatelessWidget {
                         children: [
                           if (categoryLabel.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: colorScheme.primary.withAlpha(20),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 categoryLabel,
-                                style: colorScheme.primary.textTheme.mediumStyle.copyWith(
+                                style: colorScheme.primary.textTheme.mediumStyle
+                                    .copyWith(
                                   fontSize: 11,
                                 ),
                               ),
                             ),
                           if (poi.subCategory != null &&
                               poi.subCategory!.trim().isNotEmpty &&
-                              poi.subCategory!.toLowerCase() != poi.category?.toLowerCase())
+                              poi.subCategory!.toLowerCase() !=
+                                  poi.category?.toLowerCase())
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerHighest.withAlpha(120),
+                                color: colorScheme.surfaceContainerHighest
+                                    .withAlpha(120),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 poi.subCategory!.trim(),
-                                style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
+                                style: colorScheme
+                                    .onSurfaceVariant.textTheme.mediumStyle
+                                    .copyWith(
                                   fontSize: 11,
                                 ),
                               ),
@@ -217,7 +234,8 @@ class PoiQuickCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     address,
-                    style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+                    style: colorScheme.onSurfaceVariant.textTheme.textStyle
+                        .copyWith(
                       fontSize: 13,
                       fontWeight: AppFontWeight.regular.weight,
                       height: 1.3,
@@ -304,7 +322,8 @@ class PoiQuickCard extends StatelessWidget {
                       ),
                       label: Text(
                         tr(LocaleKeys.directions),
-                        style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
+                        style: colorScheme.onPrimary.textTheme.semiBoldStyle
+                            .copyWith(
                           fontSize: 14,
                         ),
                       ),
@@ -323,7 +342,7 @@ class PoiQuickCard extends StatelessWidget {
                   const SizedBox(width: 8),
                 if (onCustomRoute != null)
                   Expanded(
-                    flex: 4,
+                    flex: 5,
                     child: OutlinedButton.icon(
                       onPressed: onCustomRoute,
                       icon: Icon(
@@ -333,7 +352,8 @@ class PoiQuickCard extends StatelessWidget {
                       ),
                       label: Text(
                         tr(LocaleKeys.route_drawing_ui_custom_route_drawing),
-                        style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                        style: colorScheme.primary.textTheme.semiBoldStyle
+                            .copyWith(
                           fontSize: 13,
                         ),
                         maxLines: 1,

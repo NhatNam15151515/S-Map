@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 
 /// Bottom Navigation Bar đơn giản theo chuẩn Google Maps:
 /// - Nút X (đóng) bên trái
@@ -88,9 +89,10 @@ class NavigationBottomPanel extends StatelessWidget {
                     child: Row(
                       children: [
                         // 1. Nút X đóng navigation
-                        _buildCircleButton(
-                          colorScheme: colorScheme,
+                        MapCircleIconButton(
                           onTap: onStopNavigation,
+                          hasShadow: false,
+                          backgroundColor: Colors.transparent,
                           child: Icon(
                             Icons.close_rounded,
                             color: colorScheme.onSurface,
@@ -134,10 +136,11 @@ class NavigationBottomPanel extends StatelessWidget {
                         const SizedBox(width: 12),
 
                         // 3. Nút recenter (diamond icon xanh)
-                        _buildCircleButton(
-                          colorScheme: colorScheme,
+                        MapCircleIconButton(
                           onTap: onRecenter ?? () {},
-                          filled: true,
+                          hasShadow: false,
+                          backgroundColor:
+                              colorScheme.primary.withValues(alpha: 0.12),
                           child: Icon(
                             Icons.diamond_rounded,
                             color: colorScheme.primary,
@@ -153,32 +156,6 @@ class NavigationBottomPanel extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildCircleButton({
-    required ColorScheme colorScheme,
-    required VoidCallback onTap,
-    required Widget child,
-    bool filled = false,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: filled
-                ? colorScheme.primary.withValues(alpha: 0.12)
-                : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: Center(child: child),
-        ),
-      ),
     );
   }
 }

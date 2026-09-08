@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/map_marker_helper.dart';
 import 'package:s_map/commons/utils/poi_category_helper.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
@@ -99,13 +100,10 @@ class MapSymbolManager {
 
   Future<void> _loadMarkerAssets(MapLibreMapController controller) async {
     try {
-      final byteData = await rootBundle.load(AppAsset.redMarker.fullPath);
-      final bytes = byteData.buffer
-          .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
-      await controller.addImage(RoutingConstants.markerImageKey, bytes);
+      await MapMarkerHelper.loadCommonMapMarkers(controller);
       _isAssetLoaded = true;
       DLog.info(
-          '🗺️ [MapSymbolManager] Marker asset "${RoutingConstants.markerImageKey}" loaded into map engine');
+          '🗺️ [MapSymbolManager] Common marker assets loaded into map engine via MapMarkerHelper');
     } catch (e, stack) {
       // MapRouteManager may have registered the same image key just before
       // this manager. The sprite is already usable in that case.

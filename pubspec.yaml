@@ -51,7 +51,6 @@ dependencies:
   device_info_plus: ^10.1.0
   url_launcher: ^6.3.0
   local_auth: ^2.2.0
-  flutter_local_notifications: ^17.2.4
   archive: ^4.0.7
   fl_chart: ^1.2.0
 

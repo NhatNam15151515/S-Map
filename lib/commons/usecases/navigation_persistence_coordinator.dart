@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/trip_address_resolver.dart';
 import 'package:s_map/commons/utils/trip_metrics_tracker.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -122,6 +123,10 @@ class NavigationPersistenceCoordinator {
     required String profile,
     required List<List<double>>? polyline,
     required bool hasArrived,
+    double? stopLat,
+    double? stopLon,
+    int? currentSegmentIndex,
+    String? originName,
   }) async {
     stopAutoSave();
     unawaited(clearActiveSessionSafely());
@@ -136,13 +141,78 @@ class NavigationPersistenceCoordinator {
       hasArrived: hasArrived,
     );
 
+    // 1. Xác định toạ độ dừng thực tế
+    final actualStopLat = stopLat ?? metrics.lastValidLat;
+    final actualStopLon = stopLon ?? metrics.lastValidLon;
+
+    // 2. Tra cứu tên địa chỉ dừng chân (stoppedName) khi dừng giữa đường
+    String? stoppedName;
+    if (!hasArrived) {
+      if (actualStopLat != null && actualStopLon != null) {
+        stoppedName = await TripAddressResolver.resolveAddressAtCoordinate(
+          actualStopLat,
+          actualStopLon,
+        );
+      } else if (polyline != null && polyline.isNotEmpty) {
+        final lastPoint = polyline.last;
+        stoppedName = await TripAddressResolver.resolveAddressAtCoordinate(
+          lastPoint[0],
+          lastPoint[1],
+        );
+      }
+    }
+
+    // 2.1. Tự động tra cứu số nhà/tên đường cho Điểm xuất phát (originName)
+    String? effectiveOriginName = originName;
+    if ((effectiveOriginName == null || effectiveOriginName.trim().isEmpty) &&
+        polyline != null &&
+        polyline.isNotEmpty) {
+      final startPoint = polyline.first;
+      effectiveOriginName =
+          await TripAddressResolver.resolveAddressAtCoordinate(
+        startPoint[0],
+        startPoint[1],
+      );
+    }
+
+    // 3. Xử lý polyline thực tế đã đi:
+    // - Khi đến đích (hasArrived = true): Lưu toàn bộ polyline theo tuyến đường
+    // - Khi dừng giữa đường (hasArrived = false): Cắt ngắn polyline đến điểm dừng thực tế
+    List<List<double>>? effectivePolyline;
+    if (hasArrived) {
+      effectivePolyline = polyline;
+    } else if (polyline != null && polyline.isNotEmpty) {
+      if (actualStopLat != null && actualStopLon != null) {
+        if (!metrics.hasMoved && metrics.totalDistanceTraveledMeters < 30.0) {
+          effectivePolyline = [
+            polyline.first,
+            [actualStopLat, actualStopLon],
+          ];
+        } else {
+          final cutIndex = _findCutIndex(
+            polyline,
+            currentSegmentIndex,
+            actualStopLat,
+            actualStopLon,
+          );
+          final sliced = polyline.sublist(0, cutIndex).toList();
+          sliced.add([actualStopLat, actualStopLon]);
+          effectivePolyline = sliced;
+        }
+      } else {
+        effectivePolyline = polyline;
+      }
+    }
+
     final record = metrics.buildRecord(
       id: 'trip_${now.microsecondsSinceEpoch}_${now.hashCode.abs()}',
       startTime: effectiveStartTime,
       endTime: now,
       destinationName: destinationName,
+      originName: effectiveOriginName,
+      stoppedName: stoppedName,
       profile: profile,
-      polyline: polyline,
+      polyline: effectivePolyline,
       hasArrived: hasArrived,
     );
 
@@ -152,6 +222,33 @@ class NavigationPersistenceCoordinator {
     }
 
     return TripFinalizationResult(summary: summary, record: record);
+  }
+
+  int _findCutIndex(
+    List<List<double>> points,
+    int? currentSegmentIndex,
+    double stopLat,
+    double stopLon,
+  ) {
+    if (currentSegmentIndex != null &&
+        currentSegmentIndex >= 0 &&
+        currentSegmentIndex < points.length) {
+      return (currentSegmentIndex + 1).clamp(1, points.length);
+    }
+
+    var minDistanceSq = double.infinity;
+    var closestIdx = 0;
+    for (var i = 0; i < points.length; i++) {
+      final p = points[i];
+      final dLat = p[0] - stopLat;
+      final dLon = p[1] - stopLon;
+      final distSq = dLat * dLat + dLon * dLon;
+      if (distSq < minDistanceSq) {
+        minDistanceSq = distSq;
+        closestIdx = i;
+      }
+    }
+    return (closestIdx + 1).clamp(1, points.length);
   }
 
   void dispose() {

@@ -19,9 +19,6 @@ mixin AppMixin {
 
   AuthCubit get authCubit => appUtils.getCubit<AuthCubit>(appContext);
 
-  NotificationCubit get notiCubit =>
-      appUtils.getCubit<NotificationCubit>(appContext);
-
   AppStyle get styles => appCubit.state.appStyle;
 
   String get appName => appCubit.state.appName;

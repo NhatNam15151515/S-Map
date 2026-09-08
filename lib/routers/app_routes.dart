@@ -7,7 +7,6 @@ abstract final class AppRoutes {
   static const String home = '/HomeScreen';
   static const String search = '/search';
   static const String saved = '/SavedScreen';
-  static const String notification = '/NotificationScreen';
   static const String user = '/UserScreen';
   static const String navigation = '/NavigationScreen';
   static const String routeDrawing = '/RouteDrawingScreen';

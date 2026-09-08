@@ -59,9 +59,9 @@ class _AppMainBottomBarState extends State<AppMainBottomBar> with AppMixin {
             label: tr(LocaleKeys.location),
           ),
           BottomNavigationBarItem(
-            icon: _buildNavItem(HeroIcons.bell, false, colorScheme),
-            activeIcon: _buildNavItem(HeroIcons.bell, true, colorScheme),
-            label: tr(LocaleKeys.notification),
+            icon: _buildNavItem(HeroIcons.clock, false, colorScheme),
+            activeIcon: _buildNavItem(HeroIcons.clock, true, colorScheme),
+            label: tr(LocaleKeys.activity),
           ),
           BottomNavigationBarItem(
             icon: _buildNavItem(HeroIcons.userCircle, false, colorScheme),

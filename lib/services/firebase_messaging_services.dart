@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/models/models.dart';
-import 'package:s_map/services/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:rxdart/rxdart.dart';
@@ -24,7 +21,8 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
   Completer<bool> fmsCompleter = Completer<bool>();
 
   @override
-  BehaviorSubject<NotificationModel?> comingNotificationListener = BehaviorSubject.seeded(null);
+  BehaviorSubject<Map<String, dynamic>?> comingNotificationListener =
+      BehaviorSubject.seeded(null);
 
   @override
   Future<void> init() async {
@@ -46,18 +44,7 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
           AuthorizationStatus.authorized) {
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           DLog.info('**onMessage** Called ${message.data}');
-          if (message.notification?.title != null) {
-            LocalNotificationService.instance.showNotification(
-              title: message.notification?.title,
-              body: message.notification?.body,
-              payload: jsonEncode(message.data),
-            );
-          }
-          final model = NotificationModel.fromJson(message.data)
-            ..jsonData = message.data
-            ..onListen();
-
-          comingNotificationListener.value = model;
+          comingNotificationListener.value = message.data;
         });
 
         //5. background message using backgroundHandler
@@ -69,14 +56,7 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
             .listen((RemoteMessage message) async {
           DLog.info(
               '**onMessageOpenedApp** Called ${message.data.runtimeType}');
-
-          //7. pass data into model
-          NotificationModel? appNotification =
-              NotificationModel.fromJson(message.data);
-          appNotification.jsonData = message.data;
-
-          onClickNotification(appNotification, openFromBanner: true);
-          //8. Route handle
+          onClickNotification(message.data, openFromBanner: true);
         });
       } else {
         DLog.info(
@@ -102,14 +82,9 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
 
   @override
   Future<void> onClickNotification(
-      NotificationModel notificationModel,
+      Map<String, dynamic> data,
       {bool openFromBanner = false}) async {
     await fmsCompleter.future;
-    final action = notificationModel.onOpen();
-    if (loadingOverlayHandler != null) {
-      return loadingOverlayHandler!(action);
-    }
-    return action;
   }
 
   @override
@@ -117,9 +92,7 @@ class FirebaseMessagingService implements IFirebaseMessagingService {
     try {
       final initFromFB = await _messaging?.getInitialMessage();
       if (initFromFB != null) {
-        final initMessage = NotificationModel.fromJson(initFromFB.data);
-        initMessage.jsonData = initFromFB.data;
-        onClickNotification(initMessage, openFromBanner: true);
+        onClickNotification(initFromFB.data, openFromBanner: true);
       }
     } catch (e) {
       DLog.error('Error checking initial notification: $e');
@@ -134,20 +107,6 @@ Future _firebaseMessagingBackgroundHandler(
 
   DLog.info(
       'MessageID Handling a background message: ${message.messageId}');
-}
-
-extension NotificationHandle on NotificationModel {
-  Future<void> onOpen() async {
-    // Handle opening notification
-  }
-
-  Future<NotificationModel> read() async {
-    return this;
-  }
-
-  Future<void> onListen() async {
-    // Handle background notification receive
-  }
 }
 
 extension CompleteAfter<T> on Completer<T> {

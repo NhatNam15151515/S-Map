@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/routers/app_routes.dart';
@@ -46,48 +45,14 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Future<void> _showClearAllDialog(BuildContext context) async {
-    final colorScheme = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          tr(LocaleKeys.stats_dashboard_clear_all_title),
-          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-            fontSize: 16,
-          ),
-        ),
-        content: Text(
-          tr(LocaleKeys.stats_dashboard_clear_all_desc),
-          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
-            fontSize: 13,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => dialogContext.safePop(false),
-            child: Text(
-              tr(LocaleKeys.cancel),
-              style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
-            ),
-          ),
-          ElevatedButton(
-            key: const Key('confirm_clear_all_btn'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.error,
-              foregroundColor: colorScheme.onError,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () => dialogContext.safePop(true),
-            child: Text(
-              tr(LocaleKeys.stats_dashboard_clear_all_btn),
-              style: colorScheme.onError.textTheme.semiBoldStyle,
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: tr(LocaleKeys.stats_dashboard_clear_all_title),
+      message: tr(LocaleKeys.stats_dashboard_clear_all_desc),
+      confirmText: tr(LocaleKeys.stats_dashboard_clear_all_btn),
+      isDestructive: true,
+      icon: Icons.delete_sweep_rounded,
+      confirmKey: const Key('confirm_clear_all_btn'),
     );
 
     if (confirmed == true) {
@@ -136,7 +101,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 onRefresh: () => _cubit.loadStats(),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 32),
+                  padding: const EdgeInsets.only(bottom: 110),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -144,14 +109,6 @@ class _StatsScreenState extends State<StatsScreen> {
                       StatsTimeRangeSelector(
                         selectedRange: state.timeRange,
                         onRangeSelected: (range) => _cubit.setTimeRange(range),
-                      ),
-
-                      // 2. Vehicle Profile Filter Chips
-                      StatsVehicleFilterChips(
-                        selectedProfile: state.profileFilter,
-                        profileCounts: state.stats.tripsByProfile,
-                        onProfileSelected: (profile) =>
-                            _cubit.setProfileFilter(profile),
                       ),
 
                       const SizedBox(height: 8),

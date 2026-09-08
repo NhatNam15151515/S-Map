@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -114,20 +115,24 @@ class TripSummaryBottomSheet extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _StatCard(
+                  child: AppMetricCard(
                     icon: Icons.timer_outlined,
                     label: tr(LocaleKeys.routing_trip_duration),
                     value: durationStr,
-                    color: themeColors.statsBlue,
+                    iconColor: themeColors.statsBlue,
+                    backgroundColor: colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _StatCard(
+                  child: AppMetricCard(
                     icon: Icons.straighten_rounded,
                     label: tr(LocaleKeys.routing_trip_distance),
                     value: distanceStr,
-                    color: themeColors.statsOrange,
+                    iconColor: themeColors.statsOrange,
+                    backgroundColor: colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -136,20 +141,24 @@ class TripSummaryBottomSheet extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _StatCard(
+                  child: AppMetricCard(
                     icon: Icons.speed_rounded,
                     label: tr(LocaleKeys.routing_avg_speed),
                     value: avgSpeedStr,
-                    color: themeColors.statsSuccess,
+                    iconColor: themeColors.statsSuccess,
+                    backgroundColor: colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _StatCard(
+                  child: AppMetricCard(
                     icon: Icons.bolt_rounded,
                     label: tr(LocaleKeys.routing_max_speed),
                     value: topSpeedStr,
-                    color: themeColors.statsPink,
+                    iconColor: themeColors.statsPink,
+                    backgroundColor: colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -177,67 +186,6 @@ class TripSummaryBottomSheet extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.2),
-          width: 0.8,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-              fontSize: 15,
-            ),
-          ),
-        ],
       ),
     );
   }

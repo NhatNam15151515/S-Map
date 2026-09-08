@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/map_drawing_route_manager.dart';
 import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -101,19 +102,25 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       ),
     ];
 
-    final routePoints = latLngs
-        .map((l) => RoutePoint(lat: l.latitude, lon: l.longitude))
-        .toList();
+    final themeColors = mounted ? context.themeColors : null;
+    final colorScheme = mounted ? Theme.of(context).colorScheme : null;
 
-    await _routeManager.drawCustomRoute(
+    await _routeManager.drawTripHistoryRoute(
       controller: _mapController,
-      points: waypoints,
-      fullPolyline: routePoints,
+      polylineLatLngs: latLngs,
+      hasArrived: widget.trip.hasArrived,
+      startColor: themeColors?.statsSuccess,
+      stopColor: colorScheme?.error,
     );
 
     await _routeManager.fitRouteBounds(
       controller: _mapController,
       points: waypoints,
+      customLatLngs: latLngs,
+      paddingTop: 80.0,
+      paddingBottom: 60.0,
+      paddingLeft: 40.0,
+      paddingRight: 40.0,
     );
   }
 

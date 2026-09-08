@@ -3,6 +3,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'firebase_auth_service.dart';
+import 'firebase_firestore_service.dart';
 import 'trip_sync_service.dart';
 
 // Backward compatibility alias
@@ -13,15 +15,32 @@ class TripServiceImpl implements ITripService {
 
   final Box<dynamic>? _customBox;
   final ITripSyncService _syncService;
+  final IFireStoreService? _fireStoreService;
+  final IFirebaseAuthService? _authService;
   Box<dynamic>? _box;
+
+  static IFireStoreService? defaultFireStoreService;
+  static IFirebaseAuthService? defaultAuthService;
 
   TripServiceImpl({
     Box<dynamic>? customBox,
     ITripSyncService? syncService,
+    IFireStoreService? fireStoreService,
+    IFirebaseAuthService? authService,
   })  : _customBox = customBox,
-        _syncService = syncService ?? TripSyncServiceImpl.instance;
+        _syncService = syncService ?? TripSyncServiceImpl.instance,
+        _fireStoreService = fireStoreService,
+        _authService = authService;
 
   static final TripServiceImpl instance = TripServiceImpl();
+
+  IFireStoreService? get _effectiveFireStoreService =>
+      _fireStoreService ?? defaultFireStoreService ?? FireStoreService.instance;
+
+  IFirebaseAuthService? get _effectiveAuthService =>
+      _authService ?? defaultAuthService ?? FirebaseAuthService.instance;
+
+  String? get _userId => _effectiveAuthService?.currentUser?.uid;
 
   Future<Box<dynamic>> _getBox() async {
     if (_customBox != null) return _customBox;
@@ -49,13 +68,14 @@ class TripServiceImpl implements ITripService {
   Future<List<TripRecordModel>> getTrips() async {
     try {
       final box = await _getBox();
-      final trips = <TripRecordModel>[];
+      final localTrips = <String, TripRecordModel>{};
       for (final key in box.keys) {
         final val = box.get(key);
         if (val is Map) {
           try {
             final map = Map<String, dynamic>.from(val);
-            trips.add(TripRecordModel.fromMap(map));
+            final trip = TripRecordModel.fromMap(map);
+            if (trip.id.isNotEmpty) localTrips[trip.id] = trip;
           } catch (corruptedRecordError) {
             DLog.warning(
               '⚠️ [TripService] Skipping corrupted trip record at key "$key": $corruptedRecordError',
@@ -63,6 +83,27 @@ class TripServiceImpl implements ITripService {
           }
         }
       }
+
+      final userId = _userId;
+      final fireStoreService = _effectiveFireStoreService;
+      if (userId != null && fireStoreService != null) {
+        try {
+          final cloudTrips = await fireStoreService.getSyncedTrips(userId);
+          for (final trip in cloudTrips) {
+            if (trip.id.isEmpty) continue;
+            final previous = localTrips[trip.id];
+            localTrips[trip.id] = trip;
+            if (previous != trip) {
+              await box.put(trip.id, trip.toMap());
+            }
+          }
+        } catch (e) {
+          DLog.warning(
+              '⚠️ [TripService] Không thể tải lịch sử chuyến đi từ Firestore: $e');
+        }
+      }
+
+      final trips = localTrips.values.toList();
       trips.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return trips;
     } catch (e) {

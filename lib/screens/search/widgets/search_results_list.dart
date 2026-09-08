@@ -2,7 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -63,56 +62,11 @@ class SearchResultsList extends StatelessWidget {
       itemBuilder: (context, index) {
         if (hasResults) {
           final poi = results[index];
-          final icon = PoiCategoryHelper.getIcon(poi.category, subCategory: poi.subCategory);
-          final iconColor = PoiCategoryHelper.getIconColor(poi.category, subCategory: poi.subCategory);
-          final bgColor = PoiCategoryHelper.getBackgroundColor(poi.category, subCategory: poi.subCategory);
-          final address = PoiCategoryHelper.formatAddress(poi);
-
-          String subtitleText = address;
-          if (userLocation != null) {
-            final distKm = AppUtils.instance.calculateDistance(
-              userLocation!.latitude,
-              userLocation!.longitude,
-              poi.lat,
-              poi.lon,
-            );
-            final distStr = PoiCategoryHelper.formatDistance(distKm);
-            subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
-          }
-
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: bgColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            title: Text(
-              poi.name,
-              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-                fontSize: 15,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: subtitleText.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      subtitleText,
-                      style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
-                        fontSize: 13,
-                        fontWeight: AppFontWeight.regular.weight,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )
-                : null,
+          return PoiListTile(
+            poi: poi,
+            userLocation: userLocation,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             trailing: Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -41,52 +42,18 @@ class SavedRoutesSheet extends StatelessWidget {
   }
 
   void _showDeleteConfirmDialog(BuildContext context, CustomRouteModel route) {
-    final colorScheme = Theme.of(context).colorScheme;
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          tr(LocaleKeys.route_drawing_ui_delete_confirm_title),
-          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-            fontSize: 16,
-          ),
-        ),
-        content: Text(
-          tr(LocaleKeys.route_drawing_ui_delete_confirm_desc,
-              args: [route.name]),
-          style: colorScheme.onSurfaceVariant.textTheme.textStyle
-              .copyWith(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => dialogCtx.safePop(),
-            child: Text(
-              tr(LocaleKeys.cancel),
-              style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
-            ),
-          ),
-          ElevatedButton(
-            key: const Key('delete_saved_route_confirm_btn'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.error,
-              foregroundColor: colorScheme.onError,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              onRouteDeleted(route.id);
-            },
-            child: Text(
-              tr(LocaleKeys.route_drawing_ui_delete_route),
-              style: colorScheme.onError.textTheme.boldStyle,
-            ),
-          ),
-        ],
+    AppConfirmDialog.show(
+      context,
+      title: tr(LocaleKeys.route_drawing_ui_delete_confirm_title),
+      message: tr(
+        LocaleKeys.route_drawing_ui_delete_confirm_desc,
+        args: [route.name],
       ),
+      confirmText: tr(LocaleKeys.route_drawing_ui_delete_route),
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
+      confirmKey: const Key('delete_saved_route_confirm_btn'),
+      onConfirm: () => onRouteDeleted(route.id),
     );
   }
 
@@ -240,7 +207,7 @@ class SavedRoutesSheet extends StatelessWidget {
                               icon: HeroIcon(
                                 HeroIcons.trash,
                                 size: 20,
-                                color: colorScheme.outline.withAlpha(150),
+                                color: colorScheme.error,
                               ),
                               tooltip:
                                   tr(LocaleKeys.route_drawing_ui_delete_route),

@@ -359,6 +359,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         profile: state.profile,
         polyline: state.currentRoute?.points,
         hasArrived: true,
+        stopLat: currentLat,
+        stopLon: currentLon,
       );
       if (isClosed) return;
 
@@ -487,6 +489,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     }
 
     if (state.tripStartTime != null) {
+      final stopLat =
+          state.snappedLat ?? state.currentLat ?? _metricsTracker.lastValidLat;
+      final stopLon =
+          state.snappedLon ?? state.currentLon ?? _metricsTracker.lastValidLon;
+
       final result = await _persistenceCoordinator.finalizeTrip(
         metrics: _metricsTracker,
         startTime: state.tripStartTime,
@@ -495,6 +502,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         profile: state.profile,
         polyline: state.currentRoute?.points,
         hasArrived: false,
+        stopLat: stopLat,
+        stopLon: stopLon,
+        currentSegmentIndex: state.currentSegmentIndex,
       );
 
       emit(state.copyWith(

@@ -1,10 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'trip_detail_kpi_grid.dart';
 import 'trip_detail_route_info.dart';
+import 'trip_detail_streets_card.dart';
 
 class TripDetailPanel extends StatelessWidget {
   static const double panelRadius = 28.0;
@@ -17,46 +19,16 @@ class TripDetailPanel extends StatelessWidget {
     required this.trip,
   });
 
-  IconData _getVehicleIcon(String profile) {
-    switch (profile.toLowerCase()) {
-      case 'car':
-        return Icons.directions_car_rounded;
-      case 'walking':
-      case 'foot':
-        return Icons.directions_walk_rounded;
-      case 'motorcycle':
-      case 'moped':
-      case 'moped_vn':
-      default:
-        return Icons.two_wheeler_rounded;
-    }
-  }
-
-  String _getVehicleName(String profile) {
-    switch (profile.toLowerCase()) {
-      case 'car':
-        return tr(LocaleKeys.stats_dashboard_filter_car);
-      case 'walking':
-      case 'foot':
-        return tr(LocaleKeys.stats_dashboard_filter_walking);
-      case 'motorcycle':
-      case 'moped':
-      case 'moped_vn':
-      default:
-        return tr(LocaleKeys.stats_dashboard_filter_motorcycle);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final themeColors = context.themeColors;
     final dateFormatted =
-        DateFormat('HH:mm - dd/MM/yyyy').format(trip.startTime);
+        TripFormatHelper.formatTripDate(trip.startTime, withYear: true);
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.58,
+        maxHeight: MediaQuery.of(context).size.height * 0.65,
       ),
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       decoration: BoxDecoration(
@@ -88,7 +60,7 @@ class TripDetailPanel extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      _getVehicleIcon(trip.vehicleProfile),
+                      TripFormatHelper.getVehicleIcon(trip.vehicleProfile),
                       size: 22,
                       color: colorScheme.primary,
                     ),
@@ -103,12 +75,16 @@ class TripDetailPanel extends StatelessWidget {
                           style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
                             fontSize: 16,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          _getVehicleName(trip.vehicleProfile),
+                          TripFormatHelper.getVehicleName(trip.vehicleProfile),
                           style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
                             fontSize: 12,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -133,12 +109,12 @@ class TripDetailPanel extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
+                        color: colorScheme.error.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(badgeRadius),
                       ),
                       child: Text(
                         tr(LocaleKeys.stats_dashboard_status_stopped),
-                        style: colorScheme.onSurfaceVariant.textTheme.semiBoldStyle.copyWith(
+                        style: colorScheme.error.textTheme.semiBoldStyle.copyWith(
                           fontSize: 11,
                         ),
                       ),
@@ -156,7 +132,10 @@ class TripDetailPanel extends StatelessWidget {
               // Origin & Destination Info
               TripDetailRouteInfo(trip: trip),
 
-              const SizedBox(height: 12),
+              // Danh sách các con đường đã đi
+              TripDetailStreetsCard(trip: trip),
+
+              const SizedBox(height: 16),
 
               // Metadata Row (Start time, sync status)
               Row(

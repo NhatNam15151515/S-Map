@@ -32,9 +32,6 @@ class MockFireStoreService implements IFireStoreService {
   Future<void> saveUserProfile(User user) async {}
 
   @override
-  Future<List<NotificationModel>> getNotifications({int limit = 20}) async => [];
-
-  @override
   Future<void> savePlace(String userId, Map<String, dynamic> placeData) async {}
 
   @override
@@ -96,8 +93,6 @@ class MockFireStoreService implements IFireStoreService {
   @override
   Future<List<TripRecordModel>> getSyncedTrips(String userId) async => const [];
 
-  @override
-  CollectionReference? get notificationsCollection => null;
   @override
   CollectionReference? get placesCollection => null;
   @override

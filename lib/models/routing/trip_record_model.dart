@@ -11,6 +11,7 @@ class TripRecordModel extends Equatable {
   final double topSpeedKmh;
   final String? destinationName;
   final String? originName;
+  final String? stoppedName;
   final bool hasArrived;
   final String vehicleProfile;
   final List<List<double>>? polyline;
@@ -27,6 +28,7 @@ class TripRecordModel extends Equatable {
     required this.topSpeedKmh,
     this.destinationName,
     this.originName,
+    this.stoppedName,
     this.hasArrived = false,
     this.vehicleProfile = 'motorcycle',
     List<List<double>>? polyline,
@@ -54,6 +56,7 @@ class TripRecordModel extends Equatable {
     double? topSpeedKmh,
     String? destinationName,
     String? originName,
+    String? stoppedName,
     bool? hasArrived,
     String? vehicleProfile,
     List<List<double>>? polyline,
@@ -61,6 +64,7 @@ class TripRecordModel extends Equatable {
     bool? isSynced,
     bool clearDestination = false,
     bool clearOrigin = false,
+    bool clearStoppedName = false,
     bool clearPolyline = false,
   }) {
     return TripRecordModel(
@@ -74,6 +78,8 @@ class TripRecordModel extends Equatable {
       destinationName:
           clearDestination ? null : (destinationName ?? this.destinationName),
       originName: clearOrigin ? null : (originName ?? this.originName),
+      stoppedName:
+          clearStoppedName ? null : (stoppedName ?? this.stoppedName),
       hasArrived: hasArrived ?? this.hasArrived,
       vehicleProfile: vehicleProfile ?? this.vehicleProfile,
       polyline: clearPolyline ? null : (polyline ?? this.polyline),
@@ -93,6 +99,7 @@ class TripRecordModel extends Equatable {
       'topSpeedKmh': topSpeedKmh,
       'destinationName': destinationName,
       'originName': originName,
+      'stoppedName': stoppedName,
       'hasArrived': hasArrived,
       'vehicleProfile': vehicleProfile,
       'polyline': polyline,
@@ -240,6 +247,8 @@ class TripRecordModel extends Equatable {
     final rawIsSynced = map['isSynced'];
     final bool isSynced = rawIsSynced is bool ? rawIsSynced : false;
 
+    final rawStopped = map['stoppedName'];
+
     return TripRecordModel(
       id: rawId,
       startTime: startTime,
@@ -250,6 +259,7 @@ class TripRecordModel extends Equatable {
       topSpeedKmh: topSpeedKmh,
       destinationName: rawDest as String?,
       originName: rawOrigin as String?,
+      stoppedName: rawStopped as String?,
       hasArrived: rawHasArrived as bool? ?? false,
       vehicleProfile: (rawProfile as String?) ?? 'motorcycle',
       polyline: parsedPolyline,
@@ -269,6 +279,7 @@ class TripRecordModel extends Equatable {
         topSpeedKmh,
         destinationName,
         originName,
+        stoppedName,
         hasArrived,
         vehicleProfile,
         polyline,

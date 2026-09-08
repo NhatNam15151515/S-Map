@@ -9,7 +9,6 @@ export 'firebase_firestore_service.dart';
 export 'firebase_messaging_services.dart';
 export 'flutter_secure.dart';
 export 'local_auth_service.dart';
-export 'local_notification_service.dart';
 export 'location_services.dart';
 export 'map_style_service.dart';
 export 'map_style_theme_provider.dart';

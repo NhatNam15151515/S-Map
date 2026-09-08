@@ -11,7 +11,6 @@ import 'package:s_map/screens/onboarding/onboarding_screen.dart';
 import 'package:s_map/screens/main/full_image.dart';
 import 'package:s_map/screens/main/home/home_screen.dart';
 import 'package:s_map/screens/main/main_screen.dart';
-import 'package:s_map/screens/main/notification/notification_screen.dart';
 import 'package:s_map/screens/main/saved/saved_screen.dart';
 import 'package:s_map/screens/main/user/user_screen.dart';
 import 'package:s_map/screens/search/search_screen.dart';
@@ -96,10 +95,6 @@ class Routes extends NavigatorObserver {
           },
         ),
         GoRoute(
-          path: AppRoutes.stats,
-          builder: (context, state) => const StatsScreen(),
-        ),
-        GoRoute(
           path: AppRoutes.tripDetail,
           builder: (context, state) {
             final trip = state.extra;
@@ -150,8 +145,8 @@ class Routes extends NavigatorObserver {
             StatefulShellBranch(
               routes: <RouteBase>[
                 GoRoute(
-                  path: AppRoutes.notification,
-                  builder: (context, state) => const NotificationScreen(),
+                  path: AppRoutes.stats,
+                  builder: (context, state) => const StatsScreen(),
                 ),
               ],
             ),

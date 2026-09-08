@@ -7,7 +7,6 @@ import 'package:s_map/commons/styles/themes/dark_theme.dart';
 import 'package:s_map/commons/styles/themes/default_theme.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/localizations/app_localization.dart';
-import 'package:s_map/models/models.dart';
 
 class MockFirebaseMessagingService implements IFirebaseMessagingService {
   @override
@@ -16,8 +15,8 @@ class MockFirebaseMessagingService implements IFirebaseMessagingService {
   bool onAppStartedCalled = false;
 
   @override
-  BehaviorSubject<NotificationModel?> comingNotificationListener =
-      BehaviorSubject<NotificationModel?>.seeded(null);
+  BehaviorSubject<Map<String, dynamic>?> comingNotificationListener =
+      BehaviorSubject<Map<String, dynamic>?>.seeded(null);
 
   @override
   Future<void> init() async {}
@@ -27,7 +26,7 @@ class MockFirebaseMessagingService implements IFirebaseMessagingService {
 
   @override
   Future<void> onClickNotification(
-    NotificationModel notificationModel, {
+    Map<String, dynamic> data, {
     bool openFromBanner = false,
   }) async {}
 

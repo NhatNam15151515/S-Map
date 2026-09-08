@@ -34,11 +34,11 @@ class HomeBottomOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     // 1. Khi đang chọn một địa điểm cụ thể (từ sheet hoặc bấm vào marker): hiển thị Quick Card
     if (selectedMarkerPoi != null) {
-      final bottomPadding = MediaQuery.paddingOf(context).bottom;
+      // final bottomPadding = MediaQuery.paddingOf(context).bottom;
       return Positioned(
         left: 0,
         right: 0,
-        bottom: kBottomNavigationBarHeight + bottomPadding + 4,
+        bottom: kBottomNavigationBarHeight + 12 /*+ bottomPadding*/,
         child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
           buildWhen: (prev, curr) =>
               prev.currentPosition != curr.currentPosition,
@@ -58,12 +58,18 @@ class HomeBottomOverlay extends StatelessWidget {
     // 2. Khi có danh sách kết quả tìm kiếm (hoặc đang active search/category): hiển thị Sheet danh sách kết quả
     if ((searchResults != null && searchResults!.isNotEmpty) ||
         (searchQuery != null && searchQuery!.trim().isNotEmpty)) {
-      return SearchResultsBottomSheet(
-        key: const ValueKey('search_results_bottom_sheet'),
-        pois: searchResults ?? const [],
-        query: searchQuery,
-        onPoiTap: onSearchResultPoiTap,
-        onClose: onCloseSearchResults,
+      return Positioned(
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: kBottomNavigationBarHeight + 16,
+        child: SearchResultsBottomSheet(
+          key: const ValueKey('search_results_bottom_sheet'),
+          pois: searchResults ?? const [],
+          query: searchQuery,
+          onPoiTap: onSearchResultPoiTap,
+          onClose: onCloseSearchResults,
+        ),
       );
     }
 

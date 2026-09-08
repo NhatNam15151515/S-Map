@@ -58,7 +58,7 @@ class UserScreen extends StatelessWidget with AppMixin, AuthMixin {
                 UserMenuTile(
                   icon: Icons.history_rounded,
                   title: tr(LocaleKeys.activityHistory),
-                  onTap: () => context.push(AppRoutes.stats),
+                  onTap: () => context.go(AppRoutes.stats),
                 ),
                 UserMenuTile(
                   icon: Icons.share_rounded,

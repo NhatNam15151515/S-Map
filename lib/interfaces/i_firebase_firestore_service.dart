@@ -3,7 +3,6 @@ import 'package:s_map/models/models.dart';
 
 abstract class IFireStoreService {
   CollectionReference? get usersCollection;
-  CollectionReference? get notificationsCollection;
   CollectionReference? get savedPlacesCollection;
   CollectionReference? get placesCollection;
   CollectionReference? get routesCollection;
@@ -11,9 +10,6 @@ abstract class IFireStoreService {
   // --- USER METHODS ---
   Future<void> saveUserProfile(User user);
   Future<User?> getUserProfile(String userId);
-
-  // --- NOTIFICATION METHODS ---
-  Future<List<NotificationModel>> getNotifications({int limit = 20});
 
   // --- PLACES METHODS ---
   Future<List<PlaceModel>> getExplorePlaces({String? category, int limit = 10});

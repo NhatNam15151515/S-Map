@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/routers/routers.dart';
 import 'package:flutter/material.dart';
@@ -26,30 +25,6 @@ mixin AuthStateChanged<T extends StatefulWidget> on State<T> {
   }
 
   void onAuthStateChanged();
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    super.dispose();
-  }
-}
-
-mixin ListenComingNotification<T extends StatefulWidget> on State<T> {
-  StreamSubscription? _sub;
-
-  /// Global resolver for messaging service stream to avoid importing concrete service layer
-  static IFirebaseMessagingService? messagingServiceResolver;
-
-  @override
-  void initState() {
-    final service = messagingServiceResolver;
-    if (service != null) {
-      _sub = service.comingNotificationListener.listen(onComingNotification);
-    }
-    super.initState();
-  }
-
-  void onComingNotification(NotificationModel? event);
 
   @override
   void dispose() {

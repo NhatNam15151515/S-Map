@@ -56,52 +56,16 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   });
 
   void _showClearConfirmDialog(BuildContext context) {
-    final colorScheme = context.colorScheme;
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          tr(LocaleKeys.route_drawing_ui_clear_confirm_title),
-          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-            fontSize: 16,
-          ),
-        ),
-        content: Text(
-          tr(LocaleKeys.route_drawing_ui_clear_confirm_desc),
-          style: colorScheme.onSurfaceVariant.textTheme.textStyle
-              .copyWith(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            key: const Key('route_drawing_clear_cancel_btn'),
-            onPressed: () => dialogCtx.safePop(),
-            child: Text(
-              tr(LocaleKeys.cancel),
-              style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
-            ),
-          ),
-          ElevatedButton(
-            key: const Key('route_drawing_clear_confirm_btn'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.error,
-              foregroundColor: colorScheme.onError,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              onClear();
-            },
-            child: Text(
-              tr(LocaleKeys.route_drawing_ui_clear_all),
-              style: colorScheme.onError.textTheme.boldStyle,
-            ),
-          ),
-        ],
-      ),
+    AppConfirmDialog.show(
+      context,
+      title: tr(LocaleKeys.route_drawing_ui_clear_confirm_title),
+      message: tr(LocaleKeys.route_drawing_ui_clear_confirm_desc),
+      confirmText: tr(LocaleKeys.route_drawing_ui_clear_all),
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
+      confirmKey: const Key('route_drawing_clear_confirm_btn'),
+      cancelKey: const Key('route_drawing_clear_cancel_btn'),
+      onConfirm: onClear,
     );
   }
 
@@ -170,7 +134,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
                 context: context,
                 key: const Key('route_drawing_remove_destination_button'),
                 icon: HeroIcons.xMark,
-                tooltip: 'Xóa điểm kết thúc',
+                tooltip: tr(LocaleKeys.route_drawing_ui_remove_destination),
                 isEnabled: true,
                 onPressed: onRemoveMarkerDestination!,
               ),
@@ -209,7 +173,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
                 context: context,
                 key: const Key('route_drawing_reverse_button'),
                 icon: HeroIcons.arrowsRightLeft,
-                tooltip: 'Đảo chiều lộ trình',
+                tooltip: tr(LocaleKeys.route_drawing_ui_reverse_route),
                 isEnabled: canReverse,
                 onPressed: onReverseRoute!,
               ),
@@ -221,8 +185,8 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
                 key: const Key('route_drawing_crosshair_button'),
                 icon: HeroIcons.plusCircle,
                 tooltip: isCrosshairActive
-                    ? 'Tắt tâm ngắm vẽ đường'
-                    : 'Bật tâm ngắm vẽ đường',
+                    ? tr(LocaleKeys.route_drawing_ui_crosshair_tooltip_off)
+                    : tr(LocaleKeys.route_drawing_ui_crosshair_tooltip_on),
                 isEnabled: true,
                 isActive: isCrosshairActive,
                 onPressed: onToggleCrosshair!,
@@ -282,13 +246,13 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     Color iconColor;
     Color? backgroundColor;
 
-    if (!isEnabled) {
+    if (isDestructive) {
+      iconColor = isEnabled ? colorScheme.error : colorScheme.error.withValues(alpha: 0.35);
+    } else if (!isEnabled) {
       iconColor = colorScheme.onSurface.withValues(alpha: 0.3);
     } else if (isActive) {
       iconColor = colorScheme.onPrimary;
       backgroundColor = colorScheme.primary;
-    } else if (isDestructive) {
-      iconColor = colorScheme.error;
     } else if (isPrimary) {
       iconColor = colorScheme.primary;
     } else {
