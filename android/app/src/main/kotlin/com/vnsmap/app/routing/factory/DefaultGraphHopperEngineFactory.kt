@@ -39,27 +39,23 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             },
             {
               "else_if": "road_class == TRUNK",
-              "multiply_by": 0.4
+              "multiply_by": 0.35
             },
             {
               "else_if": "road_class == PRIMARY",
-              "multiply_by": 0.7
+              "multiply_by": 0.65
             },
             {
               "else_if": "road_class == SECONDARY",
-              "multiply_by": 0.9
+              "multiply_by": 0.85
             },
             {
               "else_if": "road_class == TERTIARY || road_class == RESIDENTIAL",
               "multiply_by": 1.0
             },
             {
-              "else_if": "road_class == LIVING_STREET",
-              "multiply_by": 0.9
-            },
-            {
-              "else_if": "road_class == SERVICE",
-              "multiply_by": 0.9
+              "else_if": "road_class == LIVING_STREET || road_class == SERVICE",
+              "multiply_by": 0.95
             },
             {
               "else_if": "road_class == UNCLASSIFIED",
@@ -67,7 +63,7 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             },
             {
               "else_if": "road_class == TRACK",
-              "multiply_by": 0.3
+              "multiply_by": 0.35
             },
             {
               "if": "road_access == PRIVATE || road_access == NO",
@@ -83,44 +79,44 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             },
             {
               "if": "road_environment == TUNNEL",
-              "multiply_by": 0.3
+              "multiply_by": 0.2
             }
           ],
           "speed": [
             {
               "if": "road_class == TRUNK",
-              "limit_to": 50
+              "limit_to": 40
             },
             {
               "else_if": "road_class == PRIMARY",
-              "limit_to": 40
+              "limit_to": 45
             },
             {
               "else_if": "road_class == SECONDARY",
-              "limit_to": 40
+              "limit_to": 42
             },
             {
               "else_if": "road_class == TERTIARY",
-              "limit_to": 35
+              "limit_to": 38
             },
             {
               "else_if": "road_class == RESIDENTIAL",
-              "limit_to": 30
+              "limit_to": 32
             },
             {
               "else_if": "road_class == LIVING_STREET || road_class == SERVICE",
-              "limit_to": 20
+              "limit_to": 22
             },
             {
               "else_if": "road_class == UNCLASSIFIED",
-              "limit_to": 25
+              "limit_to": 28
             },
             {
               "else_if": "road_class == TRACK",
-              "limit_to": 15
+              "limit_to": 18
             }
           ],
-          "distance_influence": 50
+          "distance_influence": 40
         }
         """.trimIndent()
     }

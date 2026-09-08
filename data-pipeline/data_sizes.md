@@ -7,7 +7,7 @@ Bảng tổng hợp dung lượng các file routing graph `.ghz` (GraphHopper lo
 
 | ID Vùng | Tên vùng | File PBF | File .ghz | Dung lượng | Thời gian build | Target MVP | Status |
 |---|---|---|---|---|---|---|---|
-| `vietnam` | Toàn quốc Việt Nam | 311.29 MB | `vietnam.ghz` | **301.07 MB** | 141.6s | < 200MB | ✅ Built |
+| `vietnam` | Toàn quốc Việt Nam | 311.29 MB | `vietnam.ghz` | **300.89 MB** | 121.8s | < 200MB | ✅ Built |
 
 ---
 
