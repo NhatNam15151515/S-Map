@@ -193,6 +193,30 @@ void main() {
       expect((clearedWpSource!['features'] as List), isEmpty);
     });
 
+    test('drawCustomRoute renders destinationPreview marker when points is empty', () async {
+      final fakeController = FakeMapController();
+      const destination = LatLng(10.8231, 106.6297);
+
+      final result = await manager.drawCustomRoute(
+        controller: fakeController,
+        points: const [],
+        fullPolyline: const [],
+        destinationPreview: destination,
+      );
+
+      expect(result, isTrue);
+      expect(fakeController.addedLines, isEmpty);
+      final wpSource = fakeController.geoJsonSources['smap-drawing-waypoints-source'];
+      expect(wpSource, isNotNull);
+      final features = wpSource!['features'] as List;
+      expect(features.length, 1);
+      expect(features[0]['properties']['name'], 'B');
+      expect(features[0]['properties']['iconImage'], 'red_marker');
+      final coords = features[0]['geometry']['coordinates'] as List;
+      expect(coords[0], closeTo(106.6297, 0.0001));
+      expect(coords[1], closeTo(10.8231, 0.0001));
+    });
+
     test('drawCustomRoute cancels previous render when new render starts and cleans up orphaned lines', () async {
       final delayedController = DelayedFakeMapController();
       delayedController.lineGate = Completer<void>();

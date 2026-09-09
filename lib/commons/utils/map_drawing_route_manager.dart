@@ -139,11 +139,14 @@ class MapDrawingRouteManager {
     }
   }
 
-  /// Vẽ toàn bộ lộ trình tùy chỉnh và các waypoint markers
+  /// Vẽ toàn bộ lộ trình tùy chỉnh và các waypoint markers.
+  /// Nếu có [destinationPreview], hiển thị thêm Red Marker tại vị trí đích ngay cả khi
+  /// lộ trình chưa có điểm xuất phát hoặc đang chờ kết nối.
   Future<bool> drawCustomRoute({
     required MapLibreMapController? controller,
     required List<SnappedRoadPoint> points,
     required List<RoutePoint> fullPolyline,
+    LatLng? destinationPreview,
   }) async {
     if (controller == null) return false;
     final generation = ++_renderGeneration;
@@ -218,6 +221,33 @@ class MapDrawingRouteManager {
           },
         });
       }
+
+      // 3. Hiển thị marker đích (destination preview) nếu đã chọn nhưng chưa có trong points
+      if (destinationPreview != null) {
+        final alreadyInPoints = points.any((p) =>
+            (p.snappedLat - destinationPreview.latitude).abs() < 0.0001 &&
+            (p.snappedLon - destinationPreview.longitude).abs() < 0.0001);
+        if (!alreadyInPoints) {
+          features.add({
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [
+                destinationPreview.longitude,
+                destinationPreview.latitude,
+              ],
+            },
+            'properties': {
+              'iconImage': RoutingConstants.markerImageKey,
+              'iconAnchor': 'bottom',
+              'name': 'B',
+              'iconSize': 1.1 * MapConstants.markerIconScale,
+              'zIndex': 10,
+            },
+          });
+        }
+      }
+
       if (generation != _renderGeneration) return false;
       await controller.setGeoJsonSource(_wpSourceId, {
         'type': 'FeatureCollection',

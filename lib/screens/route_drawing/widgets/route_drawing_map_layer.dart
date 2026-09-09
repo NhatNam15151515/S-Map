@@ -12,10 +12,14 @@ import 'package:s_map/screens/main/home/widgets/map/map_view.dart';
 
 class RouteDrawingMapLayer extends StatefulWidget {
   final bool isCrosshairActive;
+  final LatLng? markerDestination;
+  final void Function(LatLng latLng)? onMapTap;
 
   const RouteDrawingMapLayer({
     super.key,
     this.isCrosshairActive = false,
+    this.markerDestination,
+    this.onMapTap,
   });
 
   @override
@@ -44,6 +48,30 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
         displayCubit.updateThemeMode(isDark);
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RouteDrawingMapLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.markerDestination != oldWidget.markerDestination) {
+      _renderCurrentRoute();
+    }
+  }
+
+  Future<void> _renderCurrentRoute() async {
+    final state = drawingBloc.state;
+    if (state.points.isEmpty &&
+        state.fullPolyline.isEmpty &&
+        widget.markerDestination == null) {
+      await _routeManager.clear(_mapController);
+    } else {
+      await _routeManager.drawCustomRoute(
+        controller: _mapController,
+        points: state.points,
+        fullPolyline: state.fullPolyline,
+        destinationPreview: widget.markerDestination,
+      );
+    }
   }
 
   void fitRouteBounds() {
@@ -82,12 +110,16 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
 
     HapticFeedback.lightImpact();
 
-    drawingBloc.add(
-      RouteDrawingPointTapped(
-        lat: targetLatLng.latitude,
-        lon: targetLatLng.longitude,
-      ),
-    );
+    if (widget.onMapTap != null) {
+      widget.onMapTap!(targetLatLng);
+    } else {
+      drawingBloc.add(
+        RouteDrawingPointTapped(
+          lat: targetLatLng.latitude,
+          lon: targetLatLng.longitude,
+        ),
+      );
+    }
   }
 
   @override
@@ -100,15 +132,7 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
           prev.warningMessageKey != curr.warningMessageKey ||
           prev.errorMessageKey != curr.errorMessageKey,
       listener: (context, state) async {
-        if (state.points.isEmpty && state.fullPolyline.isEmpty) {
-          await _routeManager.clear(_mapController);
-        } else {
-          await _routeManager.drawCustomRoute(
-            controller: _mapController,
-            points: state.points,
-            fullPolyline: state.fullPolyline,
-          );
-        }
+        await _renderCurrentRoute();
 
         if (!context.mounted) return;
 
@@ -158,15 +182,7 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
               onStyleLoadedCallback: () async {
                 _routeManager.resetAssetLoaded();
                 await _routeManager.loadMarkerAssets(_mapController);
-                final drawState = drawingBloc.state;
-                if (drawState.points.isNotEmpty ||
-                    drawState.fullPolyline.isNotEmpty) {
-                  await _routeManager.drawCustomRoute(
-                    controller: _mapController,
-                    points: drawState.points,
-                    fullPolyline: drawState.fullPolyline,
-                  );
-                }
+                await _renderCurrentRoute();
                 _lastAppliedMapStyle = displayCubit.state.styleString;
                 displayCubit.onStyleLoaded();
               },

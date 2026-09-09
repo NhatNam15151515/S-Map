@@ -53,7 +53,7 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
   bool _isMyLocationOriginActive = false;
   bool _isResolvingMyLocationOrigin = false;
   bool _isMarkerDestinationActive = false;
-  bool _isDestinationPickerActive = true;
+  bool _isDestinationPickerActive = false;
   bool _isCrosshairActive = true;
   LatLng? _markerDestination;
 
@@ -81,7 +81,8 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         (payload?.destinationPoi != null
             ? LatLng(payload!.destinationPoi!.lat, payload.destinationPoi!.lon)
             : null);
-    _isDestinationPickerActive = _markerDestination == null;
+    _isDestinationPickerActive = false;
+    _isMarkerDestinationActive = _markerDestination != null;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -190,20 +191,41 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
       AppRoutes.search,
       extra: searchCenter,
     );
-    if (!mounted) return;
+    if (!mounted || result == null) return;
 
+    LatLng? destination;
     PoiModel? poi;
-    if (result is SearchResultPayload && result.isArea) {
-      poi = await _resolveAreaSearchDestination(result);
-    } else if (result is SearchResultPayload && result.isSingle) {
-      poi = result.selectedPoi;
+
+    if (result is SearchResultPayload) {
+      if (result.isSingle) {
+        poi = result.selectedPoi;
+        if (poi != null) {
+          destination = LatLng(poi.lat, poi.lon);
+        }
+      } else if (result.isAll &&
+          result.allResults != null &&
+          result.allResults!.isNotEmpty) {
+        poi = result.allResults!.first;
+        destination = LatLng(poi.lat, poi.lon);
+      } else if (result.isLocation && result.searchCenter != null) {
+        destination = result.searchCenter;
+      } else if (result.isArea) {
+        poi = await _resolveAreaSearchDestination(result);
+        if (poi != null) {
+          destination = LatLng(poi.lat, poi.lon);
+        }
+      }
     } else if (result is PoiModel) {
       poi = result;
+      destination = LatLng(poi.lat, poi.lon);
     }
-    if (poi == null) return;
+    if (destination == null) return;
 
-    final destination = LatLng(poi.lat, poi.lon);
-    _mapDisplayCubit.selectPoi(poi);
+    if (poi != null) {
+      _mapDisplayCubit.selectPoi(poi);
+    } else {
+      _mapDisplayCubit.zoomToLevel(16.0, center: destination);
+    }
     _setMarkerDestination(destination, addToRoute: true);
   }
 
@@ -254,6 +276,7 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
       _markerDestination = destination;
       _isDestinationPickerActive = false;
       _isMarkerDestinationActive = true;
+      _isCrosshairActive = true;
     });
 
     if (addToRoute && _drawingBloc.state.points.isNotEmpty) {
@@ -267,56 +290,106 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
   }
 
   void _handleToggleMarkerDestination() {
-    final center = _mapDisplayCubit.state.center;
-    if (_markerDestination == null && center == null) return;
-
     if (_markerDestination == null) {
+      // Chưa có điểm đích: mở chế độ chọn điểm đích trên bản đồ
+      setState(() {
+        _isDestinationPickerActive = true;
+        _isCrosshairActive = false;
+      });
+      return;
+    }
+
+    if (_isMarkerDestinationActive) {
+      // Toggle tắt trạng thái active: chỉ đổi cờ hiển thị, KHÔNG xóa destination và KHÔNG undo điểm
+      setState(() => _isMarkerDestinationActive = false);
+      return;
+    }
+
+    setState(() => _isMarkerDestinationActive = true);
+    _mapDisplayCubit.zoomToLevel(16.0, center: _markerDestination);
+
+    if (_drawingBloc.state.points.isNotEmpty) {
+      final lastPoint = _drawingBloc.state.points.last;
+      final isAlreadyLast = (lastPoint.snappedLat - _markerDestination!.latitude).abs() < 0.0001 &&
+          (lastPoint.snappedLon - _markerDestination!.longitude).abs() < 0.0001;
+      if (!isAlreadyLast) {
+        _drawingBloc.add(
+          RouteDrawingPointTapped(
+            lat: _markerDestination!.latitude,
+            lon: _markerDestination!.longitude,
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleRemoveMarkerDestination() {
+    final state = _drawingBloc.state;
+    if (_isMarkerDestinationActive && state.points.length >= 2) {
+      final lastPoint = state.points.last;
+      if (_markerDestination != null &&
+          (lastPoint.snappedLat - _markerDestination!.latitude).abs() < 0.0001 &&
+          (lastPoint.snappedLon - _markerDestination!.longitude).abs() < 0.0001) {
+        _drawingBloc.add(const RouteDrawingUndoLastPoint());
+      }
+    }
+    setState(() {
+      _markerDestination = null;
+      _isMarkerDestinationActive = false;
+      _isDestinationPickerActive = false;
+    });
+  }
+
+  void _handleCancelDestinationPicker() {
+    setState(() {
+      _isDestinationPickerActive = false;
+      _isCrosshairActive = true;
+    });
+  }
+
+  void _handleConfirmDestinationPicker() {
+    final center = _mapLayerKey.currentState?.currentCenter ??
+        _mapDisplayCubit.state.center ??
+        MapConstants.defaultLocation;
+    HapticFeedback.mediumImpact();
+    _setMarkerDestination(
+      center,
+      addToRoute: _drawingBloc.state.points.isNotEmpty,
+    );
+  }
+
+  void _handleMapTap(LatLng tappedLatLng) {
+    if (_isDestinationPickerActive) {
       _setMarkerDestination(
-        center!,
+        tappedLatLng,
         addToRoute: _drawingBloc.state.points.isNotEmpty,
       );
       return;
     }
 
-    if (_drawingBloc.state.points.isEmpty) {
-      // Giữ đích ở trạng thái chờ; khi chọn origin, BLoC sẽ tạo cả cặp
-      // endpoint đúng thứ tự thay vì biến destination thành điểm bắt đầu.
-      setState(() => _isMarkerDestinationActive = true);
+    // Nếu route chưa có điểm nào nhưng đã chọn trước điểm đích
+    if (_drawingBloc.state.points.isEmpty && _markerDestination != null) {
+      _drawingBloc.add(
+        RouteDrawingEndpointsSelected(
+          origin: RoutePoint(
+            lat: tappedLatLng.latitude,
+            lon: tappedLatLng.longitude,
+          ),
+          destination: RoutePoint(
+            lat: _markerDestination!.latitude,
+            lon: _markerDestination!.longitude,
+          ),
+        ),
+      );
       return;
     }
 
-    if (_isMarkerDestinationActive) {
-      if (_drawingBloc.state.points.length >= 2) {
-        _drawingBloc.add(const RouteDrawingUndoLastPoint());
-      }
-      setState(() {
-        _markerDestination = null;
-        _isMarkerDestinationActive = false;
-        _isDestinationPickerActive = true;
-      });
-      return;
-    }
-    setState(() => _isMarkerDestinationActive = true);
     _drawingBloc.add(
       RouteDrawingPointTapped(
-        lat: _markerDestination!.latitude,
-        lon: _markerDestination!.longitude,
+        lat: tappedLatLng.latitude,
+        lon: tappedLatLng.longitude,
       ),
     );
-  }
-
-  void _handleRemoveMarkerDestination() {
-    final state = _drawingBloc.state;
-    // Đích đã chọn được thêm như điểm cuối thì hoàn tác đúng điểm đó,
-    // không đụng vào các waypoint phía trước.
-    if (_isMarkerDestinationActive && state.points.length >= 2) {
-      _drawingBloc.add(const RouteDrawingUndoLastPoint());
-    }
-    setState(() {
-      _markerDestination = null;
-      _isMarkerDestinationActive = false;
-      _isDestinationPickerActive = true;
-    });
   }
 
   void _handleAddPointAtCenter() {
@@ -324,6 +397,23 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         _mapDisplayCubit.state.center;
     if (center == null) return;
     HapticFeedback.lightImpact();
+
+    if (_drawingBloc.state.points.isEmpty && _markerDestination != null) {
+      _drawingBloc.add(
+        RouteDrawingEndpointsSelected(
+          origin: RoutePoint(
+            lat: center.latitude,
+            lon: center.longitude,
+          ),
+          destination: RoutePoint(
+            lat: _markerDestination!.latitude,
+            lon: _markerDestination!.longitude,
+          ),
+        ),
+      );
+      return;
+    }
+
     _drawingBloc.add(
       RouteDrawingPointTapped(
         lat: center.latitude,
@@ -450,7 +540,10 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
               else
                 RouteDrawingMapLayer(
                   key: _mapLayerKey,
-                  isCrosshairActive: _isCrosshairActive,
+                  isCrosshairActive:
+                      _isCrosshairActive && !_isDestinationPickerActive,
+                  markerDestination: _markerDestination,
+                  onMapTap: _handleMapTap,
                 ),
 
               // 2. Floating Top Bar
@@ -460,13 +553,94 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                 onSearchDestinationPressed: _handleSearchDestination,
               ),
 
-              if (_isDestinationPickerActive)
-                const IgnorePointer(
+              if (_isDestinationPickerActive) ...[
+                // Reticle tâm bản đồ để chọn điểm đích
+                IgnorePointer(
                   child: Center(
-                    child: Icon(Icons.flag_rounded, size: 42),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.error,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.flag_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        Container(
+                          width: 2,
+                          height: 12,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.error,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              else if (_isCrosshairActive)
+                ),
+                // Nút hành động xác nhận / hủy chọn đích
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: MediaQuery.paddingOf(context).bottom +
+                      (state.points.length >= 2 ? 200 : 140),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        key: const Key('route_drawing_confirm_destination_btn'),
+                        onPressed: _handleConfirmDestinationPicker,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: Colors.white,
+                          elevation: 6,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                        ),
+                        icon: const Icon(Icons.check_circle_rounded, size: 20),
+                        label: const Text(
+                          'Đặt làm điểm đến',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      FloatingActionButton.small(
+                        key: const Key('route_drawing_cancel_destination_btn'),
+                        heroTag: 'route_drawing_cancel_dest_fab',
+                        onPressed: _handleCancelDestinationPicker,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
+                        foregroundColor: Theme.of(context).colorScheme.onSurface,
+                        elevation: 4,
+                        child: const Icon(Icons.close_rounded, size: 20),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (_isCrosshairActive) ...[
                 GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onTap: () {
@@ -542,12 +716,13 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                     ),
                   ),
                 ),
+              ],
 
               // 3. Floating Toolbar (Undo, Redo, Clear, Fit Bounds, Reverse, Crosshair, Origin/Dest Toggles)
               RouteDrawingFloatingToolbar(
                 canUndo: state.canUndo,
                 canRedo: state.canRedo,
-                canClear: state.points.isNotEmpty,
+                canClear: state.points.isNotEmpty || _markerDestination != null,
                 hasPoints: state.points.isNotEmpty,
                 isMyLocationOrigin: _isMyLocationOriginActive,
                 isResolvingMyLocation: _isResolvingMyLocationOrigin,
@@ -568,6 +743,8 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                   setState(() {
                     _isMyLocationOriginActive = false;
                     _isMarkerDestinationActive = false;
+                    _markerDestination = null;
+                    _isDestinationPickerActive = false;
                   });
                   _drawingBloc.add(const RouteDrawingClearRoute());
                 },
@@ -582,6 +759,12 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                 onRemoveMarkerDestination: _markerDestination != null
                     ? _handleRemoveMarkerDestination
                     : null,
+                maxHeight: (MediaQuery.sizeOf(context).height -
+                        130 -
+                        (state.points.length >= 2 ? 200 : 140) -
+                        MediaQuery.paddingOf(context).bottom -
+                        16)
+                    .clamp(120.0, MediaQuery.sizeOf(context).height),
               ),
 
               // 4. Center Crosshair Add Waypoint Floating Button

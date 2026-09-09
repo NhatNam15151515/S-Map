@@ -234,5 +234,81 @@ void main() {
       expect(mapCubit.state.errorMessageKey,
           'map.location_service_disabled');
     });
+
+    testWidgets(
+        'toggling destination picker enters picker mode and can confirm or cancel',
+        (tester) async {
+      final mockRouting = MockRoutingRepo();
+      final mockCustom = MockCustomRouteRepo();
+      final drawingBloc = RouteDrawingBloc(
+        routingRepository: mockRouting,
+        customRouteRepository: mockCustom,
+      );
+      final savedCubit = SavedRoutesCubit(
+        customRouteRepository: mockCustom,
+        autoInit: false,
+        autoWatch: false,
+      );
+      final mapCubit = MapDisplayCubit();
+
+      addTearDown(() async {
+        await drawingBloc.close();
+        await savedCubit.close();
+        await mapCubit.close();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          drawingBloc: drawingBloc,
+          savedRoutesCubit: savedCubit,
+          mapDisplayCubit: mapCubit,
+        ),
+      );
+      await tester.pump();
+
+      // Ban đầu: Picker không active, crosshair button hiển thị
+      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
+          findsNothing);
+      expect(find.byKey(const Key('route_drawing_add_point_center_btn')),
+          findsOneWidget);
+
+      // Nhấn nút cờ đích trên toolbar: chuyển sang chế độ chọn điểm đích
+      await tester.tap(
+          find.byKey(const Key('route_drawing_marker_destination_button')));
+      await tester.pump();
+
+      // Chế độ picker active: hiển thị nút xác nhận và hủy, ẩn nút thêm điểm crosshair
+      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
+          findsOneWidget);
+      expect(find.byKey(const Key('route_drawing_cancel_destination_btn')),
+          findsOneWidget);
+      expect(find.byKey(const Key('route_drawing_add_point_center_btn')),
+          findsNothing);
+
+      // Hủy picker
+      await tester.tap(
+          find.byKey(const Key('route_drawing_cancel_destination_btn')));
+      await tester.pump();
+
+      // Quay lại chế độ vẽ thông thường
+      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
+          findsNothing);
+      expect(find.byKey(const Key('route_drawing_add_point_center_btn')),
+          findsOneWidget);
+
+      // Mở lại picker và xác nhận chọn đích
+      await tester.tap(
+          find.byKey(const Key('route_drawing_marker_destination_button')));
+      await tester.pump();
+      await tester.tap(
+          find.byKey(const Key('route_drawing_confirm_destination_btn')));
+      await tester.pump();
+
+      // Sau khi chọn đích: thoát picker, nút xóa đích xuất hiện
+      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
+          findsNothing);
+      expect(find.byKey(const Key('route_drawing_remove_destination_button')),
+          findsOneWidget);
+    });
   });
 }

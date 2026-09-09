@@ -28,6 +28,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   final VoidCallback? onRemoveMarkerDestination;
   final bool isStraightLineMode;
   final VoidCallback? onToggleStraightLineMode;
+  final double? maxHeight;
 
   const RouteDrawingFloatingToolbar({
     super.key,
@@ -53,6 +54,7 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     this.onRemoveMarkerDestination,
     this.isStraightLineMode = false,
     this.onToggleStraightLineMode,
+    this.maxHeight,
   });
 
   void _showClearConfirmDialog(BuildContext context) {
@@ -72,30 +74,39 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final bottomInset = mediaQuery.padding.bottom;
+    final effectiveMaxHeight = maxHeight ??
+        (screenHeight - 130 - bottomInset - 16).clamp(140.0, screenHeight);
 
     return Positioned(
       right: 16,
       top: 130,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.15),
-            width: 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.12),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: effectiveMaxHeight),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: colorScheme.outline.withValues(alpha: 0.15),
+              width: 0.8,
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.12),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             if (onLocateMe != null) ...[
               MapLocateButton(
                 key: const Key('route_drawing_locate_me_button'),
@@ -226,7 +237,9 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildToolbarButton({
