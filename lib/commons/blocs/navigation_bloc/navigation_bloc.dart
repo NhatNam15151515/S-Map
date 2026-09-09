@@ -603,13 +603,22 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
   void _listenGpsStream(String destName) {
     final stream = _locationService.getPositionStream(
+      // Tối ưu pin: dùng 'high' thay vì 'bestForNavigation'
+      // — chênh lệch chỉ 1-2m nhưng tiết kiệm pin đáng kể
+      // (bestForNavigation = GPS + Wi-Fi + Cell + Sensor fusion liên tục)
+      accuracy: LocationAccuracy.high,
+      // Lọc GPS noise: chỉ báo khi dịch chuyển ≥ 3m
+      // → giảm callback khi đứng yên (đèn đỏ, kẹt xe)
+      distanceFilter: 3,
       enableBackground: true,
       notificationTitle: LocaleKeys.routing_foreground_notification_title.tr(),
       notificationText: LocaleKeys.routing_foreground_notification_text.tr(
         args: [destName],
       ),
       intervalDuration: const Duration(seconds: 1),
-      enableWakeLock: true,
+      // WakeLock: FALSE vì WakelockPlus đã quản lý ở NavigationDevicePolicy.
+      // Tránh giữ 2 wake lock cùng lúc gây hao pin.
+      enableWakeLock: false,
     );
 
     _locationSubscription = stream.listen(
