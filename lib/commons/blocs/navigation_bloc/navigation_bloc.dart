@@ -194,6 +194,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     await _devicePolicy.requestNotificationPermission();
     if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
+    // Keep Screen On — giữ màn hình sáng suốt phiên chỉ đường (resume)
+    unawaited(_devicePolicy.enableKeepScreenOn());
+
     final destName = snapshot.destinationName ??
         LocaleKeys.routing_destination_fallback.tr();
     _listenGpsStream(destName);
@@ -270,6 +273,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     await _devicePolicy.requestNotificationPermission();
     if (generation != _requestGeneration || isClosed) return;
+
+    // Keep Screen On — giữ màn hình sáng suốt phiên chỉ đường
+    unawaited(_devicePolicy.enableKeepScreenOn());
 
     final destName =
         event.destinationName ?? LocaleKeys.routing_destination_fallback.tr();
@@ -477,6 +483,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     DLog.info('🛑 [NavigationBloc] Stopping navigation [Gen #$generation]');
 
     await _cancelGpsSubscription();
+    // Tắt Keep Screen On — trả lại quyền kiểm soát màn hình cho OS
+    unawaited(_devicePolicy.disableKeepScreenOn());
 
     if (isClosed || emit.isDone || generation != _requestGeneration) return;
 
@@ -529,6 +537,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     unawaited(_persistenceCoordinator.clearActiveSessionSafely());
 
     await _cancelGpsSubscription();
+    // Tắt Keep Screen On khi clear navigation
+    unawaited(_devicePolicy.disableKeepScreenOn());
 
     if (generation != _requestGeneration || isClosed) return;
 
@@ -623,6 +633,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _lastRerouteTime = null;
     _metricsTracker.reset();
     await _cancelGpsSubscription();
+    // Safety: tắt wakelock khi bloc bị dispose
+    unawaited(_devicePolicy.disableKeepScreenOn());
     return super.close();
   }
 }
