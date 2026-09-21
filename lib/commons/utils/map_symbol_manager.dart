@@ -283,6 +283,24 @@ class MapSymbolManager {
     }
   }
 
+  /// Hợp nhất và render các POI cá nhân từ 2 nguồn: Favorites (yêu thích) và Visited (đã đến).
+  ///
+  /// Ưu tiên giữ lại bản ghi Favorite phong phú hơn nếu trùng toạ độ địa lý.
+  Future<void> renderMemoryPoisFromSources(
+    MapLibreMapController? controller, {
+    required List<PoiModel> favorites,
+    required List<PoiModel> visited,
+  }) async {
+    final merged = <String, PoiModel>{};
+    for (final poi in favorites) {
+      merged[_memoryPoiKey(poi)] = poi;
+    }
+    for (final poi in visited) {
+      merged.putIfAbsent(_memoryPoiKey(poi), () => poi);
+    }
+    await renderMemoryPois(controller, merged.values.toList(growable: false));
+  }
+
   /// Render các POI đã lưu/đã từng đến. Danh sách này là state lâu dài của
   /// người dùng, nên không bị xóa khi search, đóng quick card hoặc chuyển
   /// sang route preview/navigation.
@@ -713,14 +731,7 @@ class MapSymbolManager {
   }
 
   bool _isSamePoi(PoiModel? left, PoiModel right) =>
-      left != null &&
-      left.lat == right.lat &&
-      left.lon == right.lon &&
-      (left.id != null && right.id != null
-          ? left.id == right.id
-          : left.osmId != null && right.osmId != null
-              ? left.osmId == right.osmId
-              : true);
+      left?.isSamePoi(right) ?? false;
 
   bool _sameLocation(PoiModel left, PoiModel right) =>
       left.lat == right.lat && left.lon == right.lon;

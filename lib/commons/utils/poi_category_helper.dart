@@ -1,5 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -177,7 +179,10 @@ class PoiCategoryHelper {
     return '${distKm.toStringAsFixed(1)} km';
   }
 
-  /// Sắp xếp danh sách POI theo khoảng cách tăng dần từ vị trí GPS người dùng
+  /// Sắp xếp danh sách POI theo khoảng cách tăng dần từ vị trí GPS người dùng.
+  ///
+  /// Tối ưu: precompute `cos(refLat)` và dùng [MapGeometryUtils.fastDistanceSqMeters]
+  /// (0 hàm lượng giác trong sort loop) thay vì Haversine đầy đủ.
   static List<PoiModel> sortPoisByDistance(
     List<PoiModel> pois,
     LatLng? userLocation,
@@ -185,21 +190,18 @@ class PoiCategoryHelper {
     if (userLocation == null || pois.length <= 1) {
       return pois;
     }
+    final cosRefLat = math.cos(userLocation.latitude * MapGeometryUtils.degToRad);
+    final refLat = userLocation.latitude;
+    final refLon = userLocation.longitude;
     final sorted = List<PoiModel>.from(pois);
     sorted.sort((a, b) {
-      final distA = AppUtils.instance.calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        a.lat,
-        a.lon,
+      final distSqA = MapGeometryUtils.fastDistanceSqMeters(
+        cosRefLat, refLat, refLon, a.lat, a.lon,
       );
-      final distB = AppUtils.instance.calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        b.lat,
-        b.lon,
+      final distSqB = MapGeometryUtils.fastDistanceSqMeters(
+        cosRefLat, refLat, refLon, b.lat, b.lon,
       );
-      return distA.compareTo(distB);
+      return distSqA.compareTo(distSqB);
     });
     return sorted;
   }

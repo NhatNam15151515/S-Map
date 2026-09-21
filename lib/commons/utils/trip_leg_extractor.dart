@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:easy_localization/easy_localization.dart';
-import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/trip_format_helper.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -43,17 +43,22 @@ class TripLegExtractor {
     final rawOrigin = (customOrigin != null && customOrigin.trim().isNotEmpty)
         ? customOrigin.trim()
         : TripFormatHelper.getOriginAddress(trip);
-    final rawDestination = (customDestination != null && customDestination.trim().isNotEmpty)
-        ? customDestination.trim()
-        : TripFormatHelper.getDestinationAddress(trip);
-    final rawStopped = (customStopped != null && customStopped.trim().isNotEmpty)
-        ? customStopped.trim()
-        : TripFormatHelper.getStoppedAddress(trip);
+    final rawDestination =
+        (customDestination != null && customDestination.trim().isNotEmpty)
+            ? customDestination.trim()
+            : TripFormatHelper.getDestinationAddress(trip);
+    final rawStopped =
+        (customStopped != null && customStopped.trim().isNotEmpty)
+            ? customStopped.trim()
+            : TripFormatHelper.getStoppedAddress(trip);
 
     // Chuẩn hoá: Tránh in toạ độ thô "10.xxxx, 106.yyyy" ra UI nếu không có tên
-    final origin = _cleanDisplayTitle(rawOrigin, tr(LocaleKeys.stats_dashboard_detail_origin));
-    final destination = _cleanDisplayTitle(rawDestination, tr(LocaleKeys.stats_dashboard_detail_destination));
-    final stopped = _cleanDisplayTitle(rawStopped, tr(LocaleKeys.stats_dashboard_detail_stopped_point));
+    final origin = _cleanDisplayTitle(
+        rawOrigin, tr(LocaleKeys.stats_dashboard_detail_origin));
+    final destination = _cleanDisplayTitle(
+        rawDestination, tr(LocaleKeys.stats_dashboard_detail_destination));
+    final stopped = _cleanDisplayTitle(
+        rawStopped, tr(LocaleKeys.stats_dashboard_detail_stopped_point));
     final actualEndPoint = trip.hasArrived ? destination : stopped;
 
     // Nếu không có polyline hoặc lộ trình quá ngắn, tạo chặng kết nối duy nhất
@@ -89,12 +94,15 @@ class TripLegExtractor {
       final segDist = _calculatePolylineDistance(segPoints);
 
       // Phân bổ thời gian theo tỷ lệ quãng đường
-      final ratio = totalPolylineDist > 0 ? (segDist / totalPolylineDist) : (1.0 / segments.length);
+      final ratio = totalPolylineDist > 0
+          ? (segDist / totalPolylineDist)
+          : (1.0 / segments.length);
       final segDurationMs = math.max((totalDurationMs * ratio).round(), 1000);
 
       // Tính vận tốc trung bình và tối đa của từng chặng
       final hours = segDurationMs / 3600000.0;
-      double segAvgSpeed = hours > 0 ? (segDist / 1000.0) / hours : trip.avgSpeedKmh;
+      double segAvgSpeed =
+          hours > 0 ? (segDist / 1000.0) / hours : trip.avgSpeedKmh;
       if (!segAvgSpeed.isFinite || segAvgSpeed <= 0) {
         segAvgSpeed = trip.avgSpeedKmh;
       }
@@ -117,7 +125,8 @@ class TripLegExtractor {
             : tr(LocaleKeys.stats_dashboard_detail_stopped_point);
         segTitle = '$destLabel: $actualEndPoint';
       } else {
-        segTitle = tr(LocaleKeys.stats_dashboard_detail_leg_street, args: ['${i + 1}']);
+        segTitle = tr(LocaleKeys.stats_dashboard_detail_leg_street,
+            args: ['${i + 1}']);
       }
 
       legs.add(
@@ -145,13 +154,12 @@ class TripLegExtractor {
       final curr = points[i];
       final next = points[i + 1];
 
-      final dist = AppUtils.instance.calculateDistance(
-            prev[0],
-            prev[1],
-            curr[0],
-            curr[1],
-          ) *
-          1000.0;
+      final dist = MapGeometryUtils.haversineDistanceMeters(
+        prev[0],
+        prev[1],
+        curr[0],
+        curr[1],
+      );
       accumulatedDist += dist;
 
       // Chỉ xét điểm rẽ khi đã đi được ít nhất 200m kể từ chặng trước
@@ -164,7 +172,8 @@ class TripLegExtractor {
         if (normalizedAngle >= 35.0) {
           turns.add(i);
           accumulatedDist = 0.0;
-          if (turns.length >= 5) break; // Giới hạn tối đa 5 chặng để hiển thị tối ưu
+          if (turns.length >= 5)
+            break; // Giới hạn tối đa 5 chặng để hiển thị tối ưu
         }
       }
     }
@@ -204,34 +213,14 @@ class TripLegExtractor {
     return segments.isNotEmpty ? segments : [points];
   }
 
-  /// Tính tổng chiều dài một mảng toạ độ (mét)
+  /// Tính tổng chiều dài một mảng toạ độ (mét). Delegate sang [MapGeometryUtils.polylineLengthMeters].
   static double _calculatePolylineDistance(List<List<double>> points) {
-    if (points.length < 2) return 0.0;
-    double total = 0.0;
-    for (int i = 0; i < points.length - 1; i++) {
-      total += AppUtils.instance.calculateDistance(
-            points[i][0],
-            points[i][1],
-            points[i + 1][0],
-            points[i + 1][1],
-          ) *
-          1000.0;
-    }
-    return total;
+    return MapGeometryUtils.polylineLengthMeters(points);
   }
 
-  /// Tính bearing (góc hướng di chuyển) giữa 2 tọa độ
+  /// Tính bearing (góc hướng di chuyển) giữa 2 tọa độ. Delegate sang [MapGeometryUtils.bearing].
   static double _bearing(double lat1, double lon1, double lat2, double lon2) {
-    final phi1 = lat1 * math.pi / 180.0;
-    final phi2 = lat2 * math.pi / 180.0;
-    final deltaLambda = (lon2 - lon1) * math.pi / 180.0;
-
-    final y = math.sin(deltaLambda) * math.cos(phi2);
-    final x = math.cos(phi1) * math.sin(phi2) -
-        math.sin(phi1) * math.cos(phi2) * math.cos(deltaLambda);
-
-    final theta = math.atan2(y, x);
-    return (theta * 180.0 / math.pi + 360.0) % 360.0;
+    return MapGeometryUtils.bearing(lat1, lon1, lat2, lon2);
   }
 
   static String _cleanDisplayTitle(String raw, String fallback) {

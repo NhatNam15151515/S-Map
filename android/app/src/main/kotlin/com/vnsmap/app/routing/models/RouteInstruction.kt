@@ -6,14 +6,16 @@ data class RouteInstruction(
     val distance: Double,
     val time: Long,
     val sign: Int,
-    val points: List<List<Double>>
+    val points: List<List<Double>>,
+    val maxSpeedKmh: Double? = null
 ) {
-    fun toMap(): Map<String, Any> = mapOf(
+    fun toMap(): Map<String, Any?> = mapOf(
         "text" to text,
         "streetName" to streetName,
         "distance" to distance,
         "time" to time,
         "sign" to sign,
-        "points" to points
+        "points" to points,
+        "maxSpeedKmh" to maxSpeedKmh
     )
 }

@@ -1,17 +1,13 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
-import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
-import 'package:s_map/routers/app_routes.dart';
 import 'widgets/widgets.dart';
 
 class RouteDrawingScreen extends StatefulWidget {
@@ -49,13 +45,8 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
   late final RouteDrawingBloc _drawingBloc;
   late final SavedRoutesCubit _savedRoutesCubit;
   late final MapDisplayCubit _mapDisplayCubit;
-
-  bool _isMyLocationOriginActive = false;
-  bool _isResolvingMyLocationOrigin = false;
-  bool _isMarkerDestinationActive = false;
-  bool _isDestinationPickerActive = false;
-  bool _isCrosshairActive = true;
-  LatLng? _markerDestination;
+  late final RouteDrawingOriginController _originController;
+  late final RouteDrawingDestinationController _destController;
 
   @override
   void initState() {
@@ -73,16 +64,38 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
           customRouteRepository: AppReposProvider.instance.customRouteRepos,
         );
 
+    _originController = RouteDrawingOriginController(
+      mapDisplayCubit: _mapDisplayCubit,
+      drawingBloc: _drawingBloc,
+      onStateChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
+
+    _destController = RouteDrawingDestinationController(
+      mapDisplayCubit: _mapDisplayCubit,
+      drawingBloc: _drawingBloc,
+      areaSearchResolver: AreaSearchDestinationResolver(),
+      onStateChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
+
+    _initializeFromPayload();
+  }
+
+  void _initializeFromPayload() {
     final payload = widget.payload;
     final initialRoute = payload?.initialRoute;
     final effectiveOrigin = widget.initialOrigin ?? payload?.initialOrigin;
-    _markerDestination = widget.initialDestination ??
+    _destController.markerDestination = widget.initialDestination ??
         payload?.initialDestination ??
         (payload?.destinationPoi != null
             ? LatLng(payload!.destinationPoi!.lat, payload.destinationPoi!.lon)
             : null);
-    _isDestinationPickerActive = false;
-    _isMarkerDestinationActive = _markerDestination != null;
+    _destController.isDestinationPickerActive = false;
+    _destController.isMarkerDestinationActive =
+        _destController.markerDestination != null;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -97,17 +110,18 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
               lat: effectiveOrigin.latitude,
               lon: effectiveOrigin.longitude,
             ),
-            destination: _markerDestination == null
+            destination: _destController.markerDestination == null
                 ? null
                 : RoutePoint(
-                    lat: _markerDestination!.latitude,
-                    lon: _markerDestination!.longitude,
+                    lat: _destController.markerDestination!.latitude,
+                    lon: _destController.markerDestination!.longitude,
                   ),
           ),
         );
         setState(() {
-          _isMyLocationOriginActive = true;
-          _isMarkerDestinationActive = _markerDestination != null;
+          _originController.isMyLocationOriginActive = true;
+          _destController.isMarkerDestinationActive =
+              _destController.markerDestination != null;
         });
       }
     });
@@ -117,258 +131,21 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     try {
       return context.read<AppCubit>();
     } catch (_) {
-      // RouteDrawingScreen cũng được dùng độc lập trong widget tests/previews.
       return null;
     }
-  }
-
-  Future<void> _handleToggleMyLocationOrigin() async {
-    if (_isResolvingMyLocationOrigin) return;
-
-    // Đây là một nút chọn trạng thái, không phải một luồng GPS chạy nền.
-    // Cho phép tắt ngay trạng thái active mà không gọi lại permission/GPS.
-    if (_isMyLocationOriginActive) {
-      setState(() => _isMyLocationOriginActive = false);
-      return;
-    }
-
-    final mapState = _mapDisplayCubit.state;
-    final cachedPosition =
-        mapState.hasRealLocation ? mapState.currentPosition : null;
-    if (cachedPosition != null) {
-      _addMyLocationOrigin(cachedPosition);
-      return;
-    }
-
-    setState(() => _isResolvingMyLocationOrigin = true);
-    try {
-      // Khi chưa có tọa độ thật, acquireCurrentPosition() chỉ thực hiện một
-      // request; LocationService sẽ tự mở prompt bật GPS/quyền nếu cần.
-      final currentPos = await _mapDisplayCubit.acquireCurrentPosition();
-      if (currentPos != null && mounted) {
-        _addMyLocationOrigin(currentPos);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isResolvingMyLocationOrigin = false);
-      }
-    }
-  }
-
-  void _addMyLocationOrigin(LatLng currentPos) {
-    if (!mounted || _drawingBloc.state.points.isNotEmpty) return;
-
-    setState(() {
-      _isMyLocationOriginActive = true;
-      // Destination đã được truyền từ POI/search thì luôn nằm sau origin.
-      _isMarkerDestinationActive = _markerDestination != null;
-    });
-
-    _drawingBloc.add(
-      RouteDrawingEndpointsSelected(
-        origin: RoutePoint(
-          lat: currentPos.latitude,
-          lon: currentPos.longitude,
-        ),
-        destination: _markerDestination == null
-            ? null
-            : RoutePoint(
-                lat: _markerDestination!.latitude,
-                lon: _markerDestination!.longitude,
-              ),
-      ),
-    );
-  }
-
-  void _handleLocateMe() {
-    _mapDisplayCubit.locateMe();
-  }
-
-  Future<void> _handleSearchDestination() async {
-    final mapState = _mapDisplayCubit.state;
-    final searchCenter = mapState.currentPosition ?? mapState.center;
-    final result = await context.push<dynamic>(
-      AppRoutes.search,
-      extra: searchCenter,
-    );
-    if (!mounted || result == null) return;
-
-    LatLng? destination;
-    PoiModel? poi;
-
-    if (result is SearchResultPayload) {
-      if (result.isSingle) {
-        poi = result.selectedPoi;
-        if (poi != null) {
-          destination = LatLng(poi.lat, poi.lon);
-        }
-      } else if (result.isAll &&
-          result.allResults != null &&
-          result.allResults!.isNotEmpty) {
-        poi = result.allResults!.first;
-        destination = LatLng(poi.lat, poi.lon);
-      } else if (result.isLocation && result.searchCenter != null) {
-        destination = result.searchCenter;
-      } else if (result.isArea) {
-        poi = await _resolveAreaSearchDestination(result);
-        if (poi != null) {
-          destination = LatLng(poi.lat, poi.lon);
-        }
-      }
-    } else if (result is PoiModel) {
-      poi = result;
-      destination = LatLng(poi.lat, poi.lon);
-    }
-    if (destination == null) return;
-
-    if (poi != null) {
-      _mapDisplayCubit.selectPoi(poi);
-    } else {
-      _mapDisplayCubit.zoomToLevel(16.0, center: destination);
-    }
-    _setMarkerDestination(destination, addToRoute: true);
-  }
-
-  /// SearchScreen dùng area intent cho Home. Route drawing vẫn cần một POI
-  /// cụ thể, nên resolve intent thành địa điểm phù hợp nhất tại đây thay vì
-  /// để payload mới làm mất chức năng chọn đích.
-  Future<PoiModel?> _resolveAreaSearchDestination(
-    SearchResultPayload payload,
-  ) async {
-    final center = payload.searchCenter ??
-        _mapDisplayCubit.state.center ??
-        MapConstants.defaultLocation;
-    final query = payload.submittedQuery?.trim();
-    try {
-      List<PoiModel> candidates;
-      if (query != null && query.isNotEmpty) {
-        candidates = await PoiRepositoryImpl().search(query, limit: 50);
-      } else if (payload.searchCategory != null &&
-          payload.searchCategory!.trim().isNotEmpty) {
-        final bounds = MapConstants.boundsFromCenter(center, 1200.0);
-        candidates = await PoiRepositoryImpl().searchInBounds(
-          minLat: bounds.southwest.latitude,
-          maxLat: bounds.northeast.latitude,
-          minLon: bounds.southwest.longitude,
-          maxLon: bounds.northeast.longitude,
-          category: payload.searchCategory,
-          limit: 50,
-        );
-      } else {
-        return null;
-      }
-
-      final ranked = SearchResultRanker.rank(
-        candidates,
-        center: center,
-        query: query,
-        limit: 1,
-      );
-      return ranked.isEmpty ? null : ranked.first;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  void _setMarkerDestination(LatLng destination, {bool addToRoute = false}) {
-    if (!mounted) return;
-    setState(() {
-      _markerDestination = destination;
-      _isDestinationPickerActive = false;
-      _isMarkerDestinationActive = true;
-      _isCrosshairActive = true;
-    });
-
-    if (addToRoute && _drawingBloc.state.points.isNotEmpty) {
-      _drawingBloc.add(
-        RouteDrawingPointTapped(
-          lat: destination.latitude,
-          lon: destination.longitude,
-        ),
-      );
-    }
-  }
-
-  void _handleToggleMarkerDestination() {
-    if (_markerDestination == null) {
-      // Chưa có điểm đích: mở chế độ chọn điểm đích trên bản đồ
-      setState(() {
-        _isDestinationPickerActive = true;
-        _isCrosshairActive = false;
-      });
-      return;
-    }
-
-    if (_isMarkerDestinationActive) {
-      // Toggle tắt trạng thái active: chỉ đổi cờ hiển thị, KHÔNG xóa destination và KHÔNG undo điểm
-      setState(() => _isMarkerDestinationActive = false);
-      return;
-    }
-
-    setState(() => _isMarkerDestinationActive = true);
-    _mapDisplayCubit.zoomToLevel(16.0, center: _markerDestination);
-
-    if (_drawingBloc.state.points.isNotEmpty) {
-      final lastPoint = _drawingBloc.state.points.last;
-      final isAlreadyLast = (lastPoint.snappedLat - _markerDestination!.latitude).abs() < 0.0001 &&
-          (lastPoint.snappedLon - _markerDestination!.longitude).abs() < 0.0001;
-      if (!isAlreadyLast) {
-        _drawingBloc.add(
-          RouteDrawingPointTapped(
-            lat: _markerDestination!.latitude,
-            lon: _markerDestination!.longitude,
-          ),
-        );
-      }
-    }
-  }
-
-  void _handleRemoveMarkerDestination() {
-    final state = _drawingBloc.state;
-    if (_isMarkerDestinationActive && state.points.length >= 2) {
-      final lastPoint = state.points.last;
-      if (_markerDestination != null &&
-          (lastPoint.snappedLat - _markerDestination!.latitude).abs() < 0.0001 &&
-          (lastPoint.snappedLon - _markerDestination!.longitude).abs() < 0.0001) {
-        _drawingBloc.add(const RouteDrawingUndoLastPoint());
-      }
-    }
-    setState(() {
-      _markerDestination = null;
-      _isMarkerDestinationActive = false;
-      _isDestinationPickerActive = false;
-    });
-  }
-
-  void _handleCancelDestinationPicker() {
-    setState(() {
-      _isDestinationPickerActive = false;
-      _isCrosshairActive = true;
-    });
-  }
-
-  void _handleConfirmDestinationPicker() {
-    final center = _mapLayerKey.currentState?.currentCenter ??
-        _mapDisplayCubit.state.center ??
-        MapConstants.defaultLocation;
-    HapticFeedback.mediumImpact();
-    _setMarkerDestination(
-      center,
-      addToRoute: _drawingBloc.state.points.isNotEmpty,
-    );
   }
 
   void _handleMapTap(LatLng tappedLatLng) {
-    if (_isDestinationPickerActive) {
-      _setMarkerDestination(
+    if (_destController.isDestinationPickerActive) {
+      _destController.setMarkerDestination(
         tappedLatLng,
         addToRoute: _drawingBloc.state.points.isNotEmpty,
       );
       return;
     }
 
-    // Nếu route chưa có điểm nào nhưng đã chọn trước điểm đích
-    if (_drawingBloc.state.points.isEmpty && _markerDestination != null) {
+    if (_drawingBloc.state.points.isEmpty &&
+        _destController.markerDestination != null) {
       _drawingBloc.add(
         RouteDrawingEndpointsSelected(
           origin: RoutePoint(
@@ -376,8 +153,8 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
             lon: tappedLatLng.longitude,
           ),
           destination: RoutePoint(
-            lat: _markerDestination!.latitude,
-            lon: _markerDestination!.longitude,
+            lat: _destController.markerDestination!.latitude,
+            lon: _destController.markerDestination!.longitude,
           ),
         ),
       );
@@ -398,16 +175,14 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     if (center == null) return;
     HapticFeedback.lightImpact();
 
-    if (_drawingBloc.state.points.isEmpty && _markerDestination != null) {
+    if (_drawingBloc.state.points.isEmpty &&
+        _destController.markerDestination != null) {
       _drawingBloc.add(
         RouteDrawingEndpointsSelected(
-          origin: RoutePoint(
-            lat: center.latitude,
-            lon: center.longitude,
-          ),
+          origin: RoutePoint(lat: center.latitude, lon: center.longitude),
           destination: RoutePoint(
-            lat: _markerDestination!.latitude,
-            lon: _markerDestination!.longitude,
+            lat: _destController.markerDestination!.latitude,
+            lon: _destController.markerDestination!.longitude,
           ),
         ),
       );
@@ -415,103 +190,16 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     }
 
     _drawingBloc.add(
-      RouteDrawingPointTapped(
-        lat: center.latitude,
-        lon: center.longitude,
-      ),
+      RouteDrawingPointTapped(lat: center.latitude, lon: center.longitude),
     );
-  }
-
-  void _handleReverseRoute() {
-    HapticFeedback.mediumImpact();
-    _drawingBloc.add(const RouteDrawingReverseRoute());
   }
 
   @override
   void dispose() {
-    if (widget.drawingBloc == null) {
-      _drawingBloc.close();
-    }
-    if (widget.savedRoutesCubit == null) {
-      _savedRoutesCubit.close();
-    }
-    if (widget.mapDisplayCubit == null) {
-      _mapDisplayCubit.close();
-    }
+    if (widget.drawingBloc == null) _drawingBloc.close();
+    if (widget.savedRoutesCubit == null) _savedRoutesCubit.close();
+    if (widget.mapDisplayCubit == null) _mapDisplayCubit.close();
     super.dispose();
-  }
-
-  void _handleSaveRoute(BuildContext context, RouteDrawingState state) {
-    final now = DateTime.now();
-    final defaultName = tr(
-      LocaleKeys.route_drawing_ui_default_route_name,
-      args: [DateFormat('dd/MM/yyyy HH:mm').format(now)],
-    );
-
-    SaveCustomRouteDialog.show(
-      context,
-      initialName: defaultName,
-      onSave: (name, description) {
-        _drawingBloc.add(
-          RouteDrawingSaveRoute(
-            name: name,
-            description: description,
-          ),
-        );
-      },
-    );
-  }
-
-  void _handleNavigate(BuildContext context, RouteDrawingState state) {
-    if (!state.hasRoute) return;
-
-    final rawPoints = state.fullPolyline.map((p) => [p.lat, p.lon]).toList();
-    final customName = tr(LocaleKeys.route_drawing_ui_custom_route_name);
-    final followInstruction =
-        tr(LocaleKeys.route_drawing_ui_follow_custom_route);
-    final instructions = <RouteInstruction>[
-      RouteInstruction(
-        text: followInstruction,
-        streetName: customName,
-        distance: state.totalDistance,
-        time: state.totalTime,
-        sign: 0,
-        points: rawPoints,
-      ),
-    ];
-
-    final customRoute = RouteResult(
-      isSuccess: true,
-      distance: state.totalDistance,
-      time: state.totalTime,
-      points: rawPoints,
-      instructions: instructions,
-    );
-
-    try {
-      context.read<NavigationBloc>().add(
-            StartNavigation(
-              initialRoute: customRoute,
-              origin: state.fullPolyline.first,
-              destination: state.fullPolyline.last,
-              destinationName: customName,
-            ),
-          );
-    } catch (_) {}
-
-    context.go(AppRoutes.home);
-  }
-
-  void _handleOpenSavedRoutes(BuildContext context) {
-    SavedRoutesSheet.show(
-      context,
-      onRouteSelected: (route) {
-        _drawingBloc.add(RouteDrawingLoadRoute(route));
-      },
-      onRouteDeleted: (id) {
-        _savedRoutesCubit.deleteRoute(id);
-      },
-    );
   }
 
   @override
@@ -531,292 +219,37 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
   Widget _buildThemeAwareContent(double topPadding) {
     final content = Scaffold(
       body: BlocBuilder<RouteDrawingBloc, RouteDrawingState>(
+        buildWhen: (prev, curr) =>
+            prev.status != curr.status ||
+            prev.pointCount != curr.pointCount ||
+            prev.totalDistance != curr.totalDistance ||
+            prev.totalTime != curr.totalTime ||
+            prev.canUndo != curr.canUndo ||
+            prev.canRedo != curr.canRedo ||
+            prev.isStraightLineMode != curr.isStraightLineMode,
         builder: (context, state) {
           return Stack(
             children: [
-              // 1. Map Layer
-              if (widget.mapLayerBuilder != null)
-                widget.mapLayerBuilder!()
-              else
-                RouteDrawingMapLayer(
-                  key: _mapLayerKey,
-                  isCrosshairActive:
-                      _isCrosshairActive && !_isDestinationPickerActive,
-                  markerDestination: _markerDestination,
-                  onMapTap: _handleMapTap,
-                ),
-
-              // 2. Floating Top Bar
-              RouteDrawingTopBar(
-                topPadding: topPadding,
-                onSavedRoutesPressed: () => _handleOpenSavedRoutes(context),
-                onSearchDestinationPressed: _handleSearchDestination,
-              ),
-
-              if (_isDestinationPickerActive) ...[
-                // Reticle tâm bản đồ để chọn điểm đích
-                IgnorePointer(
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.error,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.35),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.flag_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                        Container(
-                          width: 2,
-                          height: 12,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.error,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Nút hành động xác nhận / hủy chọn đích
-                Positioned(
-                  left: 20,
-                  right: 20,
-                  bottom: MediaQuery.paddingOf(context).bottom +
-                      (state.points.length >= 2 ? 200 : 140),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton.icon(
-                        key: const Key('route_drawing_confirm_destination_btn'),
-                        onPressed: _handleConfirmDestinationPicker,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                          foregroundColor: Colors.white,
-                          elevation: 6,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                        ),
-                        icon: const Icon(Icons.check_circle_rounded, size: 20),
-                        label: const Text(
-                          'Đặt làm điểm đến',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      FloatingActionButton.small(
-                        key: const Key('route_drawing_cancel_destination_btn'),
-                        heroTag: 'route_drawing_cancel_dest_fab',
-                        onPressed: _handleCancelDestinationPicker,
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        foregroundColor: Theme.of(context).colorScheme.onSurface,
-                        elevation: 4,
-                        child: const Icon(Icons.close_rounded, size: 20),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else if (_isCrosshairActive) ...[
-                GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () {
-                    if (!state.isLoading) {
-                      _handleAddPointAtCenter();
-                    }
-                  },
-                  child: Center(
-                    child: SizedBox(
-                      width: 56,
-                      height: 56,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.85),
-                                width: 2.0,
-                              ),
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.12),
-                            ),
-                          ),
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Theme.of(context).colorScheme.primary,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.25),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Reticle cross lines
-                          Positioned(
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 1.5,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.6),
-                            ),
-                          ),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: 1.5,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-
-              // 3. Floating Toolbar (Undo, Redo, Clear, Fit Bounds, Reverse, Crosshair, Origin/Dest Toggles)
-              RouteDrawingFloatingToolbar(
-                canUndo: state.canUndo,
-                canRedo: state.canRedo,
-                canClear: state.points.isNotEmpty || _markerDestination != null,
-                hasPoints: state.points.isNotEmpty,
-                isMyLocationOrigin: _isMyLocationOriginActive,
-                isResolvingMyLocation: _isResolvingMyLocationOrigin,
-                isMarkerDestination: _isMarkerDestinationActive,
-                hasMarkerDestination: true,
-                onLocateMe: _handleLocateMe,
-                onUndo: () =>
-                    _drawingBloc.add(const RouteDrawingUndoLastPoint()),
-                onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
-                onReverseRoute: _handleReverseRoute,
-                canReverse: state.points.length >= 2,
-                isCrosshairActive: _isCrosshairActive,
-                onToggleCrosshair: () {
-                  HapticFeedback.selectionClick();
-                  setState(() => _isCrosshairActive = !_isCrosshairActive);
-                },
-                onClear: () {
-                  setState(() {
-                    _isMyLocationOriginActive = false;
-                    _isMarkerDestinationActive = false;
-                    _markerDestination = null;
-                    _isDestinationPickerActive = false;
-                  });
-                  _drawingBloc.add(const RouteDrawingClearRoute());
-                },
-                isStraightLineMode: state.isStraightLineMode,
-                onToggleStraightLineMode: () {
-                  HapticFeedback.selectionClick();
-                  _drawingBloc.add(const RouteDrawingToggleStraightLineMode());
-                },
-                onFitBounds: () => _mapLayerKey.currentState?.fitRouteBounds(),
-                onToggleMyLocationOrigin: _handleToggleMyLocationOrigin,
-                onToggleMarkerDestination: _handleToggleMarkerDestination,
-                onRemoveMarkerDestination: _markerDestination != null
-                    ? _handleRemoveMarkerDestination
-                    : null,
-                maxHeight: (MediaQuery.sizeOf(context).height -
-                        130 -
-                        (state.points.length >= 2 ? 200 : 140) -
-                        MediaQuery.paddingOf(context).bottom -
-                        16)
-                    .clamp(120.0, MediaQuery.sizeOf(context).height),
-              ),
-
-              // 4. Center Crosshair Add Waypoint Floating Button
-              if (_isCrosshairActive && !_isDestinationPickerActive)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: MediaQuery.paddingOf(context).bottom +
-                      (state.points.length >= 2 ? 190 : 130),
-                  child: Center(
-                    child: ElevatedButton.icon(
-                      key: const Key('route_drawing_add_point_center_btn'),
-                      onPressed:
-                          state.isLoading ? null : _handleAddPointAtCenter,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
-                        elevation: 6,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                        shadowColor: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.4),
-                      ),
-                      icon: const Icon(Icons.add_location_alt_rounded, size: 20),
-                      label: Text(
-                        state.points.isEmpty
-                            ? tr(LocaleKeys.route_drawing_ui_center_add_start_point)
-                            : tr(LocaleKeys.route_drawing_ui_center_add_next_point),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              // 5. Bottom Summary & Action Card
+              _buildMapLayer(state),
+              _buildTopBar(topPadding, context),
+              _buildCenterOverlay(state),
+              _buildFloatingToolbar(context, state),
               RouteDrawingBottomCard(
                 pointCount: state.pointCount,
                 distanceMeters: state.totalDistance,
                 durationMs: state.totalTime,
                 isLoading: state.isLoading,
                 isStraightLineMode: state.isStraightLineMode,
-                onSavePressed: () => _handleSaveRoute(context, state),
-                onNavigatePressed: () => _handleNavigate(context, state),
+                onSavePressed: () =>
+                    RouteDrawingActionCoordinator.showSaveRouteDialog(
+                  context: context,
+                  drawingBloc: _drawingBloc,
+                ),
+                onNavigatePressed: () =>
+                    RouteDrawingActionCoordinator.startNavigationFromDrawnRoute(
+                  context: context,
+                  state: state,
+                ),
               ),
             ],
           );
@@ -836,6 +269,114 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         _mapDisplayCubit.updateMapTheme(isDarkMode: appState.isDarkMode);
       },
       child: content,
+    );
+  }
+
+  Widget _buildMapLayer(RouteDrawingState state) {
+    if (widget.mapLayerBuilder != null) return widget.mapLayerBuilder!();
+    return RouteDrawingMapLayer(
+      key: _mapLayerKey,
+      isCrosshairActive: _destController.isCrosshairActive &&
+          !_destController.isDestinationPickerActive,
+      markerDestination: _destController.markerDestination,
+      onMapTap: _handleMapTap,
+    );
+  }
+
+  Widget _buildTopBar(double topPadding, BuildContext context) {
+    return RouteDrawingTopBar(
+      topPadding: topPadding,
+      onSavedRoutesPressed: () =>
+          RouteDrawingActionCoordinator.showSavedRoutesSheet(
+        context: context,
+        drawingBloc: _drawingBloc,
+        savedRoutesCubit: _savedRoutesCubit,
+      ),
+      onSearchDestinationPressed: () =>
+          _destController.handleSearch(context, mounted),
+    );
+  }
+
+  Widget _buildCenterOverlay(RouteDrawingState state) {
+    if (_destController.isDestinationPickerActive) {
+      return RouteDrawingDestinationPickerOverlay(
+        onConfirm: () {
+          final center = _mapLayerKey.currentState?.currentCenter ??
+              _mapDisplayCubit.state.center ??
+              MapConstants.defaultLocation;
+          _destController.handleConfirmPicker(center);
+        },
+        onCancel: _destController.handleCancelPicker,
+        bottomOffset: MediaQuery.paddingOf(context).bottom +
+            (state.points.length >= 2 ? 200 : 140),
+      );
+    }
+    if (_destController.isCrosshairActive) {
+      return RouteDrawingCrosshairOverlay(
+        isLoading: state.isLoading,
+        hasPoints: state.points.isNotEmpty,
+        onAddPoint: _handleAddPointAtCenter,
+        bottomOffset: MediaQuery.paddingOf(context).bottom +
+            (state.points.length >= 2 ? 190 : 130),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildFloatingToolbar(BuildContext context, RouteDrawingState state) {
+    return RouteDrawingFloatingToolbar(
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      canClear: state.points.isNotEmpty ||
+          _destController.markerDestination != null,
+      hasPoints: state.points.isNotEmpty,
+      isMyLocationOrigin: _originController.isMyLocationOriginActive,
+      isResolvingMyLocation: _originController.isResolvingMyLocationOrigin,
+      isMarkerDestination: _destController.isMarkerDestinationActive,
+      hasMarkerDestination: true,
+      onLocateMe: _mapDisplayCubit.locateMe,
+      onUndo: () => _drawingBloc.add(const RouteDrawingUndoLastPoint()),
+      onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
+      onReverseRoute: () {
+        HapticFeedback.mediumImpact();
+        _drawingBloc.add(const RouteDrawingReverseRoute());
+      },
+      canReverse: state.points.length >= 2,
+      isCrosshairActive: _destController.isCrosshairActive,
+      onToggleCrosshair: () {
+        HapticFeedback.selectionClick();
+        setState(() => _destController.isCrosshairActive =
+            !_destController.isCrosshairActive);
+      },
+      onClear: () {
+        setState(() {
+          _originController.isMyLocationOriginActive = false;
+          _destController.isMarkerDestinationActive = false;
+          _destController.markerDestination = null;
+          _destController.isDestinationPickerActive = false;
+        });
+        _drawingBloc.add(const RouteDrawingClearRoute());
+      },
+      isStraightLineMode: state.isStraightLineMode,
+      onToggleStraightLineMode: () {
+        HapticFeedback.selectionClick();
+        _drawingBloc.add(const RouteDrawingToggleStraightLineMode());
+      },
+      onFitBounds: () => _mapLayerKey.currentState?.fitRouteBounds(),
+      onToggleMyLocationOrigin: () => _originController.handleToggle(
+        markerDestination: _destController.markerDestination,
+        mounted: mounted,
+      ),
+      onToggleMarkerDestination: _destController.handleToggle,
+      onRemoveMarkerDestination: _destController.markerDestination != null
+          ? _destController.handleRemove
+          : null,
+      maxHeight: (MediaQuery.sizeOf(context).height -
+              130 -
+              (state.points.length >= 2 ? 200 : 140) -
+              MediaQuery.paddingOf(context).bottom -
+              16)
+          .clamp(120.0, MediaQuery.sizeOf(context).height),
     );
   }
 }

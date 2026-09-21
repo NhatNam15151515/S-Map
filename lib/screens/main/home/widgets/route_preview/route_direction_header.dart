@@ -6,6 +6,8 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/screens/main/home/widgets/route_preview/route_endpoint_box.dart';
+import 'package:s_map/screens/main/home/widgets/route_preview/route_profile_chip.dart';
 
 /// Header chỉ đường chuẩn Google Maps với 2 ô chọn điểm xuất phát / điểm đến và nút hoán đổi chiều
 class RouteDirectionHeader extends StatelessWidget {
@@ -27,6 +29,10 @@ class RouteDirectionHeader extends StatelessWidget {
     final colorScheme = context.colorScheme;
 
     return BlocBuilder<RoutePreviewCubit, RoutePreviewState>(
+      buildWhen: (previous, current) =>
+          previous.originName != current.originName ||
+          previous.destinationName != current.destinationName ||
+          previous.profile != current.profile,
       builder: (context, state) {
         final originName =
             state.originName ?? tr(LocaleKeys.routing_my_location);
@@ -58,105 +64,17 @@ class RouteDirectionHeader extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    // Back button
-                    IconButton(
-                      key: const Key('route_direction_back_btn'),
-                      icon: const Icon(Icons.arrow_back_rounded, size: 22),
-                      onPressed: onClose,
-                      tooltip: tr(LocaleKeys.common_cancel),
-                    ),
-
-                    // Two input fields (Origin & Destination)
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 1. Origin Input Field
-                          _buildEndpointBox(
-                            context: context,
-                            icon: Icons.my_location_rounded,
-                            iconColor: Colors.blueAccent,
-                            label: originName,
-                            isDefaultLocation: state.isOriginCurrentLocation,
-                            onTap: onSelectOrigin,
-                          ),
-                          const SizedBox(height: 6),
-                          // 2. Destination Input Field
-                          _buildEndpointBox(
-                            context: context,
-                            icon: Icons.location_on_rounded,
-                            iconColor: Colors.redAccent,
-                            label: destinationName,
-                            isDefaultLocation: false,
-                            onTap: onSelectDestination,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-
-                    // Swap Button (Đổi chỗ A <-> B)
-                    IconButton(
-                      key: const Key('route_direction_swap_btn'),
-                      icon: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.swap_vert_rounded,
-                          size: 22,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                      tooltip: tr(LocaleKeys.routing_reroute_success),
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        context.read<RoutePreviewCubit>().swapEndpoints();
-                      },
-                    ),
-                  ],
+                _buildEndpointsRow(
+                  context,
+                  colorScheme,
+                  originName,
+                  destinationName,
+                  state.isOriginCurrentLocation,
                 ),
-
                 const SizedBox(height: 10),
                 const Divider(height: 1),
                 const SizedBox(height: 8),
-
-                // Vehicle Profile Selector (Xe máy, Ô tô, Đi bộ)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildProfileChip(
-                      context: context,
-                      profileKey: RoutingConstants.profileMopedVn,
-                      icon: Icons.two_wheeler_rounded,
-                      label: tr(LocaleKeys.route_drawing_ui_profile_moped),
-                      isSelected: currentProfile ==
-                              RoutingConstants.profileMopedVn ||
-                          currentProfile == RoutingConstants.profileBike,
-                    ),
-                    _buildProfileChip(
-                      context: context,
-                      profileKey: RoutingConstants.profileCar,
-                      icon: Icons.directions_car_rounded,
-                      label: tr(LocaleKeys.route_drawing_ui_profile_car),
-                      isSelected:
-                          currentProfile == RoutingConstants.profileCar,
-                    ),
-                    _buildProfileChip(
-                      context: context,
-                      profileKey: RoutingConstants.profileFoot,
-                      icon: Icons.directions_walk_rounded,
-                      label: tr(LocaleKeys.route_drawing_ui_profile_foot),
-                      isSelected:
-                          currentProfile == RoutingConstants.profileFoot,
-                    ),
-                  ],
-                ),
+                _buildProfileSelector(currentProfile),
               ],
             ),
           ),
@@ -165,109 +83,93 @@ class RouteDirectionHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildEndpointBox({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required bool isDefaultLocation,
-    required VoidCallback onTap,
-  }) {
-    final colorScheme = context.colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.1),
-            width: 0.8,
+  Widget _buildEndpointsRow(
+    BuildContext context,
+    ColorScheme colorScheme,
+    String originName,
+    String destinationName,
+    bool isOriginCurrentLocation,
+  ) {
+    return Row(
+      children: [
+        IconButton(
+          key: const Key('route_direction_back_btn'),
+          icon: const Icon(Icons.arrow_back_rounded, size: 22),
+          onPressed: onClose,
+          tooltip: tr(LocaleKeys.common_cancel),
+        ),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RouteEndpointBox(
+                icon: Icons.my_location_rounded,
+                iconColor: Colors.blueAccent,
+                label: originName,
+                isDefaultLocation: isOriginCurrentLocation,
+                onTap: onSelectOrigin,
+              ),
+              const SizedBox(height: 6),
+              RouteEndpointBox(
+                icon: Icons.location_on_rounded,
+                iconColor: Colors.redAccent,
+                label: destinationName,
+                isDefaultLocation: false,
+                onTap: onSelectDestination,
+              ),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: iconColor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: colorScheme.onSurface.textTheme.mediumStyle.copyWith(
-                  fontSize: 13.5,
-                  fontWeight: isDefaultLocation ? FontWeight.w500 : FontWeight.w600,
-                  color: isDefaultLocation
-                      ? colorScheme.primary
-                      : colorScheme.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+        const SizedBox(width: 6),
+        IconButton(
+          key: const Key('route_direction_swap_btn'),
+          icon: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.5),
+              shape: BoxShape.circle,
             ),
-            Icon(
-              Icons.search_rounded,
-              size: 16,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            child: Icon(
+              Icons.swap_vert_rounded,
+              size: 22,
+              color: colorScheme.primary,
             ),
-          ],
+          ),
+          tooltip: tr(LocaleKeys.routing_reroute_success),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            context.read<RoutePreviewCubit>().swapEndpoints();
+          },
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildProfileChip({
-    required BuildContext context,
-    required String profileKey,
-    required IconData icon,
-    required String label,
-    required bool isSelected,
-  }) {
-    final colorScheme = context.colorScheme;
-
-    return InkWell(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        context.read<RoutePreviewCubit>().changeProfile(profileKey);
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primary.withValues(alpha: 0.15)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : colorScheme.outline.withValues(alpha: 0.15),
-            width: isSelected ? 1.4 : 0.8,
-          ),
+  Widget _buildProfileSelector(String? currentProfile) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        RouteProfileChip(
+          profileKey: RoutingConstants.profileMopedVn,
+          icon: Icons.two_wheeler_rounded,
+          label: tr(LocaleKeys.route_drawing_ui_profile_moped),
+          isSelected: currentProfile == RoutingConstants.profileMopedVn ||
+              currentProfile == RoutingConstants.profileBike,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+        RouteProfileChip(
+          profileKey: RoutingConstants.profileCar,
+          icon: Icons.directions_car_rounded,
+          label: tr(LocaleKeys.route_drawing_ui_profile_car),
+          isSelected: currentProfile == RoutingConstants.profileCar,
         ),
-      ),
+        RouteProfileChip(
+          profileKey: RoutingConstants.profileFoot,
+          icon: Icons.directions_walk_rounded,
+          label: tr(LocaleKeys.route_drawing_ui_profile_foot),
+          isSelected: currentProfile == RoutingConstants.profileFoot,
+        ),
+      ],
     );
   }
 }

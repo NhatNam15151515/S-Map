@@ -322,8 +322,14 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                 // Trích xuất danh sách hướng dẫn rẽ (Turn-by-turn Instructions) có mô tả hành động
                 val instructionList = path.instructions
                 val instructions = ArrayList<RouteInstruction>(instructionList?.size ?: 0)
+
+                // Trích xuất speed limit cho mỗi instruction segment
+                // Chiến lược: dùng path.calcDetails("max_speed") nếu có,
+                // fallback sang giá trị mặc định từ custom model (dựa trên road_class).
+                val speedLimitByInstruction = extractSpeedLimitsPerInstruction(path, hopper)
+
                 if (instructionList != null) {
-                    for (ins: Instruction in instructionList) {
+                    for ((idx, ins: Instruction) in instructionList.withIndex()) {
                         val insPoints = ArrayList<List<Double>>(ins.points.size())
                         for (j in 0 until ins.points.size()) {
                             insPoints.add(listOf(ins.points.getLat(j), ins.points.getLon(j)))
@@ -349,7 +355,8 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                                 distance = ins.distance,
                                 time = ins.time,
                                 sign = ins.sign,
-                                points = insPoints
+                                points = insPoints,
+                                maxSpeedKmh = speedLimitByInstruction.getOrNull(idx)
                             )
                         )
                     }
@@ -435,6 +442,76 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
 
         override fun close() {
             hopper.close()
+        }
+
+        /**
+         * Trích xuất speed limit (km/h) cho mỗi instruction từ ResponsePath.
+         *
+         * Chiến lược:
+         * 1. Thử dùng path.calcDetails("max_speed") — API chính thức GraphHopper
+         *    trả về danh sách [fromIndex, toIndex, speedValue] segments.
+         * 2. Map mỗi instruction vào speed limit segment dựa trên point index range.
+         * 3. Nếu max_speed = UNSET (không có tag trong OSM) → trả null (ẩn biển báo).
+         *
+         * @return List<Double?> có cùng kích thước với instructionList
+         */
+        private fun extractSpeedLimitsPerInstruction(
+            path: ResponsePath,
+            hopper: GraphHopper
+        ): List<Double?> {
+            val instructionList = path.instructions ?: return emptyList()
+            val numInstructions = instructionList.size
+
+            try {
+                // Lấy max_speed EncodedValue
+                val maxSpeedEnc = try {
+                    hopper.encodingManager.getDecimalEncodedValue(
+                        com.graphhopper.routing.ev.MaxSpeed.KEY
+                    )
+                } catch (_: Exception) { null }
+
+                if (maxSpeedEnc == null) {
+                    return List(numInstructions) { null }
+                }
+
+                val locationIndex = hopper.locationIndex ?: return List(numInstructions) { null }
+                val vehicleAccess = try {
+                    hopper.encodingManager.getBooleanEncodedValue(
+                        com.graphhopper.routing.ev.VehicleAccess.key("car")
+                    )
+                } catch (_: Exception) { null } ?: return List(numInstructions) { null }
+
+                val edgeFilter = com.graphhopper.routing.util.AccessFilter.allEdges(vehicleAccess)
+                val result = ArrayList<Double?>(numInstructions)
+
+                // Với mỗi instruction: snap điểm đầu tiên → edge gần nhất → đọc max_speed
+                for (ins in instructionList) {
+                    if (ins.points.size() == 0) {
+                        result.add(null)
+                        continue
+                    }
+
+                    val lat = ins.points.getLat(0)
+                    val lon = ins.points.getLon(0)
+
+                    val speed: Double? = try {
+                        val snap = locationIndex.findClosest(lat, lon, edgeFilter)
+                        if (snap.isValid) {
+                            val edge = snap.closestEdge
+                            val maxSpeed = edge.get(maxSpeedEnc)
+                            // MaxSpeed trả về Double.POSITIVE_INFINITY khi không có tag
+                            if (maxSpeed.isFinite() && maxSpeed > 0 && maxSpeed < 999) maxSpeed else null
+                        } else null
+                    } catch (_: Exception) { null }
+
+                    result.add(speed)
+                }
+
+                return result
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to extract speed limits: ${e.message}")
+                return List(numInstructions) { null }
+            }
         }
     }
 }

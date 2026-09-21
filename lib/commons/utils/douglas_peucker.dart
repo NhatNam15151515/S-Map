@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 
 /// Thuật toán Ramer-Douglas-Peucker đơn giản hoá chuỗi toạ độ Polyline
 ///
@@ -6,9 +6,6 @@ import 'dart:math' as math;
 /// MapLibre GPU renderer, duy trì tốc độ khung hình 60/120 FPS và tiết kiệm pin.
 class DouglasPeucker {
   DouglasPeucker._();
-
-  static const double _earthRadiusMeters = 6371000.0;
-  static const double _degToRad = math.pi / 180.0;
 
   /// Đơn giản hoá danh sách toạ độ `[[lat, lon], ...]`
   /// [toleranceMeters]: Ngưỡng sai số trực giao cho phép (mặc định 2.5 mét)
@@ -34,7 +31,12 @@ class DouglasPeucker {
     final pLast = points[last];
 
     for (var i = first + 1; i < last; i++) {
-      final dist = _perpendicularDistanceMeters(points[i], pFirst, pLast);
+      final p = points[i];
+      final dist = MapGeometryUtils.perpendicularDistanceMeters(
+        p[0], p[1],
+        pFirst[0], pFirst[1],
+        pLast[0], pLast[1],
+      );
       if (dist > maxDistance) {
         maxDistance = dist;
         index = i;
@@ -51,35 +53,5 @@ class DouglasPeucker {
       return [points[first], points[last]];
     }
   }
-
-  /// Tính khoảng cách trực giao từ điểm P đến đoạn thẳng AB bằng phép chiếu phẳng Equirectangular cục bộ
-  static double _perpendicularDistanceMeters(
-    List<double> p,
-    List<double> a,
-    List<double> b,
-  ) {
-    final meanLat = ((a[0] + b[0]) / 2.0) * _degToRad;
-    final cosMeanLat = math.cos(meanLat);
-
-    final dx = (b[1] - a[1]) * _degToRad * _earthRadiusMeters * cosMeanLat;
-    final dy = (b[0] - a[0]) * _degToRad * _earthRadiusMeters;
-
-    final px = (p[1] - a[1]) * _degToRad * _earthRadiusMeters * cosMeanLat;
-    final py = (p[0] - a[0]) * _degToRad * _earthRadiusMeters;
-
-    final segmentLengthSquared = dx * dx + dy * dy;
-
-    if (segmentLengthSquared <= 1e-6) {
-      return math.sqrt(px * px + py * py);
-    }
-
-    final t = ((px * dx + py * dy) / segmentLengthSquared).clamp(0.0, 1.0);
-    final qx = t * dx;
-    final qy = t * dy;
-
-    final rx = px - qx;
-    final ry = py - qy;
-
-    return math.sqrt(rx * rx + ry * ry);
-  }
 }
+

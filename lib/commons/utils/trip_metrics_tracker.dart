@@ -79,6 +79,11 @@ class TripMetricsTracker {
         hasMoved = true;
         lastValidLat = lat;
         lastValidLon = lon;
+      } else if (deltaMeters > RoutingConstants.maxGpsJumpDeltaMeters) {
+        // GPS jump: không tính quãng đường nhưng phải reset điểm tham chiếu
+        // để tránh đóng băng vĩnh viễn (mọi fix sau đều > 200m so với lastValid cũ)
+        lastValidLat = lat;
+        lastValidLon = lon;
       }
     } else {
       lastValidLat = lat;

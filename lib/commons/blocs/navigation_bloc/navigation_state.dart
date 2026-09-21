@@ -24,6 +24,9 @@ class NavigationState extends Equatable {
   // GPS real-time properties
   final double? currentLat;
   final double? currentLon;
+  /// Toạ độ đã lọc qua Kalman Filter (mượt, giảm jitter trong hẻm/gầm cầu)
+  final double? filteredLat;
+  final double? filteredLon;
   final double? currentSpeedKmh;
   final double? currentHeading;
   final double? currentAccuracy;
@@ -77,6 +80,8 @@ class NavigationState extends Equatable {
     this.profile = RoutingConstants.defaultProfile,
     this.currentLat,
     this.currentLon,
+    this.filteredLat,
+    this.filteredLon,
     this.currentSpeedKmh,
     this.currentHeading,
     this.currentAccuracy,
@@ -108,11 +113,12 @@ class NavigationState extends Equatable {
     this.pendingResumeSession,
   });
 
-  /// Toạ độ hiển thị tối ưu: Ưu tiên toạ độ đã được snap vào tim đường nếu đang on-route
+  /// Toạ độ hiển thị tối ưu: Ưu tiên toạ độ đã được snap vào tim đường nếu đang on-route,
+  /// nếu không có thì dùng toạ độ Kalman-filtered mượt mà, cuối cùng là GPS thô.
   double? get displayLat =>
-      isSnappedToRoute ? (snappedLat ?? currentLat) : currentLat;
+      isSnappedToRoute ? (snappedLat ?? filteredLat ?? currentLat) : (filteredLat ?? currentLat);
   double? get displayLon =>
-      isSnappedToRoute ? (snappedLon ?? currentLon) : currentLon;
+      isSnappedToRoute ? (snappedLon ?? filteredLon ?? currentLon) : (filteredLon ?? currentLon);
 
   bool get isNavigating =>
       status == NavigationStatus.navigating ||
@@ -129,6 +135,16 @@ class NavigationState extends Equatable {
   InstructionType get instructionType =>
       currentInstruction?.type ?? InstructionType.unknown;
 
+  /// Giới hạn tốc độ tối đa (km/h) của đoạn đường hiện tại từ OSM maxspeed.
+  /// `null` nếu đường không có tag maxspeed → ẩn biển báo.
+  double? get currentSpeedLimit => currentInstruction?.maxSpeedKmh;
+
+  /// `true` khi tốc độ hiện tại vượt giới hạn tốc độ đoạn đường đang đi.
+  bool get isOverSpeedLimit =>
+      currentSpeedKmh != null &&
+      currentSpeedLimit != null &&
+      currentSpeedKmh! > currentSpeedLimit!;
+
   NavigationState copyWith({
     NavigationStatus? status,
     RouteResult? currentRoute,
@@ -139,6 +155,8 @@ class NavigationState extends Equatable {
     String? profile,
     double? currentLat,
     double? currentLon,
+    double? filteredLat,
+    double? filteredLon,
     double? currentSpeedKmh,
     double? currentHeading,
     double? currentAccuracy,
@@ -190,6 +208,10 @@ class NavigationState extends Equatable {
       profile: profile ?? this.profile,
       currentLat: clearCurrentPosition ? null : (currentLat ?? this.currentLat),
       currentLon: clearCurrentPosition ? null : (currentLon ?? this.currentLon),
+      filteredLat:
+          clearCurrentPosition ? null : (filteredLat ?? this.filteredLat),
+      filteredLon:
+          clearCurrentPosition ? null : (filteredLon ?? this.filteredLon),
       currentSpeedKmh: clearCurrentPosition
           ? null
           : (currentSpeedKmh ?? this.currentSpeedKmh),
@@ -252,6 +274,8 @@ class NavigationState extends Equatable {
         profile,
         currentLat,
         currentLon,
+        filteredLat,
+        filteredLon,
         currentSpeedKmh,
         currentHeading,
         currentAccuracy,
@@ -386,6 +410,8 @@ class NavigationState extends Equatable {
     required TrackingTickResult tick,
     required double currentLat,
     required double currentLon,
+    double? filteredLat,
+    double? filteredLon,
     required double? currentSpeedKmh,
     required double? currentHeading,
     required double? currentAccuracy,
@@ -395,6 +421,8 @@ class NavigationState extends Equatable {
     return copyWith(
       currentLat: currentLat,
       currentLon: currentLon,
+      filteredLat: filteredLat,
+      filteredLon: filteredLon,
       snappedLat: tick.snappedLat,
       snappedLon: tick.snappedLon,
       isSnappedToRoute: tick.isSnapped,
@@ -424,6 +452,8 @@ class NavigationState extends Equatable {
   NavigationState copyWithArrival({
     required double currentLat,
     required double currentLon,
+    double? filteredLat,
+    double? filteredLon,
     required double? currentSpeedKmh,
     required double? currentHeading,
     required double? currentAccuracy,
@@ -437,6 +467,8 @@ class NavigationState extends Equatable {
       status: NavigationStatus.arrived,
       currentLat: currentLat,
       currentLon: currentLon,
+      filteredLat: filteredLat,
+      filteredLon: filteredLon,
       currentSpeedKmh: currentSpeedKmh,
       currentHeading: currentHeading,
       currentAccuracy: currentAccuracy,

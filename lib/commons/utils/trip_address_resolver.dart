@@ -1,6 +1,6 @@
-import 'dart:math' as math;
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/poi_repository.dart';
@@ -25,9 +25,8 @@ class TripAddressResolver {
   }) async {
     // 1. Thử tìm kiếm trong cơ sở dữ liệu POI / Địa chỉ offline với cơ chế ưu tiên thông minh
     try {
-      final deltaLat = maxRadiusMeters / 111320.0;
-      final deltaLon =
-          maxRadiusMeters / (111320.0 * math.cos(lat * math.pi / 180.0));
+      final (deltaLat, deltaLon) =
+          MapGeometryUtils.boundingBoxDelta(lat, maxRadiusMeters);
 
       final poiRepo = poiRepository ?? PoiRepositoryImpl();
       final candidates = await poiRepo.searchInBounds(

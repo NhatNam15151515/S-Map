@@ -1,7 +1,10 @@
 import 'dart:ui';
+
 import 'package:maplibre_gl/maplibre_gl.dart';
+
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/map_marker_helper.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
@@ -66,11 +69,13 @@ class MapDrawingRouteManager {
       );
       _wpLayerInitialized = true;
     } catch (e) {
-      DLog.warning('⚠️ [MapDrawingRouteManager] Failed to init waypoint layer: $e');
+      DLog.warning(
+          '⚠️ [MapDrawingRouteManager] Failed to init waypoint layer: $e');
     }
   }
 
-  Map<String, dynamic> _emptyFC() => {'type': 'FeatureCollection', 'features': <Map<String, dynamic>>[]};
+  Map<String, dynamic> _emptyFC() =>
+      {'type': 'FeatureCollection', 'features': <Map<String, dynamic>>[]};
 
   /// Chuyển đổi danh sách [RoutePoint] sang List<LatLng> an toàn
   static List<LatLng> parseRoutePoints(List<RoutePoint> rawPoints) {
@@ -113,7 +118,8 @@ class MapDrawingRouteManager {
       try {
         await controller.removeLine(line);
       } catch (e) {
-        DLog.warning('⚠️ [MapDrawingRouteManager] Error removing routeLine: $e');
+        DLog.warning(
+            '⚠️ [MapDrawingRouteManager] Error removing routeLine: $e');
       } finally {
         if (identical(_routeLine, line)) {
           _routeLine = null;
@@ -125,7 +131,8 @@ class MapDrawingRouteManager {
       try {
         await controller.removeLine(casing);
       } catch (e) {
-        DLog.warning('⚠️ [MapDrawingRouteManager] Error removing casingLine: $e');
+        DLog.warning(
+            '⚠️ [MapDrawingRouteManager] Error removing casingLine: $e');
       } finally {
         if (identical(_casingLine, casing)) {
           _casingLine = null;
@@ -224,9 +231,13 @@ class MapDrawingRouteManager {
 
       // 3. Hiển thị marker đích (destination preview) nếu đã chọn nhưng chưa có trong points
       if (destinationPreview != null) {
-        final alreadyInPoints = points.any((p) =>
-            (p.snappedLat - destinationPreview.latitude).abs() < 0.0001 &&
-            (p.snappedLon - destinationPreview.longitude).abs() < 0.0001);
+        final alreadyInPoints =
+            points.any((p) => MapGeometryUtils.isNearCoordinate(
+                  p.snappedLat,
+                  p.snappedLon,
+                  destinationPreview.latitude,
+                  destinationPreview.longitude,
+                ));
         if (!alreadyInPoints) {
           features.add({
             'type': 'Feature',
@@ -370,8 +381,8 @@ class MapDrawingRouteManager {
 
       return true;
     } catch (e, stack) {
-      DLog.error(
-          '❌ [MapDrawingRouteManager] Error drawing trip history: $e', e, stack);
+      DLog.error('❌ [MapDrawingRouteManager] Error drawing trip history: $e', e,
+          stack);
       return false;
     }
   }

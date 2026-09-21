@@ -79,6 +79,22 @@ class PoiModel {
     };
   }
 
+  /// Kiểm tra xem POI này và [other] có đại diện cho cùng một địa điểm hay không.
+  ///
+  /// Hai POI được coi là cùng một địa điểm nếu cùng toạ độ (lat/lon)
+  /// và có cùng `id` hoặc `osmId` (nếu có thông tin định danh).
+  bool isSamePoi(PoiModel? other) {
+    if (other == null) return false;
+    if (lat != other.lat || lon != other.lon) return false;
+    if (id != null && other.id != null) {
+      return id == other.id;
+    }
+    if (osmId != null && other.osmId != null) {
+      return osmId == other.osmId;
+    }
+    return true;
+  }
+
   @override
   String toString() =>
       'PoiModel(id: $id, name: $name, category: $category, lat: $lat, lon: $lon)';

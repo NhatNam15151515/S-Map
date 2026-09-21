@@ -1,14 +1,12 @@
 import 'dart:math' as math;
 import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/i_off_route_detector.dart';
 
 /// Bộ phát hiện lệch tuyến đường (Off-route Detector) tối ưu hóa với thuật toán
 /// Local Equirectangular Projection và Sliding Window Search.
 class OffRouteDetector implements IOffRouteDetector {
-  static const double _earthRadiusMeters = 6371000.0;
-  static const double _degToRad = math.pi / 180.0;
-  static const double _radToDeg = 180.0 / math.pi;
 
   @override
   final double thresholdMeters;
@@ -17,7 +15,9 @@ class OffRouteDetector implements IOffRouteDetector {
     this.thresholdMeters = RoutingConstants.defaultOffRouteThresholdMeters,
   });
 
-  /// Tính khoảng cách trực giao ngắn nhất (mét) và điểm chiếu gần nhất từ điểm P đến đoạn thẳng AB
+  /// Tính khoảng cách trực giao ngắn nhất (mét) và điểm chiếu gần nhất từ điểm P đến đoạn thẳng AB.
+  ///
+  /// Delegate sang [MapGeometryUtils.pointToSegmentDistance].
   static (double distanceMeters, double closestLat, double closestLon)
       calculatePointToSegmentDistance({
     required double pLat,
@@ -27,42 +27,14 @@ class OffRouteDetector implements IOffRouteDetector {
     required double bLat,
     required double bLon,
   }) {
-    // Vĩ độ trung bình để chiếu phẳng Equirectangular
-    final meanLat = ((aLat + bLat) / 2.0) * _degToRad;
-    final cosMeanLat = math.cos(meanLat);
-
-    // Vector đoạn thẳng AB (đơn vị: mét)
-    final dx = (bLon - aLon) * _degToRad * _earthRadiusMeters * cosMeanLat;
-    final dy = (bLat - aLat) * _degToRad * _earthRadiusMeters;
-
-    // Vector AP (đơn vị: mét)
-    final px = (pLon - aLon) * _degToRad * _earthRadiusMeters * cosMeanLat;
-    final py = (pLat - aLat) * _degToRad * _earthRadiusMeters;
-
-    final segmentLengthSquared = dx * dx + dy * dy;
-
-    // Trường hợp suy biến: điểm A trùng điểm B
-    if (segmentLengthSquared <= 1e-6) {
-      final dist = math.sqrt(px * px + py * py);
-      return (dist, aLat, aLon);
-    }
-
-    // Hệ số chiếu vô hướng t của điểm P lên vector AB
-    final t = (px * dx + py * dy) / segmentLengthSquared;
-    final tClamped = t.clamp(0.0, 1.0);
-
-    // Tọa độ điểm gần nhất Q trên đoạn AB
-    final qx = tClamped * dx;
-    final qy = tClamped * dy;
-
-    final dist = math.sqrt((px - qx) * (px - qx) + (py - qy) * (py - qy));
-
-    // Đổi ngược tọa độ phẳng của Q sang Lat/Lon
-    final closestLat = aLat + (qy / _earthRadiusMeters) * _radToDeg;
-    final closestLon =
-        aLon + (qx / (_earthRadiusMeters * (cosMeanLat.abs() < 1e-6 ? 1.0 : cosMeanLat))) * _radToDeg;
-
-    return (dist, closestLat, closestLon);
+    return MapGeometryUtils.pointToSegmentDistance(
+      pLat: pLat,
+      pLon: pLon,
+      aLat: aLat,
+      aLon: aLon,
+      bLat: bLat,
+      bLon: bLon,
+    );
   }
 
   @override
@@ -184,20 +156,13 @@ class OffRouteDetector implements IOffRouteDetector {
     );
   }
 
+  /// Delegate sang [MapGeometryUtils.haversineDistanceMeters].
   static double _calculateHaversineDistanceMeters(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) {
-    final dLat = (lat2 - lat1) * _degToRad;
-    final dLon = (lon2 - lon1) * _degToRad;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1 * _degToRad) *
-            math.cos(lat2 * _degToRad) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.asin(math.sqrt(a));
-    return _earthRadiusMeters * c;
+    return MapGeometryUtils.haversineDistanceMeters(lat1, lon1, lat2, lon2);
   }
 }

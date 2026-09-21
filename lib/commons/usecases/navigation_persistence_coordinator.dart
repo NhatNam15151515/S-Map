@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/trip_address_resolver.dart';
 import 'package:s_map/commons/utils/trip_metrics_tracker.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/services/routing_service.dart';
 
 /// Kết quả tổng kết và bản ghi hành trình khi kết thúc phiên dẫn đường
 class TripFinalizationResult {
@@ -163,16 +165,42 @@ class NavigationPersistenceCoordinator {
     }
 
     // 2.1. Tự động tra cứu số nhà/tên đường cho Điểm xuất phát (originName)
+    // Ưu tiên snapToRoad (GraphHopper) để lấy tên đường chính xác tại toạ độ GPS,
+    // tránh lấy nhầm tên đường từ POI gần nhưng thuộc đường khác (ví dụ: ngã ba)
     String? effectiveOriginName = originName;
     if ((effectiveOriginName == null || effectiveOriginName.trim().isEmpty) &&
         polyline != null &&
         polyline.isNotEmpty) {
       final startPoint = polyline.first;
-      effectiveOriginName =
-          await TripAddressResolver.resolveAddressAtCoordinate(
-        startPoint[0],
-        startPoint[1],
-      );
+
+      // Thử 1: snapToRoad cho tên đường chính xác nhất
+      try {
+        final routingService =
+            await _getRoutingService();
+        if (routingService != null) {
+          final snapped = await routingService.snapToRoad(
+            lat: startPoint[0],
+            lon: startPoint[1],
+          );
+          if (snapped.isSnapped &&
+              snapped.streetName.trim().isNotEmpty &&
+              snapped.distanceToRoad <= 30.0) {
+            effectiveOriginName = snapped.streetName.trim();
+          }
+        }
+      } catch (e) {
+        DLog.warning(
+            '⚠️ [NavigationPersistenceCoordinator] snapToRoad for origin failed: $e');
+      }
+
+      // Thử 2: Fallback về TripAddressResolver (POI database)
+      if (effectiveOriginName == null || effectiveOriginName.trim().isEmpty) {
+        effectiveOriginName =
+            await TripAddressResolver.resolveAddressAtCoordinate(
+          startPoint[0],
+          startPoint[1],
+        );
+      }
     }
 
     // 3. Xử lý polyline thực tế đã đi:
@@ -236,19 +264,22 @@ class NavigationPersistenceCoordinator {
       return (currentSegmentIndex + 1).clamp(1, points.length);
     }
 
-    var minDistanceSq = double.infinity;
-    var closestIdx = 0;
-    for (var i = 0; i < points.length; i++) {
-      final p = points[i];
-      final dLat = p[0] - stopLat;
-      final dLon = p[1] - stopLon;
-      final distSq = dLat * dLat + dLon * dLon;
-      if (distSq < minDistanceSq) {
-        minDistanceSq = distSq;
-        closestIdx = i;
-      }
-    }
+    // Fallback: tìm điểm gần nhất trên polyline bằng chiếu hình cos(lat)-corrected
+    final (closestIdx, _, _, _) = MapGeometryUtils.findClosestPointOnPolyline(
+      pLat: stopLat,
+      pLon: stopLon,
+      points: points,
+    );
     return (closestIdx + 1).clamp(1, points.length);
+  }
+
+  /// Lấy RoutingService instance (có thể mở rộng thành DI sau)
+  Future<IRoutingService?> _getRoutingService() async {
+    try {
+      return RoutingServiceImpl.instance;
+    } catch (_) {
+      return null;
+    }
   }
 
   void dispose() {

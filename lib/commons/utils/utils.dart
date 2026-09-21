@@ -1,10 +1,13 @@
 export 'app_colors.dart';
+export 'area_search_destination_resolver.dart';
 export 'app_image.dart';
 export 'app_utils.dart';
 export 'circular_ema_filter.dart';
+export 'gps_kalman_filter.dart';
 export 'douglas_peucker.dart';
 export 'map_camera_controller.dart';
 export 'map_drawing_route_manager.dart';
+export 'map_rendered_feature_resolver.dart';
 export 'map_route_manager.dart';
 export 'map_symbol_manager.dart';
 export 'off_route_detector.dart';
@@ -16,3 +19,4 @@ export 'trip_address_resolver.dart';
 export 'trip_format_helper.dart';
 export 'trip_metrics_tracker.dart';
 export 'turn_by_turn_engine.dart';
+export 'voice_instruction_builder.dart';

@@ -1,5 +1,5 @@
-import 'dart:math' as math;
 import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
@@ -7,8 +7,6 @@ import 'package:s_map/models/models.dart';
 /// Bộ máy phân tích và điều phối chỉ dẫn rẽ từng chặng (Turn-by-turn Instruction Engine)
 /// Xử lý tự động chuyển chặng (Advance logic), cảnh báo trước (Pre-announce) và tính ETA/khoảng cách còn lại.
 class TurnByTurnEngine implements ITurnByTurnEngine {
-  static const double _earthRadiusMeters = 6371000.0;
-  static const double _degToRad = math.pi / 180.0;
 
   @override
   final double advanceThresholdMeters;
@@ -204,22 +202,14 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
     );
   }
 
-  /// Tính khoảng cách Haversine chính xác giữa 2 điểm tọa độ (đơn vị: mét)
+  /// Delegate sang [MapGeometryUtils.haversineDistanceMeters].
   static double _calculateHaversineDistanceMeters(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) {
-    final dLat = (lat2 - lat1) * _degToRad;
-    final dLon = (lon2 - lon1) * _degToRad;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1 * _degToRad) *
-            math.cos(lat2 * _degToRad) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.asin(math.sqrt(a.clamp(0.0, 1.0)));
-    return _earthRadiusMeters * c;
+    return MapGeometryUtils.haversineDistanceMeters(lat1, lon1, lat2, lon2);
   }
 
   /// Kiểm tra xem điểm tọa độ có hợp lệ và đầy đủ 2 thành phần kinh vĩ độ hay không

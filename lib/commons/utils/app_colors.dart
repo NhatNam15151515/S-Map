@@ -203,6 +203,7 @@ class AppColors {
   static const mapSymbolHalo = Color(0xFFFFFFFF);
   static const routeMainColor = googleBlue;
   static const routeCasingColor = Color(0xFF1557B0);
+  static const routeAlternativeColor = Color(0xFF8AB4F8);
   static const routeDimmedColor = Color(0xFF9AA0A6);
 
   // Navigation Panel UI Colors

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/models/models.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../mixin/app_mixin.dart';
-import 'dart:math' show cos, sqrt, asin;
 export 'poi_category_helper.dart';
 
 class AppUtils with AppMixin {
@@ -20,13 +20,17 @@ class AppUtils with AppMixin {
     return e?.toString() ?? "Đã có lỗi xảy ra";
   }
 
+  /// Khoảng cách Haversine giữa 2 điểm toạ độ (đơn vị: **km**).
+  ///
+  /// Delegate sang [MapGeometryUtils.haversineDistanceKm] để đảm bảo NaN-safe
+  /// và chuẩn hoá logic toán học.
   double calculateDistance(lat1, lon1, lat2, lon2) {
-    var p = 0.017453292519943295;
-    var c = cos;
-    var a = 0.5 -
-        c((lat2 - lat1) * p) / 2 +
-        c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p)) / 2;
-    return 12742 * asin(sqrt(a));
+    return MapGeometryUtils.haversineDistanceKm(
+      (lat1 as num).toDouble(),
+      (lon1 as num).toDouble(),
+      (lat2 as num).toDouble(),
+      (lon2 as num).toDouble(),
+    );
   }
 
   Future<bool> call(String? tel) async {

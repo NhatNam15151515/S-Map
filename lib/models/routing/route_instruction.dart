@@ -58,6 +58,9 @@ class RouteInstruction extends Equatable {
   final int time;
   final int sign;
   final List<List<double>> points;
+  /// Giới hạn tốc độ tối đa (km/h) của đoạn đường này từ OSM tag `maxspeed`.
+  /// `null` nếu đường không có tag maxspeed trong dữ liệu OSM.
+  final double? maxSpeedKmh;
 
   const RouteInstruction({
     required this.text,
@@ -66,6 +69,7 @@ class RouteInstruction extends Equatable {
     required this.time,
     required this.sign,
     required this.points,
+    this.maxSpeedKmh,
   });
 
   /// Kiểu hành động chỉ dẫn tương ứng theo mã sign
@@ -96,6 +100,7 @@ class RouteInstruction extends Equatable {
       time: (map['time'] as num?)?.toInt() ?? 0,
       sign: (map['sign'] as num?)?.toInt() ?? 0,
       points: parsedPoints,
+      maxSpeedKmh: (map['maxSpeedKmh'] as num?)?.toDouble(),
     );
   }
 
@@ -106,8 +111,9 @@ class RouteInstruction extends Equatable {
         'time': time,
         'sign': sign,
         'points': points,
+        'maxSpeedKmh': maxSpeedKmh,
       };
 
   @override
-  List<Object?> get props => [text, streetName, distance, time, sign, points];
+  List<Object?> get props => [text, streetName, distance, time, sign, points, maxSpeedKmh];
 }

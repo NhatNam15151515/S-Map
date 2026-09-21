@@ -35,6 +35,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final NavigationDevicePolicy _devicePolicy;
   final NavigationTrackingCoordinator _trackingCoordinator;
 
+  /// Bộ lọc Kalman 2D — làm mượt tọa độ GPS thô trước khi truyền vào
+  /// TrackingCoordinator và OffRouteDetector. Giảm hiện tượng marker giật
+  /// khi xe máy đi qua hẻm sâu, gầm cầu, hoặc khu vực GPS multipath.
+  final GpsKalmanFilter _kalmanFilter = GpsKalmanFilter();
+
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
   DateTime? _lastRerouteTime;
@@ -47,13 +52,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   static IVisitedPoiService? defaultVisitedPoiService;
 
   /// Số nhịp GPS liên tiếp phát hiện lệch tuyến bắt buộc trước khi kích hoạt Reroute
-  static const int minConsecutiveOffRouteTicks = 3;
+  static const int minConsecutiveOffRouteTicks = 2;
 
   /// Ngưỡng vận tốc tối thiểu (km/h) để cho phép tự động tính lại đường (tránh trôi dạt khi đứng yên)
   static const double minMovingSpeedForRerouteKmh = 5.0;
 
-  /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 6 giây)
-  static const Duration _rerouteCooldown = Duration(seconds: 6);
+  /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 4 giây)
+  static const Duration _rerouteCooldown = Duration(seconds: 4);
 
   int _consecutiveOffRouteTicks = 0;
 
@@ -165,6 +170,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
     _lastRerouteTime = null;
+    _kalmanFilter.reset();
     _metricsTracker.restoreFromSnapshot(snapshot);
 
     final promptOem = await _devicePolicy.checkBatteryOptimizationPrompt();
@@ -248,6 +254,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _lastRerouteTime = null;
     _consecutiveOffRouteTicks = 0;
     _metricsTracker.reset();
+    _kalmanFilter.reset();
 
     final promptOem = await _devicePolicy.checkBatteryOptimizationPrompt();
     if (generation != _requestGeneration || isClosed) return;
@@ -313,6 +320,15 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     final currentLat = event.latitude;
     final currentLon = event.longitude;
+
+    // Lọc GPS thô qua Kalman Filter để ước lượng toạ độ mượt, chống rung giật marker
+    final filtered = _kalmanFilter.update(
+      gpsLat: event.latitude,
+      gpsLon: event.longitude,
+      accuracyMeters: event.accuracy ?? 10.0,
+      speedMps: event.speed,
+      headingDeg: event.heading,
+    );
     final speedKmh = event.speed != null
         ? event.speed! * RoutingConstants.msToKmhFactor
         : null;
@@ -326,6 +342,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       emit(state.copyWith(
         currentLat: currentLat,
         currentLon: currentLon,
+        filteredLat: filtered.lat,
+        filteredLon: filtered.lon,
         currentSpeedKmh: speedKmh,
         currentHeading: event.heading,
         currentAccuracy: event.accuracy,
@@ -373,6 +391,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       emit(state.copyWithArrival(
         currentLat: currentLat,
         currentLon: currentLon,
+        filteredLat: filtered.lat,
+        filteredLon: filtered.lon,
         currentSpeedKmh: speedKmh,
         currentHeading: event.heading,
         currentAccuracy: event.accuracy,
@@ -390,6 +410,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       tick: tick,
       currentLat: currentLat,
       currentLon: currentLon,
+      filteredLat: filtered.lat,
+      filteredLon: filtered.lon,
       currentSpeedKmh: speedKmh,
       currentHeading: event.heading,
       currentAccuracy: event.accuracy,
@@ -544,6 +566,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     _lastRerouteTime = null;
     _metricsTracker.reset();
+    _kalmanFilter.reset();
     _consecutiveOffRouteTicks = 0;
     emit(const NavigationState());
   }
@@ -555,7 +578,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     double? speedKmh,
   ) {
     if (!tick.isOffRoute) {
-      _consecutiveOffRouteTicks = 0;
+      // Decay dần thay vì reset về 0 để tránh flip-flop khi đi gần đường song song
+      if (_consecutiveOffRouteTicks > 0) {
+        _consecutiveOffRouteTicks--;
+      }
       return;
     }
 
@@ -616,9 +642,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
         args: [destName],
       ),
       intervalDuration: const Duration(seconds: 1),
-      // WakeLock: FALSE vì WakelockPlus đã quản lý ở NavigationDevicePolicy.
-      // Tránh giữ 2 wake lock cùng lúc gây hao pin.
-      enableWakeLock: false,
+      enableWakeLock: true,
     );
 
     _locationSubscription = stream.listen(

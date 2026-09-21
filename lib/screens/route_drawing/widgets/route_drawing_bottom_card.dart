@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/screens/route_drawing/widgets/route_drawing_empty_prompt.dart';
+import 'package:s_map/screens/route_drawing/widgets/route_drawing_stats_row.dart';
 
 class RouteDrawingBottomCard extends StatelessWidget {
   final int pointCount;
@@ -70,244 +72,110 @@ class RouteDrawingBottomCard extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, ColorScheme colorScheme) {
-    if (pointCount == 0) {
-      return Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: HeroIcon(
-              HeroIcons.cursorArrowRays,
-              size: 24,
-              color: colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              tr(LocaleKeys.route_drawing_ui_tap_prompt),
-              style: colorScheme.onSurface.textTheme.mediumStyle.copyWith(
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      );
+    if (pointCount < 2) {
+      return RouteDrawingEmptyPrompt(pointCount: pointCount);
     }
-
-    if (pointCount == 1) {
-      return Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: HeroIcon(
-              HeroIcons.mapPin,
-              size: 24,
-              color: colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  tr(LocaleKeys.route_drawing_ui_add_next_prompt),
-                  style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  tr(LocaleKeys.route_drawing_ui_waypoints_count, args: ['1']),
-                  style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
-    final distanceKm = distanceMeters / 1000.0;
-    final durationMinutes = (durationMs / 60000.0).round();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (isStraightLineMode) ...[
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.airplanemode_active_rounded,
-                  size: 14,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  tr(LocaleKeys.route_drawing_ui_straight_line_mode_active_badge),
-                  style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        // Stats Summary Row
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatItem(
-                context,
-                colorScheme,
-                icon: HeroIcons.mapPin,
-                value: '${distanceKm.toStringAsFixed(1)} km',
-                label: tr(LocaleKeys.routing_trip_distance),
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 32,
-              color: colorScheme.outline.withValues(alpha: 0.2),
-            ),
-            Expanded(
-              child: _buildStatItem(
-                context,
-                colorScheme,
-                icon: HeroIcons.clock,
-                value: '$durationMinutes ${tr(LocaleKeys.routing_unit_minute)}',
-                label: tr(LocaleKeys.routing_trip_duration),
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 32,
-              color: colorScheme.outline.withValues(alpha: 0.2),
-            ),
-            Expanded(
-              child: _buildStatItem(
-                context,
-                colorScheme,
-                icon: HeroIcons.flag,
-                value: pointCount.toString(),
-                label: tr(LocaleKeys.route_drawing_ui_waypoints_label),
-              ),
-            ),
-          ],
+        if (isStraightLineMode) _buildStraightLineBadge(colorScheme),
+        RouteDrawingStatsRow(
+          distanceMeters: distanceMeters,
+          durationMs: durationMs,
+          pointCount: pointCount,
         ),
         const SizedBox(height: 16),
-        // Action Buttons Row
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                key: const Key('route_drawing_save_button'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: colorScheme.primary, width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                icon: HeroIcon(
-                  HeroIcons.bookmark,
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
-                label: Text(
-                  tr(LocaleKeys.route_drawing_ui_save_route),
-                  style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
-                    fontSize: 14,
-                  ),
-                ),
-                onPressed: onSavePressed,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                key: const Key('route_drawing_navigate_button'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                icon: Icon(
-                  Icons.navigation_rounded,
-                  size: 18,
-                  color: colorScheme.onPrimary,
-                ),
-                label: Text(
-                  tr(LocaleKeys.route_drawing_ui_start_navigation),
-                  style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
-                    fontSize: 14,
-                  ),
-                ),
-                onPressed: onNavigatePressed,
-              ),
-            ),
-          ],
-        ),
+        _buildActionButtons(colorScheme),
       ],
     );
   }
 
-  Widget _buildStatItem(
-    BuildContext context,
-    ColorScheme colorScheme, {
-    required HeroIcons icon,
-    required String value,
-    required String label,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget _buildStraightLineBadge(ColorScheme colorScheme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.airplanemode_active_rounded,
+            size: 14,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            tr(LocaleKeys.route_drawing_ui_straight_line_mode_active_badge),
+            style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(ColorScheme colorScheme) {
+    return Row(
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            HeroIcon(icon, size: 16, color: colorScheme.primary),
-            const SizedBox(width: 4),
-            Text(
-              value,
-              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-                fontSize: 15,
+        Expanded(
+          child: OutlinedButton.icon(
+            key: const Key('route_drawing_save_button'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              side: BorderSide(color: colorScheme.primary, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
-          ],
+            icon: HeroIcon(
+              HeroIcons.bookmark,
+              size: 18,
+              color: colorScheme.primary,
+            ),
+            label: Text(
+              tr(LocaleKeys.route_drawing_ui_save_route),
+              style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                fontSize: 14,
+              ),
+            ),
+            onPressed: onSavePressed,
+          ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
-            fontSize: 11,
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton.icon(
+            key: const Key('route_drawing_navigate_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            icon: Icon(
+              Icons.navigation_rounded,
+              size: 18,
+              color: colorScheme.onPrimary,
+            ),
+            label: Text(
+              tr(LocaleKeys.route_drawing_ui_start_navigation),
+              style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
+                fontSize: 14,
+              ),
+            ),
+            onPressed: onNavigatePressed,
           ),
         ),
       ],
