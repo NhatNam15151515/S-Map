@@ -82,6 +82,10 @@ class MockRoutingService implements IRoutingService {
     return initSuccess;
   }
 
+  Future<RouteResult> Function(double, double, double, double, String?)?
+      customRouteHandler;
+  Future<SnappedRoadPoint> Function(double, double)? customSnapHandler;
+
   @override
   Future<RouteResult> getRoute({
     required double fromLat,
@@ -92,6 +96,10 @@ class MockRoutingService implements IRoutingService {
   }) async {
     routeCalled = true;
     lastProfile = vehicleProfile;
+    if (customRouteHandler != null) {
+      return customRouteHandler!(
+          fromLat, fromLon, toLat, toLon, vehicleProfile);
+    }
     // Simulate real-world invocation delay
     await Future.delayed(const Duration(milliseconds: 2));
     return mockResult;
@@ -105,6 +113,9 @@ class MockRoutingService implements IRoutingService {
     snapCalled = true;
     lastSnapLat = lat;
     lastSnapLon = lon;
+    if (customSnapHandler != null) {
+      return customSnapHandler!(lat, lon);
+    }
     return customSnapResult ??
         SnappedRoadPoint(
           isSnapped: true,
@@ -501,6 +512,251 @@ void main() {
 
       // 5. Engine must NOT be resurrected; isEngineReady() remains false
       expect(await repo.isEngineReady(), isFalse);
+    });
+  });
+
+  group('calculateAlternativeRoutes Spur & Backtracking rejection', () {
+    test('rejects alternative via-point that creates backtracking / U-turn spur',
+        () async {
+      final mockService = MockRoutingService()..readyState = true;
+      final repo = RoutingRepositoryImpl(routingService: mockService);
+
+      // Primary route: Trục đường thẳng từ Bắc xuống Nam (lon = 105.0)
+      final primaryPoints = List.generate(
+        12,
+        (i) => [21.0 + (i * 0.001), 105.0],
+      );
+      final primaryResult = RouteResult(
+        isSuccess: true,
+        distance: 1200.0,
+        time: 180000,
+        points: primaryPoints,
+        instructions: const [
+          RouteInstruction(
+            text: 'Đi thẳng',
+            streetName: 'Lý Thường Kiệt',
+            distance: 1200.0,
+            time: 180000,
+            sign: 0,
+            points: [],
+          ),
+        ],
+      );
+
+      // Điểm snap nằm ở hẻm cụt phía Đông (lon = 105.002)
+      mockService.customSnapHandler = (lat, lon) async {
+        return SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: lat,
+          originalLon: lon,
+          snappedLat: lat,
+          snappedLon: 105.002, // Hẻm đâm sang ngang
+          streetName: 'Hẻm 123',
+          distanceToRoad: 2.0,
+          edgeId: 101,
+          calculationTimeMs: 1,
+        );
+      };
+
+      // Handler route giả lập:
+      // - Chặng 1: Start -> Hẻm cụt: Đi dọc trục lon=105.0 rồi rẽ vào 105.002
+      // - Chặng 2: Hẻm cụt -> End: Quay đầu xe từ 105.002 ngược ra 105.0 rồi đi tiếp xuống Nam
+      mockService.customRouteHandler =
+          (fromLat, fromLon, toLat, toLon, profile) async {
+        if ((fromLat - 21.0).abs() < 1e-4 && (toLon - 105.002).abs() < 1e-4) {
+          // Leg 1: Đến điểm hẻm cụt
+          return const RouteResult(
+            isSuccess: true,
+            distance: 700.0,
+            time: 100000,
+            points: [
+              [21.0, 105.0],
+              [21.003, 105.0],
+              [21.006, 105.0],
+              [21.006, 105.001],
+              [21.006, 105.002], // Đi vào hẻm
+            ],
+            instructions: [
+              RouteInstruction(
+                text: 'Bạn đã đến nơi',
+                streetName: 'Hẻm 123',
+                distance: 100.0,
+                time: 20000,
+                sign: 4,
+                points: [],
+              ),
+            ],
+          );
+        } else if ((fromLon - 105.002).abs() < 1e-4) {
+          // Leg 2: Bắt đầu từ hẻm cụt, quay đầu ngược lại [21.006, 105.001] -> [21.006, 105.0]
+          return const RouteResult(
+            isSuccess: true,
+            distance: 650.0,
+            time: 95000,
+            points: [
+              [21.006, 105.002],
+              [21.006, 105.001], // Trùng ngược chiều với điểm của Leg 1!
+              [21.006, 105.0],
+              [21.009, 105.0],
+              [21.011, 105.0],
+            ],
+            instructions: [
+              RouteInstruction(
+                text: 'Đi về hướng Tây',
+                streetName: 'Hẻm 123',
+                distance: 100.0,
+                time: 20000,
+                sign: 0,
+                points: [],
+              ),
+            ],
+          );
+        }
+        return primaryResult;
+      };
+
+      final routes = await repo.calculateAlternativeRoutes(
+        fromLat: 21.0,
+        fromLon: 105.0,
+        toLat: 21.011,
+        toLon: 105.0,
+      );
+
+      // Phải loại bỏ candidate có nhánh cụt quay đầu này -> Chỉ còn 1 lộ trình chính tối ưu
+      expect(routes.length, 1);
+      expect(routes.first.routeTitle, 'Lộ trình tối ưu');
+    });
+
+    test('accepts clean through-route alternative without backtracking',
+        () async {
+      final mockService = MockRoutingService()..readyState = true;
+      final repo = RoutingRepositoryImpl(routingService: mockService);
+
+      // Primary route: Đường đi dọc lon = 105.000
+      final primaryPoints = List.generate(
+        12,
+        (i) => [21.0 + (i * 0.001), 105.0],
+      );
+      final primaryResult = RouteResult(
+        isSuccess: true,
+        distance: 1200.0,
+        time: 180000,
+        points: primaryPoints,
+        instructions: const [
+          RouteInstruction(
+            text: 'Đi thẳng',
+            streetName: 'Lý Thường Kiệt',
+            distance: 1200.0,
+            time: 180000,
+            sign: 0,
+            points: [],
+          ),
+        ],
+      );
+
+      // Điểm snap ở trục đường song song thông suốt (Đường Giải Phóng)
+      mockService.customSnapHandler = (lat, lon) async {
+        return SnappedRoadPoint(
+          isSnapped: true,
+          originalLat: lat,
+          originalLon: lon,
+          snappedLat: lat,
+          snappedLon: 105.004,
+          streetName: 'Đường Giải Phóng',
+          distanceToRoad: 2.0,
+          edgeId: 202,
+          calculationTimeMs: 1,
+        );
+      };
+
+      // Handler route giả lập: Chạy trên trục song song lon=105.004 thông suốt liên tục về phía Bắc
+      mockService.customRouteHandler =
+          (fromLat, fromLon, toLat, toLon, profile) async {
+        if ((fromLat - 21.0).abs() < 1e-4 && (toLon - 105.004).abs() < 1e-4) {
+          // Leg 1: Đi từ Start sang trục song song và chạy lên phía Bắc
+          return const RouteResult(
+            isSuccess: true,
+            distance: 720.0,
+            time: 105000,
+            points: [
+              [21.0, 105.0],
+              [21.002, 105.004],
+              [21.004, 105.004],
+              [21.006, 105.004],
+            ],
+            instructions: [
+              RouteInstruction(
+                text: 'Rẽ phải vào Giải Phóng',
+                streetName: 'Đường Giải Phóng',
+                distance: 720.0,
+                time: 105000,
+                sign: 2,
+                points: [],
+              ),
+              RouteInstruction(
+                text: 'Bạn đã đến nơi',
+                streetName: 'Đường Giải Phóng',
+                distance: 0.0,
+                time: 0,
+                sign: 4,
+                points: [],
+              ),
+            ],
+          );
+        } else if ((fromLon - 105.004).abs() < 1e-4) {
+          // Leg 2: Tiếp tục chạy thẳng lên phía Bắc trên trục song song, không quay đầu
+          return const RouteResult(
+            isSuccess: true,
+            distance: 680.0,
+            time: 98000,
+            points: [
+              [21.006, 105.004],
+              [21.008, 105.004],
+              [21.010, 105.004],
+              [21.011, 105.0],
+            ],
+            instructions: [
+              RouteInstruction(
+                text: 'Đi về hướng Bắc',
+                streetName: 'Đường Giải Phóng',
+                distance: 400.0,
+                time: 60000,
+                sign: 0,
+                points: [],
+              ),
+              RouteInstruction(
+                text: 'Rẽ trái về đích',
+                streetName: 'Đích',
+                distance: 280.0,
+                time: 38000,
+                sign: 1,
+                points: [],
+              ),
+            ],
+          );
+        }
+        return primaryResult;
+      };
+
+      final routes = await repo.calculateAlternativeRoutes(
+        fromLat: 21.0,
+        fromLon: 105.0,
+        toLat: 21.011,
+        toLon: 105.0,
+      );
+
+      // Phải chấp nhận lộ trình thay thế thông suốt sạch đẹp
+      expect(routes.length, 2);
+      expect(routes.first.routeTitle, 'Nhanh nhất');
+      expect(routes[1].routeTitle, 'Qua Đường Giải Phóng');
+      expect(routes[1].isAlternative, isTrue);
+
+      // Kiểm tra instructions được dọn dẹp: không còn "Bạn đã đến nơi" ở giữa lộ trình
+      final altInstructions = routes[1].instructions;
+      expect(
+        altInstructions.any((ins) => ins.sign == 4),
+        isFalse,
+      );
     });
   });
 }

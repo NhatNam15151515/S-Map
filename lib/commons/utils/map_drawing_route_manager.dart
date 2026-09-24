@@ -6,6 +6,7 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/map_marker_helper.dart';
+import 'package:s_map/commons/utils/numbered_circle_marker_helper.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 
@@ -38,6 +39,7 @@ class MapDrawingRouteManager {
   void resetAssetLoaded() {
     _isAssetLoaded = false;
     _wpLayerInitialized = false;
+    NumberedCircleMarkerHelper.resetLoadedMarkers();
   }
 
   /// Khởi tạo GeoJSON source + Symbol layer cho waypoint markers
@@ -201,17 +203,13 @@ class MapDrawingRouteManager {
 
       // 2. Vẽ Waypoint Symbols cho từng điểm via GeoJSON source
       await _initWpLayer(controller);
+      await NumberedCircleMarkerHelper.loadNumberedMarkers(
+          controller, points.length);
+
       final features = <Map<String, dynamic>>[];
       for (int i = 0; i < points.length; i++) {
         final pt = points[i];
-        String label;
-        if (i == 0) {
-          label = 'A';
-        } else if (i == points.length - 1 && points.length > 1) {
-          label = 'B';
-        } else {
-          label = '$i';
-        }
+        final number = i + 1;
         features.add({
           'type': 'Feature',
           'geometry': {
@@ -219,11 +217,10 @@ class MapDrawingRouteManager {
             'coordinates': [pt.snappedLon, pt.snappedLat],
           },
           'properties': {
-            'iconImage': RoutingConstants.markerImageKey,
-            'iconAnchor': 'bottom',
-            'name': label,
-            'iconSize': (i == 0 || i == points.length - 1 ? 1.1 : 0.85) *
-                MapConstants.markerIconScale,
+            'iconImage': NumberedCircleMarkerHelper.markerKey(number),
+            'iconAnchor': 'center',
+            'name': '',
+            'iconSize': 0.85 * MapConstants.markerIconScale,
             'zIndex': i == 0 || i == points.length - 1 ? 10 : 5,
           },
         });

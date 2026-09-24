@@ -181,10 +181,12 @@ void main() {
       final wpSource = fakeController.geoJsonSources['smap-drawing-waypoints-source'];
       expect(wpSource, isNotNull);
       final features = wpSource!['features'] as List;
-      expect(features.length, 3);
-      expect(features[0]['properties']['name'], 'A');
-      expect(features[1]['properties']['name'], '1');
-      expect(features[2]['properties']['name'], 'B');
+      expect(features[0]['properties']['iconImage'],
+          NumberedCircleMarkerHelper.markerKey(1));
+      expect(features[1]['properties']['iconImage'],
+          NumberedCircleMarkerHelper.markerKey(2));
+      expect(features[2]['properties']['iconImage'],
+          NumberedCircleMarkerHelper.markerKey(3));
 
       // Test clear removes all
       await manager.clear(fakeController);

@@ -5,29 +5,22 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
+/// Floating Toolbar chứa các công cụ bản đồ khi vẽ route:
+/// - Nằm ở góc dưới bên phải màn hình (trên Bottom Card).
+/// - Đã bỏ các nút chọn điểm và nút toggle toàn bộ đường chim bay (vì đã có trên Menu từng đoạn).
 class RouteDrawingFloatingToolbar extends StatelessWidget {
   final bool canUndo;
   final bool canRedo;
   final bool canClear;
   final bool hasPoints;
-  final bool isMyLocationOrigin;
-  final bool isResolvingMyLocation;
-  final bool isMarkerDestination;
-  final bool hasMarkerDestination;
   final VoidCallback? onLocateMe;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
   final VoidCallback onClear;
-  final VoidCallback onFitBounds;
   final VoidCallback? onReverseRoute;
   final bool canReverse;
   final VoidCallback? onToggleCrosshair;
   final bool isCrosshairActive;
-  final VoidCallback? onToggleMyLocationOrigin;
-  final VoidCallback? onToggleMarkerDestination;
-  final VoidCallback? onRemoveMarkerDestination;
-  final bool isStraightLineMode;
-  final VoidCallback? onToggleStraightLineMode;
   final double? maxHeight;
 
   const RouteDrawingFloatingToolbar({
@@ -36,24 +29,14 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     required this.canRedo,
     required this.canClear,
     required this.hasPoints,
-    this.isMyLocationOrigin = false,
-    this.isResolvingMyLocation = false,
-    this.isMarkerDestination = false,
-    this.hasMarkerDestination = false,
     this.onLocateMe,
     required this.onUndo,
     required this.onRedo,
     required this.onClear,
-    required this.onFitBounds,
     this.onReverseRoute,
     this.canReverse = false,
     this.onToggleCrosshair,
     this.isCrosshairActive = true,
-    this.onToggleMyLocationOrigin,
-    this.onToggleMarkerDestination,
-    this.onRemoveMarkerDestination,
-    this.isStraightLineMode = false,
-    this.onToggleStraightLineMode,
     this.maxHeight,
   });
 
@@ -76,13 +59,12 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     final colorScheme = context.colorScheme;
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
-    final bottomInset = mediaQuery.padding.bottom;
-    final effectiveMaxHeight = maxHeight ??
-        (screenHeight - 130 - bottomInset - 16).clamp(140.0, screenHeight);
+    final effectiveMaxHeight =
+        maxHeight ?? (screenHeight - 160).clamp(240.0, screenHeight);
 
     return Positioned(
-      right: 16,
-      top: 130,
+      right: 14,
+      bottom: 155,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: effectiveMaxHeight),
         child: Container(
@@ -107,139 +89,72 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-            if (onLocateMe != null) ...[
-              MapLocateButton(
-                key: const Key('route_drawing_locate_me_button'),
-                heroTag: 'route_drawing_locate_me_fab',
-                onPressed: onLocateMe!,
-              ),
-              const SizedBox(height: 6),
-            ],
-            if (onToggleMyLocationOrigin != null) ...[
-              _buildToolbarButton(
-                context: context,
-                key: const Key('route_drawing_my_location_origin_button'),
-                icon: HeroIcons.mapPin,
-                tooltip: tr(LocaleKeys.route_drawing_ui_use_my_location_origin),
-                isEnabled: !isResolvingMyLocation,
-                isActive: isMyLocationOrigin,
-                isLoading: isResolvingMyLocation,
-                onPressed: onToggleMyLocationOrigin!,
-              ),
-              const SizedBox(height: 6),
-            ],
-            if (hasMarkerDestination && onToggleMarkerDestination != null) ...[
-              _buildToolbarButton(
-                context: context,
-                key: const Key('route_drawing_marker_destination_button'),
-                icon: HeroIcons.flag,
-                tooltip: tr(LocaleKeys.route_drawing_ui_use_selected_destination),
-                isEnabled: true,
-                isActive: isMarkerDestination,
-                onPressed: onToggleMarkerDestination!,
-              ),
-              const SizedBox(height: 6),
-            ],
-            if (hasMarkerDestination && onRemoveMarkerDestination != null) ...[
-              _buildToolbarButton(
-                context: context,
-                key: const Key('route_drawing_remove_destination_button'),
-                icon: HeroIcons.xMark,
-                tooltip: tr(LocaleKeys.route_drawing_ui_remove_destination),
-                isEnabled: true,
-                onPressed: onRemoveMarkerDestination!,
-              ),
-              const SizedBox(height: 6),
-            ],
-            _buildToolbarButton(
-              context: context,
-              key: const Key('route_drawing_undo_button'),
-              icon: HeroIcons.arrowUturnLeft,
-              tooltip: tr(LocaleKeys.route_drawing_ui_undo),
-              isEnabled: canUndo,
-              onPressed: onUndo,
+                if (onLocateMe != null) ...[
+                  MapLocateButton(
+                    key: const Key('route_drawing_locate_me_button'),
+                    heroTag: 'route_drawing_locate_me_fab',
+                    onPressed: onLocateMe!,
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                _buildToolbarButton(
+                  context: context,
+                  key: const Key('route_drawing_undo_button'),
+                  icon: HeroIcons.arrowUturnLeft,
+                  tooltip: tr(LocaleKeys.route_drawing_ui_undo),
+                  isEnabled: canUndo,
+                  onPressed: onUndo,
+                ),
+                const SizedBox(height: 6),
+                _buildToolbarButton(
+                  context: context,
+                  key: const Key('route_drawing_redo_button'),
+                  icon: HeroIcons.arrowUturnRight,
+                  tooltip: tr(LocaleKeys.route_drawing_ui_redo),
+                  isEnabled: canRedo,
+                  onPressed: onRedo,
+                ),
+                if (onReverseRoute != null) ...[
+                  const SizedBox(height: 6),
+                  _buildToolbarButton(
+                    context: context,
+                    key: const Key('route_drawing_reverse_button'),
+                    icon: HeroIcons.arrowsRightLeft,
+                    tooltip: tr(LocaleKeys.route_drawing_ui_reverse_route),
+                    isEnabled: canReverse,
+                    onPressed: onReverseRoute!,
+                  ),
+                ],
+                if (onToggleCrosshair != null) ...[
+                  const SizedBox(height: 6),
+                  _buildToolbarButton(
+                    context: context,
+                    key: const Key('route_drawing_crosshair_button'),
+                    icon: HeroIcons.plusCircle,
+                    tooltip: isCrosshairActive
+                        ? tr(LocaleKeys.route_drawing_ui_crosshair_tooltip_off)
+                        : tr(LocaleKeys.route_drawing_ui_crosshair_tooltip_on),
+                    isEnabled: true,
+                    isActive: isCrosshairActive,
+                    onPressed: onToggleCrosshair!,
+                  ),
+                ],
+                const SizedBox(height: 6),
+                _buildToolbarButton(
+                  context: context,
+                  key: const Key('route_drawing_clear_button'),
+                  icon: HeroIcons.trash,
+                  tooltip: tr(LocaleKeys.route_drawing_ui_clear_all),
+                  isEnabled: canClear,
+                  isDestructive: true,
+                  onPressed: () => _showClearConfirmDialog(context),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
-            _buildToolbarButton(
-              context: context,
-              key: const Key('route_drawing_redo_button'),
-              icon: HeroIcons.arrowUturnRight,
-              tooltip: tr(LocaleKeys.route_drawing_ui_redo),
-              isEnabled: canRedo,
-              onPressed: onRedo,
-            ),
-            const SizedBox(height: 6),
-            _buildToolbarButton(
-              context: context,
-              key: const Key('route_drawing_fit_bounds_button'),
-              icon: HeroIcons.viewfinderCircle,
-              tooltip: tr(LocaleKeys.route_drawing_ui_fit_bounds),
-              isEnabled: hasPoints,
-              isPrimary: true,
-              onPressed: onFitBounds,
-            ),
-            if (onReverseRoute != null) ...[
-              const SizedBox(height: 6),
-              _buildToolbarButton(
-                context: context,
-                key: const Key('route_drawing_reverse_button'),
-                icon: HeroIcons.arrowsRightLeft,
-                tooltip: tr(LocaleKeys.route_drawing_ui_reverse_route),
-                isEnabled: canReverse,
-                onPressed: onReverseRoute!,
-              ),
-            ],
-            if (onToggleCrosshair != null) ...[
-              const SizedBox(height: 6),
-              _buildToolbarButton(
-                context: context,
-                key: const Key('route_drawing_crosshair_button'),
-                icon: HeroIcons.plusCircle,
-                tooltip: isCrosshairActive
-                    ? tr(LocaleKeys.route_drawing_ui_crosshair_tooltip_off)
-                    : tr(LocaleKeys.route_drawing_ui_crosshair_tooltip_on),
-                isEnabled: true,
-                isActive: isCrosshairActive,
-                onPressed: onToggleCrosshair!,
-              ),
-            ],
-            if (onToggleStraightLineMode != null) ...[
-              const SizedBox(height: 6),
-              _buildToolbarButton(
-                context: context,
-                key: const Key('route_drawing_toggle_straight_line_btn'),
-                materialIcon: Icons.airplanemode_active_rounded,
-                tooltip: isStraightLineMode
-                    ? tr(LocaleKeys.route_drawing_ui_straight_line_mode_tooltip_off)
-                    : tr(LocaleKeys.route_drawing_ui_straight_line_mode_tooltip_on),
-                isEnabled: true,
-                isActive: isStraightLineMode,
-                onPressed: onToggleStraightLineMode!,
-              ),
-            ],
-            const SizedBox(height: 6),
-            Divider(
-              height: 1,
-              indent: 8,
-              endIndent: 8,
-              color: colorScheme.outline.withValues(alpha: 0.2),
-            ),
-            const SizedBox(height: 6),
-            _buildToolbarButton(
-              context: context,
-              key: const Key('route_drawing_clear_button'),
-              icon: HeroIcons.trash,
-              tooltip: tr(LocaleKeys.route_drawing_ui_clear_all),
-              isEnabled: canClear,
-              isDestructive: true,
-              onPressed: () => _showClearConfirmDialog(context),
-            ),
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 
   Widget _buildToolbarButton({
@@ -249,64 +164,52 @@ class RouteDrawingFloatingToolbar extends StatelessWidget {
     IconData? materialIcon,
     required String tooltip,
     required bool isEnabled,
-    required VoidCallback onPressed,
-    bool isDestructive = false,
-    bool isPrimary = false,
     bool isActive = false,
-    bool isLoading = false,
+    bool isPrimary = false,
+    bool isDestructive = false,
+    required VoidCallback onPressed,
   }) {
     final colorScheme = context.colorScheme;
-    Color iconColor;
-    Color? backgroundColor;
+    final Color iconColor;
+    final Color? backgroundColor;
 
-    if (isDestructive) {
-      iconColor = isEnabled ? colorScheme.error : colorScheme.error.withValues(alpha: 0.35);
-    } else if (!isEnabled) {
+    if (!isEnabled) {
       iconColor = colorScheme.onSurface.withValues(alpha: 0.3);
+      backgroundColor = null;
+    } else if (isDestructive) {
+      iconColor = colorScheme.error;
+      backgroundColor = colorScheme.error.withValues(alpha: 0.1);
     } else if (isActive) {
       iconColor = colorScheme.onPrimary;
       backgroundColor = colorScheme.primary;
     } else if (isPrimary) {
       iconColor = colorScheme.primary;
+      backgroundColor = colorScheme.primary.withValues(alpha: 0.1);
     } else {
       iconColor = colorScheme.onSurface;
+      backgroundColor = null;
     }
 
-    final Widget iconWidget;
-    if (isLoading) {
-      iconWidget = SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: backgroundColor ?? Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          key: key,
+          customBorder: const CircleBorder(),
+          onTap: isEnabled ? onPressed : null,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Center(
+              child: materialIcon != null
+                  ? Icon(materialIcon, size: 20, color: iconColor)
+                  : HeroIcon(icon!, size: 20, color: iconColor),
+            ),
+          ),
         ),
-      );
-    } else if (materialIcon != null) {
-      iconWidget = Icon(materialIcon, size: 20, color: iconColor);
-    } else if (icon != null) {
-      iconWidget = HeroIcon(icon, size: 20, color: iconColor);
-    } else {
-      iconWidget = const SizedBox(width: 20, height: 20);
-    }
-
-    Widget button = IconButton(
-      key: key,
-      icon: iconWidget,
-      tooltip: tooltip,
-      onPressed: isEnabled ? onPressed : null,
+      ),
     );
-
-    if (backgroundColor != null) {
-      return Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-        ),
-        child: button,
-      );
-    }
-
-    return button;
   }
 }

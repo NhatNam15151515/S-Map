@@ -255,7 +255,12 @@
     "remove_destination": "Remove destination point",
     "reverse_route": "Reverse route",
     "crosshair_tooltip_on": "Enable drawing crosshair",
-    "crosshair_tooltip_off": "Disable drawing crosshair"
+    "crosshair_tooltip_off": "Disable drawing crosshair",
+    "follow_roads": "Follow roads",
+    "straight_line": "Direct line",
+    "add_destination": "Add destination",
+    "delete_waypoint_tooltip": "Delete this waypoint",
+    "search_destination_tooltip": "Search destination"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",

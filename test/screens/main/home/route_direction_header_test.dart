@@ -150,8 +150,8 @@ void main() {
       expect(find.text('Nhà thờ Đức Bà'), findsOneWidget);
       expect(find.text('Sân bay Tân Sơn Nhất'), findsOneWidget);
       expect(find.text('Xe máy'), findsOneWidget);
-      expect(find.text('Ô tô'), findsOneWidget);
-      expect(find.text('Đi bộ'), findsOneWidget);
+      expect(find.text('Ô tô'), findsNothing);
+      expect(find.text('Đi bộ'), findsNothing);
 
       // Tap Origin Box
       await tester.tap(find.text('Nhà thờ Đức Bà'));
@@ -201,7 +201,7 @@ void main() {
       expect(find.text('Điểm A'), findsOneWidget);
     });
 
-    testWidgets('switching vehicle profile recalculates route with selected profile',
+    testWidgets('displays motorcycle mode badge and ensures profile is moped_vn',
         (tester) async {
       await cubit.previewRouteBetweenPoints(
         origin: const RoutePoint(lat: 10.7769, lon: 106.7009),
@@ -223,12 +223,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap Ô tô
-      await tester.tap(find.text('Ô tô'));
-      await tester.pumpAndSettle();
-
-      expect(cubit.state.profile, equals(RoutingConstants.profileCar));
-      expect(fakeRepo.lastProfile, equals(RoutingConstants.profileCar));
+      expect(find.text('Xe máy'), findsOneWidget);
+      expect(cubit.state.profile, equals(RoutingConstants.profileMopedVn));
     });
 
     testWidgets('renders localized my_location when originName is null',

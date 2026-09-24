@@ -20,3 +20,5 @@ export 'trip_format_helper.dart';
 export 'trip_metrics_tracker.dart';
 export 'turn_by_turn_engine.dart';
 export 'voice_instruction_builder.dart';
+export 'numbered_circle_marker_helper.dart';
+

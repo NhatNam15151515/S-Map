@@ -220,8 +220,10 @@ class RoutingRepositoryImpl implements IRoutingRepository {
     required double toLon,
     String? vehicleProfile,
   }) async {
+    // S-Map chuyên dụng cho xe máy (moped_vn), mọi yêu cầu điều hướng đều dùng profile này
+    const effectiveProfile = RoutingConstants.profileMopedVn;
     DLog.info(
-        '🏍️ [RoutingRepository] calculateRoute requested: ($fromLat, $fromLon) -> ($toLat, $toLon) | profile: $vehicleProfile');
+        '🏍️ [RoutingRepository] calculateRoute requested: ($fromLat, $fromLon) -> ($toLat, $toLon) | profile: $effectiveProfile (requested: $vehicleProfile)');
     await _ensureAutoInitialized();
 
     final isReady = await _routingService.isInitialized();
@@ -233,7 +235,7 @@ class RoutingRepositoryImpl implements IRoutingRepository {
         fromLon: fromLon,
         toLat: toLat,
         toLon: toLon,
-        vehicleProfile: vehicleProfile,
+        vehicleProfile: effectiveProfile,
       );
       DLog.info(
           '🏍️ [RoutingRepository] Native route result status: isSuccess=${nativeResult.isSuccess}, distance=${nativeResult.distance}m, points=${nativeResult.points.length}, error="${nativeResult.errorMessage}"');
@@ -273,46 +275,9 @@ class RoutingRepositoryImpl implements IRoutingRepository {
     }
 
     // 2. Tìm lộ trình thay thế (Alternative Route):
-    // Ưu tiên 1: Thử Profile Duality nếu hệ thống có sẵn profile xe khác (ví dụ car)
-    RouteResult? altRoute;
-    final altProfile = (primaryProfile == RoutingConstants.profileMopedVn)
-        ? RoutingConstants.profileCar
-        : (primaryProfile == RoutingConstants.profileCar
-            ? RoutingConstants.profileMopedVn
-            : null);
-
-    if (altProfile != null) {
-      try {
-        final result = await calculateRoute(
-          fromLat: fromLat,
-          fromLon: fromLon,
-          toLat: toLat,
-          toLon: toLon,
-          vehicleProfile: altProfile,
-        );
-
-        if (result.isSuccess && result.hasPoints) {
-          final distanceDiff = (result.distance - primaryRoute.distance).abs();
-          final isDistinct = distanceDiff > (primaryRoute.distance * 0.03) ||
-              (result.points.length != primaryRoute.points.length);
-
-          if (isDistinct) {
-            altRoute = result.copyWith(
-              routeTitle: altProfile == RoutingConstants.profileCar
-                  ? 'Qua đại lộ chính'
-                  : 'Đường tránh',
-              isAlternative: true,
-            );
-          }
-        }
-      } catch (_) {
-        // Profile khác không tồn tại trong graph offline -> fallback sang Waypoint Perturbation
-      }
-    }
-
-    // Ưu tiên 2: Chiến lược Waypoint Perturbation (Tìm đường song song/đường tránh
-    // bằng cách chiếu vuông góc trung điểm và snapToRoad, chạy hoàn toàn trên moped_vn)
-    altRoute ??= await _findAlternativeViaPointRoute(
+    // Hệ thống chỉ hỗ trợ chuyên dụng xe máy (moped_vn), sử dụng chiến lược
+    // Waypoint Perturbation (Tìm đường song song/đường tránh qua snapToRoad)
+    final altRoute = await _findAlternativeViaPointRoute(
       fromLat: fromLat,
       fromLon: fromLon,
       toLat: toLat,
@@ -334,7 +299,7 @@ class RoutingRepositoryImpl implements IRoutingRepository {
   }
 
   /// Tìm lộ trình thay thế bằng chiến lược Waypoint Perturbation.
-  /// Lấy trung điểm lộ trình chính, chiếu pháp tuyến vuông góc sang 2 bên để tìm
+  /// Lấy điểm dọc lộ trình chính, chiếu pháp tuyến vuông góc sang 2 bên để tìm
   /// đường song song/đường tránh qua `snapToRoad`, sau đó tính lộ trình 2 chặng:
   /// Start -> ViaPoint và ViaPoint -> Destination rồi ghép lại.
   Future<RouteResult?> _findAlternativeViaPointRoute({
@@ -350,109 +315,250 @@ class RoutingRepositoryImpl implements IRoutingRepository {
       return null;
     }
 
-    // Chọn điểm ở khu vực giữa lộ trình (khoảng 45% - 55%)
-    final midIndex = (points.length * 0.5).round();
-    final midPoint = points[midIndex];
-    final step = math.max(1, (points.length * 0.05).round());
-    final prevPoint = points[math.max(0, midIndex - step)];
-    final nextPoint = points[math.min(points.length - 1, midIndex + step)];
-
-    final dLat = nextPoint[0] - prevPoint[0];
-    final dLon = nextPoint[1] - prevPoint[1];
-    final latRad = midPoint[0] * MapGeometryUtils.degToRad;
-    final cosLat = math.cos(latRad);
-
-    final dY = dLat * MapGeometryUtils.metersPerDegreeLat;
-    final dX = dLon * MapGeometryUtils.metersPerDegreeLat * cosLat;
-    final len = math.sqrt(dX * dX + dY * dY);
-    if (len < 10.0) return null;
-
-    // Vector pháp tuyến vuông góc
-    final normX = -dY / len;
-    final normY = dX / len;
-
+    // Thử các vị trí lấy mẫu dọc theo lộ trình: 50% (giữa), 40%, 60%
+    final sampleRatios = [0.5, 0.4, 0.6];
     // Thử các độ lệch sang 2 bên đường (mét): ±250m, ±450m, ±650m
     final offsets = [250.0, -250.0, 450.0, -450.0, 650.0, -650.0];
 
-    for (final offset in offsets) {
-      final candLat = midPoint[0] + (normY * offset) / MapGeometryUtils.metersPerDegreeLat;
-      final candLon = midPoint[1] + (normX * offset) / (MapGeometryUtils.metersPerDegreeLat * cosLat);
+    for (final ratio in sampleRatios) {
+      final midIndex =
+          (points.length * ratio).round().clamp(1, points.length - 2);
+      final midPoint = points[midIndex];
+      final step = math.max(1, (points.length * 0.05).round());
+      final prevPoint = points[math.max(0, midIndex - step)];
+      final nextPoint = points[math.min(points.length - 1, midIndex + step)];
 
-      try {
-        final snapped = await snapToRoad(lat: candLat, lon: candLon);
-        if (!snapped.isSnapped) continue;
+      final dLat = nextPoint[0] - prevPoint[0];
+      final dLon = nextPoint[1] - prevPoint[1];
+      final latRad = midPoint[0] * MapGeometryUtils.degToRad;
+      final cosLat = math.cos(latRad);
 
-        // Đảm bảo điểm snap cách đường cũ ít nhất 70m để không đi lại trùng đường cũ
-        final distKm = AppUtils.instance.calculateDistance(
-          midPoint[0],
-          midPoint[1],
-          snapped.snappedLat,
-          snapped.snappedLon,
-        );
-        if (distKm * 1000.0 < 70.0) continue;
+      final dY = dLat * MapGeometryUtils.metersPerDegreeLat;
+      final dX = dLon * MapGeometryUtils.metersPerDegreeLat * cosLat;
+      final len = math.sqrt(dX * dX + dY * dY);
+      if (len < 10.0) continue;
 
-        // Tính 2 chặng: Start -> ViaPoint và ViaPoint -> End
-        final leg1 = await calculateRoute(
-          fromLat: fromLat,
-          fromLon: fromLon,
-          toLat: snapped.snappedLat,
-          toLon: snapped.snappedLon,
-          vehicleProfile: profile,
-        );
-        if (!leg1.isSuccess || !leg1.hasPoints) continue;
+      // Vector pháp tuyến vuông góc
+      final normX = -dY / len;
+      final normY = dX / len;
 
-        final leg2 = await calculateRoute(
-          fromLat: snapped.snappedLat,
-          fromLon: snapped.snappedLon,
-          toLat: toLat,
-          toLon: toLon,
-          vehicleProfile: profile,
-        );
-        if (!leg2.isSuccess || !leg2.hasPoints) continue;
+      for (final offset in offsets) {
+        final candLat =
+            midPoint[0] + (normY * offset) / MapGeometryUtils.metersPerDegreeLat;
+        final candLon = midPoint[1] +
+            (normX * offset) / (MapGeometryUtils.metersPerDegreeLat * cosLat);
 
-        final totalDist = leg1.distance + leg2.distance;
-        final totalTime = leg1.time + leg2.time;
+        try {
+          final snapped = await snapToRoad(lat: candLat, lon: candLon);
+          if (!snapped.isSnapped) continue;
 
-        // Lộ trình thay thế hợp lý: không dài hơn 1.45 lần đường chính
-        // và phải có sự khác biệt (quãng đường lệch >= 3% hoặc khác số lượng điểm)
-        final distanceDiff = (totalDist - primaryRoute.distance).abs();
-        final isDistinct = distanceDiff > (primaryRoute.distance * 0.03) ||
-            ((leg1.points.length + leg2.points.length) != primaryRoute.points.length);
+          // Đảm bảo điểm snap cách đường cũ ít nhất 70m để không đi lại trùng đường cũ
+          final distKm = AppUtils.instance.calculateDistance(
+            midPoint[0],
+            midPoint[1],
+            snapped.snappedLat,
+            snapped.snappedLon,
+          );
+          if (distKm * 1000.0 < 70.0) continue;
 
-        if (!isDistinct || totalDist > primaryRoute.distance * 1.45) {
+          // Tính 2 chặng: Start -> ViaPoint và ViaPoint -> End
+          final leg1 = await calculateRoute(
+            fromLat: fromLat,
+            fromLon: fromLon,
+            toLat: snapped.snappedLat,
+            toLon: snapped.snappedLon,
+            vehicleProfile: profile,
+          );
+          if (!leg1.isSuccess || !leg1.hasPoints) continue;
+
+          final leg2 = await calculateRoute(
+            fromLat: snapped.snappedLat,
+            fromLon: snapped.snappedLon,
+            toLat: toLat,
+            toLon: toLon,
+            vehicleProfile: profile,
+          );
+          if (!leg2.isSuccess || !leg2.hasPoints) continue;
+
+          // BỘ LỌC QUAN TRỌNG: Phát hiện & từ chối nhánh cụt quay đầu (Backtracking / U-turn spur)
+          if (_hasBacktrackingSpur(leg1.points, leg2.points)) {
+            DLog.info(
+                '↩️ [RoutingRepository] Rejecting via-point candidate at ($candLat, $candLon) due to backtracking spur');
+            continue;
+          }
+
+          final totalDist = leg1.distance + leg2.distance;
+          final totalTime = leg1.time + leg2.time;
+
+          // Lộ trình thay thế hợp lý: không dài hơn 1.45 lần đường chính
+          // và phải có sự khác biệt (quãng đường lệch >= 3% hoặc khác số lượng điểm)
+          final distanceDiff = (totalDist - primaryRoute.distance).abs();
+          final isDistinct = distanceDiff > (primaryRoute.distance * 0.03) ||
+              ((leg1.points.length + leg2.points.length) !=
+                  primaryRoute.points.length);
+
+          if (!isDistinct || totalDist > primaryRoute.distance * 1.45) {
+            continue;
+          }
+
+          // Ghép 2 chặng thành 1 lộ trình thay thế hoàn chỉnh
+          final combinedPoints = <List<double>>[
+            ...leg1.points,
+            if (leg2.points.length > 1) ...leg2.points.sublist(1),
+          ];
+
+          // Làm sạch Turn-by-Turn instructions khi ghép lộ trình
+          final cleanedLeg1Instructions = leg1.instructions.isNotEmpty &&
+                  (leg1.instructions.last.sign == 4 ||
+                      leg1.instructions.last.text.toLowerCase().contains('đến'))
+              ? leg1.instructions.sublist(0, leg1.instructions.length - 1)
+              : leg1.instructions;
+
+          final cleanedLeg2Instructions = leg2.instructions.isNotEmpty &&
+                  leg2.instructions.first.sign == 0 &&
+                  cleanedLeg1Instructions.isNotEmpty
+              ? leg2.instructions.sublist(1)
+              : leg2.instructions;
+
+          final combinedInstructions = <RouteInstruction>[
+            ...cleanedLeg1Instructions,
+            ...cleanedLeg2Instructions,
+          ];
+
+          // Xác định tiêu đề lộ trình thay thế có ý nghĩa
+          final rawStreet = snapped.streetName.trim();
+          final isAlleyName = rawStreet.toLowerCase().startsWith('hẻm') ||
+              rawStreet.toLowerCase().startsWith('ngõ') ||
+              rawStreet.toLowerCase().startsWith('đường nội bộ');
+
+          String title;
+          if (rawStreet.isNotEmpty && !isAlleyName) {
+            title = 'Qua $rawStreet';
+          } else {
+            final prominentStreet =
+                _findProminentStreetName(combinedInstructions);
+            title = prominentStreet != null
+                ? 'Qua $prominentStreet'
+                : 'Đường tránh';
+          }
+
+          return RouteResult(
+            isSuccess: true,
+            distance: totalDist,
+            time: totalTime,
+            points: combinedPoints,
+            instructions: combinedInstructions,
+            routeTitle: title,
+            isAlternative: true,
+          );
+        } catch (_) {
           continue;
         }
-
-        // Ghép 2 chặng thành 1 lộ trình thay thế hoàn chỉnh
-        final combinedPoints = <List<double>>[
-          ...leg1.points,
-          if (leg2.points.length > 1) ...leg2.points.sublist(1),
-        ];
-
-        final combinedInstructions = <RouteInstruction>[
-          ...leg1.instructions,
-          ...leg2.instructions,
-        ];
-
-        final title = snapped.streetName.trim().isNotEmpty
-            ? 'Qua ${snapped.streetName.trim()}'
-            : 'Đường tránh';
-
-        return RouteResult(
-          isSuccess: true,
-          distance: totalDist,
-          time: totalTime,
-          points: combinedPoints,
-          instructions: combinedInstructions,
-          routeTitle: title,
-          isAlternative: true,
-        );
-      } catch (_) {
-        continue;
       }
     }
 
     return null;
+  }
+
+  /// Kiểm tra xem điểm nối giữa leg1 và leg2 có tạo thành nhánh cụt quay đầu (Backtracking Spur) hay không.
+  ///
+  /// 1. Retracing Check: leg2 đi lùi lại các toạ độ trước đó của leg1 để thoát ra đường lớn.
+  /// 2. Sharp U-turn Check: Góc giữa vector tới via-point và vector rời đi > 105° (cosAngle < -0.25).
+  bool _hasBacktrackingSpur(
+    List<List<double>> leg1Points,
+    List<List<double>> leg2Points,
+  ) {
+    if (leg1Points.length < 2 || leg2Points.length < 2) return false;
+
+    // 1. Retracing Check: leg2 có đi lùi lại các toạ độ trước đó của leg1 không?
+    final checkCount1 = math.min(12, leg1Points.length - 1);
+    final checkCount2 = math.min(12, leg2Points.length - 1);
+
+    for (int i = 1; i <= checkCount1; i++) {
+      final p = leg1Points[leg1Points.length - 1 - i];
+      for (int j = 1; j <= checkCount2; j++) {
+        final q = leg2Points[j];
+        final dist =
+            MapGeometryUtils.haversineDistanceMeters(p[0], p[1], q[0], q[1]);
+        if (dist < 18.0) {
+          DLog.info(
+              '⚠️ [RoutingRepository] Detected backtracking retraced point: ${dist.toStringAsFixed(1)}m (< 18m)');
+          return true;
+        }
+      }
+    }
+
+    // 2. Sharp U-turn Check:
+    final endPoint = leg1Points.last;
+    List<double>? inPoint;
+    for (int i = leg1Points.length - 2; i >= 0; i--) {
+      final p = leg1Points[i];
+      final d = MapGeometryUtils.haversineDistanceMeters(
+          p[0], p[1], endPoint[0], endPoint[1]);
+      if (d >= 15.0 || i == 0) {
+        inPoint = p;
+        break;
+      }
+    }
+
+    final startPoint = leg2Points.first;
+    List<double>? outPoint;
+    for (int i = 1; i < leg2Points.length; i++) {
+      final q = leg2Points[i];
+      final d = MapGeometryUtils.haversineDistanceMeters(
+          q[0], q[1], startPoint[0], startPoint[1]);
+      if (d >= 15.0 || i == leg2Points.length - 1) {
+        outPoint = q;
+        break;
+      }
+    }
+
+    if (inPoint != null && outPoint != null) {
+      final latRad = endPoint[0] * MapGeometryUtils.degToRad;
+      final cosLat = math.cos(latRad);
+
+      final inDy =
+          (endPoint[0] - inPoint[0]) * MapGeometryUtils.metersPerDegreeLat;
+      final inDx =
+          (endPoint[1] - inPoint[1]) * MapGeometryUtils.metersPerDegreeLat * cosLat;
+      final inLen = math.sqrt(inDx * inDx + inDy * inDy);
+
+      final outDy =
+          (outPoint[0] - startPoint[0]) * MapGeometryUtils.metersPerDegreeLat;
+      final outDx = (outPoint[1] - startPoint[1]) *
+          MapGeometryUtils.metersPerDegreeLat *
+          cosLat;
+      final outLen = math.sqrt(outDx * outDx + outDy * outDy);
+
+      if (inLen > 1.0 && outLen > 1.0) {
+        final cosAngle = (inDx * outDx + inDy * outDy) / (inLen * outLen);
+        if (cosAngle < -0.25) {
+          DLog.info(
+              '⚠️ [RoutingRepository] Detected sharp U-turn at via-point: cosAngle = ${cosAngle.toStringAsFixed(2)}');
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /// Trích xuất tên đường lớn xuất hiện dài nhất trong danh sách instructions
+  String? _findProminentStreetName(List<RouteInstruction> instructions) {
+    String? bestStreet;
+    double maxDist = 0;
+    for (final ins in instructions) {
+      final name = ins.streetName.trim();
+      if (name.isNotEmpty &&
+          !name.toLowerCase().startsWith('hẻm') &&
+          !name.toLowerCase().startsWith('ngõ') &&
+          !name.toLowerCase().startsWith('đường nội bộ') &&
+          ins.distance > maxDist) {
+        maxDist = ins.distance;
+        bestStreet = name;
+      }
+    }
+    return bestStreet;
   }
 
   @override

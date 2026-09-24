@@ -49,4 +49,28 @@
 -keep class com.it_nomads.fluttersecurestorage.** { *; }
 -dontwarn com.it_nomads.fluttersecurestorage.**
 
+# ------------------------------------------------------------------------------
+# Firebase & Google Play Services Rules (Prevent R8 stripping Pigeon & Native SDK)
+# ------------------------------------------------------------------------------
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+-keepclassmembers class com.google.firebase.** { *; }
+-keepclassmembers class com.google.android.gms.** { *; }
+
+# ------------------------------------------------------------------------------
+# Flutter Engine, Plugins & Pigeon (MethodChannel / Pigeon IPC)
+# ------------------------------------------------------------------------------
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class dev.flutter.pigeon.** { *; }
+-keepclassmembers class dev.flutter.pigeon.** { *; }
+
+# Suppress warnings for Google Play Core (deferred components not bundled)
+-dontwarn com.google.android.play.core.**
+
+
+
 

@@ -32,7 +32,10 @@ class RouteDrawingScreen extends StatefulWidget {
     this.initialDestination,
     this.destinationName,
     this.mapLayerBuilder,
+    this.areaSearchResolver,
   });
+
+  final AreaSearchDestinationResolver? areaSearchResolver;
 
   @override
   State<RouteDrawingScreen> createState() => _RouteDrawingScreenState();
@@ -75,56 +78,24 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     _destController = RouteDrawingDestinationController(
       mapDisplayCubit: _mapDisplayCubit,
       drawingBloc: _drawingBloc,
-      areaSearchResolver: AreaSearchDestinationResolver(),
+      areaSearchResolver:
+          widget.areaSearchResolver ?? AreaSearchDestinationResolver(),
       onStateChanged: () {
         if (mounted) setState(() {});
       },
     );
 
-    _initializeFromPayload();
-  }
-
-  void _initializeFromPayload() {
-    final payload = widget.payload;
-    final initialRoute = payload?.initialRoute;
-    final effectiveOrigin = widget.initialOrigin ?? payload?.initialOrigin;
-    _destController.markerDestination = widget.initialDestination ??
-        payload?.initialDestination ??
-        (payload?.destinationPoi != null
-            ? LatLng(payload!.destinationPoi!.lat, payload.destinationPoi!.lon)
-            : null);
-    _destController.isDestinationPickerActive = false;
-    _destController.isMarkerDestinationActive =
-        _destController.markerDestination != null;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (initialRoute != null) {
-        _drawingBloc.add(RouteDrawingLoadRoute(initialRoute));
-        return;
-      }
-      if (effectiveOrigin != null) {
-        _drawingBloc.add(
-          RouteDrawingEndpointsSelected(
-            origin: RoutePoint(
-              lat: effectiveOrigin.latitude,
-              lon: effectiveOrigin.longitude,
-            ),
-            destination: _destController.markerDestination == null
-                ? null
-                : RoutePoint(
-                    lat: _destController.markerDestination!.latitude,
-                    lon: _destController.markerDestination!.longitude,
-                  ),
-          ),
-        );
-        setState(() {
-          _originController.isMyLocationOriginActive = true;
-          _destController.isMarkerDestinationActive =
-              _destController.markerDestination != null;
-        });
-      }
-    });
+    RouteDrawingPayloadInitializer(
+      drawingBloc: _drawingBloc,
+      originController: _originController,
+      destController: _destController,
+    ).initialize(
+      payload: widget.payload,
+      initialOrigin: widget.initialOrigin,
+      initialDestination: widget.initialDestination,
+      isMounted: () => mounted,
+      setState: () => setState(() {}),
+    );
   }
 
   AppCubit? _tryReadAppCubit() {
@@ -222,6 +193,8 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         buildWhen: (prev, curr) =>
             prev.status != curr.status ||
             prev.pointCount != curr.pointCount ||
+            prev.points != curr.points ||
+            prev.segments != curr.segments ||
             prev.totalDistance != curr.totalDistance ||
             prev.totalTime != curr.totalTime ||
             prev.canUndo != curr.canUndo ||
@@ -230,10 +203,16 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
         builder: (context, state) {
           return Stack(
             children: [
-              _buildMapLayer(state),
-              _buildTopBar(topPadding, context),
+              _buildMapLayer(),
               _buildCenterOverlay(state),
-              _buildFloatingToolbar(context, state),
+              RouteDrawingConnectedToolbar(
+                state: state,
+                destController: _destController,
+                mapDisplayCubit: _mapDisplayCubit,
+                drawingBloc: _drawingBloc,
+                mapLayerKey: _mapLayerKey,
+                onSetState: () => setState(() {}),
+              ),
               RouteDrawingBottomCard(
                 pointCount: state.pointCount,
                 distanceMeters: state.totalDistance,
@@ -251,6 +230,7 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                   state: state,
                 ),
               ),
+              _buildTopBar(topPadding, context, state),
             ],
           );
         },
@@ -272,7 +252,7 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     );
   }
 
-  Widget _buildMapLayer(RouteDrawingState state) {
+  Widget _buildMapLayer() {
     if (widget.mapLayerBuilder != null) return widget.mapLayerBuilder!();
     return RouteDrawingMapLayer(
       key: _mapLayerKey,
@@ -283,9 +263,15 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
     );
   }
 
-  Widget _buildTopBar(double topPadding, BuildContext context) {
-    return RouteDrawingTopBar(
+  Widget _buildTopBar(
+    double topPadding,
+    BuildContext context,
+    RouteDrawingState state,
+  ) {
+    return RouteDrawingWaypointPanel(
       topPadding: topPadding,
+      points: state.points,
+      segments: state.segments,
       onSavedRoutesPressed: () =>
           RouteDrawingActionCoordinator.showSavedRoutesSheet(
         context: context,
@@ -294,6 +280,16 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
       ),
       onSearchDestinationPressed: () =>
           _destController.handleSearch(context, mounted),
+      onReorder: (oldIndex, newIndex) {
+        _drawingBloc.add(RouteDrawingReorderPoints(oldIndex, newIndex));
+      },
+      onRemovePoint: (index) {
+        _drawingBloc.add(RouteDrawingRemovePoint(index));
+      },
+      onToggleSegmentStraightLine: (segmentIndex) {
+        _drawingBloc
+            .add(RouteDrawingToggleSegmentStraightLine(segmentIndex));
+      },
     );
   }
 
@@ -321,62 +317,5 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
       );
     }
     return const SizedBox.shrink();
-  }
-
-  Widget _buildFloatingToolbar(BuildContext context, RouteDrawingState state) {
-    return RouteDrawingFloatingToolbar(
-      canUndo: state.canUndo,
-      canRedo: state.canRedo,
-      canClear: state.points.isNotEmpty ||
-          _destController.markerDestination != null,
-      hasPoints: state.points.isNotEmpty,
-      isMyLocationOrigin: _originController.isMyLocationOriginActive,
-      isResolvingMyLocation: _originController.isResolvingMyLocationOrigin,
-      isMarkerDestination: _destController.isMarkerDestinationActive,
-      hasMarkerDestination: true,
-      onLocateMe: _mapDisplayCubit.locateMe,
-      onUndo: () => _drawingBloc.add(const RouteDrawingUndoLastPoint()),
-      onRedo: () => _drawingBloc.add(const RouteDrawingRedoPoint()),
-      onReverseRoute: () {
-        HapticFeedback.mediumImpact();
-        _drawingBloc.add(const RouteDrawingReverseRoute());
-      },
-      canReverse: state.points.length >= 2,
-      isCrosshairActive: _destController.isCrosshairActive,
-      onToggleCrosshair: () {
-        HapticFeedback.selectionClick();
-        setState(() => _destController.isCrosshairActive =
-            !_destController.isCrosshairActive);
-      },
-      onClear: () {
-        setState(() {
-          _originController.isMyLocationOriginActive = false;
-          _destController.isMarkerDestinationActive = false;
-          _destController.markerDestination = null;
-          _destController.isDestinationPickerActive = false;
-        });
-        _drawingBloc.add(const RouteDrawingClearRoute());
-      },
-      isStraightLineMode: state.isStraightLineMode,
-      onToggleStraightLineMode: () {
-        HapticFeedback.selectionClick();
-        _drawingBloc.add(const RouteDrawingToggleStraightLineMode());
-      },
-      onFitBounds: () => _mapLayerKey.currentState?.fitRouteBounds(),
-      onToggleMyLocationOrigin: () => _originController.handleToggle(
-        markerDestination: _destController.markerDestination,
-        mounted: mounted,
-      ),
-      onToggleMarkerDestination: _destController.handleToggle,
-      onRemoveMarkerDestination: _destController.markerDestination != null
-          ? _destController.handleRemove
-          : null,
-      maxHeight: (MediaQuery.sizeOf(context).height -
-              130 -
-              (state.points.length >= 2 ? 200 : 140) -
-              MediaQuery.paddingOf(context).bottom -
-              16)
-          .clamp(120.0, MediaQuery.sizeOf(context).height),
-    );
   }
 }

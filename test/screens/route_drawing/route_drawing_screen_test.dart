@@ -7,6 +7,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/commons/utils/area_search_destination_resolver.dart';
 import 'package:s_map/screens/route_drawing/route_drawing_screen.dart';
 import 'package:s_map/screens/route_drawing/widgets/widgets.dart';
 
@@ -90,6 +91,35 @@ class MockCustomRouteRepo implements ICustomRouteRepository {
   Stream<List<CustomRouteModel>> watchSavedRoutes() => Stream.value([]);
 }
 
+class MockPoiRepo implements IPoiRepository {
+  @override
+  Future<List<PoiModel>> searchByName(String query, {int limit = 20}) async => [];
+
+  @override
+  Future<List<PoiModel>> searchByNameAscii(String query, {int limit = 20}) async => [];
+
+  @override
+  Future<List<PoiModel>> search(String query, {int limit = 20}) async => [];
+
+  @override
+  Future<List<PoiModel>> searchInBounds({
+    required double minLat,
+    required double maxLat,
+    required double minLon,
+    required double maxLon,
+    String? query,
+    String? category,
+    int limit = 50,
+  }) async =>
+      [];
+
+  @override
+  Future<List<String>> getSuggestions(String query, {int limit = 10}) async => [];
+
+  @override
+  Future<PoiModel?> getPoiById(int id) async => null;
+}
+
 Widget createTestableWidget({
   required RouteDrawingBloc drawingBloc,
   required SavedRoutesCubit savedRoutesCubit,
@@ -110,6 +140,9 @@ Widget createTestableWidget({
           drawingBloc: drawingBloc,
           savedRoutesCubit: savedRoutesCubit,
           mapDisplayCubit: mapDisplayCubit,
+          areaSearchResolver: AreaSearchDestinationResolver(
+            poiRepository: MockPoiRepo(),
+          ),
           mapLayerBuilder: () => const SizedBox.expand(
             key: Key('mock_map_layer'),
           ),
@@ -160,8 +193,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Verify top bar, toolbar, and bottom card are present
-      expect(find.byType(RouteDrawingTopBar), findsOneWidget);
+      // Verify waypoint panel, toolbar, and bottom card are present
+      expect(find.byType(RouteDrawingWaypointPanel), findsOneWidget);
       expect(find.byType(RouteDrawingFloatingToolbar), findsOneWidget);
       expect(find.byType(RouteDrawingBottomCard), findsOneWidget);
       expect(find.byKey(const Key('mock_map_layer')), findsOneWidget);
@@ -194,7 +227,7 @@ void main() {
     });
 
     testWidgets(
-        'does not create a start point from the default location when GPS is disabled',
+        'undo on empty route does not crash and leaves points empty',
         (tester) async {
       final mockRouting = MockRoutingRepo();
       final mockCustom = MockCustomRouteRepo();
@@ -222,21 +255,18 @@ void main() {
           mapDisplayCubit: mapCubit,
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(
-        find.byKey(const Key('route_drawing_my_location_origin_button')),
+        find.byKey(const Key('route_drawing_undo_button')),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(drawingBloc.state.points, isEmpty);
-      expect(mapCubit.state.currentPosition, isNull);
-      expect(mapCubit.state.errorMessageKey,
-          'map.location_service_disabled');
     });
 
     testWidgets(
-        'toggling destination picker enters picker mode and can confirm or cancel',
+        'toggling crosshair mode shows or hides center add point button',
         (tester) async {
       final mockRouting = MockRoutingRepo();
       final mockCustom = MockCustomRouteRepo();
@@ -264,50 +294,25 @@ void main() {
           mapDisplayCubit: mapCubit,
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      // Ban đầu: Picker không active, crosshair button hiển thị
-      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
-          findsNothing);
+      // Ban đầu: Crosshair active -> hiển thị nút thêm điểm tại tâm
       expect(find.byKey(const Key('route_drawing_add_point_center_btn')),
           findsOneWidget);
 
-      // Nhấn nút cờ đích trên toolbar: chuyển sang chế độ chọn điểm đích
-      await tester.tap(
-          find.byKey(const Key('route_drawing_marker_destination_button')));
-      await tester.pump();
-
-      // Chế độ picker active: hiển thị nút xác nhận và hủy, ẩn nút thêm điểm crosshair
-      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
-          findsOneWidget);
-      expect(find.byKey(const Key('route_drawing_cancel_destination_btn')),
-          findsOneWidget);
+      // Nhấn nút crosshair trên toolbar: tắt crosshair -> ẩn nút thêm điểm tại tâm
+      final crosshairBtn = find.byKey(const Key('route_drawing_crosshair_button'));
+      await tester.ensureVisible(crosshairBtn);
+      await tester.tap(crosshairBtn);
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('route_drawing_add_point_center_btn')),
           findsNothing);
 
-      // Hủy picker
-      await tester.tap(
-          find.byKey(const Key('route_drawing_cancel_destination_btn')));
-      await tester.pump();
-
-      // Quay lại chế độ vẽ thông thường
-      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
-          findsNothing);
+      // Bật lại crosshair
+      await tester.ensureVisible(crosshairBtn);
+      await tester.tap(crosshairBtn);
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('route_drawing_add_point_center_btn')),
-          findsOneWidget);
-
-      // Mở lại picker và xác nhận chọn đích
-      await tester.tap(
-          find.byKey(const Key('route_drawing_marker_destination_button')));
-      await tester.pump();
-      await tester.tap(
-          find.byKey(const Key('route_drawing_confirm_destination_btn')));
-      await tester.pump();
-
-      // Sau khi chọn đích: thoát picker, nút xóa đích xuất hiện
-      expect(find.byKey(const Key('route_drawing_confirm_destination_btn')),
-          findsNothing);
-      expect(find.byKey(const Key('route_drawing_remove_destination_button')),
           findsOneWidget);
     });
   });

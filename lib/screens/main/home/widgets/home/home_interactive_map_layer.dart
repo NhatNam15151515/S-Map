@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -9,7 +8,6 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/commons/utils/utils.dart';
-import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
@@ -40,8 +38,6 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   final MapRouteManager _routeManager = MapRouteManager();
   final MapRenderedFeatureResolver _featureResolver =
       MapRenderedFeatureResolver();
-  int _navListenerGeneration = 0;
-  int _routeMarkerSyncGeneration = 0;
   int _memoryMarkerSyncGeneration = 0;
 
   @override
@@ -98,37 +94,29 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     });
   }
 
-  void handleCameraAction(MapCameraAction action) {
-    _cameraController.applyCameraAction(_mapController, action);
-  }
+  void handleCameraAction(MapCameraAction action) =>
+      _cameraController.applyCameraAction(_mapController, action);
 
   @override
-  Future<void> setSelectedPoiMarker(PoiModel poi) {
-    return _symbolManager.setSelectedPoiMarker(_mapController, poi);
-  }
+  Future<void> setSelectedPoiMarker(PoiModel poi) =>
+      _symbolManager.setSelectedPoiMarker(_mapController, poi);
 
-  void clearSelectedPoiMarker({bool restoreSearchResults = true}) {
-    _symbolManager.clearSelectedPoiMarker(
-      _mapController,
-      restoreSearchResults: restoreSearchResults,
-    );
-  }
+  void clearSelectedPoiMarker({bool restoreSearchResults = true}) =>
+      _symbolManager.clearSelectedPoiMarker(
+        _mapController,
+        restoreSearchResults: restoreSearchResults,
+      );
 
-  Future<void> hideSearchResultMarkers() {
-    return _symbolManager.hideSearchResultMarkers(_mapController);
-  }
+  Future<void> hideSearchResultMarkers() =>
+      _symbolManager.hideSearchResultMarkers(_mapController);
 
-  Future<void> clearSearchResults() {
-    return _symbolManager.clearSearchResults(_mapController);
-  }
+  Future<void> clearSearchResults() =>
+      _symbolManager.clearSearchResults(_mapController);
 
-  void cacheSearchResultPois(List<PoiModel> pois) {
-    _symbolManager.cacheSearchResultPois(pois);
-  }
+  void cacheSearchResultPois(List<PoiModel> pois) =>
+      _symbolManager.cacheSearchResultPois(pois);
 
-  void clearAll() {
-    _symbolManager.clearAll(_mapController);
-  }
+  void clearAll() => _symbolManager.clearAll(_mapController);
 
   @override
   Future<void> refreshMemoryMarkers() async {
@@ -151,13 +139,12 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     );
   }
 
-  void showSearchResults(List<PoiModel> pois, {bool fitBounds = true}) {
-    _symbolManager.showSearchResults(
-      _mapController,
-      pois,
-      fitBounds: fitBounds,
-    );
-  }
+  void showSearchResults(List<PoiModel> pois, {bool fitBounds = true}) =>
+      _symbolManager.showSearchResults(
+        _mapController,
+        pois,
+        fitBounds: fitBounds,
+      );
 
   // ─── Map Callbacks ───────────────────────────────────────────
 
@@ -234,137 +221,28 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     super.dispose();
   }
 
-  // ─── Bloc State Handlers ─────────────────────────────────────
+  late final HomeMapSyncCoordinator _syncCoordinator;
 
-  Future<void> _onMapDisplayStateChanged(
-    BuildContext context,
-    MapDisplayState state,
-  ) async {
-    applyMapStyle(state.styleString);
-    if (state.cameraAction != null) handleCameraAction(state.cameraAction!);
-    if (state.selectedPoi != null) {
-      await setSelectedPoiMarker(state.selectedPoi!);
-    } else if (_symbolManager.selectedPoi != null) {
-      clearSelectedPoiMarker();
-    }
-    if (state.status == MapDisplayStatus.error &&
-        state.errorMessageKey != null) {
-      showError(tr(state.errorMessageKey!));
-    }
-  }
-
-  void _onViewportSearchStateChanged(
-    BuildContext context,
-    ViewportSearchState state,
-  ) {
-    if (_hasActiveRouteOrNavigation) return;
-    if (state.status == ViewportSearchStatus.success) {
-      if (state.selectedCategory == CategoryConstants.all) {
-        if (state.pois.length == 1) {
-          _symbolManager.cacheSearchResultPois(state.pois);
-        } else {
-          _symbolManager.renderPoiList(_mapController, state.pois);
-        }
-      }
-    } else if (state.status == ViewportSearchStatus.empty) {
-      if (state.selectedCategory == CategoryConstants.all) {
-        _symbolManager.renderPoiList(_mapController, const []);
-      }
-    } else if (state.status == ViewportSearchStatus.error &&
-        state.errorMessageKey != null) {
-      showError(tr(state.errorMessageKey!));
-    }
-  }
-
-  Future<void> _onRoutePreviewStateChanged(RoutePreviewState state) async {
-    final syncGeneration = ++_routeMarkerSyncGeneration;
-    if (state.isLoading || state.isSuccess) {
-      await _symbolManager.hideSearchResultMarkers(_mapController);
-      if (!mounted || syncGeneration != _routeMarkerSyncGeneration) return;
-    }
-    if (state.isSuccess && state.currentRoute != null) {
-      await _routeManager.drawRoute(
-        controller: _mapController,
-        routeResult: state.currentRoute!,
-        origin: state.origin!,
-        destination: state.destination!,
-        destinationName: state.destinationName,
-        alternativeRoutes: state.alternativeRoutes,
-        selectedRouteIndex: state.selectedRouteIndex,
-      );
-      if (!mounted || syncGeneration != _routeMarkerSyncGeneration) return;
-      _routeManager.fitRouteBounds(
-        controller: _mapController,
-        routeResult: state.currentRoute!,
-        origin: state.origin,
-        destination: state.destination,
-      );
-    } else if (state.isInitial || state.isError) {
-      await _routeManager.clearRoute(_mapController);
-      if (!mounted || syncGeneration != _routeMarkerSyncGeneration) return;
-      if (!_hasActiveRouteOrNavigation) {
-        await _symbolManager.restoreSearchResultMarkers(_mapController);
-      }
-      if (state.isError && state.errorMessageKey != null) {
-        showError(tr(state.errorMessageKey!));
-      }
-    }
-  }
-
-  Future<void> _onNavigationStateChanged(NavigationState navState) async {
-    final gen = ++_navListenerGeneration;
-    if (navState.isNavigating) {
-      if (navState.currentRoute != null &&
-          navState.currentRoute != renderedNavRoute &&
-          navState.origin != null &&
-          navState.destination != null) {
-        await _symbolManager.hideSearchResultMarkers(_mapController);
-        if (!mounted || gen != _navListenerGeneration) return;
-        final isSuccess = await _routeManager.drawRoute(
-          controller: _mapController,
-          routeResult: navState.currentRoute!,
-          origin: navState.origin!,
-          destination: navState.destination!,
-          destinationName: navState.destinationName,
-        );
-        if (!mounted || gen != _navListenerGeneration) return;
-        if (isSuccess) renderedNavRoute = navState.currentRoute;
-      }
-      if (!mounted || gen != _navListenerGeneration) return;
-      if (navState.currentLat != null && navState.currentLon != null) {
-        if (displayCubit.state.isFollowingUser) {
-          _cameraController.updateNavigationCamera(
-            controller: _mapController,
-            lat: navState.displayLat ?? navState.currentLat!,
-            lon: navState.displayLon ?? navState.currentLon!,
-            gpsHeading: navState.currentHeading,
-            compassHeading: displayCubit.state.compassHeading,
-            speedKmh: navState.currentSpeedKmh,
-          );
-        }
-        if (navState.currentRoute != null &&
-            navState.currentRoute == renderedNavRoute &&
-            gen == _navListenerGeneration) {
-          _routeManager.updateNavigationProgress(
-            controller: _mapController,
-            rawPoints: navState.currentRoute!.points,
-            currentSegmentIndex: navState.currentSegmentIndex,
-            currentLat: navState.displayLat ?? navState.currentLat,
-            currentLon: navState.displayLon ?? navState.currentLon,
-          );
-        }
-      }
-    } else if (navState.status == NavigationStatus.stopped ||
-        navState.status == NavigationStatus.initial) {
-      renderedNavRoute = null;
-      await _routeManager.clearRoute(_mapController);
-      if (!mounted || gen != _navListenerGeneration) return;
-      if (!_hasActiveRouteOrNavigation) {
-        await _symbolManager.restoreSearchResultMarkers(_mapController);
-      }
-    } else if (navState.status == NavigationStatus.arrived) {
-      await refreshMemoryMarkers();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _syncCoordinator = HomeMapSyncCoordinator(
+      getMapController: () => _mapController,
+      symbolManager: _symbolManager,
+      routeManager: _routeManager,
+      cameraController: _cameraController,
+      displayCubit: displayCubit,
+      onApplyMapStyle: applyMapStyle,
+      onCameraAction: handleCameraAction,
+      onSetSelectedPoiMarker: setSelectedPoiMarker,
+      onClearSelectedPoiMarker: clearSelectedPoiMarker,
+      onError: showError,
+      onRefreshMemoryMarkers: refreshMemoryMarkers,
+      hasActiveRouteOrNavigation: () => _hasActiveRouteOrNavigation,
+      isMounted: () => mounted,
+      getRenderedNavRoute: () => renderedNavRoute,
+      setRenderedNavRoute: (route) => renderedNavRoute = route,
+    );
   }
 
   // ─── Build ───────────────────────────────────────────────────
@@ -372,10 +250,10 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   @override
   Widget build(BuildContext context) {
     return MapLayerBlocListeners(
-      onMapDisplayChanged: _onMapDisplayStateChanged,
-      onViewportSearchChanged: _onViewportSearchStateChanged,
-      onRoutePreviewChanged: _onRoutePreviewStateChanged,
-      onNavigationChanged: _onNavigationStateChanged,
+      onMapDisplayChanged: _syncCoordinator.onMapDisplayStateChanged,
+      onViewportSearchChanged: _syncCoordinator.onViewportSearchStateChanged,
+      onRoutePreviewChanged: _syncCoordinator.onRoutePreviewStateChanged,
+      onNavigationChanged: _syncCoordinator.onNavigationStateChanged,
       onFavoritesChanged: () => unawaited(refreshMemoryMarkers()),
       child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
         buildWhen: (prev, curr) =>
@@ -384,62 +262,19 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
         builder: (context, state) {
           return BlocBuilder<NavigationBloc, NavigationState>(
             buildWhen: (prev, curr) => prev.isNavigating != curr.isNavigating,
-            builder: (context, navState) =>
-                _buildMapViewStack(state, navState),
+            builder: (context, navState) => HomeMapCanvas(
+              state: state,
+              navState: navState,
+              displayCubit: displayCubit,
+              onMapCreated: _onMapCreated,
+              onStyleLoaded: onStyleLoaded,
+              onCameraIdle: _onCameraIdle,
+              onMapClick: _onMapClick,
+              onMapLongClick: _onMapLongClick,
+            ),
           );
         },
       ),
-    );
-  }
-
-  Widget _buildMapViewStack(
-    MapDisplayState state,
-    NavigationState navState,
-  ) {
-    final isNavigating = navState.isNavigating;
-
-    return Stack(
-      children: [
-        Listener(
-          behavior: HitTestBehavior.translucent,
-          onPointerMove: (event) {
-            if (isNavigating && displayCubit.state.isFollowingUser) {
-              if (event.delta.distanceSquared > 4) {
-                displayCubit.unfollowUser();
-              }
-            }
-          },
-          child: MapView(
-            key: const Key('map_view_main'),
-            styleString: state.styleString,
-            nativeCompassEnabled: false,
-            myLocationTrackingMode: isNavigating
-                ? MyLocationTrackingMode.none
-                : MyLocationTrackingMode.tracking,
-            myLocationRenderMode: isNavigating
-                ? MyLocationRenderMode.compass
-                : MyLocationRenderMode.normal,
-            onMapCreated: _onMapCreated,
-            onStyleLoadedCallback: onStyleLoaded,
-            onCameraTrackingDismissed: displayCubit.onCameraTrackingDismissed,
-            onCameraMove: displayCubit.onCameraMove,
-            onCameraIdle: _onCameraIdle,
-            onMapClick: _onMapClick,
-            onMapLongClick: _onMapLongClick,
-          ),
-        ),
-        if (state.status == MapDisplayStatus.loading)
-          const Positioned.fill(
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        if (state.status == MapDisplayStatus.error)
-          MapErrorOverlay(
-            errorMessage: state.errorMessageKey != null
-                ? tr(state.errorMessageKey!)
-                : tr(LocaleKeys.map_error_load),
-            onRetry: displayCubit.locateMe,
-          ),
-      ],
     );
   }
 }

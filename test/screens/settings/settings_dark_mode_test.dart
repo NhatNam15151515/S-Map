@@ -38,7 +38,12 @@ class FakeSharedPreferences implements ISharedPreferences {
   }
 }
 
-Widget createSettingsTestApp({required AppCubit appCubit}) {
+Widget createSettingsTestApp({
+  required AppCubit appCubit,
+  AuthCubit? authCubit,
+}) {
+  final effectiveAuthCubit =
+      authCubit ?? AuthCubit(sharedPreferences: FakeSharedPreferences());
   final router = GoRouter(
     initialLocation: '/',
     routes: [
@@ -55,8 +60,11 @@ Widget createSettingsTestApp({required AppCubit appCubit}) {
     fallbackLocale: const Locale('vi'),
     startLocale: const Locale('vi'),
     assetLoader: const CodegenLoader(),
-    child: BlocProvider<AppCubit>.value(
-      value: appCubit,
+    child: MultiBlocProvider(
+      providers: [
+        BlocProvider<AppCubit>.value(value: appCubit),
+        BlocProvider<AuthCubit>.value(value: effectiveAuthCubit),
+      ],
       child: Builder(
         builder: (context) => MaterialApp.router(
           localizationsDelegates: context.localizationDelegates,

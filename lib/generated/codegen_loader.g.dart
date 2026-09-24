@@ -271,7 +271,12 @@ class CodegenLoader extends AssetLoader{
     "remove_destination": "Remove destination point",
     "reverse_route": "Reverse route",
     "crosshair_tooltip_on": "Enable drawing crosshair",
-    "crosshair_tooltip_off": "Disable drawing crosshair"
+    "crosshair_tooltip_off": "Disable drawing crosshair",
+    "follow_roads": "Follow roads",
+    "straight_line": "Direct line",
+    "add_destination": "Add destination",
+    "delete_waypoint_tooltip": "Delete this waypoint",
+    "search_destination_tooltip": "Search destination"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",
@@ -324,7 +329,12 @@ class CodegenLoader extends AssetLoader{
     "speed_unit": "{} km/h",
     "distance_value": "{} km",
     "avg_speed_value": "{} km/h",
-    "top_speed_value": "{} km/h"
+    "top_speed_value": "{} km/h",
+    "detail_stopped_point": "Stopped Point",
+    "detail_streets_traveled": "Streets Traveled",
+    "detail_leg_street": "Route Segment {}",
+    "detail_street_avg_speed": "Avg",
+    "detail_street_max_speed": "Max"
   },
   "auth_guest_name": "Guest_{}",
   "offline_maps_vietnam_name": "Vietnam Nationwide Map",
@@ -626,7 +636,12 @@ static const Map<String,dynamic> _vi = {
     "remove_destination": "Xóa điểm kết thúc",
     "reverse_route": "Đảo chiều lộ trình",
     "crosshair_tooltip_on": "Bật tâm ngắm vẽ đường",
-    "crosshair_tooltip_off": "Tắt tâm ngắm vẽ đường"
+    "crosshair_tooltip_off": "Tắt tâm ngắm vẽ đường",
+    "follow_roads": "Theo đường",
+    "straight_line": "Đường chim bay",
+    "add_destination": "Thêm điểm đến",
+    "delete_waypoint_tooltip": "Xóa điểm này",
+    "search_destination_tooltip": "Tìm điểm đến"
   },
   "stats_dashboard": {
     "title": "Thống kê chuyến đi",
@@ -679,7 +694,12 @@ static const Map<String,dynamic> _vi = {
     "speed_unit": "{} km/h",
     "distance_value": "{} km",
     "avg_speed_value": "{} km/h",
-    "top_speed_value": "{} km/h"
+    "top_speed_value": "{} km/h",
+    "detail_stopped_point": "Điểm dừng",
+    "detail_streets_traveled": "Các con đường đã đi",
+    "detail_leg_street": "Cung đường {}",
+    "detail_street_avg_speed": "TB",
+    "detail_street_max_speed": "Tối đa"
   },
   "auth_guest_name": "Khách_{}",
   "offline_maps_vietnam_name": "Bản đồ Toàn quốc Việt Nam",

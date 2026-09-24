@@ -1,5 +1,6 @@
 export 'route_drawing_action_coordinator.dart';
 export 'route_drawing_bottom_card.dart';
+export 'route_drawing_connected_toolbar.dart';
 export 'route_drawing_crosshair_overlay.dart';
 export 'route_drawing_destination_controller.dart';
 export 'route_drawing_destination_picker_overlay.dart';
@@ -7,7 +8,14 @@ export 'route_drawing_empty_prompt.dart';
 export 'route_drawing_floating_toolbar.dart';
 export 'route_drawing_map_layer.dart';
 export 'route_drawing_origin_controller.dart';
+export 'route_drawing_payload_initializer.dart';
 export 'route_drawing_stats_row.dart';
 export 'route_drawing_top_bar.dart';
 export 'save_custom_route_dialog.dart';
 export 'saved_routes_sheet.dart';
+export 'route_drawing_segment_divider.dart';
+export 'route_drawing_waypoint_item.dart';
+export 'route_drawing_point_icon.dart';
+export 'route_drawing_waypoint_list.dart';
+export 'route_drawing_waypoint_panel.dart';
+

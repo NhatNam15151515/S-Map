@@ -172,8 +172,9 @@ class TripLegExtractor {
         if (normalizedAngle >= 35.0) {
           turns.add(i);
           accumulatedDist = 0.0;
-          if (turns.length >= 5)
+          if (turns.length >= 5) {
             break; // Giới hạn tối đa 5 chặng để hiển thị tối ưu
+          }
         }
       }
     }

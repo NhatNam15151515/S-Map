@@ -21,11 +21,11 @@ class FirebaseAuthService implements IFirebaseAuthService {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
-      } catch (_) {
+      } catch (e1) {
         try {
           await Firebase.initializeApp();
-        } catch (e) {
-          DLog.error("Firebase init fallback error: $e");
+        } catch (e2) {
+          DLog.error("Firebase init fallback error: $e2 (options error: $e1)");
         }
       }
     }

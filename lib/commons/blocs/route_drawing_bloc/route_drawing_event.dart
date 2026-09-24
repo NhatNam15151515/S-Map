@@ -95,3 +95,35 @@ class RouteDrawingChangeProfile extends RouteDrawingEvent {
   List<Object?> get props => [profile];
 }
 
+/// Bật / Tắt chế độ đường chim bay cho riêng 1 segment cụ thể giữa 2 điểm
+class RouteDrawingToggleSegmentStraightLine extends RouteDrawingEvent {
+  final int segmentIndex;
+
+  const RouteDrawingToggleSegmentStraightLine(this.segmentIndex);
+
+  @override
+  List<Object?> get props => [segmentIndex];
+}
+
+/// Kéo thả thay đổi thứ tự các điểm trong danh sách waypoints
+class RouteDrawingReorderPoints extends RouteDrawingEvent {
+  final int oldIndex;
+  final int newIndex;
+
+  const RouteDrawingReorderPoints(this.oldIndex, this.newIndex);
+
+  @override
+  List<Object?> get props => [oldIndex, newIndex];
+}
+
+/// Xóa một điểm cụ thể khỏi danh sách waypoints
+class RouteDrawingRemovePoint extends RouteDrawingEvent {
+  final int index;
+
+  const RouteDrawingRemovePoint(this.index);
+
+  @override
+  List<Object?> get props => [index];
+}
+
+

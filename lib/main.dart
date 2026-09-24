@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:s_map/firebase_options.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/flavor/flavor.dart';
 import 'package:s_map/repos/repos.dart';
 import 'dart:io';
+import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/services/services.dart';
 
 void main() async {
@@ -83,10 +85,13 @@ void main() async {
 
   try {
     if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      DLog.info('🔥 [S-MAP] Firebase initialized OK (apps=${Firebase.apps.length})');
     }
   } catch (e) {
-    debugPrint("Firebase.initializeApp notice: $e");
+    DLog.error("🔥 [S-MAP] Firebase.initializeApp FAILED: $e");
   }
 
   try {

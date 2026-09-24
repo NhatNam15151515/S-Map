@@ -52,46 +52,49 @@ class PoiListTile extends StatelessWidget {
       subtitleText = address.isNotEmpty ? '$distStr • $address' : distStr;
     }
 
-    return ListTile(
-      contentPadding: contentPadding,
-      onTap: onTap,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(10),
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        contentPadding: contentPadding,
+        onTap: onTap,
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            color: iconColor,
+            size: 22,
+          ),
         ),
-        child: Icon(
-          icon,
-          color: iconColor,
-          size: 22,
+        title: Text(
+          poi.name,
+          style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
+            fontSize: 15,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-      ),
-      title: Text(
-        poi.name,
-        style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-          fontSize: 15,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: subtitleText.isNotEmpty
-          ? Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                subtitleText,
-                style:
-                    colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
-                  fontSize: 13,
-                  fontWeight: AppFontWeight.regular.weight,
+        subtitle: subtitleText.isNotEmpty
+            ? Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  subtitleText,
+                  style:
+                      colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+                    fontSize: 13,
+                    fontWeight: AppFontWeight.regular.weight,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            )
-          : null,
-      trailing: trailing,
+              )
+            : null,
+        trailing: trailing,
+      ),
     );
   }
 }

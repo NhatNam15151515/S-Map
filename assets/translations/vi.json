@@ -255,7 +255,12 @@
     "remove_destination": "Xóa điểm kết thúc",
     "reverse_route": "Đảo chiều lộ trình",
     "crosshair_tooltip_on": "Bật tâm ngắm vẽ đường",
-    "crosshair_tooltip_off": "Tắt tâm ngắm vẽ đường"
+    "crosshair_tooltip_off": "Tắt tâm ngắm vẽ đường",
+    "follow_roads": "Theo đường",
+    "straight_line": "Đường chim bay",
+    "add_destination": "Thêm điểm đến",
+    "delete_waypoint_tooltip": "Xóa điểm này",
+    "search_destination_tooltip": "Tìm điểm đến"
   },
   "stats_dashboard": {
     "title": "Thống kê chuyến đi",

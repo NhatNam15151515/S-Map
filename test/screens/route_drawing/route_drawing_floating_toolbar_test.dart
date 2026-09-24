@@ -40,7 +40,6 @@ void main() {
       bool undoCalled = false;
       bool redoCalled = false;
       bool clearCalled = false;
-      bool fitBoundsCalled = false;
 
       await tester.pumpWidget(
         createTestableWidget(
@@ -52,7 +51,6 @@ void main() {
             onUndo: () => undoCalled = true,
             onRedo: () => redoCalled = true,
             onClear: () => clearCalled = true,
-            onFitBounds: () => fitBoundsCalled = true,
           ),
         ),
       );
@@ -61,20 +59,17 @@ void main() {
       await tester.tap(find.byKey(const Key('route_drawing_undo_button')));
       await tester.tap(find.byKey(const Key('route_drawing_redo_button')));
       await tester.tap(find.byKey(const Key('route_drawing_clear_button')));
-      await tester.tap(find.byKey(const Key('route_drawing_fit_bounds_button')));
       await tester.pump();
 
       expect(undoCalled, isFalse);
       expect(redoCalled, isFalse);
       expect(clearCalled, isFalse);
-      expect(fitBoundsCalled, isFalse);
     });
 
     testWidgets('enabled buttons trigger callbacks correctly', (tester) async {
       bool undoCalled = false;
       bool redoCalled = false;
       bool clearCalled = false;
-      bool fitBoundsCalled = false;
       bool locateMeCalled = false;
 
       await tester.pumpWidget(
@@ -87,7 +82,6 @@ void main() {
             onUndo: () => undoCalled = true,
             onRedo: () => redoCalled = true,
             onClear: () => clearCalled = true,
-            onFitBounds: () => fitBoundsCalled = true,
             onLocateMe: () => locateMeCalled = true,
           ),
         ),
@@ -104,11 +98,7 @@ void main() {
       await tester.pump();
       expect(redoCalled, isTrue);
 
-      // Test Fit Bounds
-      await tester.tap(find.byKey(const Key('route_drawing_fit_bounds_button')));
-      await tester.pump();
-      expect(fitBoundsCalled, isTrue);
-
+      // Test Locate me
       await tester.tap(find.byKey(const Key('route_drawing_locate_me_button')));
       await tester.pump();
       expect(locateMeCalled, isTrue);
@@ -131,36 +121,6 @@ void main() {
       await tester.tap(find.byKey(const Key('route_drawing_clear_confirm_btn')));
       await tester.pumpAndSettle();
       expect(clearCalled, isTrue);
-    });
-
-    testWidgets('straight-line mode button renders and triggers toggle callback', (tester) async {
-      bool toggleStraightLineCalled = false;
-
-      await tester.pumpWidget(
-        createTestableWidget(
-          RouteDrawingFloatingToolbar(
-            canUndo: false,
-            canRedo: false,
-            canClear: false,
-            hasPoints: false,
-            isStraightLineMode: true,
-            onToggleStraightLineMode: () => toggleStraightLineCalled = true,
-            onUndo: () {},
-            onRedo: () {},
-            onClear: () {},
-            onFitBounds: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final toggleFinder = find.byKey(const Key('route_drawing_toggle_straight_line_btn'));
-      expect(toggleFinder, findsOneWidget);
-      expect(find.byIcon(Icons.airplanemode_active_rounded), findsOneWidget);
-
-      await tester.tap(toggleFinder);
-      await tester.pump();
-      expect(toggleStraightLineCalled, isTrue);
     });
   });
 }

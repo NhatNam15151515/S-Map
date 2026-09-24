@@ -103,20 +103,19 @@ class RouteDrawingMapLayerState extends State<RouteDrawingMapLayer> with AppMixi
 
   void _onMapClick(Point<double> point, LatLng latLng) {
     if (drawingBloc.state.isLoading) return;
-
-    final targetLatLng = widget.isCrosshairActive
-        ? (currentCenter ?? latLng)
-        : latLng;
+    // Khi đang bật tâm ngắm (crosshair), điểm chỉ được thêm qua nút "Thêm điểm tại tâm"
+    // Tránh click nhầm hoặc gesture xuyên qua tự động sinh điểm tại tâm.
+    if (widget.isCrosshairActive) return;
 
     HapticFeedback.lightImpact();
 
     if (widget.onMapTap != null) {
-      widget.onMapTap!(targetLatLng);
+      widget.onMapTap!(latLng);
     } else {
       drawingBloc.add(
         RouteDrawingPointTapped(
-          lat: targetLatLng.latitude,
-          lon: targetLatLng.longitude,
+          lat: latLng.latitude,
+          lon: latLng.longitude,
         ),
       );
     }

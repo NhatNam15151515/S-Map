@@ -43,6 +43,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     on<RouteDrawingReverseRoute>(_onReverseRoute);
     on<RouteDrawingChangeProfile>(_onChangeProfile, transformer: restartable());
     on<RouteDrawingToggleStraightLineMode>(_onToggleStraightLineMode);
+    on<RouteDrawingToggleSegmentStraightLine>(_onToggleSegmentStraightLine);
+    on<RouteDrawingReorderPoints>(_onReorderPoints);
+    on<RouteDrawingRemovePoint>(_onRemovePoint);
   }
 
   void _onToggleStraightLineMode(
@@ -60,6 +63,35 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     if (profile == RoutingConstants.profileBike) return 12.0;
     if (profile == RoutingConstants.profileCar) return 30.0;
     return 20.0; // default moped / motorcycle
+  }
+
+  /// Nối 2 điểm tọa độ theo đường chim bay (Direct Line giữa [from] và [to])
+  static RouteResult buildStraightLineSegment({
+    required SnappedRoadPoint from,
+    required SnappedRoadPoint to,
+    required String profile,
+  }) {
+    final distanceKm = AppUtils.instance.calculateDistance(
+      from.snappedLat,
+      from.snappedLon,
+      to.snappedLat,
+      to.snappedLon,
+    );
+    final distanceMeters = distanceKm * 1000.0;
+    final speedKmh = _getProfileSpeedKmh(profile);
+    final durationMs = (distanceKm / speedKmh * 3600000).round();
+
+    return RouteResult(
+      isSuccess: true,
+      distance: distanceMeters,
+      time: durationMs,
+      points: [
+        [from.snappedLat, from.snappedLon],
+        [to.snappedLat, to.snappedLon],
+      ],
+      isStraightLine: true,
+      routeTitle: 'Đường chim bay',
+    );
   }
 
   /// Nối tất cả các điểm tọa độ từ các segment lại thành một chuỗi Polyline duy nhất
@@ -206,26 +238,10 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       }
 
       final prevPoint = state.points.last;
-      final distanceKm = AppUtils.instance.calculateDistance(
-        prevPoint.snappedLat,
-        prevPoint.snappedLon,
-        effectivePoint.snappedLat,
-        effectivePoint.snappedLon,
-      );
-      final distanceMeters = distanceKm * 1000.0;
-      final speedKmh = _getProfileSpeedKmh(state.profile);
-      final durationMs = (distanceKm / speedKmh * 3600000).round();
-
-      final straightLineRoute = RouteResult(
-        isSuccess: true,
-        distance: distanceMeters,
-        time: durationMs,
-        points: [
-          [prevPoint.snappedLat, prevPoint.snappedLon],
-          [effectivePoint.snappedLat, effectivePoint.snappedLon],
-        ],
-        routeTitle: 'Đường chim bay',
-        isStraightLine: true,
+      final straightLineRoute = buildStraightLineSegment(
+        from: prevPoint,
+        to: effectivePoint,
+        profile: state.profile,
       );
 
       final newPoints = [...state.points, effectivePoint];
@@ -799,6 +815,182 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     final newPolyline = _buildFullPolyline(newSegments);
     emit(state.copyWith(
       status: RouteDrawingStatus.routeUpdated,
+      segments: newSegments,
+      fullPolyline: newPolyline,
+      totalDistance: totalDist,
+      totalTime: totalTime,
+      clearWarning: true,
+      clearError: true,
+    ));
+  }
+
+  Future<void> _onToggleSegmentStraightLine(
+    RouteDrawingToggleSegmentStraightLine event,
+    Emitter<RouteDrawingState> emit,
+  ) async {
+    final idx = event.segmentIndex;
+    DLog.info(
+        '✈️ [RouteDrawingBloc] onToggleSegmentStraightLine: idx=$idx, segments=${state.segments.length}, points=${state.points.length}');
+
+    if (idx < 0 ||
+        idx >= state.segments.length ||
+        idx >= state.points.length - 1) {
+      DLog.warning(
+          '⚠️ [RouteDrawingBloc] Invalid segment index $idx (segments: ${state.segments.length}, points: ${state.points.length})');
+      return;
+    }
+
+    final from = state.points[idx];
+    final to = state.points[idx + 1];
+    final currentSeg = state.segments[idx];
+
+    final RouteResult updatedSeg;
+    if (currentSeg.isStraightLine) {
+      DLog.info(
+          '✈️ [RouteDrawingBloc] Switching segment $idx from StraightLine -> Road Route');
+      final route = await _routingRepository.calculateRoute(
+        fromLat: from.snappedLat,
+        fromLon: from.snappedLon,
+        toLat: to.snappedLat,
+        toLon: to.snappedLon,
+        vehicleProfile: state.profile,
+      );
+      updatedSeg = route.isSuccess
+          ? route
+          : buildStraightLineSegment(
+              from: from, to: to, profile: state.profile);
+    } else {
+      DLog.info(
+          '✈️ [RouteDrawingBloc] Switching segment $idx from Road Route -> StraightLine');
+      updatedSeg = buildStraightLineSegment(
+        from: from,
+        to: to,
+        profile: state.profile,
+      );
+    }
+
+    if (isClosed || emit.isDone) return;
+
+    final newSegments = List<RouteResult>.from(state.segments);
+    newSegments[idx] = updatedSeg;
+
+    final newPolyline = _buildFullPolyline(newSegments);
+    final totalDist =
+        newSegments.fold<double>(0.0, (sum, s) => sum + s.distance);
+    final totalTime = newSegments.fold<int>(0, (sum, s) => sum + s.time);
+
+    DLog.info(
+        '✅ [RouteDrawingBloc] Segment $idx straight line toggled: isStraightLine=${updatedSeg.isStraightLine}, totalDist=${totalDist.toStringAsFixed(1)}m');
+
+    emit(state.copyWith(
+      status: RouteDrawingStatus.routeUpdated,
+      segments: newSegments,
+      fullPolyline: newPolyline,
+      totalDistance: totalDist,
+      totalTime: totalTime,
+      clearWarning: true,
+      clearError: true,
+    ));
+  }
+
+  Future<void> _onReorderPoints(
+    RouteDrawingReorderPoints event,
+    Emitter<RouteDrawingState> emit,
+  ) async {
+    final oldIdx = event.oldIndex;
+    var newIdx = event.newIndex;
+    if (oldIdx < 0 || oldIdx >= state.points.length) return;
+    if (newIdx < 0 || newIdx > state.points.length) return;
+    if (newIdx > oldIdx) newIdx -= 1;
+    if (oldIdx == newIdx) return;
+
+    final newPoints = List<SnappedRoadPoint>.from(state.points);
+    final moved = newPoints.removeAt(oldIdx);
+    newPoints.insert(newIdx, moved);
+
+    await _recalculateRouteForPoints(newPoints, emit);
+  }
+
+  Future<void> _onRemovePoint(
+    RouteDrawingRemovePoint event,
+    Emitter<RouteDrawingState> emit,
+  ) async {
+    final idx = event.index;
+    if (idx < 0 || idx >= state.points.length) return;
+
+    final newPoints = List<SnappedRoadPoint>.from(state.points)..removeAt(idx);
+    await _recalculateRouteForPoints(newPoints, emit);
+  }
+
+  Future<void> _recalculateRouteForPoints(
+    List<SnappedRoadPoint> points,
+    Emitter<RouteDrawingState> emit,
+  ) async {
+    final gen = ++_currentGeneration;
+    if (points.isEmpty) {
+      emit(state.copyWith(
+        status: RouteDrawingStatus.initial,
+        points: const [],
+        segments: const [],
+        fullPolyline: const [],
+        totalDistance: 0.0,
+        totalTime: 0,
+        requestGeneration: gen,
+        clearWarning: true,
+        clearError: true,
+      ));
+      return;
+    }
+    if (points.length == 1) {
+      emit(state.copyWith(
+        status: RouteDrawingStatus.pointAdded,
+        points: points,
+        segments: const [],
+        fullPolyline: const [],
+        totalDistance: 0.0,
+        totalTime: 0,
+        requestGeneration: gen,
+        clearWarning: true,
+        clearError: true,
+      ));
+      return;
+    }
+
+    emit(state.copyWith(
+      status: RouteDrawingStatus.loading,
+      points: points,
+      requestGeneration: gen,
+    ));
+
+    final newSegments = <RouteResult>[];
+    for (int i = 0; i < points.length - 1; i++) {
+      final from = points[i];
+      final to = points[i + 1];
+      final route = await _routingRepository.calculateRoute(
+        fromLat: from.snappedLat,
+        fromLon: from.snappedLon,
+        toLat: to.snappedLat,
+        toLon: to.snappedLon,
+        vehicleProfile: state.profile,
+      );
+      if (route.isSuccess) {
+        newSegments.add(route);
+      } else {
+        newSegments.add(buildStraightLineSegment(
+            from: from, to: to, profile: state.profile));
+      }
+    }
+
+    if (gen != _currentGeneration || isClosed || emit.isDone) return;
+
+    final newPolyline = _buildFullPolyline(newSegments);
+    final totalDist =
+        newSegments.fold<double>(0.0, (sum, s) => sum + s.distance);
+    final totalTime = newSegments.fold<int>(0, (sum, s) => sum + s.time);
+
+    emit(state.copyWith(
+      status: RouteDrawingStatus.routeUpdated,
+      points: points,
       segments: newSegments,
       fullPolyline: newPolyline,
       totalDistance: totalDist,

@@ -61,9 +61,12 @@ void main() {
     test('point on segment returns ~0 distance', () {
       // Midpoint of A(10.0, 106.0) and B(10.0, 107.0) = (10.0, 106.5)
       final (dist, cLat, cLon) = MapGeometryUtils.pointToSegmentDistance(
-        pLat: 10.0, pLon: 106.5,
-        aLat: 10.0, aLon: 106.0,
-        bLat: 10.0, bLon: 107.0,
+        pLat: 10.0,
+        pLon: 106.5,
+        aLat: 10.0,
+        aLon: 106.0,
+        bLat: 10.0,
+        bLon: 107.0,
       );
       expect(dist, lessThan(1.0)); // < 1 mét
       expect(cLat, closeTo(10.0, 0.001));
@@ -72,9 +75,12 @@ void main() {
 
     test('point at endpoint A', () {
       final (dist, cLat, cLon) = MapGeometryUtils.pointToSegmentDistance(
-        pLat: 10.0, pLon: 106.0,
-        aLat: 10.0, aLon: 106.0,
-        bLat: 10.0, bLon: 107.0,
+        pLat: 10.0,
+        pLon: 106.0,
+        aLat: 10.0,
+        aLon: 106.0,
+        bLat: 10.0,
+        bLon: 107.0,
       );
       expect(dist, lessThan(1.0));
       expect(cLat, closeTo(10.0, 0.001));
@@ -85,9 +91,12 @@ void main() {
         () {
       // A(10.0, 106.0), B(10.0, 107.0), P(10.01, 106.5) — P is due north of midpoint
       final (dist, cLat, cLon) = MapGeometryUtils.pointToSegmentDistance(
-        pLat: 10.01, pLon: 106.5,
-        aLat: 10.0, aLon: 106.0,
-        bLat: 10.0, bLon: 107.0,
+        pLat: 10.01,
+        pLon: 106.5,
+        aLat: 10.0,
+        aLon: 106.0,
+        bLat: 10.0,
+        bLon: 107.0,
       );
       // 0.01 degree lat ≈ 1113m
       expect(dist, greaterThan(1000));
@@ -98,9 +107,12 @@ void main() {
 
     test('degenerate segment (A == B) returns distance to point', () {
       final (dist, cLat, cLon) = MapGeometryUtils.pointToSegmentDistance(
-        pLat: 10.01, pLon: 106.01,
-        aLat: 10.0, aLon: 106.0,
-        bLat: 10.0, bLon: 106.0,
+        pLat: 10.01,
+        pLon: 106.01,
+        aLat: 10.0,
+        aLon: 106.0,
+        bLat: 10.0,
+        bLon: 106.0,
       );
       expect(dist, greaterThan(1000)); // ~1.5km
       expect(cLat, closeTo(10.0, 0.001));
@@ -110,9 +122,12 @@ void main() {
     test('point beyond endpoint B clamps to B', () {
       // A(10.0, 106.0), B(10.0, 106.01), P(10.0, 106.02) — beyond B
       final (dist, _, cLon) = MapGeometryUtils.pointToSegmentDistance(
-        pLat: 10.0, pLon: 106.02,
-        aLat: 10.0, aLon: 106.0,
-        bLat: 10.0, bLon: 106.01,
+        pLat: 10.0,
+        pLon: 106.02,
+        aLat: 10.0,
+        aLon: 106.0,
+        bLat: 10.0,
+        bLon: 106.01,
       );
       expect(cLon, closeTo(106.01, 0.001));
       // Distance should be approx 1 degree * ~111km * cos(10) * 0.01 ≈ 1095m
@@ -126,28 +141,40 @@ void main() {
   group('perpendicularDistanceMeters', () {
     test('matches pointToSegmentDistance.distanceMeters exactly', () {
       final (distFull, _, _) = MapGeometryUtils.pointToSegmentDistance(
-        pLat: 10.01, pLon: 106.5,
-        aLat: 10.0, aLon: 106.0,
-        bLat: 10.0, bLon: 107.0,
+        pLat: 10.01,
+        pLon: 106.5,
+        aLat: 10.0,
+        aLon: 106.0,
+        bLat: 10.0,
+        bLon: 107.0,
       );
       final distLite = MapGeometryUtils.perpendicularDistanceMeters(
-        10.01, 106.5,
-        10.0, 106.0,
-        10.0, 107.0,
+        10.01,
+        106.5,
+        10.0,
+        106.0,
+        10.0,
+        107.0,
       );
       expect(distLite, closeTo(distFull, 1e-6));
     });
 
     test('degenerate segment matches pointToSegmentDistance', () {
       final (distFull, _, _) = MapGeometryUtils.pointToSegmentDistance(
-        pLat: 10.01, pLon: 106.01,
-        aLat: 10.0, aLon: 106.0,
-        bLat: 10.0, bLon: 106.0,
+        pLat: 10.01,
+        pLon: 106.01,
+        aLat: 10.0,
+        aLon: 106.0,
+        bLat: 10.0,
+        bLon: 106.0,
       );
       final distLite = MapGeometryUtils.perpendicularDistanceMeters(
-        10.01, 106.01,
-        10.0, 106.0,
-        10.0, 106.0,
+        10.01,
+        106.01,
+        10.0,
+        106.0,
+        10.0,
+        106.0,
       );
       expect(distLite, closeTo(distFull, 1e-6));
     });
@@ -157,7 +184,7 @@ void main() {
 
   group('fastDistanceSqMeters', () {
     test('ordering matches Haversine for N random points', () {
-      final center = (lat: 10.7769, lon: 106.7009);
+      const center = (lat: 10.7769, lon: 106.7009);
       final cosRef = math.cos(center.lat * MapGeometryUtils.degToRad);
 
       // 20 points at varying distances
@@ -260,10 +287,10 @@ void main() {
         [10.02, 106.0],
       ];
       final total = MapGeometryUtils.polylineLengthMeters(points);
-      final seg1 = MapGeometryUtils.haversineDistanceMeters(
-          10.0, 106.0, 10.01, 106.0);
-      final seg2 = MapGeometryUtils.haversineDistanceMeters(
-          10.01, 106.0, 10.02, 106.0);
+      final seg1 =
+          MapGeometryUtils.haversineDistanceMeters(10.0, 106.0, 10.01, 106.0);
+      final seg2 =
+          MapGeometryUtils.haversineDistanceMeters(10.01, 106.0, 10.02, 106.0);
       expect(total, closeTo(seg1 + seg2, 0.001));
     });
   });
@@ -315,9 +342,12 @@ void main() {
         ],
       );
       expect(segIdx, 0);
-      expect(dist, closeTo(
-          MapGeometryUtils.haversineDistanceMeters(10.01, 106.0, 10.0, 106.0),
-          0.1));
+      expect(
+          dist,
+          closeTo(
+              MapGeometryUtils.haversineDistanceMeters(
+                  10.01, 106.0, 10.0, 106.0),
+              0.1));
     });
   });
 
