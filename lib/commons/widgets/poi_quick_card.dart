@@ -15,6 +15,7 @@ class PoiQuickCard extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback? onDirections;
   final VoidCallback? onCustomRoute;
+  final VoidCallback? onAddDestination;
 
   const PoiQuickCard({
     super.key,
@@ -23,6 +24,7 @@ class PoiQuickCard extends StatelessWidget {
     required this.onClose,
     this.onDirections,
     this.onCustomRoute,
+    this.onAddDestination,
   });
 
   @override
@@ -306,7 +308,9 @@ class PoiQuickCard extends StatelessWidget {
               ),
             ),
           ),
-          if (onDirections != null || onCustomRoute != null) ...[
+          if (onDirections != null ||
+              onCustomRoute != null ||
+              onAddDestination != null) ...[
             const SizedBox(height: 12),
             Row(
               children: [
@@ -356,6 +360,39 @@ class PoiQuickCard extends StatelessWidget {
                             .copyWith(
                           fontSize: 13,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorScheme.primary,
+                        side: BorderSide(
+                          color: colorScheme.primary.withAlpha(120),
+                          width: 1.2,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                if ((onDirections != null || onCustomRoute != null) &&
+                    onAddDestination != null)
+                  const SizedBox(width: 8),
+                if (onAddDestination != null)
+                  Expanded(
+                    flex: 5,
+                    child: OutlinedButton.icon(
+                      onPressed: onAddDestination,
+                      icon: Icon(
+                        Icons.add_location_alt_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      label: Text(
+                        tr(LocaleKeys.route_drawing_ui_add_destination),
+                        style: colorScheme.primary.textTheme.semiBoldStyle
+                            .copyWith(fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

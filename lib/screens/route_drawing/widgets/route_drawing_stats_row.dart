@@ -70,30 +70,38 @@ class RouteDrawingStatsRow extends StatelessWidget {
     required String value,
     required String label,
   }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            HeroIcon(icon, size: 16, color: colorScheme.primary),
-            const SizedBox(width: 4),
-            Text(
-              value,
-              style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-                fontSize: 15,
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                HeroIcon(icon, size: 16, color: colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  value,
+                  style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
+                    fontSize: 15,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
-            fontSize: 11,
           ),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: colorScheme.onSurfaceVariant.textTheme.textStyle.copyWith(
+              fontSize: 11,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }

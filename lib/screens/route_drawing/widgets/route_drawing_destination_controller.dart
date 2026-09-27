@@ -6,6 +6,7 @@ import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/utils.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/routers/app_routes.dart';
@@ -104,10 +105,7 @@ class RouteDrawingDestinationController {
   /// Xác nhận điểm đích từ center map.
   void handleConfirmPicker(LatLng center) {
     HapticFeedback.mediumImpact();
-    setMarkerDestination(
-      center,
-      addToRoute: drawingBloc.state.points.isNotEmpty,
-    );
+    applyDestination(center);
   }
 
   /// Đặt marker destination tại một tọa độ.
@@ -132,36 +130,39 @@ class RouteDrawingDestinationController {
   Future<void> handleSearch(BuildContext context, bool mounted) async {
     final mapState = mapDisplayCubit.state;
     final searchCenter = mapState.currentPosition ?? mapState.center;
+    final hasDestinations = drawingBloc.state.points.isNotEmpty;
+
     final result = await context.push<dynamic>(
       AppRoutes.search,
-      extra: searchCenter,
+      extra: SearchScreenArgs(
+        userLocation: searchCenter,
+        hasExistingDestinations: hasDestinations,
+      ),
     );
-    if (!mounted || result == null) return;
+    if (!context.mounted || result == null) return;
 
     LatLng? destination;
     PoiModel? poi;
 
-    if (result is SearchResultPayload) {
-      if (result.isSingle) {
-        poi = result.selectedPoi;
-        if (poi != null) destination = LatLng(poi.lat, poi.lon);
-      } else if (result.isAll &&
-          result.allResults != null &&
-          result.allResults!.isNotEmpty) {
-        poi = result.allResults!.first;
-        destination = LatLng(poi.lat, poi.lon);
-      } else if (result.isLocation && result.searchCenter != null) {
-        destination = result.searchCenter;
-      } else if (result.isArea) {
-        final center = result.searchCenter ??
-            mapDisplayCubit.state.center ??
-            MapConstants.defaultLocation;
-        poi = await areaSearchResolver.resolve(result, center: center);
-        if (poi != null) destination = LatLng(poi.lat, poi.lon);
-      }
-    } else if (result is PoiModel) {
-      poi = result;
-      destination = LatLng(poi.lat, poi.lon);
+    final resolvedResult = await resolveSearchResultPayload(
+      context,
+      result,
+      hasExistingDestinations: hasDestinations,
+    );
+    if (!context.mounted || resolvedResult == null) return;
+
+    if (resolvedResult.isSingle || resolvedResult.isAddDestination) {
+      poi = resolvedResult.selectedPoi;
+      if (poi != null) destination = LatLng(poi.lat, poi.lon);
+    } else if (resolvedResult.isLocation &&
+        resolvedResult.searchCenter != null) {
+      destination = resolvedResult.searchCenter;
+    } else if (resolvedResult.isArea) {
+      final center = resolvedResult.searchCenter ??
+          mapDisplayCubit.state.center ??
+          MapConstants.defaultLocation;
+      poi = await areaSearchResolver.resolve(resolvedResult, center: center);
+      if (poi != null) destination = LatLng(poi.lat, poi.lon);
     }
     if (destination == null) return;
 
@@ -170,6 +171,47 @@ class RouteDrawingDestinationController {
     } else {
       mapDisplayCubit.zoomToLevel(16.0, center: destination);
     }
-    setMarkerDestination(destination, addToRoute: true);
+    applyDestination(destination);
+  }
+
+  /// Áp dụng điểm đến vào lộ trình theo rule:
+  /// - Nếu chưa có điểm nào: hiển thị chỉ đường bình thường (khởi tạo lộ trình).
+  /// - Nếu đã có điểm: nạp điểm mới vào list điểm đến (thêm waypoint).
+  void applyDestination(LatLng destination) {
+    if (drawingBloc.state.points.isEmpty) {
+      setupInitialRoute(destination);
+    } else {
+      addWaypointToRoute(destination);
+    }
+  }
+
+  /// Khởi tạo lộ trình từ vị trí hiện tại (hoặc tâm bản đồ) đến [destination].
+  void setupInitialRoute(LatLng destination) {
+    final mapState = mapDisplayCubit.state;
+    final origin = mapState.currentPosition ??
+        mapState.center ??
+        MapConstants.defaultLocation;
+
+    drawingBloc.add(
+      RouteDrawingEndpointsSelected(
+        origin: RoutePoint(lat: origin.latitude, lon: origin.longitude),
+        destination: RoutePoint(
+          lat: destination.latitude,
+          lon: destination.longitude,
+        ),
+      ),
+    );
+    setMarkerDestination(destination, addToRoute: false);
+  }
+
+  /// Nạp điểm đến mới vào list điểm đến hiện tại.
+  void addWaypointToRoute(LatLng destination) {
+    drawingBloc.add(
+      RouteDrawingPointTapped(
+        lat: destination.latitude,
+        lon: destination.longitude,
+      ),
+    );
+    setMarkerDestination(destination, addToRoute: false);
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/utils/route_format_helper.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -165,8 +166,6 @@ class SavedRoutesSheet extends StatelessWidget {
                     ),
                     itemBuilder: (context, index) {
                       final route = state.routes[index];
-                      final distanceKm = route.totalDistance / 1000.0;
-
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(
@@ -179,7 +178,7 @@ class SavedRoutesSheet extends StatelessWidget {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            '${distanceKm.toStringAsFixed(1)} km • ${tr(LocaleKeys.route_drawing_ui_waypoints_count, args: [
+                            '${RouteFormatHelper.formatDistance(route.totalDistance)} • ${tr(LocaleKeys.route_drawing_ui_waypoints_count, args: [
                                   route.waypoints.length.toString()
                                 ])}',
                             style: colorScheme

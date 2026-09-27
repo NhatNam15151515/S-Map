@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/commons/usecases/progressive_area_search_usecase.dart';
+import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -79,6 +80,7 @@ class ViewportSearchBloc
       category: event.category ?? _currentCategory,
       query: event.query,
       limit: event.limit,
+      isAreaSearch: true,
     );
   }
 
@@ -189,15 +191,18 @@ class ViewportSearchBloc
     required String category,
     String? query,
     required int limit,
+    bool isAreaSearch = false,
   }) async {
     final gen = ++_queryGeneration;
+    final cleanQ = _cleanQuery(query);
     emit(state.copyWith(
       status: ViewportSearchStatus.loading,
       bounds: bounds,
       selectedCategory: category,
-      isAreaSearch: false,
+      searchQuery: cleanQ,
+      isAreaSearch: isAreaSearch,
       clearSearchCenter: true,
-      clearSearchQuery: true,
+      clearSearchQuery: cleanQ == null,
       clearResolvedZoomLevel: true,
       fitBoundsMode: false,
       clearError: true,
@@ -213,12 +218,12 @@ class ViewportSearchBloc
       final double maxLon =
           math.max(bounds.southwest.longitude, bounds.northeast.longitude);
 
-      final pois = await _poiRepository.searchInBounds(
+      final rawPois = await _poiRepository.searchInBounds(
         minLat: minLat,
         maxLat: maxLat,
         minLon: minLon,
         maxLon: maxLon,
-        query: query,
+        query: cleanQ,
         category: category.isNotEmpty && category != CategoryConstants.all
             ? category
             : null,
@@ -228,13 +233,28 @@ class ViewportSearchBloc
       // Guard: kiểm tra emitter hoặc generation có bị hủy trước khi emit
       if (emit.isDone || gen != _queryGeneration) return;
 
+      final center = LatLng(
+        (minLat + maxLat) / 2,
+        (minLon + maxLon) / 2,
+      );
+
+      final pois = (cleanQ != null && cleanQ.isNotEmpty && rawPois.isNotEmpty)
+          ? SearchResultRanker.rank(
+              rawPois,
+              center: center,
+              query: cleanQ,
+              limit: limit,
+            )
+          : rawPois;
+
       if (pois.isEmpty) {
         emit(state.copyWith(
           status: ViewportSearchStatus.empty,
           pois: const [],
           bounds: bounds,
           selectedCategory: category,
-          isAreaSearch: false,
+          searchQuery: cleanQ,
+          isAreaSearch: isAreaSearch,
           clearError: true,
         ));
       } else {
@@ -243,7 +263,8 @@ class ViewportSearchBloc
           pois: pois,
           bounds: bounds,
           selectedCategory: category,
-          isAreaSearch: false,
+          searchQuery: cleanQ,
+          isAreaSearch: isAreaSearch,
           clearError: true,
         ));
       }
@@ -253,7 +274,8 @@ class ViewportSearchBloc
         status: ViewportSearchStatus.error,
         errorMessageKey: LocaleKeys.no_pois_in_viewport,
         bounds: bounds,
-        isAreaSearch: false,
+        searchQuery: cleanQ,
+        isAreaSearch: isAreaSearch,
       ));
     }
   }

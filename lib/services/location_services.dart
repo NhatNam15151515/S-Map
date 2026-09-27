@@ -8,10 +8,13 @@ import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
 /// LocationService implements [ILocationService] combining:
-/// 1. [Geolocator] for high-performance position streaming, permission checks, and background coordinates with Android Foreground Service.
-/// 2. [loc_pkg.Location] exclusively for triggering Google Play Services' native system dialog
-///    (`requestService()`), giving users a seamless 1-tap "Bật" prompt without leaving the app.
-/// 3. [PermissionHandler] for managing battery optimization exemptions and notification permissions.
+/// 1. [Geolocator] for position streaming & permission checks.
+/// 2. [loc_pkg.Location] exclusively for the native "Bật định vị" dialog
+///    (`requestService()`) — hoạt động offline.
+/// 3. [PermissionHandler] for battery optimization & notification permissions.
+///
+/// Khi lấy toạ độ, dùng `forceLocationManager: true` để bypass
+/// FusedLocationProvider (GMS) — GPS hardware thuần, không cần internet.
 class LocationService implements ILocationService {
   final loc_pkg.Location _nativeLocation;
 
@@ -151,8 +154,8 @@ class LocationService implements ILocationService {
 
   /// Determine the current position of the device.
   ///
-  /// When location services are disabled, it automatically requests the OS
-  /// to show Google Play Services' native "Turn On Location" resolution prompt.
+  /// Khi GPS tắt, hiện dialog hệ thống "Bật định vị" qua GMS (`requestService`).
+  /// Khi lấy toạ độ, dùng Android LocationManager thuần (không cần internet).
   Future<Position> _determinePosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -181,7 +184,19 @@ class LocationService implements ILocationService {
         'Location permissions are permanently denied, we cannot request permissions.',
       );
     }
-
-    return await Geolocator.getCurrentPosition();
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+    } catch (e) {
+      // Khi offline trong phòng kín không bắt được sóng vệ tinh, lấy vị trí
+      // ghi nhận gần nhất từ phần cứng thiết bị để người dùng không bị treo.
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        return lastKnown;
+      }
+      rethrow;
+    }
   }
 }

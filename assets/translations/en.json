@@ -260,7 +260,11 @@
     "straight_line": "Direct line",
     "add_destination": "Add destination",
     "delete_waypoint_tooltip": "Delete this waypoint",
-    "search_destination_tooltip": "Search destination"
+    "search_destination_tooltip": "Search destination",
+    "collapse_toolbar": "Collapse toolbar",
+    "expand_toolbar": "Expand toolbar",
+    "collapse_waypoints": "Collapse waypoints",
+    "expand_waypoints": "Expand waypoints"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",

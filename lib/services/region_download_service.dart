@@ -15,7 +15,7 @@ typedef RegionDownloadService = IRegionDownloadService;
 class RegionDownloadServiceImpl implements IRegionDownloadService {
   static const String boxName = 'offline_regions_box';
   static const String basePackageUrl =
-      'https://github.com/NhatNam15151515/S-Map/releases/download/map-data-v1.1.0';
+      'https://github.com/NhatNam15151515/S-Map/releases/download/map-data-v1.2.0';
 
   final Box<dynamic>? _customBox;
   final HttpClient? _customHttpClient;
@@ -41,8 +41,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
           'Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn quốc; hỗ trợ địa chỉ trước và sau sáp nhập',
       bbox: [102.10, 8.50, 109.50, 23.40],
       downloadUrl: '$basePackageUrl/vietnam.zip',
-      sizeBytes: 928931146,
-      version: '1.1.0',
+      sizeBytes: 1000234095,
+      version: '1.2.0',
     ),
   ];
 
@@ -219,7 +219,6 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     String? customDownloadUrl,
   }) async* {
     _cancellationMap[region.id] = false;
-    final url = customDownloadUrl ?? region.downloadUrl;
     final regionsBaseDir = await _getRegionsStorageDirectory();
     final targetDir = Directory(p.join(regionsBaseDir, region.id));
     final stagingDir =
@@ -229,13 +228,43 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
     final bool ownsClient = _customHttpClient == null;
     final client = _customHttpClient ?? HttpClient();
     client.connectionTimeout = const Duration(seconds: 15);
-    const Duration requestTimeout = Duration(seconds: 15);
+    const Duration requestTimeout = Duration(seconds: 60);
     const Duration receiveTimeout = Duration(minutes: 10);
     IOSink? sink;
     double lastEmittedProgress = 0.05;
     bool metadataCommitted = false;
     bool stagingPromoted = false;
     bool preservePartialDownload = false;
+
+    // Tự động kiểm tra local server (USB qua ADB reverse hoặc mạng LAN) để tải tốc độ cao
+    String url = customDownloadUrl ?? region.downloadUrl;
+    if (customDownloadUrl == null) {
+      final localProbeCandidates = [
+        'http://127.0.0.1:8080/${region.id}.zip',
+        'http://10.0.2.2:8080/${region.id}.zip',
+        'http://192.168.101.73:8080/${region.id}.zip',
+      ];
+      for (final candidate in localProbeCandidates) {
+        try {
+          final probeReq = await client
+              .headUrl(Uri.parse(candidate))
+              .timeout(const Duration(milliseconds: 600));
+          final probeRes =
+              await probeReq.close().timeout(const Duration(milliseconds: 600));
+          if (probeRes.statusCode == HttpStatus.ok) {
+            DLog.info(
+                '⚡ [RegionDownloadService] Tìm thấy Local Server tốc độ cao: $candidate');
+            url = candidate;
+            if (tempZipFile.existsSync()) {
+              try {
+                tempZipFile.deleteSync();
+              } catch (_) {}
+            }
+            break;
+          }
+        } catch (_) {}
+      }
+    }
 
     try {
       DLog.info('🚀 [RegionDownloadService] Bắt đầu tải dữ liệu vùng: "${region.name}" (id: ${region.id})\n   🌐 URL: $url\n   📁 Đích: ${targetDir.path}');

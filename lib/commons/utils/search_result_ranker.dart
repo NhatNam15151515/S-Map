@@ -29,6 +29,10 @@ class _ScoredCandidate {
 class SearchResultRanker {
   SearchResultRanker._();
 
+  static const double defaultNearbySearchRadiusKm = 50.0;
+  static const double prominentLandmarkRadiusKm = 150.0;
+  static const int prominentLandmarkThreshold = 220;
+
   static final RegExp _cleanPunctuationRegExp =
       RegExp(r'[^\p{L}\p{M}\p{N}]+', unicode: true);
   static final RegExp _cleanAsciiRegExp = RegExp(r'[^a-z0-9]+');
@@ -66,6 +70,7 @@ class SearchResultRanker {
     LatLng? center,
     String? query,
     int limit = 50,
+    double? maxDistanceKm,
   }) {
     final unique = <String, PoiModel>{};
     for (final poi in source) {
@@ -94,10 +99,22 @@ class SearchResultRanker {
             )
           : 0.0;
 
+      if (!_isWithinSearchRadius(
+        distanceKm: distanceKm,
+        maxDistanceKm: maxDistanceKm,
+        hasQuery: hasQuery,
+        query: cleanQuery,
+        textScore: textScore,
+        prominence: poi.prominence,
+      )) {
+        continue;
+      }
+
       final totalScore = _blendScore(
         textScore: textScore,
         distanceKm: distanceKm,
         hasQuery: hasQuery,
+        prominence: poi.prominence,
       );
 
       candidates.add(_ScoredCandidate(poi, totalScore));
@@ -113,16 +130,43 @@ class SearchResultRanker {
     return candidates.take(limit).map((c) => c.poi).toList(growable: false);
   }
 
+  static bool _isWithinSearchRadius({
+    required double? distanceKm,
+    required double? maxDistanceKm,
+    required bool hasQuery,
+    required String query,
+    required double textScore,
+    required int prominence,
+  }) {
+    if (distanceKm == null || maxDistanceKm == null) return true;
+    if (distanceKm <= maxDistanceKm) return true;
+
+    // Chỉ cho phép một landmark nổi bật vượt bán kính local khi người dùng
+    // nhập đủ dài và tên POI thực sự khớp mạnh. Không áp dụng cho truy vấn
+    // ngắn kiểu "lý", vốn thường chỉ là một phần địa chỉ/tên đường.
+    return hasQuery &&
+        query.length >= 4 &&
+        prominence >= prominentLandmarkThreshold &&
+        textScore >= 1200.0 &&
+        distanceKm <= prominentLandmarkRadiusKm;
+  }
+
   /// Hàm kết hợp đa biến chuẩn hoá theo mô hình của Google Maps
+  ///
+  /// Khoảng cách đóng vai trò ngày càng lớn khi text score thấp:
+  /// - Tier 1 (Exact Name Match): Distance chỉ là tie-breaker nhẹ (~2%)
+  /// - Tier 2 (Name Prefix/Boundary): Distance đáng kể (~15-20%)
+  /// - Tier 3 (Address/Partial): Distance là yếu tố chính (~40-60%)
   static double _blendScore({
     required double textScore,
     required double? distanceKm,
     required bool hasQuery,
+    required int prominence,
   }) {
     if (!hasQuery) {
       // Tìm kiếm theo danh mục / lân cận (không có text)
       if (distanceKm == null) return 0.0;
-      return 10000.0 / (1.0 + 0.1 * distanceKm);
+      return 10000.0 / (1.0 + 0.1 * distanceKm) + prominence * 2.0;
     }
 
     if (textScore <= 0.0) {
@@ -138,20 +182,26 @@ class SearchResultRanker {
       return 20000.0 + textScore + tieBreaker;
     }
 
-    // Tier 2: Khớp tiền tố hoặc ranh giới từ (Word-boundary / Prefix Match)
+    // Tier 2: Khớp tiền tố hoặc ranh giới từ trong TÊN (Word-boundary / Prefix)
+    // Distance mạnh hơn: POI cách 5km phải thắng POI cách 200km
     if (textScore >= 1000.0) {
-      final tieBreaker = distanceKm != null
-          ? 800.0 / (1.0 + 0.05 * distanceKm)
-          : 400.0;
-      return 10000.0 + textScore + tieBreaker;
+      final geoWeight = distanceKm != null
+          ? 2000.0 / (1.0 + 0.08 * distanceKm)
+          : 1000.0;
+      return 10000.0 + textScore + geoWeight;
     }
 
     // Tier 3: Khớp một phần / Địa chỉ / Token
-    // Tại tầng này, khoảng cách địa lý kết hợp mượt mà để ưu tiên quán gần
+    // Khoảng cách là yếu tố quyết định chính: POI gần hơn hẳn phải thắng
+    // POI xa dù cùng text score. Ví dụ: "lý thường" khớp address ở cả
+    // Cà Mau (242km) và gần nhà (5km) → gần nhà phải lên trước.
     final geoBonus = distanceKm != null
-        ? 1200.0 / (1.0 + 0.05 * distanceKm)
-        : 600.0;
-    return textScore + geoBonus;
+        ? 3000.0 / (1.0 + 0.08 * distanceKm)
+        : 1500.0;
+    // Prominence is deliberately limited to the non-exact tier. Exact and
+    // prefix matches must remain deterministic; prominence only breaks ties
+    // between otherwise similar partial/category matches.
+    return textScore + geoBonus + prominence * 3.0;
   }
 
   static double _computeTextScore(
@@ -173,46 +223,73 @@ class SearchResultRanker {
     var score = 0.0;
 
     if (hasDiacritics) {
-      // Người dùng gõ CÓ DẤU: Ưu tiên tuyệt đối các kết quả khớp đúng dấu
+      // === TÊN (NAME) ===
+      // Match trong tên là tín hiệu mạnh nhất, đẩy vào Tier 1/2
       if (normName == cleanQuery) {
         score += 2000;
       } else if (normName.startsWith(cleanQuery)) {
         score += 1400;
       } else if (normName.contains(' $cleanQuery')) {
-        score += 1100; // Word boundary match
+        score += 1100; // Word boundary match trong tên
       } else if (normName.contains(cleanQuery)) {
         score += 700;
       }
 
-      if (normAddress.contains(cleanQuery) ||
+      // === ĐỊA CHỈ (ADDRESS/STREET) ===
+      // Match trong address/street KHÔNG ĐỦ để vào Tier 2 nếu name
+      // không match. Điều này đảm bảo distance sẽ quyết định khi
+      // tất cả kết quả chỉ match address (ví dụ: "Lý Thường Kiệt").
+      final addressMatches = normAddress.contains(cleanQuery) ||
           normStreet.contains(cleanQuery) ||
-          normCity.contains(cleanQuery)) {
-        score += 400;
+          normCity.contains(cleanQuery);
+      if (addressMatches) {
+        // Nếu name đã match (score > 0), address là bonus phụ.
+        // Nếu name KHÔNG match, address là nguồn điểm duy nhất,
+        // giữ ở Tier 3 để distance quyết định thứ hạng.
+        score += score > 0 ? 200 : 400;
       }
+
       if (normCategory.contains(cleanQuery) ||
           normSubCategory.contains(cleanQuery)) {
         score += 150;
       }
 
+      // === TOKEN MATCHING ===
+      // Chỉ tính token match trong TÊN cho Tier 1/2.
+      // Token match trong address là bonus nhẹ ở Tier 3.
       if (queryTokens.isNotEmpty) {
-        final fields = [
-          normName,
+        final nameFields = [normName];
+        final addressFields = [
           normAddress,
           normStreet,
           normCity,
-          normCategory,
-          normSubCategory,
         ];
-        var matchedTokens = 0;
+        final otherFields = [normCategory, normSubCategory];
+        var nameTokenMatches = 0;
+        var addressTokenMatches = 0;
         for (final token in queryTokens) {
-          final isMatched = fields.any((field) =>
+          final inName = nameFields.any((field) =>
               field.startsWith(token) ||
               field.contains(' $token') ||
               field.contains(token));
-          if (isMatched) matchedTokens++;
+          if (inName) {
+            nameTokenMatches++;
+          } else {
+            final inAddress = addressFields.any((field) =>
+                field.startsWith(token) ||
+                field.contains(' $token') ||
+                field.contains(token));
+            if (inAddress) addressTokenMatches++;
+          }
+          // Category/subcategory check
+          if (otherFields.any((f) => f.contains(token))) {
+            score += 30;
+          }
         }
-        score += matchedTokens * 120;
-        if (matchedTokens == queryTokens.length) score += 300;
+        // Name tokens mạnh, address tokens yếu hơn
+        score += nameTokenMatches * 120;
+        score += addressTokenMatches * 40;
+        if (nameTokenMatches == queryTokens.length) score += 300;
       }
 
       // Fallback không dấu chỉ kích hoạt khi điểm có dấu bằng 0
@@ -231,6 +308,7 @@ class SearchResultRanker {
       final normStreetAscii = _normalizeAscii(poi.street);
       final normCityAscii = _normalizeAscii(poi.city);
 
+      // === TÊN (NAME) ===
       if (normName == cleanQuery || normNameAscii == asciiQuery) {
         score += 1800; // Exact match unaccented
       } else if (normName.startsWith(cleanQuery) ||
@@ -244,42 +322,58 @@ class SearchResultRanker {
         score += 650;
       }
 
-      if (normAddress.contains(cleanQuery) ||
+      // === ĐỊA CHỈ (ADDRESS/STREET) ===
+      // Cùng logic: address-only match giữ ở Tier 3 để distance quyết định
+      final addressMatches = normAddress.contains(cleanQuery) ||
           normStreet.contains(cleanQuery) ||
           normCity.contains(cleanQuery) ||
           normAddressAscii.contains(asciiQuery) ||
           normStreetAscii.contains(asciiQuery) ||
-          normCityAscii.contains(asciiQuery)) {
-        score += 350;
+          normCityAscii.contains(asciiQuery);
+      if (addressMatches) {
+        score += score > 0 ? 150 : 350;
       }
+
       if (normCategory.contains(cleanQuery) ||
           normSubCategory.contains(cleanQuery)) {
         score += 150;
       }
 
+      // === TOKEN MATCHING ===
       if (queryTokens.isNotEmpty) {
-        final fields = [
-          normName,
-          normNameAscii,
+        final nameFields = [normName, normNameAscii];
+        final addressFields = [
           normAddress,
           normAddressAscii,
           normStreet,
           normStreetAscii,
           normCity,
           normCityAscii,
-          normCategory,
-          normSubCategory,
         ];
-        var matchedTokens = 0;
+        final otherFields = [normCategory, normSubCategory];
+        var nameTokenMatches = 0;
+        var addressTokenMatches = 0;
         for (final token in queryTokens) {
-          final isMatched = fields.any((field) =>
+          final inName = nameFields.any((field) =>
               field.startsWith(token) ||
               field.contains(' $token') ||
               field.contains(token));
-          if (isMatched) matchedTokens++;
+          if (inName) {
+            nameTokenMatches++;
+          } else {
+            final inAddress = addressFields.any((field) =>
+                field.startsWith(token) ||
+                field.contains(' $token') ||
+                field.contains(token));
+            if (inAddress) addressTokenMatches++;
+          }
+          if (otherFields.any((f) => f.contains(token))) {
+            score += 20;
+          }
         }
-        score += matchedTokens * 90;
-        if (matchedTokens == queryTokens.length) score += 200;
+        score += nameTokenMatches * 90;
+        score += addressTokenMatches * 30;
+        if (nameTokenMatches == queryTokens.length) score += 200;
       }
     }
 

@@ -13,6 +13,8 @@ class SearchResultsList extends StatelessWidget {
   final LatLng? userLocation;
   final ValueChanged<PoiModel> onPoiTap;
   final ValueChanged<String> onSuggestionTap;
+  final bool hasExistingDestinations;
+  final ValueChanged<PoiModel>? onAddDestination;
 
   const SearchResultsList({
     super.key,
@@ -22,6 +24,8 @@ class SearchResultsList extends StatelessWidget {
     this.userLocation,
     required this.onPoiTap,
     required this.onSuggestionTap,
+    this.hasExistingDestinations = false,
+    this.onAddDestination,
   });
 
   @override
@@ -65,14 +69,13 @@ class SearchResultsList extends StatelessWidget {
           return PoiListTile(
             poi: poi,
             userLocation: userLocation,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            trailing: Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: colorScheme.outline,
-            ),
             onTap: () => onPoiTap(poi),
+            onAddDestination: () => (onAddDestination ?? onPoiTap)(poi),
+            hasExistingDestinations: hasExistingDestinations,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
           );
         } else {
           final suggestion = suggestions[index];

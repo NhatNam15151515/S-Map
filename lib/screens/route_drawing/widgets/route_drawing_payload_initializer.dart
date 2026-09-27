@@ -52,6 +52,17 @@ class RouteDrawingPayloadInitializer {
       if (effectiveOrigin != null) {
         _dispatchEndpoints(effectiveOrigin, setState);
       }
+      if (payload?.additionalWaypoints != null &&
+          payload!.additionalWaypoints!.isNotEmpty) {
+        for (final pt in payload.additionalWaypoints!) {
+          drawingBloc.add(
+            RouteDrawingPointTapped(
+              lat: pt.latitude,
+              lon: pt.longitude,
+            ),
+          );
+        }
+      }
     });
   }
 

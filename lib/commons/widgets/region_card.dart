@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/app_confirm_dialog.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -24,54 +25,15 @@ class RegionCard extends StatelessWidget {
   });
 
   void _showDeleteConfirmDialog(BuildContext context) {
-    final colorScheme = context.colorScheme;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: colorScheme.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-          title: Text(
-            tr(LocaleKeys.offline_maps_delete_confirm_title),
-            style: colorScheme.onSurface.textTheme.boldStyle
-                .copyWith(fontSize: 18.sp),
-          ),
-          content: Text(
-            tr(LocaleKeys.offline_maps_delete_confirm_desc),
-            style: colorScheme.onSurfaceVariant.textTheme.regularStyle
-                .copyWith(fontSize: 14.sp),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => dialogContext.safePop(),
-              child: Text(
-                tr(LocaleKeys.offline_maps_cancel_btn),
-                style: colorScheme.onSurfaceVariant.textTheme.mediumStyle
-                    .copyWith(fontSize: 14.sp),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r)),
-              ),
-              onPressed: () {
-                dialogContext.safePop();
-                onDelete();
-              },
-              child: Text(
-                tr(LocaleKeys.offline_maps_delete_btn),
-                style: colorScheme.onError.textTheme.semiBoldStyle
-                    .copyWith(fontSize: 14.sp),
-              ),
-            ),
-          ],
-        );
-      },
+    AppConfirmDialog.show(
+      context,
+      title: tr(LocaleKeys.offline_maps_delete_confirm_title),
+      message: tr(LocaleKeys.offline_maps_delete_confirm_desc),
+      confirmText: tr(LocaleKeys.offline_maps_delete_btn),
+      cancelText: tr(LocaleKeys.offline_maps_cancel_btn),
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
+      onConfirm: onDelete,
     );
   }
 

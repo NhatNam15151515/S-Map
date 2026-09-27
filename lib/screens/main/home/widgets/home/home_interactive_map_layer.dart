@@ -16,12 +16,14 @@ import 'package:s_map/services/services.dart';
 class HomeInteractiveMapLayer extends StatefulWidget {
   final ValueChanged<PoiModel> onPoiTapped;
   final ValueChanged<bool> onSearchAreaVisibilityChanged;
+  final bool allowPoiInteractionWhenRouteActive;
   final IVisitedPoiService? visitedPoiService;
 
   const HomeInteractiveMapLayer({
     super.key,
     required this.onPoiTapped,
     required this.onSearchAreaVisibilityChanged,
+    this.allowPoiInteractionWhenRouteActive = false,
     this.visitedPoiService,
   });
 
@@ -60,6 +62,10 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
         previewState.isSuccess ||
         navigationState.isNavigating;
   }
+
+  bool get _blocksPoiInteraction =>
+      _hasActiveRouteOrNavigation &&
+      !widget.allowPoiInteractionWhenRouteActive;
 
   @override
   void didChangeDependencies() {
@@ -149,7 +155,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   // ─── Map Callbacks ───────────────────────────────────────────
 
   void _onSymbolTapped(Symbol symbol) {
-    if (_hasActiveRouteOrNavigation || !mounted) return;
+    if (_blocksPoiInteraction || !mounted) return;
     final poi = _symbolManager.getPoiBySymbolId(symbol.id);
     if (poi != null) widget.onPoiTapped(poi);
   }
@@ -161,7 +167,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     String layerId,
     Annotation? annotation,
   ) {
-    if (annotation is Symbol || _hasActiveRouteOrNavigation || !mounted) return;
+    if (annotation is Symbol || _blocksPoiInteraction || !mounted) return;
     unawaited(_handleRenderedFeatureTap(point, latLng));
   }
 
@@ -176,7 +182,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   Future<void> _onMapClick(Point<double> point, LatLng latLng) async {
-    if (_hasActiveRouteOrNavigation) return;
+    if (_blocksPoiInteraction) return;
     final poi =
         _symbolManager.getPoiAtLocation(latLng.latitude, latLng.longitude);
     if (poi != null && mounted) {
@@ -190,7 +196,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     Point<double> point,
     LatLng latLng,
   ) async {
-    if (_hasActiveRouteOrNavigation || !mounted) return;
+    if (_blocksPoiInteraction || !mounted) return;
     final renderedPoi = await _featureResolver.resolvePoiAtTap(
       controller: _mapController,
       point: point,
@@ -200,6 +206,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   void _onMapLongClick(Point<double> point, LatLng latLng) {
+    if (_hasActiveRouteOrNavigation) return;
     DLog.info(
         '👆 [Map] Long press detected at: (${latLng.latitude.toStringAsFixed(5)}, ${latLng.longitude.toStringAsFixed(5)})');
     hideSearchResultMarkers();

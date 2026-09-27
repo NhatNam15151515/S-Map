@@ -32,7 +32,7 @@ from config import REGIONS, RAW_PBF, PMTILES_DIR, GHZ_DIR, POI_DB_DIR, PACKAGES_
 MIN_REAL_PMTILES_BYTES = 1024 * 1024
 MIN_REAL_GHZ_BYTES = 1024 * 1024
 MIN_REAL_POI_DB_BYTES = 1024 * 1024
-DATA_PACKAGE_VERSION = "1.1.0"
+DATA_PACKAGE_VERSION = "1.2.0"
 
 
 def _has_real_data_file(path: Path, minimum_bytes: int) -> bool:
@@ -101,6 +101,25 @@ def run_sub_script(script_name: str, region_key: str):
         sys.exit(result.returncode)
 
 
+def build_region_trie_index(region_key: str):
+    """Build search index cạnh POI DB để package release dùng được offline."""
+    poi_db_file = POI_DB_DIR / f"{region_key}_poi.db"
+    trie_file = POI_DB_DIR / f"{region_key}_trie_index.bin"
+    script_path = Path("data-pipeline") / "build_trie_index.py"
+    print(f"\n▶ Running: python {script_path} {poi_db_file} {trie_file}", flush=True)
+    result = subprocess.run(
+        [sys.executable, str(script_path), str(poi_db_file), str(trie_file)],
+        text=True,
+        encoding="utf-8",
+    )
+    if result.returncode != 0:
+        print(
+            f"❌ LỖI: build_trie_index.py thất bại với mã lỗi {result.returncode}",
+            flush=True,
+        )
+        sys.exit(result.returncode)
+
+
 def create_region_package(region_key: str) -> dict:
     """Tạo file version.json và nén dữ liệu vùng thành tệp ZIP hoàn chỉnh."""
     region_info = REGIONS[region_key]
@@ -111,6 +130,7 @@ def create_region_package(region_key: str) -> dict:
     pmtiles_file = PMTILES_DIR / f"{region_key}.pmtiles"
     ghz_file = GHZ_DIR / f"{region_key}.ghz"
     poi_db_file = POI_DB_DIR / f"{region_key}_poi.db"
+    trie_file = POI_DB_DIR / f"{region_key}_trie_index.bin"
 
     # Fix Critical: Kiểm tra nghiêm ngặt sự tồn tại của file nhị phân, KHÔNG tạo file text giả (placeholder)
     missing_files = []
@@ -144,6 +164,7 @@ def create_region_package(region_key: str) -> dict:
     pmtiles_sha256 = compute_sha256(pmtiles_file)
     ghz_sha256 = compute_sha256(ghz_file)
     poi_db_sha256 = compute_sha256(poi_db_file)
+    trie_sha256 = compute_sha256(trie_file) if trie_file.exists() else None
 
     # 1. Tạo file version.json
     now_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -170,6 +191,12 @@ def create_region_package(region_key: str) -> dict:
             },
         },
     }
+    if trie_sha256 is not None:
+        version_data["files"]["trie_index"] = {
+            "filename": trie_file.name,
+            "size_bytes": trie_file.stat().st_size,
+            "sha256": trie_sha256,
+        }
 
     PACKAGES_DIR.mkdir(parents=True, exist_ok=True)
     version_file = PACKAGES_DIR / f"{region_key}_version.json"
@@ -184,6 +211,8 @@ def create_region_package(region_key: str) -> dict:
         zipf.write(pmtiles_file, arcname=pmtiles_file.name)
         zipf.write(ghz_file, arcname=ghz_file.name)
         zipf.write(poi_db_file, arcname=poi_db_file.name)
+        if trie_file.exists():
+            zipf.write(trie_file, arcname=trie_file.name)
         zipf.write(version_file, arcname="version.json")
     
     zip_time = time.time() - start_zip_t
@@ -230,7 +259,7 @@ def update_data_sizes_md(results: list):
     for item in results:
         zip_mb = item["zip_size_bytes"] / (1024 * 1024)
         existing_rows[item["region_key"]] = (
-            f"| `{item['region_key']}` | {item['region_name']} | `{item['zip_name']}` | **{zip_mb:.2f} MB** | `.pmtiles` + `.ghz` + `.db` + `version.json` | ✅ Ready |"
+            f"| `{item['region_key']}` | {item['region_name']} | `{item['zip_name']}` | **{zip_mb:.2f} MB** | `.pmtiles` + `.ghz` + `.db` + `.trie` + `version.json` | ✅ Ready |"
         )
 
     for row in existing_rows.values():
@@ -293,6 +322,7 @@ def main():
             run_sub_script("build_vector_tiles.py", reg)
             run_sub_script("build_routing_graph.py", reg)
             run_sub_script("build_poi_database.py", reg)
+            build_region_trie_index(reg)
 
     package_results = []
     for reg in regions_to_process:

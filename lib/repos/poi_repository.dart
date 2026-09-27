@@ -648,10 +648,10 @@ class PoiRepositoryImpl implements IPoiRepository {
     final cleanCategory = hasCategory ? category.trim().toLowerCase() : '';
 
     final whereClauses = <String>[
-      'lat >= ? AND lat <= ?',
-      'lon >= ? AND lon <= ?',
+      'r.min_lat <= ? AND r.max_lat >= ?',
+      'r.min_lon <= ? AND r.max_lon >= ?',
     ];
-    final whereArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
+    final whereArgs = <dynamic>[maxLat, minLat, maxLon, minLon];
     // Không để SQLite trả về 50 dòng đầu theo thứ tự vật lý của DB. Dữ liệu
     // OSM thường được ghi theo từng khu vực, nên cách đó có thể làm toàn bộ
     // kết quả dồn về một phía dù trong bbox còn nhiều POI gần tâm hơn.
@@ -665,7 +665,7 @@ class PoiRepositoryImpl implements IPoiRepository {
 
     if (cleanQuery.isNotEmpty) {
       whereClauses.add(
-          '(name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ? OR address LIKE ? OR street LIKE ? OR housenumber LIKE ? OR city LIKE ? OR admin_aliases LIKE ?)');
+        '(p.name LIKE ? OR p.name_ascii LIKE ? OR p.category LIKE ? OR p.sub_category LIKE ? OR p.address LIKE ? OR p.street LIKE ? OR p.housenumber LIKE ? OR p.city LIKE ? OR p.admin_aliases LIKE ?)');
       whereArgs.addAll([
         '%$cleanQuery%',
         '%$cleanAscii%',
@@ -682,7 +682,7 @@ class PoiRepositoryImpl implements IPoiRepository {
     if (hasCategory) {
       final keywords = _getCategoryKeywords(cleanCategory);
       final catOrClauses = keywords
-          .map((_) => '(LOWER(category) LIKE ? OR LOWER(sub_category) LIKE ? OR LOWER(name) LIKE ? OR LOWER(name_ascii) LIKE ?)')
+          .map((_) => '(LOWER(p.category) LIKE ? OR LOWER(p.sub_category) LIKE ? OR LOWER(p.name) LIKE ? OR LOWER(p.name_ascii) LIKE ?)')
           .join(' OR ');
       whereClauses.add('($catOrClauses)');
       for (final kw in keywords) {
@@ -691,23 +691,35 @@ class PoiRepositoryImpl implements IPoiRepository {
     }
 
     try {
-      final results = await db.query(
-        'poi',
-        where: whereClauses.join(' AND '),
-        whereArgs: whereArgs,
-        orderBy: orderBy,
-        limit: limit,
+      final results = await db.rawQuery(
+        'SELECT p.* FROM poi_rtree r JOIN poi p ON p.id = r.id '
+        'WHERE ${whereClauses.join(' AND ')} '
+        'ORDER BY $orderBy LIMIT ?',
+        [...whereArgs, limit],
       );
       return results.map(PoiModel.fromMap).toList();
     } catch (_) {
-      // DB tải từ phiên bản cũ chưa có admin_aliases vẫn phải xem được.
-      if (cleanQuery.isEmpty) return [];
-      final legacyClauses = whereClauses
-          .map((clause) => clause.replaceAll(' OR admin_aliases LIKE ?', ''))
-          .toList();
-      final legacyArgs = [...whereArgs];
-      // 4 tọa độ bbox + 8 trường cũ trước admin_aliases.
-      legacyArgs.removeAt(12);
+      // Fallback cho DB cũ chưa có R*Tree hoặc admin_aliases.
+      final legacyClauses = <String>[
+        'lat >= ? AND lat <= ?',
+        'lon >= ? AND lon <= ?',
+      ];
+      final legacyArgs = <dynamic>[minLat, maxLat, minLon, maxLon];
+      if (cleanQuery.isNotEmpty) {
+        legacyClauses.add(
+            '(name LIKE ? OR name_ascii LIKE ? OR category LIKE ? OR sub_category LIKE ? OR address LIKE ? OR street LIKE ? OR housenumber LIKE ? OR city LIKE ? OR admin_aliases LIKE ?)');
+        legacyArgs.addAll(whereArgs.sublist(4, 13));
+      }
+      if (hasCategory) {
+        final keywords = _getCategoryKeywords(cleanCategory);
+        final catOrClauses = keywords
+            .map((_) => '(LOWER(category) LIKE ? OR LOWER(sub_category) LIKE ? OR LOWER(name) LIKE ? OR LOWER(name_ascii) LIKE ?)')
+            .join(' OR ');
+        legacyClauses.add('($catOrClauses)');
+        for (final kw in keywords) {
+          legacyArgs.addAll(['%$kw%', '%$kw%', '%$kw%', '%$kw%']);
+        }
+      }
       try {
         final results = await db.query(
           'poi',
@@ -817,6 +829,28 @@ class PoiRepositoryImpl implements IPoiRepository {
     return PoiModel.fromMap(results.first);
   }
 
+  Future<List<PoiModel>> getPoisByIds(List<int> ids) async {
+    final uniqueIds = ids.toSet().toList(growable: false);
+    if (uniqueIds.isEmpty) return const [];
+
+    final db = await _getDb();
+    final placeholders = List.filled(uniqueIds.length, '?').join(', ');
+    final rows = await db.query(
+      'poi',
+      where: 'id IN ($placeholders)',
+      whereArgs: uniqueIds,
+    );
+    final byId = <int, PoiModel>{
+      for (final row in rows)
+        if (row['id'] is num)
+          (row['id'] as num).toInt(): PoiModel.fromMap(row),
+    };
+    return ids
+        .map((id) => byId[id])
+        .whereType<PoiModel>()
+        .toList(growable: false);
+  }
+
   String _searchCacheKey(String query, {required int limit}) {
     // Có dấu/không dấu đi qua các nhánh FTS khác nhau; không gộp hai loại này
     // vào một cache key để tránh dùng nhầm result set trong các edge case OSM.
@@ -854,4 +888,37 @@ class PoiRepositoryImpl implements IPoiRepository {
         .trim()
         .replaceAll(RegExp(r'\s+'), ' ');
   }
+}
+
+class NoOpPoiRepository implements IPoiRepository {
+  const NoOpPoiRepository();
+
+  @override
+  Future<List<PoiModel>> searchByName(String query, {int limit = 20}) async => [];
+
+  @override
+  Future<List<PoiModel>> searchByNameAscii(String query, {int limit = 20}) async => [];
+
+  @override
+  Future<List<PoiModel>> search(String query, {int limit = 20}) async => [];
+
+  @override
+  Future<List<PoiModel>> searchInBounds({
+    required double minLat,
+    required double maxLat,
+    required double minLon,
+    required double maxLon,
+    String? query,
+    String? category,
+    int limit = 50,
+  }) async =>
+      [];
+
+  @override
+  Future<List<String>> getSuggestions(String query, {int limit = 10}) async => [];
+
+  @override
+  Future<PoiModel?> getPoiById(int id) async => null;
+
+  Future<List<PoiModel>> getPoisByIds(List<int> ids) async => [];
 }

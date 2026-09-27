@@ -122,5 +122,46 @@ void main() {
       await tester.pumpAndSettle();
       expect(clearCalled, isTrue);
     });
+
+    testWidgets('collapses toolbar on >> button tap and expands on << button tap', (tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingFloatingToolbar(
+            canUndo: true,
+            canRedo: true,
+            canClear: true,
+            hasPoints: true,
+            onUndo: () {},
+            onRedo: () {},
+            onClear: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Khi mới mở: hiển thị nút >> để thu gọn và các nút chức năng
+      final collapseBtnFinder =
+          find.byKey(const Key('route_drawing_collapse_toolbar_button'));
+      expect(collapseBtnFinder, findsOneWidget);
+      expect(find.byKey(const Key('route_drawing_undo_button')), findsOneWidget);
+
+      // Tap nút >>
+      await tester.tap(collapseBtnFinder);
+      await tester.pumpAndSettle();
+
+      // Khi đã thu gọn: nút undo biến mất, hiện nút << để mở rộng
+      expect(find.byKey(const Key('route_drawing_undo_button')), findsNothing);
+      final expandBtnFinder =
+          find.byKey(const Key('route_drawing_expand_toolbar_button'));
+      expect(expandBtnFinder, findsOneWidget);
+
+      // Tap nút << để mở rộng lại
+      await tester.tap(expandBtnFinder);
+      await tester.pumpAndSettle();
+
+      // Đã mở rộng lại: các nút chức năng hiện lại đầy đủ
+      expect(find.byKey(const Key('route_drawing_undo_button')), findsOneWidget);
+      expect(find.byKey(const Key('route_drawing_collapse_toolbar_button')), findsOneWidget);
+    });
   });
 }

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/search/widgets/widgets.dart';
 
@@ -258,5 +259,79 @@ void main() {
       expect(find.byType(EmptyWidget), findsOneWidget);
       expect(find.byIcon(Icons.search_off_rounded), findsOneWidget);
     });
+
+    testWidgets('SearchResultsList displays Add Destination button when hasExistingDestinations is true', (tester) async {
+      const samplePois = [
+        PoiModel(
+          id: 1,
+          name: 'Phở Gia Truyền Bát Đàn',
+          nameAscii: 'Pho Gia Truyen Bat Dan',
+          category: 'food',
+          lat: 21.033,
+          lon: 105.845,
+          address: '49 Bát Đàn, Hoàn Kiếm',
+        ),
+      ];
+
+      PoiModel? addedPoi;
+
+      await tester.pumpWidget(createTestableWidget(
+        SearchResultsList(
+          results: samplePois,
+          suggestions: const [],
+          isLoading: false,
+          hasExistingDestinations: true,
+          onPoiTap: (_) {},
+          onSuggestionTap: (_) {},
+          onAddDestination: (poi) => addedPoi = poi,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('poi_list_tile_add_destination_button')), findsOneWidget);
+      expect(find.text(tr(LocaleKeys.route_drawing_ui_add_destination)), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('poi_list_tile_add_destination_button')));
+      await tester.pump();
+      expect(addedPoi?.id, equals(1));
+    });
+
+    testWidgets('SearchCurrentLocationTile renders and responds to tap', (tester) async {
+      bool tapped = false;
+      await tester.pumpWidget(createTestableWidget(
+        SearchCurrentLocationTile(
+          userLocation: const LatLng(10.7, 106.7),
+          isAcquiringLocation: false,
+          onTap: () => tapped = true,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr(LocaleKeys.routing_my_location)), findsOneWidget);
+      expect(find.text(tr(LocaleKeys.map_current_location)), findsOneWidget);
+
+      await tester.tap(find.text(tr(LocaleKeys.routing_my_location)));
+      await tester.pump();
+      expect(tapped, isTrue);
+    });
+
+    test('SearchScreenArgs props and equality', () {
+      const args1 = SearchScreenArgs(
+        userLocation: LatLng(10.0, 106.0),
+        hasExistingDestinations: true,
+      );
+      const args2 = SearchScreenArgs(
+        userLocation: LatLng(10.0, 106.0),
+        hasExistingDestinations: true,
+      );
+      const args3 = SearchScreenArgs(
+        userLocation: LatLng(10.0, 106.0),
+        hasExistingDestinations: false,
+      );
+
+      expect(args1, equals(args2));
+      expect(args1 == args3, isFalse);
+    });
   });
 }
+

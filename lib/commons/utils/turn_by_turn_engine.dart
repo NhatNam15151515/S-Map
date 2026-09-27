@@ -90,7 +90,7 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
         break;
       }
 
-      final d = _calculateHaversineDistanceMeters(
+      final d = MapGeometryUtils.haversineDistanceMeters(
         currentLat,
         currentLon,
         maneuverPoint[0],
@@ -102,7 +102,7 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       if (nextInstruction.points.length >= 2 &&
           _isValidCoordinate(nextInstruction.points[1])) {
         final p1 = nextInstruction.points[1];
-        final distToP1 = _calculateHaversineDistanceMeters(
+        final distToP1 = MapGeometryUtils.haversineDistanceMeters(
           currentLat,
           currentLon,
           p1[0],
@@ -134,7 +134,7 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
           : null;
 
       if (destinationPoint != null) {
-        distToNextMeters = _calculateHaversineDistanceMeters(
+        distToNextMeters = MapGeometryUtils.haversineDistanceMeters(
           currentLat,
           currentLon,
           destinationPoint[0],
@@ -200,16 +200,6 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       isPreAnnounced: isPreAnnounced,
       hasArrived: hasArrived,
     );
-  }
-
-  /// Delegate sang [MapGeometryUtils.haversineDistanceMeters].
-  static double _calculateHaversineDistanceMeters(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    return MapGeometryUtils.haversineDistanceMeters(lat1, lon1, lat2, lon2);
   }
 
   /// Kiểm tra xem điểm tọa độ có hợp lệ và đầy đủ 2 thành phần kinh vĩ độ hay không

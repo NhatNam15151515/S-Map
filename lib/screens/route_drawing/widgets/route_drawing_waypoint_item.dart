@@ -36,20 +36,20 @@ class RouteDrawingWaypointItem extends StatelessWidget {
             : '${point.snappedLat.toStringAsFixed(4)}, ${point.snappedLon.toStringAsFixed(4)}');
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 3.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 1.0),
       child: Row(
         children: [
           // 1. Icon 2 gạch kéo thả (Drag Handle) đưa ra đầu bên trái
           ReorderableDragStartListener(
             index: index,
             child: SizedBox(
-              width: 22,
-              height: 32,
+              width: 18,
+              height: 28,
               child: Center(
                 child: Icon(
                   Icons.drag_handle_rounded,
-                  size: 18,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  size: 15,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
                 ),
               ),
             ),
@@ -58,7 +58,7 @@ class RouteDrawingWaypointItem extends StatelessWidget {
 
           // 2. Icon điểm dừng chuẩn Google Maps
           SizedBox(
-            width: 24,
+            width: 20,
             child: Center(
               child: RouteDrawingPointIcon(
                 index: index,
@@ -66,14 +66,14 @@ class RouteDrawingWaypointItem extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
 
           // 3. Tên địa điểm
           Expanded(
             child: Text(
               displayName,
               style: colorScheme.onSurface.textTheme.semiBoldStyle.copyWith(
-                fontSize: 14,
+                fontSize: 13.0,
                 fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
@@ -86,12 +86,12 @@ class RouteDrawingWaypointItem extends StatelessWidget {
             PopupMenuButton<String>(
               icon: Icon(
                 Icons.more_vert_rounded,
-                size: 20,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                size: 18,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
               ),
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              splashRadius: 18,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+              splashRadius: 16,
               onSelected: (value) {
                 if (value == 'save' && onSavedRoutesPressed != null) {
                   onSavedRoutesPressed!();

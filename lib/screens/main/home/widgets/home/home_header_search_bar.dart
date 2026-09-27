@@ -10,6 +10,7 @@ import 'package:s_map/routers/routers.dart';
 class HomeHeaderSearchBar extends StatelessWidget {
   final double topPadding;
   final ValueChanged<PoiModel> onPoiSelected;
+  final ValueChanged<PoiModel>? onAddDestination;
   final void Function(List<PoiModel> pois, String? query) onSearchResults;
   final ValueChanged<SearchResultPayload>? onAreaSearch;
   final ValueChanged<String?> onCategorySelected;
@@ -21,6 +22,7 @@ class HomeHeaderSearchBar extends StatelessWidget {
     super.key,
     required this.topPadding,
     required this.onPoiSelected,
+    this.onAddDestination,
     required this.onSearchResults,
     this.onAreaSearch,
     required this.onCategorySelected,
@@ -47,16 +49,22 @@ class HomeHeaderSearchBar extends StatelessWidget {
               // hiện tại ngay cả khi người dùng sau đó bấm Back.
               onSearchOpened?.call();
               final mapState = context.read<MapDisplayCubit>().state;
+              final routeState = context.read<RoutePreviewCubit>().state;
               // Ưu tiên GPS để kết quả gần người dùng. Khi GPS chưa sẵn
               // sàng, dùng tâm camera hiện tại thay vì tìm toàn bộ dữ liệu.
               final searchCenter = mapState.currentPosition ?? mapState.center;
               context.push<dynamic>(
                 AppRoutes.search,
-                extra: searchCenter,
+                extra: SearchScreenArgs(
+                  userLocation: searchCenter,
+                  hasExistingDestinations: routeState.destination != null,
+                ),
               ).then((result) {
                 if (result != null && context.mounted) {
                   if (result is SearchResultPayload) {
-                    if (result.isArea) {
+                    if (result.isAddDestination && result.selectedPoi != null) {
+                      onAddDestination?.call(result.selectedPoi!);
+                    } else if (result.isArea) {
                       onAreaSearch?.call(result);
                     } else if (result.isSingle && result.selectedPoi != null) {
                       onPoiSelected(result.selectedPoi!);

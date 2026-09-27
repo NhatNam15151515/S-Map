@@ -11,6 +11,7 @@ class HomeBottomOverlay extends StatelessWidget {
   final String? searchQuery;
   final ValueChanged<dynamic> onPlaceTap;
   final ValueChanged<PoiModel>? onSearchResultPoiTap;
+  final ValueChanged<PoiModel>? onAddDestination;
   final VoidCallback? onCloseSearchResults;
   final VoidCallback onClosePoiCard;
   final VoidCallback onDirections;
@@ -24,6 +25,7 @@ class HomeBottomOverlay extends StatelessWidget {
     this.searchQuery,
     required this.onPlaceTap,
     this.onSearchResultPoiTap,
+    this.onAddDestination,
     this.onCloseSearchResults,
     required this.onClosePoiCard,
     required this.onDirections,
@@ -58,6 +60,9 @@ class HomeBottomOverlay extends StatelessWidget {
     // 2. Khi có danh sách kết quả tìm kiếm (hoặc đang active search/category): hiển thị Sheet danh sách kết quả
     if ((searchResults != null && searchResults!.isNotEmpty) ||
         (searchQuery != null && searchQuery!.trim().isNotEmpty)) {
+      final hasDestinations =
+          context.read<RoutePreviewCubit>().state.destination != null;
+
       return Positioned(
         left: 0,
         right: 0,
@@ -68,6 +73,8 @@ class HomeBottomOverlay extends StatelessWidget {
           pois: searchResults ?? const [],
           query: searchQuery,
           onPoiTap: onSearchResultPoiTap,
+          onAddDestination: onAddDestination,
+          hasExistingDestinations: hasDestinations,
           onClose: onCloseSearchResults,
         ),
       );

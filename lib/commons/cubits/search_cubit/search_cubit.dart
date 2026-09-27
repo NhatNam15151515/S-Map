@@ -7,12 +7,14 @@ import 'package:s_map/commons/validators/validator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
+import 'package:s_map/search_engine/search_engine.dart';
 import 'search_fallbacks.dart';
 import 'search_state.dart';
 
 class SearchCubit extends Cubit<SearchState> {
   final IPoiRepository _poiRepository;
   final IRecentSearchService _recentSearchService;
+  final SearchOrchestrator? _searchOrchestrator;
 
   Timer? _debounceTimer;
   static const Duration defaultDebounceDuration = Duration(milliseconds: 300);
@@ -24,10 +26,12 @@ class SearchCubit extends Cubit<SearchState> {
     IPoiRepository? poiRepository,
     IRecentSearchService? recentSearchService,
     LatLng? userLocation,
+    SearchOrchestrator? searchOrchestrator,
   })  : _poiRepository = poiRepository ?? PoiRepositoryImpl(),
         _recentSearchService = recentSearchService ??
             defaultRecentSearchService ??
             NoOpRecentSearchService(),
+        _searchOrchestrator = searchOrchestrator,
         super(SearchState(userLocation: userLocation));
 
   /// Cập nhật vị trí GPS người dùng để tính khoảng cách tới các POI
@@ -95,10 +99,15 @@ class SearchCubit extends Cubit<SearchState> {
     ));
 
     try {
-      // Autocomplete/realtime results must stay global. Location is only a
-      // ranking hint here; the area bias is applied after Submit by
-      // ViewportSearchBloc.ProgressiveAreaSearch.
-      final resultsFuture = _poiRepository.search(query, limit: 50);
+      // Autocomplete/realtime keeps a nearby candidate set first. A distant
+      // landmark is only allowed by the shared ranker when it is an explicit,
+      // strong name match.
+      final resultsFuture = _searchOrchestrator?.search(
+            query: query,
+            userLocation: state.userLocation,
+            limit: 50,
+          ) ??
+          _poiRepository.search(query, limit: 50);
       final dbSuggestionsFuture = _poiRepository.getSuggestions(query);
 
       final results = await resultsFuture;
@@ -107,8 +116,7 @@ class SearchCubit extends Cubit<SearchState> {
       // Đảm bảo kết quả phản hồi khớp với query hiện tại, tránh race condition
       if (state.query != query || isClosed) return;
 
-      // Dùng cùng bộ xếp hạng với area search và Route Drawing: độ khớp
-      // tên/địa chỉ là tín hiệu chính, khoảng cách chỉ là tie-breaker.
+      // Dùng cùng bộ xếp hạng với area search và Route Drawing.
       final sortedResults = SearchResultRanker.rank(
         results,
         center: state.userLocation,
@@ -221,14 +229,14 @@ class SearchCubit extends Cubit<SearchState> {
     }
   }
 
-  /// Tìm ứng viên text toàn dataset.
-  ///
-  /// Progressive location bias đã được chuyển sang
-  /// [ProgressiveAreaSearch] trong ViewportSearchBloc. SearchCubit chỉ còn
-  /// phục vụ realtime/legacy search nên không được tự cắt kết quả theo bán
-  /// kính trước khi engine chung có cơ hội xếp hạng.
+  /// Tìm ứng viên text qua search engine hiện tại.
   Future<List<PoiModel>> _searchInCurrentArea(String query) async {
-    return _poiRepository.search(query, limit: 50);
+    return _searchOrchestrator?.search(
+          query: query,
+          userLocation: state.userLocation,
+          limit: 50,
+        ) ??
+        _poiRepository.search(query, limit: 50);
   }
 
   /// Nạp danh sách lịch sử tìm kiếm gần đây từ local storage

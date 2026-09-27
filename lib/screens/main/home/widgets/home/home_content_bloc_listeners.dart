@@ -64,14 +64,16 @@ class HomeContentBlocListeners extends StatelessWidget {
               prev.pois != curr.pois ||
               prev.selectedCategory != curr.selectedCategory,
           listener: (context, viewportState) {
+            final hasQuery = viewportState.searchQuery?.isNotEmpty == true;
             final isAreaSearch = viewportState.isAreaSearch;
             final isCategorySearch =
                 viewportState.selectedCategory != CategoryConstants.all;
-            if (isAreaSearch || isCategorySearch) {
+            if (isAreaSearch || isCategorySearch || hasQuery) {
               final title = isCategorySearch
                   ? tr(PoiCategoryHelper.getCategoryLocaleKey(
                       viewportState.selectedCategory))
-                  : viewportState.searchQuery;
+                  : (viewportState.searchQuery ??
+                      searchCoordinator.activeSearchText);
               if (viewportState.status == ViewportSearchStatus.success) {
                 final singlePoi = searchCoordinator.handleSearchResults(
                   viewportState.pois,

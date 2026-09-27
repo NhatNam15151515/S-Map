@@ -21,9 +21,7 @@ class TripLegItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     final durationStr = RouteFormatHelper.formatTripDuration(leg.duration);
-    final distanceStr = leg.distanceKm >= 1.0
-        ? '${leg.distanceKm.toStringAsFixed(1)} km'
-        : '${leg.distanceMeters.round()} m';
+    final distanceStr = RouteFormatHelper.formatDistance(leg.distanceMeters);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

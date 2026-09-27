@@ -276,7 +276,11 @@ class CodegenLoader extends AssetLoader{
     "straight_line": "Direct line",
     "add_destination": "Add destination",
     "delete_waypoint_tooltip": "Delete this waypoint",
-    "search_destination_tooltip": "Search destination"
+    "search_destination_tooltip": "Search destination",
+    "collapse_toolbar": "Collapse toolbar",
+    "expand_toolbar": "Expand toolbar",
+    "collapse_waypoints": "Collapse waypoints",
+    "expand_waypoints": "Expand waypoints"
   },
   "stats_dashboard": {
     "title": "Trip Statistics",
@@ -641,7 +645,11 @@ static const Map<String,dynamic> _vi = {
     "straight_line": "Đường chim bay",
     "add_destination": "Thêm điểm đến",
     "delete_waypoint_tooltip": "Xóa điểm này",
-    "search_destination_tooltip": "Tìm điểm đến"
+    "search_destination_tooltip": "Tìm điểm đến",
+    "collapse_toolbar": "Thu gọn thanh công cụ",
+    "expand_toolbar": "Mở thanh công cụ",
+    "collapse_waypoints": "Thu gọn danh sách",
+    "expand_waypoints": "Mở rộng danh sách"
   },
   "stats_dashboard": {
     "title": "Thống kê chuyến đi",

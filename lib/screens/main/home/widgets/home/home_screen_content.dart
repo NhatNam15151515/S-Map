@@ -20,6 +20,8 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
       DraggableScrollableController();
 
   PoiModel? _selectedMarkerPoi;
+  List<PoiModel>? _routeSearchResults;
+  String? _routeSearchQuery;
   late final HomeNavigationDialogHandler _navDialogHandler;
   late final HomeSearchCoordinator _searchCoordinator;
   late final HomeRouteActions _routeActions;
@@ -62,12 +64,15 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
         if (mounted) {
           setState(() {
             _searchCoordinator.searchResults = [];
+            _routeSearchResults = null;
+            _routeSearchQuery = null;
             _selectedMarkerPoi = null;
             _searchCoordinator.activeSearchText = null;
             _searchCoordinator.showSearchThisArea = false;
           });
         }
       },
+      onSearchResults: _showRouteSearchResults,
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -123,12 +128,58 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
     }
   }
 
+  void _showRouteSearchResults(List<PoiModel> pois, String? query) {
+    _mapLayerKey.currentState?.clearSelectedPoiMarker(
+      restoreSearchResults: false,
+    );
+    _mapLayerKey.currentState?.showSearchResults(pois, fitBounds: true);
+    displayCubit.clearSelectedPoi();
+    if (!mounted) return;
+    setState(() {
+      _routeSearchResults = pois;
+      _routeSearchQuery = query;
+      _selectedMarkerPoi = null;
+    });
+  }
+
+  void _closeRouteSearchResults() {
+    _mapLayerKey.currentState?.clearSearchResults();
+    _mapLayerKey.currentState?.clearSelectedPoiMarker(
+      restoreSearchResults: false,
+    );
+    displayCubit.clearSelectedPoi();
+    if (!mounted) return;
+    setState(() {
+      _routeSearchResults = null;
+      _routeSearchQuery = null;
+      _selectedMarkerPoi = null;
+    });
+  }
+
+  void _handleRouteSearchPoiTap(PoiModel poi) {
+    displayCubit.selectPoi(poi);
+    if (!mounted) return;
+    setState(() => _selectedMarkerPoi = poi);
+  }
+
+  void _closeRouteSearchPoi() {
+    _mapLayerKey.currentState?.clearSelectedPoiMarker(
+      restoreSearchResults: true,
+    );
+    displayCubit.clearSelectedPoi();
+    if (!mounted) return;
+    setState(() => _selectedMarkerPoi = null);
+  }
+
   // ─── Build ───────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    final controlsBottom = _selectedMarkerPoi != null
+    final controlsBottom = _routeSearchResults != null &&
+            _selectedMarkerPoi == null
+        ? 295.0
+        : _selectedMarkerPoi != null
         ? 216.0
         : (_searchCoordinator.searchResults.isNotEmpty ||
                 (_searchCoordinator.activeSearchText?.trim().isNotEmpty ??
@@ -142,6 +193,22 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
           searchCoordinator: _searchCoordinator,
           onSelectedPoiChanged: (poi) {
             if (!mounted) return;
+            if (_routeSearchResults != null) {
+              if (poi == null) {
+                if (_selectedMarkerPoi != null) {
+                  setState(() => _selectedMarkerPoi = null);
+                }
+                return;
+              }
+              final belongsToRouteSearch = _routeSearchResults!
+                  .any((item) => item.isSamePoi(poi));
+              if (belongsToRouteSearch) {
+                if (_selectedMarkerPoi?.isSamePoi(poi) != true) {
+                  setState(() => _selectedMarkerPoi = poi);
+                }
+                return;
+              }
+            }
             if (poi == null) {
               if (_selectedMarkerPoi != null) {
                 setState(() {
@@ -200,8 +267,15 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                     children: [
                       HomeInteractiveMapLayer(
                         key: _mapLayerKey,
+                        allowPoiInteractionWhenRouteActive:
+                            _routeSearchResults != null,
                         onPoiTapped: (poi) {
-                          if (!isNavigating) _handlePoiSelected(poi);
+                          if (isNavigating) return;
+                          if (_routeSearchResults != null) {
+                            _handleRouteSearchPoiTap(poi);
+                          } else {
+                            _handlePoiSelected(poi);
+                          }
                         },
                         onSearchAreaVisibilityChanged: (show) {
                           if (mounted && !isRouteActive && !isNavigating) {
@@ -231,6 +305,16 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                           topPadding: topPadding,
                           routeState: routeState,
                           routeActions: _routeActions,
+                          searchResults: _routeSearchResults,
+                          searchQuery: _routeSearchQuery,
+                          selectedSearchPoi: _routeSearchResults != null
+                              ? _selectedMarkerPoi
+                              : null,
+                          onSearchResultPoiTap: _handleRouteSearchPoiTap,
+                          onAddDestination: (poi) =>
+                              _routeActions.handleAddDestination(context, poi),
+                          onCloseSearchResults: _closeRouteSearchResults,
+                          onCloseSearchPoi: _closeRouteSearchPoi,
                           onStartNavigationTriggered: () {
                             _navDialogHandler.isTripSummaryShown = false;
                           },

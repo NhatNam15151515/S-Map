@@ -4,6 +4,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/main/home/widgets/home/home_interactive_map_layer.dart';
 
@@ -22,12 +23,16 @@ class HomeRouteActions {
   /// Callback để reset search state khi mở route drawing
   final VoidCallback onClearForRouteDrawing;
 
+  /// Hiển thị kết quả tìm kiếm inline trên Home khi đang preview route.
+  final void Function(List<PoiModel> pois, String? query) onSearchResults;
+
   HomeRouteActions({
     required this.mapLayerKey,
     required this.displayCubit,
     required this.routePreviewCubit,
     required this.onStateChanged,
     required this.onClearForRouteDrawing,
+    required this.onSearchResults,
   });
 
   void handleDirections(PoiModel? selectedPoi) {
@@ -74,6 +79,69 @@ class HomeRouteActions {
     context.push(AppRoutes.routeDrawing, extra: payload);
   }
 
+  /// Nạp điểm đến mới vào lộ trình và chuyển sang màn hình vẽ đường
+  void handleAddDestination(BuildContext context, PoiModel poi) {
+    final routeState = routePreviewCubit.state;
+    final mapState = displayCubit.state;
+
+    final originPos = routeState.origin != null
+        ? LatLng(routeState.origin!.lat, routeState.origin!.lon)
+        : (mapState.hasRealLocation
+            ? mapState.currentPosition
+            : mapState.center);
+
+    final destPos = routeState.destination != null
+        ? LatLng(routeState.destination!.lat, routeState.destination!.lon)
+        : null;
+
+    final newPoint = LatLng(poi.lat, poi.lon);
+
+    final payload = RouteDrawingPayload(
+      initialOrigin: originPos,
+      initialDestination: destPos,
+      destinationName: routeState.destinationName,
+      additionalWaypoints: [newPoint],
+    );
+
+    mapLayerKey.currentState?.clearAll();
+    displayCubit.clearSelectedPoi();
+    routePreviewCubit.clearRoute();
+    onClearForRouteDrawing();
+
+    context.push(AppRoutes.routeDrawing, extra: payload);
+  }
+
+  /// Mở màn hình tìm kiếm để thêm điểm đến vào lộ trình hiện tại
+  Future<void> handleOpenAddDestinationSearch(BuildContext context) async {
+    final mapState = displayCubit.state;
+    final searchCenter = mapState.currentPosition ?? mapState.center;
+    var result = await context.push<dynamic>(
+      AppRoutes.search,
+      extra: SearchScreenArgs(
+        userLocation: searchCenter,
+        hasExistingDestinations: true,
+      ),
+    );
+    if (!context.mounted || result == null) return;
+
+    if (result is SearchResultPayload && result.isAll) {
+      onSearchResults(result.allResults ?? const [], result.submittedQuery);
+      return;
+    }
+
+    final resolvedResult = await resolveSearchResultPayload(
+      context,
+      result,
+      hasExistingDestinations: true,
+    );
+    if (!context.mounted || resolvedResult == null) return;
+
+    if ((resolvedResult.isAddDestination || resolvedResult.isSingle) &&
+        resolvedResult.selectedPoi != null) {
+      handleAddDestination(context, resolvedResult.selectedPoi!);
+    }
+  }
+
   Future<void> handleSelectEndpointForRoute(
     BuildContext context, {
     required bool isOrigin,
@@ -81,11 +149,26 @@ class HomeRouteActions {
   }) async {
     final mapState = displayCubit.state;
     final searchCenter = mapState.currentPosition ?? mapState.center;
-    final result = await context.push<dynamic>(
+    var result = await context.push<dynamic>(
       AppRoutes.search,
-      extra: searchCenter,
+      extra: SearchScreenArgs(
+        userLocation: searchCenter,
+        hasExistingDestinations: routePreviewCubit.state.destination != null,
+      ),
     );
-    if (!mounted || result == null) return;
+    if (!context.mounted || !mounted || result == null) return;
+
+    final resolvedResult = await resolveSearchResultPayload(
+      context,
+      result,
+      hasExistingDestinations: routePreviewCubit.state.destination != null,
+    );
+    if (!context.mounted || !mounted || resolvedResult == null) return;
+
+    if (resolvedResult.isAddDestination && resolvedResult.selectedPoi != null) {
+      handleAddDestination(context, resolvedResult.selectedPoi!);
+      return;
+    }
 
     final routeState = routePreviewCubit.state;
     if (isOrigin && routeState.destination == null) return;
@@ -94,18 +177,15 @@ class HomeRouteActions {
     RoutePoint? point;
     String? name;
 
-    if (result is SearchResultPayload && result.isLocation) {
-      final pos = result.searchCenter ?? mapState.currentPosition;
+    if (resolvedResult.isLocation) {
+      final pos = resolvedResult.searchCenter ?? mapState.currentPosition;
       if (pos != null) {
         point = RoutePoint(lat: pos.latitude, lon: pos.longitude);
       }
-    } else if (result is SearchResultPayload && result.isSingle) {
-      final poi = result.selectedPoi!;
+    } else if (resolvedResult.isSingle) {
+      final poi = resolvedResult.selectedPoi!;
       point = RoutePoint(lat: poi.lat, lon: poi.lon);
       name = poi.name;
-    } else if (result is PoiModel) {
-      point = RoutePoint(lat: result.lat, lon: result.lon);
-      name = result.name;
     }
 
     if (point == null) return;

@@ -77,8 +77,19 @@ class Routes extends NavigatorObserver {
           path: AppRoutes.search,
           builder: (context, state) {
             final extra = state.extra;
-            final userLocation = extra is LatLng ? extra : null;
-            return SearchScreen(userLocation: userLocation);
+            LatLng? userLocation;
+            bool? hasExistingDestinations;
+
+            if (extra is SearchScreenArgs) {
+              userLocation = extra.userLocation;
+              hasExistingDestinations = extra.hasExistingDestinations;
+            } else if (extra is LatLng) {
+              userLocation = extra;
+            }
+            return SearchScreen(
+              userLocation: userLocation,
+              hasExistingDestinations: hasExistingDestinations ?? false,
+            );
           },
         ),
         GoRoute(

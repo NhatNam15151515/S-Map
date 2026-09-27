@@ -56,7 +56,7 @@ class OffRouteDetector implements IOffRouteDetector {
 
     if (routePoints.length == 1) {
       final p0 = routePoints.first;
-      final dist = _calculateHaversineDistanceMeters(
+      final dist = MapGeometryUtils.haversineDistanceMeters(
         currentLat,
         currentLon,
         p0[0],
@@ -156,13 +156,4 @@ class OffRouteDetector implements IOffRouteDetector {
     );
   }
 
-  /// Delegate sang [MapGeometryUtils.haversineDistanceMeters].
-  static double _calculateHaversineDistanceMeters(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    return MapGeometryUtils.haversineDistanceMeters(lat1, lon1, lat2, lon2);
-  }
 }

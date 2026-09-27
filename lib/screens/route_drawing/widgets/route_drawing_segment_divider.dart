@@ -4,9 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 /// Đường nối giữa 2 điểm waypoint phong cách Google Maps:
-/// - Bên trái: Dải 3 chấm dọc (⋮) thẳng hàng với icon điểm.
-/// - Ở giữa: Đường kẻ mỏng ngang.
-/// - Bên phải: Nút tròn máy bay (✈) build chuẩn pattern Material + InkWell (40x40).
+/// - Đường kẻ mỏng ngang tối giản, không còn 3 chấm thừa.
+/// - Bên phải: Nút đường chim bay nhỏ gọn (20x20) để khoảng cách giữa 2 dòng là thấp nhất.
 class RouteDrawingSegmentDivider extends StatelessWidget {
   final int segmentIndex;
   final bool isStraightLine;
@@ -25,89 +24,72 @@ class RouteDrawingSegmentDivider extends StatelessWidget {
     final activeColor = colorScheme.primary;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.5),
-      child: Row(
-        children: [
-          // Khoảng trống bù cho Drag Handle (22 + 4 = 26px) giúp 3 chấm thẳng hàng tuyệt đối với icon điểm
-          const SizedBox(width: 26),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: SizedBox(
+        height: 18,
+        child: Row(
+          children: [
+            // 1. Đường kẻ phân cách bên trái
+            Expanded(
+              child: Container(
+                height: 0.5,
+                color: colorScheme.outline.withValues(alpha: 0.12),
+              ),
+            ),
+            const SizedBox(width: 8),
 
-          // 1. Dải 3 chấm dọc nối thẳng hàng với icon waypoint
-          SizedBox(
-            width: 24,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(
-                  3,
-                  (index) => Container(
-                    width: 2.2,
-                    height: 2.2,
-                    margin: const EdgeInsets.symmetric(vertical: 1.2),
-                    decoration: BoxDecoration(
-                      color: isStraightLine
-                          ? activeColor
-                          : colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
+            // 2. Nút chim bay nhỏ gọn (20x20) ở chính giữa
+            Tooltip(
+              message: isStraightLine
+                  ? tr(LocaleKeys.route_drawing_ui_straight_line)
+                  : tr(LocaleKeys.route_drawing_ui_follow_roads),
+              child: Material(
+                color: isStraightLine
+                    ? activeColor.withValues(alpha: 0.18)
+                    : colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.35),
+                shape: CircleBorder(
+                  side: BorderSide(
+                    color: isStraightLine
+                        ? activeColor
+                        : colorScheme.outline.withValues(alpha: 0.2),
+                    width: isStraightLine ? 1.0 : 0.6,
+                  ),
+                ),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    onToggle();
+                  },
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Center(
+                      child: Icon(
+                        Icons.linear_scale_rounded,
+                        size: 12,
+                        color: isStraightLine
+                            ? activeColor
+                            : colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.65),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
+            const SizedBox(width: 8),
 
-          // 2. Đường kẻ phân cách ngang
-          Expanded(
-            child: Container(
-              height: 0.6,
-              color: colorScheme.outline.withValues(alpha: 0.15),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // 3. Nút tròn máy bay ✈ chuẩn pattern IconButton / Material + InkWell
-          Tooltip(
-            message: isStraightLine
-                ? tr(LocaleKeys.route_drawing_ui_straight_line)
-                : tr(LocaleKeys.route_drawing_ui_follow_roads),
-            child: Material(
-              color: isStraightLine
-                  ? activeColor.withValues(alpha: 0.18)
-                  : colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.35),
-              shape: CircleBorder(
-                side: BorderSide(
-                  color: isStraightLine
-                      ? activeColor
-                      : colorScheme.outline.withValues(alpha: 0.25),
-                  width: isStraightLine ? 1.4 : 0.8,
-                ),
-              ),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  onToggle();
-                },
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Center(
-                    child: Icon(
-                      Icons.linear_scale_rounded,
-                      size: 18,
-                      color: isStraightLine
-                          ? activeColor
-                          : colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.65),
-                    ),
-                  ),
-                ),
+            // 3. Đường kẻ phân cách bên phải
+            Expanded(
+              child: Container(
+                height: 0.5,
+                color: colorScheme.outline.withValues(alpha: 0.12),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

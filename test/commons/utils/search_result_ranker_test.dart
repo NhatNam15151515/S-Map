@@ -184,4 +184,60 @@ void main() {
 
     expect(ranked.first.id, 1);
   });
+
+  test('prominence breaks ties for equivalent partial matches', () {
+    const prominent = PoiModel(
+      id: 1,
+      name: 'Khu bệnh viện Chợ Rẫy',
+      nameAscii: 'Khu benh vien Cho Ray',
+      category: 'hospital',
+      prominence: 220,
+      lat: 10.76,
+      lon: 106.66,
+    );
+    const ordinary = PoiModel(
+      id: 2,
+      name: 'Khu bệnh viện tư',
+      nameAscii: 'Khu benh vien tu',
+      category: 'hospital',
+      prominence: 20,
+      lat: 10.76,
+      lon: 106.66,
+    );
+
+    final ranked = SearchResultRanker.rank(
+      [ordinary, prominent],
+      query: 'ện',
+    );
+
+    expect(ranked.first.id, 1);
+  });
+
+  test('nearby search excludes distant partial address matches', () {
+    const nearby = PoiModel(
+      id: 1,
+      name: 'Cửa hàng gần đây',
+      nameAscii: 'Cua hang gan day',
+      address: 'Đường Lý Thường Kiệt',
+      lat: 10.781,
+      lon: 106.691,
+    );
+    const distant = PoiModel(
+      id: 2,
+      name: 'Bánh kem TP Cà Mau',
+      nameAscii: 'Banh kem TP Ca Mau',
+      address: '116 Đường Lý Thường Kiệt, Cà Mau',
+      lat: 9.176,
+      lon: 105.15,
+    );
+
+    final ranked = SearchResultRanker.rank(
+      [distant, nearby],
+      center: const LatLng(10.780, 106.690),
+      query: 'lý',
+      maxDistanceKm: SearchResultRanker.defaultNearbySearchRadiusKm,
+    );
+
+    expect(ranked.map((poi) => poi.id), [1]);
+  });
 }

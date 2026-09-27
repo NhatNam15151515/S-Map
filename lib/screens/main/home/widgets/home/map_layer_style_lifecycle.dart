@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -50,10 +51,10 @@ mixin MapLayerStyleLifecycle<T extends StatefulWidget> on State<T>, AppMixin {
     await symbolManager.loadMarkerAssets(mapController, force: true);
     await symbolManager.initLayers(mapController);
     await routeManager.loadMarkerAssets(mapController, force: true);
+    lastAppliedMapStyle = displayCubit.state.styleString;
+    await displayCubit.onStyleLoaded();
+
     if (!mounted) return;
-
-    await refreshMemoryMarkers();
-
     final viewportState = viewportBloc.state;
     final previewState = routePreviewCubit.state;
     final currentNavigationState = navigationBloc.state;
@@ -70,8 +71,8 @@ mixin MapLayerStyleLifecycle<T extends StatefulWidget> on State<T>, AppMixin {
       await setSelectedPoiMarker(displayCubit.state.selectedPoi!);
     }
 
-    lastAppliedMapStyle = displayCubit.state.styleString;
-    await displayCubit.onStyleLoaded();
+    // Đồng bộ marker yêu thích / đã đến ở background, không chặn lifecycle bản đồ
+    unawaited(refreshMemoryMarkers());
 
     if (previewState.isSuccess &&
         previewState.routeResult != null &&

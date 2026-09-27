@@ -205,20 +205,14 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
             children: [
               _buildMapLayer(),
               _buildCenterOverlay(state),
-              RouteDrawingConnectedToolbar(
-                state: state,
-                destController: _destController,
-                mapDisplayCubit: _mapDisplayCubit,
-                drawingBloc: _drawingBloc,
-                mapLayerKey: _mapLayerKey,
-                onSetState: () => setState(() {}),
-              ),
+              _buildTopBar(topPadding, context, state),
               RouteDrawingBottomCard(
                 pointCount: state.pointCount,
                 distanceMeters: state.totalDistance,
                 durationMs: state.totalTime,
                 isLoading: state.isLoading,
                 isStraightLineMode: state.isStraightLineMode,
+                onClose: () => Navigator.of(context).maybePop(),
                 onSavePressed: () =>
                     RouteDrawingActionCoordinator.showSaveRouteDialog(
                   context: context,
@@ -230,7 +224,15 @@ class _RouteDrawingScreenState extends State<RouteDrawingScreen> {
                   state: state,
                 ),
               ),
-              _buildTopBar(topPadding, context, state),
+              // Layer trên cùng: Floating Toolbar không bị Top Bar hay Bottom Card che
+              RouteDrawingConnectedToolbar(
+                state: state,
+                destController: _destController,
+                mapDisplayCubit: _mapDisplayCubit,
+                drawingBloc: _drawingBloc,
+                mapLayerKey: _mapLayerKey,
+                onSetState: () => setState(() {}),
+              ),
             ],
           );
         },

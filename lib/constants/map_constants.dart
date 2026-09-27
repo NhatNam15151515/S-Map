@@ -23,9 +23,8 @@ class MapConstants {
 
   /// Cấu hình progressive area search.
   ///
-  /// Zoom chỉ là cách biểu diễn UX của location bias. Engine vẫn dùng bán
-  /// kính để tìm category gần tâm, còn text search sẽ bổ sung ứng viên toàn
-  /// dataset để không biến vùng bias thành một rào chắn cứng.
+  /// Zoom biểu diễn vùng tìm kiếm mở rộng. Text search vẫn giữ bán kính local
+  /// để tránh trả về các địa điểm rất xa chỉ vì khớp một phần từ khóa.
   static const double areaSearchInitialZoom = 13.0;
   static const double areaSearchMinZoom = 5.5;
   static final Map<double, double> areaSearchZoomToRadiusKm =

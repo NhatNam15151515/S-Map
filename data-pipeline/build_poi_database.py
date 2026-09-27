@@ -142,7 +142,63 @@ POI_DB_COLUMNS = (
     "housenumber",
     "city",
     "admin_aliases",
+    "prominence",
 )
+
+CATEGORY_PROMINENCE_WEIGHTS = {
+    "hospital": 90,
+    "airport": 95,
+    "university": 85,
+    "school": 70,
+    "bank": 60,
+    "atm": 50,
+    "gas": 55,
+    "hotel": 65,
+    "food": 40,
+    "coffee": 35,
+    "shop": 30,
+    "park": 50,
+    "transportation": 80,
+    "tourism": 60,
+    "address": 5,
+    "street": 10,
+}
+
+
+def calculate_prominence(tags, category: str, sub_category: str) -> int:
+    """Tính điểm nổi bật tĩnh để xếp hạng offline, tối đa vừa một byte."""
+    tags = tags or {}
+    category_key = str(sub_category or category or "other").strip().lower()
+    score = CATEGORY_PROMINENCE_WEIGHTS.get(
+        category_key,
+        CATEGORY_PROMINENCE_WEIGHTS.get(str(category or "").lower(), 20),
+    )
+
+    if tags.get("wikipedia") or tags.get("wikidata"):
+        score += 30
+    if tags.get("website") or tags.get("contact:website"):
+        score += 10
+    if tags.get("phone") or tags.get("contact:phone"):
+        score += 5
+    if tags.get("opening_hours"):
+        score += 5
+
+    name = str(tags.get("name") or "").strip()
+    if tags.get("name:vi"):
+        score += 10
+    if len(name) > 3:
+        score += 5
+    if tags.get("brand"):
+        score += 15
+
+    try:
+        confidence = float(tags.get("_confidence"))
+    except (TypeError, ValueError):
+        confidence = 0.0
+    if confidence > 0.8:
+        score += 10
+
+    return min(max(int(score), 0), 255)
 
 
 def remove_vietnamese_accents(text: str) -> str:
@@ -444,6 +500,9 @@ def load_overture_places(geojson_path: Path, bbox=None):
             "street": street,
             "housenumber": housenumber,
             "city": city,
+            "prominence": calculate_prominence(
+                {"_confidence": confidence}, category, sub_category
+            ),
             # Internal fields used only during source merge; stripped before
             # SQLite insertion so the app schema remains unchanged.
             "_source": "overture",
@@ -762,6 +821,7 @@ class POIExtractorHandler(osmium.SimpleHandler):
             "sub_category": sub_category,
             "lat": lat,
             "lon": lon,
+            "prominence": calculate_prominence(tags, category, sub_category),
             **address_fields,
             # Internal merge metadata. It is stripped before SQLite insertion.
             "_source": "osm",
@@ -794,6 +854,7 @@ class POIExtractorHandler(osmium.SimpleHandler):
                 "housenumber": "",
                 "city": city,
                 "admin_aliases": get_admin_aliases(city),
+                "prominence": calculate_prominence({}, "street", highway),
                 "_count": 1,
             }
             return
@@ -889,7 +950,8 @@ def create_sqlite_poi_database(db_path: Path, pois: list):
             street TEXT,
             housenumber TEXT,
             city TEXT,
-            admin_aliases TEXT
+            admin_aliases TEXT,
+            prominence INTEGER NOT NULL DEFAULT 0
         );
     """)
 
@@ -934,12 +996,15 @@ def create_sqlite_poi_database(db_path: Path, pois: list):
     # Chèn dữ liệu POIs theo batch. Internal source metadata is deliberately
     # excluded so the SQLite schema consumed by Flutter does not change.
     db_rows = (
-        {column: poi.get(column) for column in POI_DB_COLUMNS}
+        {
+            column: poi.get(column, 0 if column == "prominence" else None)
+            for column in POI_DB_COLUMNS
+        }
         for poi in pois
     )
     cursor.executemany("""
-        INSERT INTO poi (osm_id, name, name_ascii, category, sub_category, lat, lon, address, address_ascii, street, housenumber, city, admin_aliases)
-        VALUES (:osm_id, :name, :name_ascii, :category, :sub_category, :lat, :lon, :address, :address_ascii, :street, :housenumber, :city, :admin_aliases);
+        INSERT INTO poi (osm_id, name, name_ascii, category, sub_category, lat, lon, address, address_ascii, street, housenumber, city, admin_aliases, prominence)
+        VALUES (:osm_id, :name, :name_ascii, :category, :sub_category, :lat, :lon, :address, :address_ascii, :street, :housenumber, :city, :admin_aliases, :prominence);
     """, db_rows)
 
     conn.commit()
@@ -1065,12 +1130,14 @@ def load_osm_pois_from_database(db_path: Path):
         columns = {
             row[1] for row in connection.execute("PRAGMA table_info(poi)")
         }
-        missing = set(POI_DB_COLUMNS) - columns
+        missing = set(POI_DB_COLUMNS) - {"prominence"} - columns
         if missing:
             raise ValueError(f"POI database thiếu cột cần thiết: {sorted(missing)}")
+        prominence_expression = "prominence" if "prominence" in columns else "0 AS prominence"
         rows = connection.execute(
             "SELECT osm_id, name, name_ascii, category, sub_category, lat, lon, "
-            "address, address_ascii, street, housenumber, city, admin_aliases "
+            "address, address_ascii, street, housenumber, city, admin_aliases, "
+            f"{prominence_expression} "
             "FROM poi"
         ).fetchall()
     finally:

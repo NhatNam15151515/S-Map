@@ -9,6 +9,7 @@ class RouteDrawingPayload extends Equatable {
   final String? destinationName;
   final PoiModel? destinationPoi;
   final CustomRouteModel? initialRoute;
+  final List<LatLng>? additionalWaypoints;
 
   const RouteDrawingPayload({
     this.initialOrigin,
@@ -16,6 +17,7 @@ class RouteDrawingPayload extends Equatable {
     this.destinationName,
     this.destinationPoi,
     this.initialRoute,
+    this.additionalWaypoints,
   });
 
   @override
@@ -25,5 +27,6 @@ class RouteDrawingPayload extends Equatable {
         destinationName,
         destinationPoi,
         initialRoute,
+        additionalWaypoints,
       ];
 }

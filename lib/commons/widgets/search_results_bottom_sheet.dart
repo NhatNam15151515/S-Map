@@ -7,12 +7,65 @@ import 'package:s_map/commons/widgets/poi_list_tile.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
+Future<SearchResultPayload?> showSearchResultsBottomSheet(
+  BuildContext context, {
+  required List<PoiModel> pois,
+  String? query,
+  bool hasExistingDestinations = false,
+}) {
+  return showModalBottomSheet<SearchResultPayload>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => SearchResultsBottomSheet(
+      pois: pois,
+      query: query,
+      hasExistingDestinations: hasExistingDestinations,
+      onPoiTap: (poi) => Navigator.of(sheetContext).pop(
+        SearchResultPayload.single(poi),
+      ),
+      onAddDestination: (poi) => Navigator.of(sheetContext).pop(
+        SearchResultPayload.addDestination(poi),
+      ),
+    ),
+  );
+}
+
+Future<SearchResultPayload?> resolveSearchResultPayload(
+  BuildContext context,
+  dynamic result, {
+  required bool hasExistingDestinations,
+}) async {
+  if (result is SearchResultPayload) {
+    if (!result.isAll ||
+        result.allResults == null ||
+        result.allResults!.isEmpty) {
+      return result;
+    }
+
+    return showSearchResultsBottomSheet(
+      context,
+      pois: result.allResults!,
+      query: result.submittedQuery,
+      hasExistingDestinations: hasExistingDestinations,
+    );
+  }
+
+  if (result is PoiModel) {
+    return SearchResultPayload.single(result);
+  }
+
+  return null;
+}
+
 /// Bottom Sheet hiển thị danh sách tất cả các địa điểm trong kết quả tìm kiếm
 class SearchResultsBottomSheet extends StatelessWidget {
   final DraggableScrollableController? controller;
   final List<PoiModel> pois;
   final String? query;
   final ValueChanged<PoiModel>? onPoiTap;
+  final ValueChanged<PoiModel>? onAddDestination;
+  final bool hasExistingDestinations;
   final VoidCallback? onClose;
 
   const SearchResultsBottomSheet({
@@ -21,6 +74,8 @@ class SearchResultsBottomSheet extends StatelessWidget {
     required this.pois,
     this.query,
     this.onPoiTap,
+    this.onAddDestination,
+    this.hasExistingDestinations = false,
     this.onClose,
   });
 
@@ -117,14 +172,12 @@ class SearchResultsBottomSheet extends StatelessWidget {
                               poi: poi,
                               userLocation: userLocation,
                               onTap: () => onPoiTap?.call(poi),
+                              onAddDestination: () =>
+                                  (onAddDestination ?? onPoiTap)?.call(poi),
+                              hasExistingDestinations: hasExistingDestinations,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 2,
-                              ),
-                              trailing: Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 14,
-                                color: colorScheme.outline.withAlpha(150),
                               ),
                             ),
                           );

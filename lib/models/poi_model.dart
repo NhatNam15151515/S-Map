@@ -29,6 +29,7 @@ class PoiModel {
   final String? street;
   final String? housenumber;
   final String? city;
+  final int prominence;
 
   const PoiModel({
     this.id,
@@ -43,6 +44,7 @@ class PoiModel {
     this.street,
     this.housenumber,
     this.city,
+    this.prominence = 0,
   });
 
   factory PoiModel.fromMap(Map<String, dynamic> map) {
@@ -59,6 +61,7 @@ class PoiModel {
       street: map['street']?.toString(),
       housenumber: map['housenumber']?.toString(),
       city: map['city']?.toString(),
+      prominence: (map['prominence'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -76,6 +79,7 @@ class PoiModel {
       if (street != null) 'street': street,
       if (housenumber != null) 'housenumber': housenumber,
       if (city != null) 'city': city,
+      'prominence': prominence,
     };
   }
 

@@ -32,6 +32,8 @@ class HomeExplorationOverlay extends StatelessWidget {
         HomeHeaderSearchBar(
           topPadding: topPadding,
           onPoiSelected: onPoiSelected,
+          onAddDestination: (poi) =>
+              routeActions.handleAddDestination(context, poi),
           onSearchResults: (pois, query) {
             final singlePoi =
                 searchCoordinator.handleSearchResults(pois, query);
@@ -70,6 +72,8 @@ class HomeExplorationOverlay extends StatelessWidget {
             }
           },
           onSearchResultPoiTap: onSearchResultPoiTap,
+          onAddDestination: (poi) =>
+              routeActions.handleAddDestination(context, poi),
           onCloseSearchResults: searchCoordinator.handleCloseSearchResults,
           onClosePoiCard: onClosePoiCard,
           onDirections: () => routeActions.handleDirections(selectedMarkerPoi),

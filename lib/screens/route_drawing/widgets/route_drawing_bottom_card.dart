@@ -14,6 +14,7 @@ class RouteDrawingBottomCard extends StatelessWidget {
   final bool isStraightLineMode;
   final VoidCallback onSavePressed;
   final VoidCallback onNavigatePressed;
+  final VoidCallback? onClose;
 
   const RouteDrawingBottomCard({
     super.key,
@@ -24,6 +25,7 @@ class RouteDrawingBottomCard extends StatelessWidget {
     this.isStraightLineMode = false,
     required this.onSavePressed,
     required this.onNavigatePressed,
+    this.onClose,
   });
 
   @override
@@ -52,18 +54,47 @@ class RouteDrawingBottomCard extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.hardEdge,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
           children: [
-            if (isLoading)
-              LinearProgressIndicator(
-                minHeight: 3,
-                backgroundColor: colorScheme.primary.withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isLoading)
+                  LinearProgressIndicator(
+                    minHeight: 3,
+                    backgroundColor: colorScheme.primary.withValues(alpha: 0.2),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                  ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: _buildContent(context, colorScheme),
+                ),
+              ],
+            ),
+            // Nút Close ở góc phải của Bottom Sheet
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  key: const Key('route_drawing_bottom_sheet_close_button'),
+                  customBorder: const CircleBorder(),
+                  onTap: onClose ?? () => Navigator.of(context).maybePop(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6.0),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 20,
+                      color:
+                          colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
               ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: _buildContent(context, colorScheme),
             ),
           ],
         ),

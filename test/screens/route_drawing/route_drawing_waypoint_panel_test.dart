@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
@@ -110,10 +111,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. Kiểm tra nút Back tròn nổi
-      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
-
-      // 2. Hiển thị danh sách các điểm rõ ràng
+      // 1. Hiển thị danh sách các điểm rõ ràng
       expect(find.text('Đường Nguyễn Trãi'), findsOneWidget);
       expect(find.text('Đường Lê Lợi'), findsOneWidget);
       expect(find.text('Đường Đồng Khởi'), findsOneWidget);
@@ -137,6 +135,75 @@ void main() {
       // 5. Tap nút "+" thêm điểm đến ở đáy card (theo khoanh đỏ của user)
       final addDestText = tr(LocaleKeys.route_drawing_ui_add_destination);
       await tester.tap(find.text(addDestText));
+      expect(searchPressed, isTrue);
+
+      // 6. Test Collapse Waypoint Panel khi bấm icon chevron up
+      final collapseBtnFinder =
+          find.byKey(const Key('route_drawing_collapse_waypoints_button'));
+      expect(collapseBtnFinder, findsOneWidget);
+
+      await tester.tap(collapseBtnFinder);
+      await tester.pumpAndSettle();
+
+      // Khi đã thu gọn: danh sách chi tiết ẩn đi, hiện summary gọn
+      expect(find.byKey(const Key('route_drawing_expand_waypoints_button')), findsOneWidget);
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+
+      // Tap summary để mở rộng lại
+      await tester.tap(find.byKey(const Key('route_drawing_expand_waypoints_button')));
+      await tester.pumpAndSettle();
+
+      // Đã mở rộng lại: danh sách điểm hiện lại đầy đủ
+      expect(find.text('Đường Nguyễn Trãi'), findsOneWidget);
+    });
+
+    testWidgets('renders MapSearchBar from commons/widgets when points is empty',
+        (tester) async {
+      bool searchPressed = false;
+
+      await tester.pumpWidget(
+        EasyLocalization(
+          supportedLocales: const [Locale('vi'), Locale('en')],
+          path: 'assets/translations',
+          fallbackLocale: const Locale('vi'),
+          startLocale: const Locale('vi'),
+          assetLoader: const CodegenLoader(),
+          child: Builder(
+            builder: (context) => MaterialApp(
+              localizationsDelegates: context.localizationDelegates,
+              supportedLocales: context.supportedLocales,
+              locale: context.locale,
+              home: Scaffold(
+                body: Stack(
+                  children: [
+                    RouteDrawingWaypointPanel(
+                      topPadding: 20,
+                      points: const [],
+                      segments: const [],
+                      onSavedRoutesPressed: () {},
+                      onSearchDestinationPressed: () {
+                        searchPressed = true;
+                      },
+                      onReorder: (oldIdx, newIdx) {},
+                      onRemovePoint: (idx) {},
+                      onToggleSegmentStraightLine: (segIdx) {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Hiển thị MapSearchBar từ commons/widgets
+      expect(find.byType(MapSearchBar), findsOneWidget);
+
+      // Tap vào MapSearchBar để mở tìm kiếm
+      await tester.tap(find.byType(MapSearchBar));
+      await tester.pumpAndSettle();
+
       expect(searchPressed, isTrue);
     });
   });

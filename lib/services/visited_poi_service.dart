@@ -98,28 +98,34 @@ class VisitedPoiServiceImpl implements IVisitedPoiService {
       return local.values.toList();
     }
     _prepareCloudSyncUser(userId);
-    // Migrate local visit records created before the user signed in. The
-    // session set prevents repeated writes from the Hive watcher.
-    await Future.wait(local.values.map((poi) async {
-      final key = _key(poi);
-      if (_cloudSyncedKeys.contains(key)) return;
-      if (await _syncVisitedToCloud(poi)) {
-        _cloudSyncedKeys.add(key);
+    // Chạy đồng bộ Firestore ngầm với timeout ngắn để không làm nghẽn app khi offline
+    unawaited(() async {
+      try {
+        await Future.wait(local.values.map((poi) async {
+          final key = _key(poi);
+          if (_cloudSyncedKeys.contains(key)) return;
+          if (await _syncVisitedToCloud(poi)
+              .timeout(const Duration(seconds: 2), onTimeout: () => false)) {
+            _cloudSyncedKeys.add(key);
+          }
+        })).timeout(const Duration(seconds: 3));
+
+        final cloudRows = await fireStoreService
+            .getVisitedPlaces(userId)
+            .timeout(const Duration(seconds: 2));
+        for (final row in cloudRows) {
+          final poi = _parse(row);
+          if (poi == null) continue;
+          final key = _key(poi);
+          local[key] = poi;
+          _cloudSyncedKeys.add(key);
+          await box.put(key, poi.toMap());
+        }
+      } catch (e) {
+        DLog.warning(
+            '⚠️ Không thể đồng bộ visited POI từ Firestore (có thể đang offline): $e');
       }
-    }));
-    try {
-      final cloudRows = await fireStoreService.getVisitedPlaces(userId);
-      for (final row in cloudRows) {
-        final poi = _parse(row);
-        if (poi == null) continue;
-        final key = _key(poi);
-        local[key] = poi;
-        _cloudSyncedKeys.add(key);
-        await box.put(key, poi.toMap());
-      }
-    } catch (e) {
-      DLog.warning('⚠️ Không thể tải visited POI từ Firestore: $e');
-    }
+    }());
     return local.values.toList();
   }
 

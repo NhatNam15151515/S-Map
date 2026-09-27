@@ -252,5 +252,36 @@ void main() {
       expect(find.text('Vị trí của bạn'), findsOneWidget);
       expect(find.text('Sân bay Tân Sơn Nhất'), findsOneWidget);
     });
+
+    testWidgets('RouteDirectionHeader triggers onAddDestination when tapped', (tester) async {
+      bool addDestinationTapped = false;
+      await cubit.previewRouteBetweenPoints(
+        origin: const RoutePoint(lat: 10.7769, lon: 106.7009),
+        destination: const RoutePoint(lat: 10.8231, lon: 106.6297),
+        originName: 'Điểm A',
+        destinationName: 'Điểm B',
+      );
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDirectionHeader(
+            topPadding: 40,
+            onSelectOrigin: () {},
+            onSelectDestination: () {},
+            onAddDestination: () => addDestinationTapped = true,
+            onClose: () {},
+          ),
+          cubit: cubit,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('route_direction_add_destination_btn')), findsOneWidget);
+      expect(find.text('Thêm điểm đến'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('route_direction_add_destination_btn')));
+      await tester.pump();
+      expect(addDestinationTapped, isTrue);
+    });
   });
 }

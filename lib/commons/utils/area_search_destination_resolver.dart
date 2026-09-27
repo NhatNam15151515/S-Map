@@ -14,7 +14,10 @@ class AreaSearchDestinationResolver {
 
   AreaSearchDestinationResolver({
     IPoiRepository? poiRepository,
-  }) : _poiRepository = poiRepository ?? AppReposProvider.instance.poiRepos;
+  }) : _poiRepository = poiRepository ??
+            (AppReposProvider.isInitialized
+                ? AppReposProvider.instance.poiRepos
+                : const NoOpPoiRepository());
 
   Future<PoiModel?> resolve(
     SearchResultPayload payload, {

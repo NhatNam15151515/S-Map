@@ -12,6 +12,7 @@ class RouteDirectionHeader extends StatelessWidget {
   final double topPadding;
   final VoidCallback onSelectOrigin;
   final VoidCallback onSelectDestination;
+  final VoidCallback? onAddDestination;
   final VoidCallback onClose;
 
   const RouteDirectionHeader({
@@ -19,6 +20,7 @@ class RouteDirectionHeader extends StatelessWidget {
     required this.topPadding,
     required this.onSelectOrigin,
     required this.onSelectDestination,
+    this.onAddDestination,
     required this.onClose,
   });
 
@@ -70,7 +72,7 @@ class RouteDirectionHeader extends StatelessWidget {
                 const SizedBox(height: 10),
                 const Divider(height: 1),
                 const SizedBox(height: 8),
-                _buildProfileBadge(colorScheme),
+                _buildBottomRow(context, colorScheme),
               ],
             ),
           ),
@@ -141,41 +143,87 @@ class RouteDirectionHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileBadge(ColorScheme colorScheme) {
+  Widget _buildBottomRow(BuildContext context, ColorScheme colorScheme) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.25),
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.two_wheeler_rounded,
-                size: 16,
-                color: colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                tr(LocaleKeys.route_drawing_ui_profile_moped),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.primary,
+        _buildProfileBadge(colorScheme),
+        if (onAddDestination != null)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const Key('route_direction_add_destination_btn'),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                onAddDestination?.call();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.25),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_location_alt_outlined,
+                      size: 15,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      tr(LocaleKeys.route_drawing_ui_add_destination),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildProfileBadge(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.25),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.two_wheeler_rounded,
+            size: 16,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            tr(LocaleKeys.route_drawing_ui_profile_moped),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

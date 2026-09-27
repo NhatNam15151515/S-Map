@@ -130,5 +130,31 @@ void main() {
       expect(find.text('Đường chim bay'), findsOneWidget);
       expect(find.byIcon(Icons.airplanemode_active_rounded), findsOneWidget);
     });
+
+    testWidgets('triggers onClose when close button is tapped', (tester) async {
+      bool closeCalled = false;
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 2,
+            distanceMeters: 1200,
+            durationMs: 60000,
+            isLoading: false,
+            onClose: () => closeCalled = true,
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final closeButtonFinder =
+          find.byKey(const Key('route_drawing_bottom_sheet_close_button'));
+      expect(closeButtonFinder, findsOneWidget);
+
+      await tester.tap(closeButtonFinder);
+      await tester.pump();
+      expect(closeCalled, isTrue);
+    });
   });
 }

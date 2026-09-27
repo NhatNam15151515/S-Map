@@ -17,6 +17,7 @@ class RouteDrawingWaypointList extends StatelessWidget {
   final void Function(int segmentIndex) onToggleSegmentStraightLine;
   final VoidCallback onAddDestinationPressed;
   final VoidCallback onSavedRoutesPressed;
+  final VoidCallback? onCollapse;
 
   const RouteDrawingWaypointList({
     super.key,
@@ -27,12 +28,16 @@ class RouteDrawingWaypointList extends StatelessWidget {
     required this.onToggleSegmentStraightLine,
     required this.onAddDestinationPressed,
     required this.onSavedRoutesPressed,
+    this.onCollapse,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final pointsCount = points.length;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    // Giới hạn chiều cao danh sách: vừa vặn 3 điểm kèm nút thêm điểm (210px), cuộn mượt mà khi từ 4 điểm trở lên (tối đa 260px)
+    final maxListHeight = (screenHeight * 0.35).clamp(210.0, 260.0);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -41,7 +46,7 @@ class RouteDrawingWaypointList extends StatelessWidget {
         // 1. Danh sách các điểm dừng cuộn mượt mà
         ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.35,
+            maxHeight: maxListHeight,
           ),
           child: Theme(
             data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
@@ -49,10 +54,52 @@ class RouteDrawingWaypointList extends StatelessWidget {
               shrinkWrap: true,
               physics: const ClampingScrollPhysics(),
               buildDefaultDragHandles: false,
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               itemCount: pointsCount,
               // ignore: deprecated_member_use
               onReorder: onReorder,
+              footer: Column(
+                key: const ValueKey('route_drawing_add_destination_footer'),
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Divider(
+                    height: 1,
+                    thickness: 0.6,
+                    color: colorScheme.outline.withValues(alpha: 0.15),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      key: const Key('route_drawing_search_destination_button'),
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: onAddDestinationPressed,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 7.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_rounded,
+                              size: 19,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              tr(LocaleKeys.route_drawing_ui_add_destination),
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               itemBuilder: (context, index) {
                 final pt = points[index];
                 final isStraight = index < segments.length
@@ -84,46 +131,32 @@ class RouteDrawingWaypointList extends StatelessWidget {
           ),
         ),
 
-        // 2. Đường kẻ phân cách trước nút thêm điểm
-        Divider(
-          height: 1,
-          thickness: 0.6,
-          color: colorScheme.outline.withValues(alpha: 0.15),
-        ),
-
-        // 3. Nút "+" lớn ở đáy card (theo đúng hình khoanh đỏ của anh Nam)
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            key: const Key('route_drawing_search_destination_button'),
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(16),
-            ),
-            onTap: onAddDestinationPressed,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 9.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_rounded,
-                    size: 22,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    tr(LocaleKeys.route_drawing_ui_add_destination),
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.primary,
+        // 2. Handle thu gọn ở chính giữa mép dưới card
+        if (onCollapse != null)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const Key('route_drawing_collapse_waypoints_button'),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(16),
+              ),
+              onTap: onCollapse,
+              child: Tooltip(
+                message: tr(LocaleKeys.route_drawing_ui_collapse_waypoints),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 18,
+                  child: Center(
+                    child: Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

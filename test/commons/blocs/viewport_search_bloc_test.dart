@@ -379,5 +379,25 @@ void main() {
         })),
       );
     });
+
+    test('SearchThisAreaPressed with query emits success with isAreaSearch true and retains searchQuery', () async {
+      fakeRepo.mockPois = samplePois;
+
+      bloc.add(SearchThisAreaPressed(
+        sampleBounds,
+        query: 'Phở',
+      ));
+
+      await expectLater(
+        bloc.stream,
+        emitsThrough(predicate<ViewportSearchState>((state) {
+          return state.isSuccess &&
+              state.isAreaSearch &&
+              state.searchQuery == 'Phở' &&
+              state.pois.isNotEmpty &&
+              state.pois.first.name.contains('Phở');
+        })),
+      );
+    });
   });
 }

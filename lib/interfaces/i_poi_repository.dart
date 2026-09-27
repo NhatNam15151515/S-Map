@@ -26,4 +26,17 @@ abstract class IPoiRepository {
 
   /// Lấy thông tin POI theo ID
   Future<PoiModel?> getPoiById(int id);
+
+}
+
+extension PoiRepositoryBatchExtension on IPoiRepository {
+  Future<List<PoiModel>> getPoisByIds(List<int> ids) async {
+    if (ids.isEmpty) return const [];
+    final results = <PoiModel>[];
+    for (final id in ids) {
+      final poi = await getPoiById(id);
+      if (poi != null) results.add(poi);
+    }
+    return results;
+  }
 }
