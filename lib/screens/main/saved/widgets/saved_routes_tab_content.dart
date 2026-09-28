@@ -64,8 +64,8 @@ class SavedRoutesTabContent extends StatelessWidget {
   }
 
   void _onOpenInRouteDrawing(BuildContext context, CustomRouteModel route) {
-    context.push(
-      AppRoutes.routeDrawing,
+    context.go(
+      AppRoutes.home,
       extra: RouteDrawingPayload(initialRoute: route),
     );
   }

@@ -83,15 +83,18 @@ class SearchResultsBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
 
-    return DraggableScrollableSheet(
-      controller: controller,
-      initialChildSize: 0.45,
-      minChildSize: 0.16,
-      maxChildSize: 0.95,
-      snap: true,
-      snapSizes: const [0.16, 0.45, 0.95],
-      builder: (context, scrollController) {
-        return Container(
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) {},
+      child: DraggableScrollableSheet(
+        controller: controller,
+        initialChildSize: 0.45,
+        minChildSize: 0.16,
+        maxChildSize: 0.95,
+        snap: true,
+        snapSizes: const [0.16, 0.45, 0.95],
+        builder: (context, scrollController) {
+          return Container(
           margin: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: colorScheme.surface,
@@ -194,8 +197,9 @@ class SearchResultsBottomSheet extends StatelessWidget {
               ),
             ],
           ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

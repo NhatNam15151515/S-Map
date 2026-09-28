@@ -9,6 +9,8 @@ export 'route_drawing_floating_toolbar.dart';
 export 'route_drawing_map_layer.dart';
 export 'route_drawing_origin_controller.dart';
 export 'route_drawing_payload_initializer.dart';
+export 'route_drawing_session.dart';
+export 'route_drawing_workspace_overlay.dart';
 export 'route_drawing_stats_row.dart';
 export 'route_drawing_top_bar.dart';
 export 'save_custom_route_dialog.dart';

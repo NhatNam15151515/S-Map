@@ -26,6 +26,9 @@ class HomeRouteActions {
   /// Hiển thị kết quả tìm kiếm inline trên Home khi đang preview route.
   final void Function(List<PoiModel> pois, String? query) onSearchResults;
 
+  /// Mở chế độ vẽ route ngay trong Home thay vì điều hướng sang màn hình mới.
+  final ValueChanged<RouteDrawingPayload>? onOpenRouteDrawing;
+
   HomeRouteActions({
     required this.mapLayerKey,
     required this.displayCubit,
@@ -33,6 +36,7 @@ class HomeRouteActions {
     required this.onStateChanged,
     required this.onClearForRouteDrawing,
     required this.onSearchResults,
+    this.onOpenRouteDrawing,
   });
 
   void handleDirections(PoiModel? selectedPoi) {
@@ -76,10 +80,16 @@ class HomeRouteActions {
     }
     onClearForRouteDrawing();
 
-    context.push(AppRoutes.routeDrawing, extra: payload);
+    final openRouteDrawing = onOpenRouteDrawing;
+    if (openRouteDrawing != null) {
+      openRouteDrawing(payload);
+      return;
+    }
+
+    context.go(AppRoutes.home, extra: payload);
   }
 
-  /// Nạp điểm đến mới vào lộ trình và chuyển sang màn hình vẽ đường
+  /// Nạp điểm đến mới vào lộ trình và mở chế độ vẽ route.
   void handleAddDestination(BuildContext context, PoiModel poi) {
     final routeState = routePreviewCubit.state;
     final mapState = displayCubit.state;
@@ -108,11 +118,20 @@ class HomeRouteActions {
     routePreviewCubit.clearRoute();
     onClearForRouteDrawing();
 
-    context.push(AppRoutes.routeDrawing, extra: payload);
+    final openRouteDrawing = onOpenRouteDrawing;
+    if (openRouteDrawing != null) {
+      openRouteDrawing(payload);
+      return;
+    }
+
+    context.go(AppRoutes.home, extra: payload);
   }
 
   /// Mở màn hình tìm kiếm để thêm điểm đến vào lộ trình hiện tại
-  Future<void> handleOpenAddDestinationSearch(BuildContext context) async {
+  Future<void> handleOpenAddDestinationSearch(
+    BuildContext context, {
+    ValueChanged<PoiModel>? onSelectedPoi,
+  }) async {
     final mapState = displayCubit.state;
     final searchCenter = mapState.currentPosition ?? mapState.center;
     var result = await context.push<dynamic>(
@@ -138,7 +157,12 @@ class HomeRouteActions {
 
     if ((resolvedResult.isAddDestination || resolvedResult.isSingle) &&
         resolvedResult.selectedPoi != null) {
-      handleAddDestination(context, resolvedResult.selectedPoi!);
+      final poi = resolvedResult.selectedPoi!;
+      if (onSelectedPoi != null) {
+        onSelectedPoi(poi);
+      } else {
+        handleAddDestination(context, poi);
+      }
     }
   }
 

@@ -4,7 +4,6 @@ import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'route_drawing_destination_controller.dart';
 import 'route_drawing_floating_toolbar.dart';
-import 'route_drawing_map_layer.dart';
 
 /// Widget kết nối state → [RouteDrawingFloatingToolbar].
 ///
@@ -16,7 +15,6 @@ class RouteDrawingConnectedToolbar extends StatelessWidget {
   final RouteDrawingDestinationController destController;
   final MapDisplayCubit mapDisplayCubit;
   final RouteDrawingBloc drawingBloc;
-  final GlobalKey<RouteDrawingMapLayerState> mapLayerKey;
   final VoidCallback onSetState;
 
   const RouteDrawingConnectedToolbar({
@@ -25,7 +23,6 @@ class RouteDrawingConnectedToolbar extends StatelessWidget {
     required this.destController,
     required this.mapDisplayCubit,
     required this.drawingBloc,
-    required this.mapLayerKey,
     required this.onSetState,
   });
 

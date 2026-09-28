@@ -42,6 +42,7 @@ class RouteDrawingPayloadInitializer {
     destController.isDestinationPickerActive = false;
     destController.isMarkerDestinationActive =
         destController.markerDestination != null;
+    if (isMounted()) setState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!isMounted()) return;

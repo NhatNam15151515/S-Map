@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/repos/repos.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final RouteDrawingPayload? initialRoutePayload;
+
+  const HomeScreen({super.key, this.initialRoutePayload});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -50,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
         BlocProvider.value(value: _viewportBloc),
         BlocProvider.value(value: navBloc),
       ],
-      child: const HomeScreenContent(),
+      child: HomeScreenContent(initialRoutePayload: widget.initialRoutePayload),
     );
   }
 }

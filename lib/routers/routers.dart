@@ -15,7 +15,6 @@ import 'package:s_map/screens/main/saved/saved_screen.dart';
 import 'package:s_map/screens/main/user/user_screen.dart';
 import 'package:s_map/screens/search/search_screen.dart';
 import 'package:s_map/screens/navigation/navigation_screen.dart';
-import 'package:s_map/screens/route_drawing/route_drawing_screen.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/stats/stats_screen.dart';
 import 'package:s_map/screens/stats/trip_detail_screen.dart';
@@ -102,7 +101,7 @@ class Routes extends NavigatorObserver {
             final payload = state.extra is RouteDrawingPayload
                 ? state.extra as RouteDrawingPayload
                 : null;
-            return RouteDrawingScreen(payload: payload);
+            return HomeScreen(initialRoutePayload: payload);
           },
         ),
         GoRoute(
@@ -141,7 +140,11 @@ class Routes extends NavigatorObserver {
               routes: <RouteBase>[
                 GoRoute(
                   path: AppRoutes.home,
-                  builder: (context, state) => const HomeScreen(),
+                  builder: (context, state) => HomeScreen(
+                    initialRoutePayload: state.extra is RouteDrawingPayload
+                        ? state.extra as RouteDrawingPayload
+                        : null,
+                  ),
                 ),
               ],
             ),

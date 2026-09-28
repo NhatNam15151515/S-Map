@@ -34,7 +34,7 @@ class SavedScreen extends StatelessWidget {
                 color: colorScheme.primary,
               ),
               tooltip: tr(LocaleKeys.route_drawing_ui_title),
-              onPressed: () => context.push(AppRoutes.routeDrawing),
+              onPressed: () => context.go(AppRoutes.home),
             ),
             const SizedBox(width: 8),
           ],

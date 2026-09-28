@@ -17,6 +17,10 @@ class HomeInteractiveMapLayer extends StatefulWidget {
   final ValueChanged<PoiModel> onPoiTapped;
   final ValueChanged<bool> onSearchAreaVisibilityChanged;
   final bool allowPoiInteractionWhenRouteActive;
+  final bool isRouteDrawingActive;
+  final RouteDrawingBloc? routeDrawingBloc;
+  final LatLng? drawingMarkerDestination;
+  final ValueChanged<LatLng>? onDrawingMapTap;
   final IVisitedPoiService? visitedPoiService;
 
   const HomeInteractiveMapLayer({
@@ -24,6 +28,10 @@ class HomeInteractiveMapLayer extends StatefulWidget {
     required this.onPoiTapped,
     required this.onSearchAreaVisibilityChanged,
     this.allowPoiInteractionWhenRouteActive = false,
+    this.isRouteDrawingActive = false,
+    this.routeDrawingBloc,
+    this.drawingMarkerDestination,
+    this.onDrawingMapTap,
     this.visitedPoiService,
   });
 
@@ -38,6 +46,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   final MapSymbolManager _symbolManager = MapSymbolManager();
   final MapCameraController _cameraController = MapCameraController();
   final MapRouteManager _routeManager = MapRouteManager();
+  final MapDrawingRouteManager _drawingRouteManager = MapDrawingRouteManager();
   final MapRenderedFeatureResolver _featureResolver =
       MapRenderedFeatureResolver();
   int _memoryMarkerSyncGeneration = 0;
@@ -55,6 +64,9 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   @override
   RoutePreviewCubit get routePreviewCubit => context.read<RoutePreviewCubit>();
 
+  LatLng? get currentCenter =>
+      _mapController?.cameraPosition?.target ?? displayCubit.state.center;
+
   bool get _hasActiveRouteOrNavigation {
     final previewState = routePreviewCubit.state;
     final navigationState = context.read<NavigationBloc>().state;
@@ -64,8 +76,27 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   bool get _blocksPoiInteraction =>
+      !widget.isRouteDrawingActive &&
       _hasActiveRouteOrNavigation &&
       !widget.allowPoiInteractionWhenRouteActive;
+
+  Future<void> _renderDrawingRoute() async {
+    final drawingBloc = widget.routeDrawingBloc;
+    if (!widget.isRouteDrawingActive || drawingBloc == null) {
+      await _drawingRouteManager.clear(_mapController);
+      return;
+    }
+
+    final state = drawingBloc.state;
+    await _drawingRouteManager.drawCustomRoute(
+      controller: _mapController,
+      points: state.points,
+      fullPolyline: state.fullPolyline,
+      destinationPreview: widget.drawingMarkerDestination,
+    );
+  }
+
+  Future<void> clearDrawingRoute() => _drawingRouteManager.clear(_mapController);
 
   @override
   void didChangeDependencies() {
@@ -155,9 +186,13 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   // ─── Map Callbacks ───────────────────────────────────────────
 
   void _onSymbolTapped(Symbol symbol) {
-    if (_blocksPoiInteraction || !mounted) return;
+    if (!mounted || context.read<NavigationBloc>().state.isNavigating) {
+      return;
+    }
+    if (_blocksPoiInteraction) return;
     final poi = _symbolManager.getPoiBySymbolId(symbol.id);
-    if (poi != null) widget.onPoiTapped(poi);
+    if (poi == null) return;
+    widget.onPoiTapped(poi);
   }
 
   void _onFeatureTapped(
@@ -167,7 +202,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     String layerId,
     Annotation? annotation,
   ) {
-    if (annotation is Symbol || _blocksPoiInteraction || !mounted) return;
+    if (annotation is Symbol || !mounted) return;
+    if (_blocksPoiInteraction) return;
     unawaited(_handleRenderedFeatureTap(point, latLng));
   }
 
@@ -182,6 +218,10 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   Future<void> _onMapClick(Point<double> point, LatLng latLng) async {
+    if (widget.isRouteDrawingActive) {
+      widget.onDrawingMapTap?.call(latLng);
+      return;
+    }
     if (_blocksPoiInteraction) return;
     final poi =
         _symbolManager.getPoiAtLocation(latLng.latitude, latLng.longitude);
@@ -206,7 +246,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   }
 
   void _onMapLongClick(Point<double> point, LatLng latLng) {
-    if (_hasActiveRouteOrNavigation) return;
+    if (widget.isRouteDrawingActive || _hasActiveRouteOrNavigation) return;
     DLog.info(
         '👆 [Map] Long press detected at: (${latLng.latitude.toStringAsFixed(5)}, ${latLng.longitude.toStringAsFixed(5)})');
     hideSearchResultMarkers();
@@ -221,11 +261,28 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     displayCubit.onMapCreated();
   }
 
+  Future<void> _handleStyleLoaded() async {
+    _drawingRouteManager.resetAssetLoaded();
+    await onStyleLoaded();
+    if (!mounted) return;
+    await _renderDrawingRoute();
+  }
+
   @override
   void dispose() {
     _mapController?.onSymbolTapped.remove(_onSymbolTapped);
     _mapController?.onFeatureTapped.remove(_onFeatureTapped);
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeInteractiveMapLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isRouteDrawingActive != widget.isRouteDrawingActive ||
+        oldWidget.routeDrawingBloc?.state != widget.routeDrawingBloc?.state ||
+        oldWidget.drawingMarkerDestination != widget.drawingMarkerDestination) {
+      unawaited(_renderDrawingRoute());
+    }
   }
 
   late final HomeMapSyncCoordinator _syncCoordinator;
@@ -256,7 +313,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
   @override
   Widget build(BuildContext context) {
-    return MapLayerBlocListeners(
+    Widget content = MapLayerBlocListeners(
       onMapDisplayChanged: _syncCoordinator.onMapDisplayStateChanged,
       onViewportSearchChanged: _syncCoordinator.onViewportSearchStateChanged,
       onRoutePreviewChanged: _syncCoordinator.onRoutePreviewStateChanged,
@@ -274,7 +331,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
               navState: navState,
               displayCubit: displayCubit,
               onMapCreated: _onMapCreated,
-              onStyleLoaded: onStyleLoaded,
+              onStyleLoaded: _handleStyleLoaded,
               onCameraIdle: _onCameraIdle,
               onMapClick: _onMapClick,
               onMapLongClick: _onMapLongClick,
@@ -283,5 +340,20 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
         },
       ),
     );
+
+    final drawingBloc = widget.routeDrawingBloc;
+    if (drawingBloc != null) {
+      content = BlocListener<RouteDrawingBloc, RouteDrawingState>(
+        bloc: drawingBloc,
+        listenWhen: (previous, current) =>
+            previous.points != current.points ||
+            previous.fullPolyline != current.fullPolyline ||
+            previous.status != current.status,
+        listener: (context, state) => unawaited(_renderDrawingRoute()),
+        child: content,
+      );
+    }
+
+    return content;
   }
 }
