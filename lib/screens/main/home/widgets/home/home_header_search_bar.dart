@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
@@ -11,6 +12,7 @@ class HomeHeaderSearchBar extends StatelessWidget {
   final double topPadding;
   final ValueChanged<PoiModel> onPoiSelected;
   final ValueChanged<PoiModel>? onAddDestination;
+  final ValueChanged<LatLng> onCurrentLocation;
   final void Function(List<PoiModel> pois, String? query) onSearchResults;
   final ValueChanged<SearchResultPayload>? onAreaSearch;
   final ValueChanged<String?> onCategorySelected;
@@ -23,6 +25,7 @@ class HomeHeaderSearchBar extends StatelessWidget {
     required this.topPadding,
     required this.onPoiSelected,
     this.onAddDestination,
+    required this.onCurrentLocation,
     required this.onSearchResults,
     this.onAreaSearch,
     required this.onCategorySelected,
@@ -62,7 +65,9 @@ class HomeHeaderSearchBar extends StatelessWidget {
               ).then((result) {
                 if (result != null && context.mounted) {
                   if (result is SearchResultPayload) {
-                    if (result.isAddDestination && result.selectedPoi != null) {
+                    if (result.isLocation && result.searchCenter != null) {
+                      onCurrentLocation(result.searchCenter!);
+                    } else if (result.isAddDestination && result.selectedPoi != null) {
                       onAddDestination?.call(result.selectedPoi!);
                     } else if (result.isArea) {
                       onAreaSearch?.call(result);

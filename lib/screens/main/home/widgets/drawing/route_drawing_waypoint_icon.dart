@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 /// - Điểm xuất phát (index == 0): Chấm tròn xanh dương viền trắng (GPS location dot).
 /// - Điểm kết thúc (index == totalCount - 1): Icon Pin đỏ (Destination marker).
 /// - Điểm trung gian: Vòng tròn rỗng (Intermediate stop).
-class RouteDrawingPointIcon extends StatelessWidget {
+class RouteDrawingWaypointIcon extends StatelessWidget {
   final int index;
   final int totalCount;
 
-  const RouteDrawingPointIcon({
+  const RouteDrawingWaypointIcon({
     super.key,
     required this.index,
     required this.totalCount,

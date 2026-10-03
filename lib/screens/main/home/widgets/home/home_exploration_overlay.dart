@@ -34,6 +34,8 @@ class HomeExplorationOverlay extends StatelessWidget {
           onPoiSelected: onPoiSelected,
           onAddDestination: (poi) =>
               routeActions.handleAddDestination(context, poi),
+          onCurrentLocation: (location) =>
+              routeActions.handleCurrentLocation(context, location),
           onSearchResults: (pois, query) {
             final singlePoi =
                 searchCoordinator.handleSearchResults(pois, query);

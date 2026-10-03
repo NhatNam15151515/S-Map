@@ -17,9 +17,10 @@ class HomeInteractiveMapLayer extends StatefulWidget {
   final ValueChanged<PoiModel> onPoiTapped;
   final ValueChanged<bool> onSearchAreaVisibilityChanged;
   final bool allowPoiInteractionWhenRouteActive;
+  final bool isRouteSearchSheetOpen;
   final bool isRouteDrawingActive;
+  final bool isCrosshairActive;
   final RouteDrawingBloc? routeDrawingBloc;
-  final LatLng? drawingMarkerDestination;
   final ValueChanged<LatLng>? onDrawingMapTap;
   final IVisitedPoiService? visitedPoiService;
 
@@ -28,9 +29,10 @@ class HomeInteractiveMapLayer extends StatefulWidget {
     required this.onPoiTapped,
     required this.onSearchAreaVisibilityChanged,
     this.allowPoiInteractionWhenRouteActive = false,
+    this.isRouteSearchSheetOpen = false,
     this.isRouteDrawingActive = false,
+    this.isCrosshairActive = true,
     this.routeDrawingBloc,
-    this.drawingMarkerDestination,
     this.onDrawingMapTap,
     this.visitedPoiService,
   });
@@ -67,6 +69,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   LatLng? get currentCenter =>
       _mapController?.cameraPosition?.target ?? displayCubit.state.center;
 
+
   bool get _hasActiveRouteOrNavigation {
     final previewState = routePreviewCubit.state;
     final navigationState = context.read<NavigationBloc>().state;
@@ -92,7 +95,6 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       controller: _mapController,
       points: state.points,
       fullPolyline: state.fullPolyline,
-      destinationPreview: widget.drawingMarkerDestination,
     );
   }
 
@@ -189,7 +191,6 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     if (!mounted || context.read<NavigationBloc>().state.isNavigating) {
       return;
     }
-    if (_blocksPoiInteraction) return;
     final poi = _symbolManager.getPoiBySymbolId(symbol.id);
     if (poi == null) return;
     widget.onPoiTapped(poi);
@@ -203,7 +204,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     Annotation? annotation,
   ) {
     if (annotation is Symbol || !mounted) return;
-    if (_blocksPoiInteraction) return;
+    if (context.read<NavigationBloc>().state.isNavigating) return;
     unawaited(_handleRenderedFeatureTap(point, latLng));
   }
 
@@ -219,6 +220,31 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
 
   Future<void> _onMapClick(Point<double> point, LatLng latLng) async {
     if (widget.isRouteDrawingActive) {
+      // The inline add-destination results sheet is a modal interaction state.
+      // MapLibre still reports taps from underneath its Flutter overlay, so do
+      // not treat those callbacks as waypoint taps while that sheet is open.
+      if (widget.isRouteSearchSheetOpen) return;
+
+      // Khi đang bật tâm ngắm (crosshair), điểm chỉ được thêm qua nút "Thêm điểm tại tâm"
+      // Tránh click nhầm hoặc gesture xuyên qua Top Bar / Bottom Card tự động sinh điểm.
+      if (widget.isCrosshairActive) return;
+
+      // Nếu người dùng tắt tâm ngắm, kiểm tra tọa độ pixel để không tap xuyên qua Top Bar hoặc Bottom Card
+      final mediaQuery = MediaQuery.maybeOf(context);
+      if (mediaQuery != null) {
+        final screenHeight = mediaQuery.size.height;
+        final screenWidth = mediaQuery.size.width;
+        final topThreshold = mediaQuery.padding.top + 280;
+        final bottomThreshold = screenHeight - mediaQuery.padding.bottom - 180;
+        final rightControlsThreshold = screenWidth - 110;
+
+        if (point.y < topThreshold ||
+            point.y > bottomThreshold ||
+            point.x > rightControlsThreshold) {
+          return;
+        }
+      }
+
       widget.onDrawingMapTap?.call(latLng);
       return;
     }
@@ -279,8 +305,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   void didUpdateWidget(covariant HomeInteractiveMapLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isRouteDrawingActive != widget.isRouteDrawingActive ||
-        oldWidget.routeDrawingBloc?.state != widget.routeDrawingBloc?.state ||
-        oldWidget.drawingMarkerDestination != widget.drawingMarkerDestination) {
+        oldWidget.routeDrawingBloc?.state != widget.routeDrawingBloc?.state) {
       unawaited(_renderDrawingRoute());
     }
   }

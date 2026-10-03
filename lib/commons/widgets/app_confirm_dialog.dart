@@ -112,36 +112,57 @@ class AppConfirmDialog extends StatelessWidget {
         textAlign: icon != null ? TextAlign.center : TextAlign.start,
       ),
       actions: [
-        TextButton(
-          key: cancelKey,
-          onPressed: () {
-            context.safePop(false);
-            onCancel?.call();
-          },
-          child: Text(
-            cancelText ?? tr(LocaleKeys.cancel),
-            style: colorScheme.onSurfaceVariant.textTheme.mediumStyle,
-          ),
-        ),
-        ElevatedButton(
-          key: confirmKey,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryActionColor,
-            foregroundColor: onPrimaryActionColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+        Row(
+          children: [
+            Expanded(
+              child: TextButton(
+                key: cancelKey,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  minimumSize: const Size.fromHeight(44), // cùng chiều cao
+                ),
+                onPressed: () {
+                  context.safePop(false);
+                  onCancel?.call();
+                },
+                child: Text(
+                  cancelText ?? tr(LocaleKeys.cancel),
+                  style: colorScheme.onSurfaceVariant.textTheme.mediumStyle.copyWith(
+                    fontSize: 12
+                  ),
+                ),
+              ),
             ),
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          ),
-          onPressed: () {
-            context.safePop(true);
-            onConfirm?.call();
-          },
-          child: Text(
-            confirmText ?? tr(LocaleKeys.confirm),
-            style: onPrimaryActionColor.textTheme.semiBoldStyle,
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                key: confirmKey,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryActionColor,
+                  foregroundColor: onPrimaryActionColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: const Size.fromHeight(44), // cùng chiều cao
+                ),
+                onPressed: () {
+                  context.safePop(true);
+                  onConfirm?.call();
+                },
+                child: Text(
+                  confirmText ?? tr(LocaleKeys.confirm),
+                  style: onPrimaryActionColor.textTheme.semiBoldStyle.copyWith(
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

@@ -5,7 +5,7 @@ import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
-import 'route_drawing_point_icon.dart';
+import 'route_drawing_waypoint_icon.dart';
 import 'route_drawing_waypoint_list.dart';
 
 /// Card Menu hiển thị danh sách Waypoints phong cách Google Maps:
@@ -23,6 +23,7 @@ class RouteDrawingWaypointPanel extends StatefulWidget {
   final void Function(int oldIndex, int newIndex) onReorder;
   final void Function(int index) onRemovePoint;
   final void Function(int segmentIndex) onToggleSegmentStraightLine;
+  final bool showStraightLineToggles;
 
   const RouteDrawingWaypointPanel({
     super.key,
@@ -34,6 +35,7 @@ class RouteDrawingWaypointPanel extends StatefulWidget {
     required this.onReorder,
     required this.onRemovePoint,
     required this.onToggleSegmentStraightLine,
+    this.showStraightLineToggles = true,
   });
 
   @override
@@ -56,10 +58,14 @@ class _RouteDrawingWaypointPanelState extends State<RouteDrawingWaypointPanel> {
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: Listener(
+          child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onPointerDown: (_) {}, // Chặn touch xuyên xuống Native MapView
-            child: widget.points.isEmpty
+            onTap: () {},
+            onPanStart: (_) {},
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (_) {}, // Chặn touch xuyên xuống Native MapView
+              child: widget.points.isEmpty
                 ? MapSearchBar(
                     key: const Key('route_drawing_search_destination_button'),
                     showBackButton: false,
@@ -96,6 +102,8 @@ class _RouteDrawingWaypointPanelState extends State<RouteDrawingWaypointPanel> {
                               onAddDestinationPressed:
                                   widget.onSearchDestinationPressed,
                               onSavedRoutesPressed: widget.onSavedRoutesPressed,
+                              showStraightLineToggles:
+                                  widget.showStraightLineToggles,
                               onCollapse: widget.points.length >= 2
                                   ? () {
                                       HapticFeedback.lightImpact();
@@ -105,6 +113,7 @@ class _RouteDrawingWaypointPanelState extends State<RouteDrawingWaypointPanel> {
                             ),
                     ),
                   ),
+            ),
           ),
         ),
       ),
@@ -114,10 +123,14 @@ class _RouteDrawingWaypointPanelState extends State<RouteDrawingWaypointPanel> {
   /// Thanh tóm tắt siêu nhỏ gọn khi Top Bar được thu gọn
   Widget _buildCollapsedSummary(BuildContext context, ColorScheme colorScheme) {
     final points = widget.points;
-    final origin = points.first.streetName.trim().isNotEmpty
+    final origin = points.first.displayName.trim().isNotEmpty
+        ? points.first.displayName.trim()
+        : points.first.streetName.trim().isNotEmpty
         ? points.first.streetName.trim()
         : tr(LocaleKeys.routing_my_location);
-    final destination = points.last.streetName.trim().isNotEmpty
+    final destination = points.last.displayName.trim().isNotEmpty
+        ? points.last.displayName.trim()
+        : points.last.streetName.trim().isNotEmpty
         ? points.last.streetName.trim()
         : '${points.last.snappedLat.toStringAsFixed(4)}, ${points.last.snappedLon.toStringAsFixed(4)}';
 
@@ -132,7 +145,7 @@ class _RouteDrawingWaypointPanelState extends State<RouteDrawingWaypointPanel> {
         padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 7.0),
         child: Row(
           children: [
-            const RouteDrawingPointIcon(index: 0, totalCount: 2),
+            const RouteDrawingWaypointIcon(index: 0, totalCount: 2),
             const SizedBox(width: 8),
             Expanded(
               child: Text(

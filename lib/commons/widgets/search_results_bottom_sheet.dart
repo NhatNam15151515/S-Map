@@ -83,43 +83,50 @@ class SearchResultsBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
 
-    return Listener(
-      behavior: HitTestBehavior.opaque,
-      onPointerDown: (_) {},
-      child: DraggableScrollableSheet(
-        controller: controller,
-        initialChildSize: 0.45,
-        minChildSize: 0.16,
-        maxChildSize: 0.95,
-        snap: true,
-        snapSizes: const [0.16, 0.45, 0.95],
+    return DraggableScrollableSheet(
+      controller: controller,
+      initialChildSize: 0.38,
+      minChildSize: 0.16,
+      maxChildSize: 0.85,
+      snap: true,
+      snapSizes: const [0.16, 0.38, 0.85],
         builder: (context, scrollController) {
-          return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: colorScheme.outline.withAlpha(50),
-              width: 0.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.16),
-                blurRadius: 18,
-                offset: const Offset(0, -4),
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            // Listener only observes pointers; it does not compete with the
+            // native map's gesture recognizers. Claim taps and drags that
+            // start on the sheet so they cannot pan the map underneath.
+            onTap: () {},
+            onPanStart: (_) {},
+            child: Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (_) {},
+              child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: colorScheme.outline.withAlpha(50),
+                  width: 0.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.16),
+                    blurRadius: 18,
+                    offset: const Offset(0, -4),
+                  ),
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.08),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: CustomScrollView(
-            controller: scrollController,
-            slivers: [
+              clipBehavior: Clip.antiAlias,
+              child: CustomScrollView(
+                controller: scrollController,
+                slivers: [
               // 1. Sticky Header dính trên đầu (luôn cố định khi cuộn)
               SliverPersistentHeader(
                 pinned: true,
@@ -195,11 +202,12 @@ class SearchResultsBottomSheet extends StatelessWidget {
               const SliverToBoxAdapter(
                 child: SizedBox(height: 16),
               ),
-            ],
-          ),
+                ],
+              ),
+              ),
+            ),
           );
         },
-      ),
     );
   }
 }

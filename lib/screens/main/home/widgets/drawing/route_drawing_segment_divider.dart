@@ -10,18 +10,30 @@ class RouteDrawingSegmentDivider extends StatelessWidget {
   final int segmentIndex;
   final bool isStraightLine;
   final VoidCallback onToggle;
+  final bool showStraightLineToggle;
 
   const RouteDrawingSegmentDivider({
     super.key,
     required this.segmentIndex,
     required this.isStraightLine,
     required this.onToggle,
+    this.showStraightLineToggle = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final activeColor = colorScheme.primary;
+
+    if (!showStraightLineToggle) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Container(
+          height: 0.5,
+          color: colorScheme.outline.withValues(alpha: 0.12),
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),

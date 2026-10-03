@@ -6,7 +6,7 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/screens/route_drawing/widgets/widgets.dart';
+import 'package:s_map/screens/main/home/widgets/drawing/widgets.dart';
 
 void main() {
   setUpAll(() async {

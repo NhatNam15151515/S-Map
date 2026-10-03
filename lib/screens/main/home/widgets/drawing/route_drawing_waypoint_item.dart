@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
-import 'route_drawing_point_icon.dart';
+import 'route_drawing_waypoint_icon.dart';
 
 /// Dòng hiển thị 1 điểm waypoint trong Card Menu Google Maps:
 /// - Bên trái: Icon 2 gạch drag handle (≡) để kéo thả, sau đó đến Icon điểm.
@@ -29,11 +29,13 @@ class RouteDrawingWaypointItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    final displayName = point.streetName.trim().isNotEmpty
-        ? point.streetName.trim()
-        : (index == 0
-            ? tr(LocaleKeys.routing_my_location)
-            : '${point.snappedLat.toStringAsFixed(4)}, ${point.snappedLon.toStringAsFixed(4)}');
+    final displayName = point.displayName.trim().isNotEmpty
+        ? point.displayName.trim()
+        : point.streetName.trim().isNotEmpty
+            ? point.streetName.trim()
+            : (index == 0
+                ? tr(LocaleKeys.routing_my_location)
+                : '${point.snappedLat.toStringAsFixed(4)}, ${point.snappedLon.toStringAsFixed(4)}');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 1.0),
@@ -60,7 +62,7 @@ class RouteDrawingWaypointItem extends StatelessWidget {
           SizedBox(
             width: 20,
             child: Center(
-              child: RouteDrawingPointIcon(
+              child: RouteDrawingWaypointIcon(
                 index: index,
                 totalCount: totalCount,
               ),

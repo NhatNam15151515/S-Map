@@ -121,5 +121,54 @@ void main() {
 
       expect(closed, isTrue);
     });
+
+    testWidgets('keeps the map interactive above the visible sheet',
+        (tester) async {
+      var mapTapped = false;
+      final mapCubit = MapDisplayCubit(
+        locationService: const NoOpLocationService(),
+      );
+      addTearDown(mapCubit.close);
+
+      await tester.pumpWidget(
+        EasyLocalization(
+          supportedLocales: const [Locale('vi'), Locale('en')],
+          path: 'assets/translations',
+          fallbackLocale: const Locale('vi'),
+          assetLoader: const CodegenLoader(),
+          child: BlocProvider<MapDisplayCubit>.value(
+            value: mapCubit,
+            child: MaterialApp(
+              home: Scaffold(
+                body: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () => mapTapped = true,
+                        child: const ColoredBox(color: Colors.blue),
+                      ),
+                    ),
+                    const Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: 420,
+                      child: SearchResultsBottomSheet(
+                        pois: testPois,
+                        query: 'Quận 1',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(20, 20));
+      expect(mapTapped, isTrue);
+    });
   });
 }

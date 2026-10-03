@@ -117,7 +117,7 @@ class RouteDrawingCrosshairOverlay extends StatelessWidget {
                     : tr(LocaleKeys.route_drawing_ui_center_add_next_point),
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: 14,
+                  fontSize: 12,
                 ),
               ),
             ),

@@ -51,29 +51,26 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
     super.dispose();
   }
 
-  Future<void> _handleAcquireLocation() async {
-    if (_isAcquiringLocation || widget.onAcquireLocation == null) return;
+  Future<LatLng?> _acquireFreshLocation() async {
+    if (_isAcquiringLocation || widget.onAcquireLocation == null) return null;
     setState(() => _isAcquiringLocation = true);
     try {
       final latLng = await widget.onAcquireLocation!();
-      if (!mounted) return;
-      if (latLng != null) {
+      if (mounted && latLng != null) {
         HapticFeedback.lightImpact();
         context.read<SearchCubit>().updateUserLocation(latLng);
       }
+      return latLng;
     } finally {
       if (mounted) setState(() => _isAcquiringLocation = false);
     }
   }
 
-  Future<void> _handleSelectCurrentLocation(SearchState state) async {
-    if (state.userLocation != null) {
-      context.pop(SearchResultPayload.currentLocation(state.userLocation!));
-      return;
-    }
-    await _handleAcquireLocation();
+  Future<void> _handleSelectCurrentLocation() async {
+    // The incoming position may be the map center or a stale cached fix.
+    // Selecting current location must resolve a fresh GPS fix.
+    final loc = await _acquireFreshLocation();
     if (!mounted) return;
-    final loc = context.read<SearchCubit>().state.userLocation;
     if (loc != null) {
       context.pop(SearchResultPayload.currentLocation(loc));
     }
@@ -204,7 +201,7 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
                         SearchCurrentLocationTile(
                           userLocation: state.userLocation,
                           isAcquiringLocation: _isAcquiringLocation,
-                          onTap: () => _handleSelectCurrentLocation(state),
+                          onTap: _handleSelectCurrentLocation,
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         const SizedBox(height: 4),

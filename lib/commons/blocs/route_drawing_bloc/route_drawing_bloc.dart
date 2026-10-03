@@ -3,6 +3,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
+import 'package:s_map/commons/utils/trip_address_resolver.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -14,6 +15,7 @@ import 'route_drawing_state.dart';
 class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   final IRoutingRepository _routingRepository;
   final ICustomRouteRepository _customRouteRepository;
+  final IPoiRepository? _poiRepository;
   int _currentGeneration = 0;
 
   /// Optional global default repository resolver set during bootstrap
@@ -22,7 +24,9 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
   RouteDrawingBloc({
     required IRoutingRepository routingRepository,
     ICustomRouteRepository? customRouteRepository,
+    IPoiRepository? poiRepository,
   })  : _routingRepository = routingRepository,
+        _poiRepository = poiRepository,
         _customRouteRepository = customRouteRepository ??
             defaultCustomRouteRepository ??
             (AppReposProvider.isInitialized
@@ -35,9 +39,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     );
     on<RouteDrawingEndpointsSelected>(_onEndpointsSelected);
 
-    on<RouteDrawingUndoLastPoint>(_onUndoLastPoint);
-    on<RouteDrawingRedoPoint>(_onRedoPoint);
-    on<RouteDrawingClearRoute>(_onClearRoute);
+    on<RouteDrawingReset>(_onReset);
     on<RouteDrawingSaveRoute>(_onSaveRoute);
     on<RouteDrawingLoadRoute>(_onLoadRoute);
     on<RouteDrawingReverseRoute>(_onReverseRoute);
@@ -126,6 +128,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       snappedLon: event.origin.lon,
       isSnapped: true,
       distanceToRoad: 0,
+      displayName: event.originName?.trim() ?? '',
     );
 
     if (event.destination == null) {
@@ -140,8 +143,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         fullPolyline: const [],
         totalDistance: 0,
         totalTime: 0,
-        redoPoints: const [],
-        redoSegments: const [],
         requestGeneration: generation,
       ));
       return;
@@ -161,6 +162,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       snappedLon: event.destination!.lon,
       isSnapped: true,
       distanceToRoad: 0,
+      displayName: event.destinationName?.trim() ?? '',
     );
     final route = await _routingRepository.calculateRoute(
       fromLat: origin.snappedLat,
@@ -180,8 +182,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         fullPolyline: _buildFullPolyline([route]),
         totalDistance: route.distance,
         totalTime: route.time,
-        redoPoints: const [],
-        redoSegments: const [],
         requestGeneration: generation,
         clearWarning: true,
         clearError: true,
@@ -217,6 +217,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         snappedLon: event.lon,
         isSnapped: false,
         distanceToRoad: 0.0,
+        displayName: event.displayName?.trim() ?? '',
       );
 
       if (state.points.isEmpty) {
@@ -229,8 +230,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           fullPolyline: const [],
           totalDistance: 0.0,
           totalTime: 0,
-          redoPoints: const [],
-          redoSegments: const [],
           clearWarning: true,
           clearError: true,
         ));
@@ -260,8 +259,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         fullPolyline: newPolyline,
         totalDistance: newDistance,
         totalTime: newTime,
-        redoPoints: const [],
-        redoSegments: const [],
         clearWarning: true,
         clearError: true,
       ));
@@ -284,11 +281,11 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       // 1. Kiểm tra Snap to Road:
       // Nếu không snap được hoặc khoảng cách snap > 25m (đang chấm trong hẻm nhưng bị hút ra mặt đường lớn),
       // ưu tiên giữ nguyên vị trí chạm chính xác của người dùng trong hẻm.
-      final SnappedRoadPoint effectiveSnapped;
+      final SnappedRoadPoint snappedPoint;
       if (snapped.isSnapped && snapped.distanceToRoad <= 25.0) {
-        effectiveSnapped = snapped;
+        snappedPoint = snapped;
       } else {
-        effectiveSnapped = SnappedRoadPoint(
+        snappedPoint = SnappedRoadPoint(
           originalLat: event.lat,
           originalLon: event.lon,
           snappedLat: event.lat,
@@ -298,8 +295,40 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           distanceToRoad: 0.0,
         );
       }
+      final eventDisplayName = event.displayName?.trim() ?? '';
+      var nearbyDisplayName = '';
+      if (eventDisplayName.isEmpty && _poiRepository != null) {
+        nearbyDisplayName = await TripAddressResolver.resolveAddressAtCoordinate(
+              event.lat,
+              event.lon,
+              targetRadiusMeters: 4,
+              maxRadiusMeters: 4,
+              poiRepository: _poiRepository,
+              fallbackToSnappedRoad: false,
+            ) ??
+            '';
+      }
 
-      // Guard: kiểm tra emitter hoặc generation có bị thay đổi (bởi tap mới, undo, clear)
+      final displayName = eventDisplayName.isNotEmpty
+          ? eventDisplayName
+          : nearbyDisplayName.isNotEmpty
+              ? nearbyDisplayName
+              : snappedPoint.displayName;
+      final effectiveSnapped = SnappedRoadPoint(
+        isSnapped: snappedPoint.isSnapped,
+        originalLat: snappedPoint.originalLat,
+        originalLon: snappedPoint.originalLon,
+        snappedLat: snappedPoint.snappedLat,
+        snappedLon: snappedPoint.snappedLon,
+        displayName: displayName,
+        streetName: snappedPoint.streetName,
+        distanceToRoad: snappedPoint.distanceToRoad,
+        edgeId: snappedPoint.edgeId,
+        calculationTimeMs: snappedPoint.calculationTimeMs,
+        errorMessage: snappedPoint.errorMessage,
+      );
+
+      // Guard: kiểm tra emitter hoặc generation có bị thay đổi (bởi tap mới hoặc reset route)
       if (isClosed || emit.isDone || generation != _currentGeneration) {
         DLog.info(
             '⏭️ [RouteDrawingBloc] Stale snap response ignored (Current gen #$_currentGeneration vs #$generation)');
@@ -317,8 +346,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           fullPolyline: const [],
           totalDistance: 0.0,
           totalTime: 0,
-          redoPoints: const [],
-          redoSegments: const [],
           clearWarning: true,
           clearError: true,
         ));
@@ -344,7 +371,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         return;
       }
 
-      // 🛡️ Guard: Xác minh state.points không bị thay đổi (bởi Undo / Clear) trong lúc tính toán route
+      // 🛡️ Guard: Xác minh state.points không đổi trong lúc tính toán route.
       if (state.points.isEmpty || state.points.last != prevPoint) {
         DLog.warning(
             '⚠️ [RouteDrawingBloc] State points changed during route calculation, ignoring stale result.');
@@ -369,8 +396,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           fullPolyline: newPolyline,
           totalDistance: newDistance,
           totalTime: newTime,
-          redoPoints: const [],
-          redoSegments: const [],
           clearWarning: true,
           clearError: true,
         ));
@@ -410,8 +435,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
           fullPolyline: newPolyline,
           totalDistance: newDistance,
           totalTime: newTime,
-          redoPoints: const [],
-          redoSegments: const [],
           clearWarning: true,
           clearError: true,
         ));
@@ -426,158 +449,12 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     }
   }
 
-  void _onUndoLastPoint(
-    RouteDrawingUndoLastPoint event,
+  void _onReset(
+    RouteDrawingReset event,
     Emitter<RouteDrawingState> emit,
   ) {
     _currentGeneration++;
-    DLog.info(
-        '↩️ [RouteDrawingBloc] Undo last point [Gen #$_currentGeneration]');
-
-    if (state.points.isEmpty) {
-      if (state.isLoading) {
-        emit(state.copyWith(
-          status: RouteDrawingStatus.initial,
-          requestGeneration: _currentGeneration,
-          clearWarning: true,
-          clearError: true,
-        ));
-      }
-      return;
-    }
-
-    if (state.points.length == 1) {
-      final poppedPoint = state.points.last;
-      emit(state.copyWith(
-        status: RouteDrawingStatus.initial,
-        points: const [],
-        segments: const [],
-        fullPolyline: const [],
-        totalDistance: 0.0,
-        totalTime: 0,
-        redoPoints: [...state.redoPoints, poppedPoint],
-        redoSegments: [...state.redoSegments, null],
-        requestGeneration: _currentGeneration,
-        clearWarning: true,
-        clearError: true,
-      ));
-      return;
-    }
-
-    final poppedPoint = state.points.last;
-    // Điểm cuối có segment nối kèm nếu số lượng segments đúng bằng (số points - 1)
-    final hasSegmentForLastPoint =
-        state.segments.length == state.points.length - 1;
-    final poppedSegment = hasSegmentForLastPoint && state.segments.isNotEmpty
-        ? state.segments.last
-        : null;
-
-    final newPoints = state.points.sublist(0, state.points.length - 1);
-    final newSegments = (hasSegmentForLastPoint && state.segments.isNotEmpty)
-        ? state.segments.sublist(0, state.segments.length - 1)
-        : state.segments;
-
-    final newPolyline = _buildFullPolyline(newSegments);
-    final newDistance =
-        newSegments.fold<double>(0.0, (sum, seg) => sum + seg.distance);
-    final newTime = newSegments.fold<int>(0, (sum, seg) => sum + seg.time);
-
-    final newRedoPoints = [...state.redoPoints, poppedPoint];
-    final newRedoSegments = [...state.redoSegments, poppedSegment];
-
-    emit(state.copyWith(
-      status: newSegments.isNotEmpty
-          ? RouteDrawingStatus.routeUpdated
-          : RouteDrawingStatus.pointAdded,
-      points: newPoints,
-      segments: newSegments,
-      fullPolyline: newPolyline,
-      totalDistance: newDistance,
-      totalTime: newTime,
-      redoPoints: newRedoPoints,
-      redoSegments: newRedoSegments,
-      requestGeneration: _currentGeneration,
-      clearWarning: true,
-      clearError: true,
-    ));
-  }
-
-  void _onRedoPoint(
-    RouteDrawingRedoPoint event,
-    Emitter<RouteDrawingState> emit,
-  ) {
-    _currentGeneration++;
-    if (state.redoPoints.isEmpty) {
-      if (state.isLoading) {
-        emit(state.copyWith(
-          status: state.segments.isNotEmpty
-              ? RouteDrawingStatus.routeUpdated
-              : (state.points.isNotEmpty
-                  ? RouteDrawingStatus.pointAdded
-                  : RouteDrawingStatus.initial),
-          requestGeneration: _currentGeneration,
-          clearWarning: true,
-          clearError: true,
-        ));
-      }
-      return;
-    }
-
-    DLog.info('↪️ [RouteDrawingBloc] Redo point [Gen #$_currentGeneration]');
-
-    final pointToRestore = state.redoPoints.last;
-    final newRedoPoints =
-        state.redoPoints.sublist(0, state.redoPoints.length - 1);
-
-    final segmentToRestore =
-        state.redoSegments.isNotEmpty ? state.redoSegments.last : null;
-    final newRedoSegments = state.redoSegments.isNotEmpty
-        ? state.redoSegments.sublist(0, state.redoSegments.length - 1)
-        : const <RouteResult?>[];
-
-    final newPoints = [...state.points, pointToRestore];
-
-    if (segmentToRestore != null) {
-      final newSegments = [...state.segments, segmentToRestore];
-      final newPolyline = _buildFullPolyline(newSegments);
-      final newDistance =
-          newSegments.fold<double>(0.0, (sum, seg) => sum + seg.distance);
-      final newTime = newSegments.fold<int>(0, (sum, seg) => sum + seg.time);
-
-      emit(state.copyWith(
-        status: RouteDrawingStatus.routeUpdated,
-        points: newPoints,
-        segments: newSegments,
-        fullPolyline: newPolyline,
-        totalDistance: newDistance,
-        totalTime: newTime,
-        redoPoints: newRedoPoints,
-        redoSegments: newRedoSegments,
-        requestGeneration: _currentGeneration,
-        clearWarning: true,
-        clearError: true,
-      ));
-    } else {
-      emit(state.copyWith(
-        status: state.segments.isNotEmpty
-            ? RouteDrawingStatus.routeUpdated
-            : RouteDrawingStatus.pointAdded,
-        points: newPoints,
-        redoPoints: newRedoPoints,
-        redoSegments: newRedoSegments,
-        requestGeneration: _currentGeneration,
-        clearWarning: true,
-        clearError: true,
-      ));
-    }
-  }
-
-  void _onClearRoute(
-    RouteDrawingClearRoute event,
-    Emitter<RouteDrawingState> emit,
-  ) {
-    _currentGeneration++;
-    DLog.info('🧹 [RouteDrawingBloc] Clear route [Gen #$_currentGeneration]');
+    DLog.info('🧹 [RouteDrawingBloc] Reset route state [Gen #$_currentGeneration]');
     emit(RouteDrawingState(
       profile: state.profile,
       requestGeneration: _currentGeneration,
@@ -683,8 +560,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       totalDistance: route.totalDistance,
       totalTime: route.totalTime,
       profile: route.profile,
-      redoPoints: const [],
-      redoSegments: const [],
       savedRoute: route,
       requestGeneration: _currentGeneration,
     ));
@@ -722,8 +597,6 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
       points: reversedPoints,
       segments: reversedSegments,
       fullPolyline: reversedPolyline,
-      redoPoints: const [],
-      redoSegments: const [],
       requestGeneration: _currentGeneration,
       clearWarning: true,
       clearError: true,

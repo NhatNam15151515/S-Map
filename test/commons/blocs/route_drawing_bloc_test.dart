@@ -200,8 +200,6 @@ void main() {
       expect(bloc.state.fullPolyline, isEmpty);
       expect(bloc.state.totalDistance, 0.0);
       expect(bloc.state.totalTime, 0);
-      expect(bloc.state.canUndo, isFalse);
-      expect(bloc.state.canRedo, isFalse);
       expect(bloc.state.hasRoute, isFalse);
       expect(bloc.state.pointCount, 0);
     });
@@ -218,8 +216,6 @@ void main() {
               s.points.length == 1 &&
               s.segments.isEmpty &&
               s.fullPolyline.isEmpty &&
-              s.canUndo == true &&
-              s.canRedo == false &&
               s.totalDistance == 0.0),
         ]),
       );
@@ -302,9 +298,7 @@ void main() {
               s.segments.length == 1 &&
               s.fullPolyline.length == 3 &&
               s.totalDistance == 1200.0 &&
-              s.totalTime == 150000 &&
-              s.canUndo == true &&
-              s.canRedo == false),
+              s.totalTime == 150000),
         ]),
       );
 
@@ -410,145 +404,8 @@ void main() {
     });
   });
 
-  group('RouteDrawingBloc Undo, Redo, Clear & Save', () {
-    test('Undo from 1 point resets to initial state and enables canRedo',
-        () async {
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      final streamExpectation = expectLater(
-        bloc.stream,
-        emits(predicate<RouteDrawingState>((s) =>
-            s.status == RouteDrawingStatus.initial &&
-            s.points.isEmpty &&
-            s.canUndo == false &&
-            s.canRedo == true &&
-            s.redoPoints.length == 1)),
-      );
-
-      bloc.add(const RouteDrawingUndoLastPoint());
-      await streamExpectation;
-    });
-
-    test('Undo from 2 points pops segment and recalculates metrics', () async {
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
-
-      final streamExpectation = expectLater(
-        bloc.stream,
-        emits(predicate<RouteDrawingState>((s) =>
-            s.status == RouteDrawingStatus.pointAdded &&
-            s.points.length == 1 &&
-            s.segments.isEmpty &&
-            s.fullPolyline.isEmpty &&
-            s.totalDistance == 0.0 &&
-            s.totalTime == 0 &&
-            s.canUndo == true &&
-            s.canRedo == true &&
-            s.redoPoints.length == 1 &&
-            s.redoSegments.length == 1)),
-      );
-
-      bloc.add(const RouteDrawingUndoLastPoint());
-      await streamExpectation;
-    });
-
-    test('Redo restores popped point and segment', () async {
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
-
-      bloc.add(const RouteDrawingUndoLastPoint());
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      final streamExpectation = expectLater(
-        bloc.stream,
-        emits(predicate<RouteDrawingState>((s) =>
-            s.status == RouteDrawingStatus.routeUpdated &&
-            s.points.length == 2 &&
-            s.segments.length == 1 &&
-            s.totalDistance == 1200.0 &&
-            s.totalTime == 150000 &&
-            s.canUndo == true &&
-            s.canRedo == false)),
-      );
-
-      bloc.add(const RouteDrawingRedoPoint());
-      await streamExpectation;
-    });
-
-    test(
-        'Undo and Redo when latest point failed auto-connect preserves existing segments',
-        () async {
-      // P1
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      // P2 (success -> 1 segment, 1200m)
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
-
-      // P3 fallback segment connection -> routeUpdated, 3 points, 2 segments
-      mockRepository.nextCalculateResult =
-          RouteResult.failure(RoutingConstants.errNoRouteFound);
-
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7800, lon: 106.7080));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated && s.points.length == 3);
-
-      expect(bloc.state.points.length, 3);
-      expect(bloc.state.segments.length, 2);
-      expect(bloc.state.totalDistance, greaterThan(1200.0));
-
-      // Undo P3: Should pop segment 2
-      final streamExpectationUndo = expectLater(
-        bloc.stream,
-        emits(predicate<RouteDrawingState>((s) =>
-            s.status == RouteDrawingStatus.routeUpdated &&
-            s.points.length == 2 &&
-            s.segments.length == 1 &&
-            s.totalDistance == 1200.0 &&
-            s.totalTime == 150000 &&
-            s.canUndo == true &&
-            s.canRedo == true &&
-            s.redoPoints.length == 1 &&
-            s.redoSegments.length == 1 &&
-            s.redoSegments.first != null)),
-      );
-
-      bloc.add(const RouteDrawingUndoLastPoint());
-      await streamExpectationUndo;
-
-      // Redo P3: Should restore P3 and segment 2
-      final streamExpectationRedo = expectLater(
-        bloc.stream,
-        emits(predicate<RouteDrawingState>((s) =>
-            s.status == RouteDrawingStatus.routeUpdated &&
-            s.points.length == 3 &&
-            s.segments.length == 2 &&
-            s.totalDistance > 1200.0 &&
-            s.canUndo == true &&
-            s.canRedo == false)),
-      );
-
-      bloc.add(const RouteDrawingRedoPoint());
-      await streamExpectationRedo;
-    });
-
-    test('Clear route resets all state and undo/redo stacks', () async {
+  group('RouteDrawingBloc Reset & Save', () {
+    test('Reset restores the initial route state', () async {
       bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
@@ -563,12 +420,10 @@ void main() {
             s.status == RouteDrawingStatus.initial &&
             s.points.isEmpty &&
             s.segments.isEmpty &&
-            s.totalDistance == 0.0 &&
-            s.canUndo == false &&
-            s.canRedo == false)),
+            s.totalDistance == 0.0)),
       );
 
-      bloc.add(const RouteDrawingClearRoute());
+      bloc.add(const RouteDrawingReset());
       await streamExpectation;
     });
 
@@ -653,9 +508,7 @@ void main() {
             s.fullPolyline.length == 3 &&
             s.totalDistance == 3500.0 &&
             s.totalTime == 420000 &&
-            s.savedRoute == customRoute &&
-            s.canUndo == true &&
-            s.canRedo == false)),
+            s.savedRoute == customRoute)),
       );
 
       bloc.add(RouteDrawingLoadRoute(customRoute));
@@ -766,11 +619,11 @@ void main() {
       bloc.add(const RouteDrawingSaveRoute(name: 'Tuyến thử'));
       await saveStarted.future;
 
-      // Trong lúc save đang chạy, người dùng ấn Clear
-      bloc.add(const RouteDrawingClearRoute());
+      // Trong lúc save đang chạy, route state được reset.
+      bloc.add(const RouteDrawingReset());
       await Future.delayed(const Duration(milliseconds: 150));
 
-      // State hiện tại phải là initial do Clear, không bị đè bởi Saved status
+      // State hiện tại phải là initial, không bị đè bởi Saved status.
       expect(bloc.state.status, equals(RouteDrawingStatus.initial));
       expect(bloc.state.points, isEmpty);
     });
@@ -830,69 +683,6 @@ void main() {
       expect(bloc.state.totalDistance, equals(1700.0));
       expect(bloc.state.totalTime, equals(210000));
       expect(bloc.state.fullPolyline.length, equals(3)); // [P1, P2, P3] deduplicated
-    });
-
-    test('Loaded route with added waypoint supports undo back to loaded state and redo', () async {
-      final initialRoute = CustomRouteModel(
-        id: 'load_undo_1',
-        name: 'Tuyến kiểm thử undo',
-        waypoints: const [
-          SnappedRoadPoint(
-            isSnapped: true,
-            originalLat: 10.773,
-            originalLon: 106.699,
-            snappedLat: 10.77305,
-            snappedLon: 106.69905,
-          ),
-          SnappedRoadPoint(
-            isSnapped: true,
-            originalLat: 10.778,
-            originalLon: 106.702,
-            snappedLat: 10.77805,
-            snappedLon: 106.70205,
-          ),
-        ],
-        fullPolyline: const [
-          [10.77305, 106.69905],
-          [10.77805, 106.70205],
-        ],
-        totalDistance: 1200.0,
-        totalTime: 150000,
-        createdAt: DateTime(2026, 8, 22, 8, 0),
-      );
-
-      bloc.add(RouteDrawingLoadRoute(initialRoute));
-      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated);
-
-      // Thêm waypoint thứ 3
-      mockRepository.nextCalculateResult = const RouteResult(
-        isSuccess: true,
-        distance: 500.0,
-        time: 60000,
-        points: [
-          [10.77805, 106.70205],
-          [10.78000, 106.70500],
-        ],
-      );
-      bloc.add(const RouteDrawingPointTapped(lat: 10.780, lon: 106.705));
-      await bloc.stream.firstWhere((s) => s.status == RouteDrawingStatus.routeUpdated && s.points.length == 3);
-
-      // Undo waypoint 3 -> quay lại đúng trạng thái đã load
-      bloc.add(const RouteDrawingUndoLastPoint());
-      await bloc.stream.firstWhere((s) => s.points.length == 2);
-
-      expect(bloc.state.points.length, equals(2));
-      expect(bloc.state.segments.length, equals(1));
-      expect(bloc.state.totalDistance, equals(1200.0));
-      expect(bloc.state.canRedo, isTrue);
-
-      // Redo waypoint 3 -> phục hồi lại
-      bloc.add(const RouteDrawingRedoPoint());
-      await bloc.stream.firstWhere((s) => s.points.length == 3);
-
-      expect(bloc.state.points.length, equals(3));
-      expect(bloc.state.segments.length, equals(2));
-      expect(bloc.state.totalDistance, equals(1700.0));
     });
 
     test('Save route without passing name falls back to state.savedRoute name', () async {
@@ -1003,71 +793,6 @@ void main() {
     });
 
     test(
-        'Undo or clear during route calculation ignores stale route calculation result',
-        () async {
-      // Add P1
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      final routeStarted = Completer<void>();
-      final routeRelease = Completer<void>();
-      mockRepository.routeStartedCompleter = routeStarted;
-      mockRepository.routeReleaseCompleter = routeRelease;
-
-      // Add P2 (will pause in calculateRoute)
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
-
-      // Wait until calculateRoute has started
-      await routeStarted.future;
-
-      // User clears route while calculateRoute is in progress
-      bloc.add(const RouteDrawingClearRoute());
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.initial);
-
-      // Release calculateRoute to complete
-      routeRelease.complete();
-      await pumpEventQueue();
-
-      // Assert that state remains initial and clean, stale P2 was discarded
-      expect(bloc.state.status, RouteDrawingStatus.initial);
-      expect(bloc.state.points, isEmpty);
-      expect(bloc.state.segments, isEmpty);
-      expect(bloc.state.totalDistance, 0.0);
-    });
-
-    test(
-        'Undo during snapToRoad of first point invalidates snap result and returns to initial state',
-        () async {
-      final snapStarted = Completer<void>();
-      final snapRelease = Completer<void>();
-      mockRepository.snapStartedCompleter = snapStarted;
-      mockRepository.snapReleaseCompleter = snapRelease;
-
-      // Tap P1 (will pause in snapToRoad)
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-
-      // Wait until snapToRoad has started
-      await snapStarted.future;
-
-      // User hits Undo while P1 is still in flight (points is still empty)
-      bloc.add(const RouteDrawingUndoLastPoint());
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.initial);
-
-      // Release snapToRoad
-      snapRelease.complete();
-      await pumpEventQueue();
-
-      // Assert that state remains initial and clean, stale P1 was discarded
-      expect(bloc.state.status, RouteDrawingStatus.initial);
-      expect(bloc.state.points, isEmpty);
-      expect(bloc.state.segments, isEmpty);
-      expect(bloc.state.totalDistance, 0.0);
-    });
-
-    test(
         'Clear during snapToRoad ignores stale snap result and prevents adding point',
         () async {
       final snapStarted = Completer<void>();
@@ -1082,7 +807,7 @@ void main() {
       await snapStarted.future;
 
       // User clears route while snapToRoad is in progress
-      bloc.add(const RouteDrawingClearRoute());
+      bloc.add(const RouteDrawingReset());
       await bloc.stream
           .firstWhere((s) => s.status == RouteDrawingStatus.initial);
 
@@ -1093,71 +818,6 @@ void main() {
       // Assert that state remains initial and clean, stale P1 was discarded
       expect(bloc.state.status, RouteDrawingStatus.initial);
       expect(bloc.state.points, isEmpty);
-      expect(bloc.state.segments, isEmpty);
-      expect(bloc.state.totalDistance, 0.0);
-    });
-
-    test(
-        'Redo during initial snapToRoad when redoPoints is empty invalidates snap result and returns to initial state',
-        () async {
-      final snapStarted = Completer<void>();
-      final snapRelease = Completer<void>();
-      mockRepository.snapStartedCompleter = snapStarted;
-      mockRepository.snapReleaseCompleter = snapRelease;
-
-      // Tap P1 (will pause in snapToRoad)
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-
-      // Wait until snapToRoad has started
-      await snapStarted.future;
-
-      // User hits Redo while P1 is still in flight (redoPoints is empty)
-      bloc.add(const RouteDrawingRedoPoint());
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.initial);
-
-      // Release snapToRoad
-      snapRelease.complete();
-      await pumpEventQueue();
-
-      // Assert that state remains initial and clean, stale P1 was discarded
-      expect(bloc.state.status, RouteDrawingStatus.initial);
-      expect(bloc.state.points, isEmpty);
-      expect(bloc.state.segments, isEmpty);
-      expect(bloc.state.totalDistance, 0.0);
-    });
-
-    test(
-        'Redo during route calculation of second point when redoPoints is empty invalidates route calculation and restores pointAdded state',
-        () async {
-      // Add P1
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7730, lon: 106.6990));
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      final routeStarted = Completer<void>();
-      final routeRelease = Completer<void>();
-      mockRepository.routeStartedCompleter = routeStarted;
-      mockRepository.routeReleaseCompleter = routeRelease;
-
-      // Add P2 (will pause in calculateRoute)
-      bloc.add(const RouteDrawingPointTapped(lat: 10.7780, lon: 106.7020));
-
-      // Wait until calculateRoute has started
-      await routeStarted.future;
-
-      // User hits Redo while calculateRoute is in progress (redoPoints is empty)
-      bloc.add(const RouteDrawingRedoPoint());
-      await bloc.stream
-          .firstWhere((s) => s.status == RouteDrawingStatus.pointAdded);
-
-      // Release calculateRoute
-      routeRelease.complete();
-      await pumpEventQueue();
-
-      // Assert that state remains pointAdded with 1 point, stale P2 was discarded
-      expect(bloc.state.status, RouteDrawingStatus.pointAdded);
-      expect(bloc.state.points.length, 1);
       expect(bloc.state.segments, isEmpty);
       expect(bloc.state.totalDistance, 0.0);
     });

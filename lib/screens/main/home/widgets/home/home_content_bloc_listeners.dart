@@ -48,8 +48,6 @@ class HomeContentBlocListeners extends StatelessWidget {
           listenWhen: (prev, curr) =>
               prev.status != curr.status ||
               prev.tripSummary != curr.tripSummary ||
-              prev.promptBatteryOptimizationOem !=
-                  curr.promptBatteryOptimizationOem ||
               prev.pendingResumeSession != curr.pendingResumeSession ||
               prev.errorMessageKey != curr.errorMessageKey,
           listener: (context, navState) {

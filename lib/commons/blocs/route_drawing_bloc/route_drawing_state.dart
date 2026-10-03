@@ -19,8 +19,6 @@ class RouteDrawingState extends Equatable {
   final List<RoutePoint> fullPolyline;
   final double totalDistance;
   final int totalTime;
-  final List<SnappedRoadPoint> redoPoints;
-  final List<RouteResult?> redoSegments;
   final String? warningMessageKey;
   final String? errorMessageKey;
   final String profile;
@@ -35,8 +33,6 @@ class RouteDrawingState extends Equatable {
     this.fullPolyline = const [],
     this.totalDistance = 0.0,
     this.totalTime = 0,
-    this.redoPoints = const [],
-    this.redoSegments = const [],
     this.warningMessageKey,
     this.errorMessageKey,
     this.profile = RoutingConstants.defaultProfile,
@@ -45,8 +41,6 @@ class RouteDrawingState extends Equatable {
     this.isStraightLineMode = false,
   });
 
-  bool get canUndo => points.isNotEmpty;
-  bool get canRedo => redoPoints.isNotEmpty;
   bool get hasRoute => fullPolyline.isNotEmpty;
   bool get isLoading => status == RouteDrawingStatus.loading;
   int get pointCount => points.length;
@@ -58,8 +52,6 @@ class RouteDrawingState extends Equatable {
     List<RoutePoint>? fullPolyline,
     double? totalDistance,
     int? totalTime,
-    List<SnappedRoadPoint>? redoPoints,
-    List<RouteResult?>? redoSegments,
     String? warningMessageKey,
     String? errorMessageKey,
     String? profile,
@@ -77,8 +69,6 @@ class RouteDrawingState extends Equatable {
       fullPolyline: fullPolyline ?? this.fullPolyline,
       totalDistance: totalDistance ?? this.totalDistance,
       totalTime: totalTime ?? this.totalTime,
-      redoPoints: redoPoints ?? this.redoPoints,
-      redoSegments: redoSegments ?? this.redoSegments,
       warningMessageKey:
           clearWarning ? null : (warningMessageKey ?? this.warningMessageKey),
       errorMessageKey:
@@ -98,8 +88,6 @@ class RouteDrawingState extends Equatable {
         fullPolyline,
         totalDistance,
         totalTime,
-        redoPoints,
-        redoSegments,
         warningMessageKey,
         errorMessageKey,
         profile,

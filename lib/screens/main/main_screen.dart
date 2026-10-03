@@ -19,14 +19,20 @@ class _MainScreenState extends State<MainScreen> with AppMixin {
     super.initState();
   }
 
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: widget.navigationShell,
-      resizeToAvoidBottomInset: false,
-      extendBody: true,
-      bottomNavigationBar: AppMainBottomBar(widget.navigationShell),
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || widget.navigationShell.currentIndex == 0) return;
+        widget.navigationShell.goBranch(0);
+      },
+      child: Scaffold(
+        body: widget.navigationShell,
+        resizeToAvoidBottomInset: false,
+        extendBody: true,
+        bottomNavigationBar: AppMainBottomBar(widget.navigationShell),
+      ),
     );
   }
 }

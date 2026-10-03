@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
-import 'package:s_map/screens/route_drawing/widgets/widgets.dart';
+import 'package:s_map/screens/main/home/widgets/drawing/widgets.dart';
 
 Widget createTestableWidget(Widget child) {
   return EasyLocalization(

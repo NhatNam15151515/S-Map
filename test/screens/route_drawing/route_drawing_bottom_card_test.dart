@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
-import 'package:s_map/screens/route_drawing/widgets/widgets.dart';
+import 'package:s_map/screens/main/home/widgets/drawing/widgets.dart';
 
 Widget createTestableWidget(Widget child) {
   return EasyLocalization(
@@ -155,6 +155,48 @@ void main() {
       await tester.tap(closeButtonFinder);
       await tester.pump();
       expect(closeCalled, isTrue);
+    });
+
+    testWidgets('renders action buttons with compact padding on narrow screen width without wrapping', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 2,
+            distanceMeters: 1200,
+            durationMs: 60000,
+            isLoading: false,
+            onToggleDrawingMode: () {},
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final saveButton = tester.widget<OutlinedButton>(
+        find.byKey(const Key('route_drawing_save_button')),
+      );
+      expect(
+        saveButton.style?.padding?.resolve({}),
+        const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      );
+
+      final navButton = tester.widget<ElevatedButton>(
+        find.byKey(const Key('route_drawing_navigate_button')),
+      );
+      expect(
+        navButton.style?.padding?.resolve({}),
+        const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      );
+
+      expect(tester.takeException(), isNull);
     });
   });
 }

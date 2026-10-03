@@ -8,10 +8,10 @@ import 'package:s_map/generated/locale_keys.g.dart';
 ///
 /// - `pointCount == 0`: Hướng dẫn "Chạm để thêm điểm đầu tiên"
 /// - `pointCount == 1`: Hướng dẫn "Thêm điểm tiếp theo" + đếm waypoints
-class RouteDrawingEmptyPrompt extends StatelessWidget {
+class RouteDrawingPointEntryPrompt extends StatelessWidget {
   final int pointCount;
 
-  const RouteDrawingEmptyPrompt({
+  const RouteDrawingPointEntryPrompt({
     super.key,
     required this.pointCount,
   });

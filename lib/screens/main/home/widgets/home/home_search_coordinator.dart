@@ -6,7 +6,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/screens/main/home/widgets/home/home_interactive_map_layer.dart';
+import 'package:s_map/screens/main/home/widgets/map/home_interactive_map_layer.dart';
 
 /// Coordinator quản lý toàn bộ logic tìm kiếm trên Home Screen.
 ///

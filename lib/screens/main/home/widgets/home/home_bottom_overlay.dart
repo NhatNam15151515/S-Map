@@ -63,11 +63,14 @@ class HomeBottomOverlay extends StatelessWidget {
       final hasDestinations =
           context.read<RoutePreviewCubit>().state.destination != null;
 
-      return Positioned(
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: kBottomNavigationBarHeight + 16,
+      return Padding(
+        // Keep normal search results above MainScreen's persistent navigator,
+        // matching the add-destination sheet in HomeDrawingOverlay.
+        padding: EdgeInsets.only(
+          bottom: kBottomNavigationBarHeight +
+              MediaQuery.paddingOf(context).bottom +
+              8,
+        ),
         child: SearchResultsBottomSheet(
           key: const ValueKey('search_results_bottom_sheet'),
           pois: searchResults ?? const [],

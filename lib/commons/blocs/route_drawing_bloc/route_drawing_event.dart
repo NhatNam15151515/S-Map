@@ -13,15 +13,17 @@ class RouteDrawingPointTapped extends RouteDrawingEvent {
   final double lat;
   final double lon;
   final bool? isStraightLine;
+  final String? displayName;
 
   const RouteDrawingPointTapped({
     required this.lat,
     required this.lon,
     this.isStraightLine,
+    this.displayName,
   });
 
   @override
-  List<Object?> get props => [lat, lon, isStraightLine];
+  List<Object?> get props => [lat, lon, isStraightLine, displayName];
 }
 
 /// Bật / Tắt chế độ vẽ đường chim bay (Direct Line / As-the-crow-flies Mode)
@@ -34,29 +36,23 @@ class RouteDrawingToggleStraightLineMode extends RouteDrawingEvent {
 class RouteDrawingEndpointsSelected extends RouteDrawingEvent {
   final RoutePoint origin;
   final RoutePoint? destination;
+  final String? originName;
+  final String? destinationName;
 
   const RouteDrawingEndpointsSelected({
     required this.origin,
     this.destination,
+    this.originName,
+    this.destinationName,
   });
 
   @override
-  List<Object?> get props => [origin, destination];
+  List<Object?> get props => [origin, destination, originName, destinationName];
 }
 
-/// Hoàn tác (Undo) điểm vừa thêm gần nhất
-class RouteDrawingUndoLastPoint extends RouteDrawingEvent {
-  const RouteDrawingUndoLastPoint();
-}
-
-/// Khôi phục (Redo) điểm vừa hoàn tác
-class RouteDrawingRedoPoint extends RouteDrawingEvent {
-  const RouteDrawingRedoPoint();
-}
-
-/// Xóa toàn bộ lộ trình đang vẽ và đưa state về ban đầu
-class RouteDrawingClearRoute extends RouteDrawingEvent {
-  const RouteDrawingClearRoute();
+/// Đặt lại state route drawing khi vào/thoát chế độ vẽ.
+class RouteDrawingReset extends RouteDrawingEvent {
+  const RouteDrawingReset();
 }
 
 /// Lưu lộ trình tùy biến vào Hive Storage

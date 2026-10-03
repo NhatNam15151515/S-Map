@@ -80,7 +80,11 @@ class PoiQuickCard extends StatelessWidget {
     final latLonStr =
         '${poi.lat.toStringAsFixed(5)}, ${poi.lon.toStringAsFixed(5)}';
 
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {},
+      onPanStart: (_) {},
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -392,7 +396,7 @@ class PoiQuickCard extends StatelessWidget {
                       label: Text(
                         tr(LocaleKeys.route_drawing_ui_add_destination),
                         style: colorScheme.primary.textTheme.semiBoldStyle
-                            .copyWith(fontSize: 13),
+                            .copyWith(fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -413,6 +417,7 @@ class PoiQuickCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
       ),
     );
   }

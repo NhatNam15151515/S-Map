@@ -22,6 +22,7 @@ class TripAddressResolver {
     double maxRadiusMeters = 30.0,
     IPoiRepository? poiRepository,
     IRoutingService? routingService,
+    bool fallbackToSnappedRoad = true,
   }) async {
     // 1. Thử tìm kiếm trong cơ sở dữ liệu POI / Địa chỉ offline với cơ chế ưu tiên thông minh
     try {
@@ -131,6 +132,8 @@ class TripAddressResolver {
     } catch (e) {
       DLog.warning('⚠️ [TripAddressResolver] POI lookup failed: $e');
     }
+
+    if (!fallbackToSnappedRoad) return null;
 
     // 2. Thử nắn vào tim đường gần nhất qua GraphHopper RoutingService
     try {

@@ -228,6 +228,11 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     ));
   }
 
+  /// Cập nhật GPS vừa lấy được và đưa camera về đúng tọa độ đó.
+  void focusCurrentLocation(LatLng location) {
+    _animateToTargetPosition(location);
+  }
+
   /// Ánh xạ exception từ dịch vụ định vị sang translation key tương ứng
   String _resolveLocationErrorKey(Object error) {
     if (error is LocationServiceDisabledException) {

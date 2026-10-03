@@ -173,9 +173,6 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _kalmanFilter.reset();
     _metricsTracker.restoreFromSnapshot(snapshot);
 
-    final promptOem = await _devicePolicy.checkBatteryOptimizationPrompt();
-    if (generation != _requestGeneration || isClosed || emit.isDone) return;
-
     final progress = _trackingCoordinator.processLocationTick(
       currentLat: snapshot.lastKnownLat ?? snapshot.origin.lat,
       currentLon: snapshot.lastKnownLon ?? snapshot.origin.lon,
@@ -189,7 +186,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     emit(NavigationState.resume(
       snapshot: snapshot,
       progress: progress,
-      promptBatteryOptimizationOem: promptOem,
+      promptBatteryOptimizationOem: null,
     ));
 
     _persistenceCoordinator.startAutoSave(() {
@@ -256,9 +253,6 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     _metricsTracker.reset();
     _kalmanFilter.reset();
 
-    final promptOem = await _devicePolicy.checkBatteryOptimizationPrompt();
-    if (generation != _requestGeneration || isClosed) return;
-
     final initialProgress = _trackingCoordinator.initializeProgress(
       event.initialRoute.instructions,
     );
@@ -270,7 +264,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       destinationName: event.destinationName,
       profile: event.profile,
       initialProgress: initialProgress,
-      promptBatteryOptimizationOem: promptOem,
+      promptBatteryOptimizationOem: null,
     ));
 
     _persistenceCoordinator.startAutoSave(() {

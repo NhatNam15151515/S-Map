@@ -18,6 +18,7 @@ class RouteDrawingWaypointList extends StatelessWidget {
   final VoidCallback onAddDestinationPressed;
   final VoidCallback onSavedRoutesPressed;
   final VoidCallback? onCollapse;
+  final bool showStraightLineToggles;
 
   const RouteDrawingWaypointList({
     super.key,
@@ -29,6 +30,7 @@ class RouteDrawingWaypointList extends StatelessWidget {
     required this.onAddDestinationPressed,
     required this.onSavedRoutesPressed,
     this.onCollapse,
+    this.showStraightLineToggles = true,
   });
 
   @override
@@ -88,7 +90,7 @@ class RouteDrawingWaypointList extends StatelessWidget {
                             Text(
                               tr(LocaleKeys.route_drawing_ui_add_destination),
                               style: TextStyle(
-                                fontSize: 13.0,
+                                fontSize: 12.0,
                                 fontWeight: FontWeight.w600,
                                 color: colorScheme.primary,
                               ),
@@ -122,6 +124,7 @@ class RouteDrawingWaypointList extends StatelessWidget {
                       RouteDrawingSegmentDivider(
                         segmentIndex: index,
                         isStraightLine: isStraight,
+                        showStraightLineToggle: showStraightLineToggles,
                         onToggle: () => onToggleSegmentStraightLine(index),
                       ),
                   ],

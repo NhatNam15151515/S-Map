@@ -1,10 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:heroicons/heroicons.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
-import 'package:s_map/screens/route_drawing/widgets/route_drawing_empty_prompt.dart';
-import 'package:s_map/screens/route_drawing/widgets/route_drawing_stats_row.dart';
+import 'route_drawing_point_entry_prompt.dart';
+import 'route_drawing_stats_row.dart';
 
 class RouteDrawingBottomCard extends StatelessWidget {
   final int pointCount;
@@ -12,8 +11,11 @@ class RouteDrawingBottomCard extends StatelessWidget {
   final int durationMs;
   final bool isLoading;
   final bool isStraightLineMode;
+  final bool isDrawingMode;
+  final Widget? extraContent;
   final VoidCallback onSavePressed;
   final VoidCallback onNavigatePressed;
+  final VoidCallback? onToggleDrawingMode;
   final VoidCallback? onClose;
 
   const RouteDrawingBottomCard({
@@ -23,8 +25,11 @@ class RouteDrawingBottomCard extends StatelessWidget {
     required this.durationMs,
     required this.isLoading,
     this.isStraightLineMode = false,
+    this.isDrawingMode = true,
+    this.extraContent,
     required this.onSavePressed,
     required this.onNavigatePressed,
+    this.onToggleDrawingMode,
     this.onClose,
   });
 
@@ -37,7 +42,11 @@ class RouteDrawingBottomCard extends StatelessWidget {
       left: 16,
       right: 16,
       bottom: bottomPadding + 16,
-      child: Container(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {},
+        onPanStart: (_) {},
+        child: Container(
         decoration: BoxDecoration(
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
@@ -99,12 +108,13 @@ class RouteDrawingBottomCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildContent(BuildContext context, ColorScheme colorScheme) {
     if (pointCount < 2) {
-      return RouteDrawingEmptyPrompt(pointCount: pointCount);
+      return RouteDrawingPointEntryPrompt(pointCount: pointCount);
     }
 
     return Column(
@@ -117,6 +127,10 @@ class RouteDrawingBottomCard extends StatelessWidget {
           durationMs: durationMs,
           pointCount: pointCount,
         ),
+        if (extraContent != null) ...[
+          const SizedBox(height: 12),
+          extraContent!,
+        ],
         const SizedBox(height: 16),
         _buildActionButtons(colorScheme),
       ],
@@ -157,56 +171,80 @@ class RouteDrawingBottomCard extends StatelessWidget {
 
   Widget _buildActionButtons(ColorScheme colorScheme) {
     return Row(
+      spacing: 12, // khoảng cách đều, không set cứng size nút
       children: [
+        if (onToggleDrawingMode != null)
+          Expanded(
+            flex: 1,
+            child: IconButton.filledTonal(
+              tooltip: isDrawingMode
+                  ? tr(LocaleKeys.directions)
+                  : tr(LocaleKeys.route_drawing),
+              style: IconButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: Icon(
+                isDrawingMode
+                    ? Icons.directions_outlined
+                    : Icons.gesture_rounded,
+                color: colorScheme.primary,
+                size: 20,
+              ),
+              onPressed: onToggleDrawingMode,
+            ),
+          ),
         Expanded(
-          child: OutlinedButton.icon(
+          flex: 2, // nút Save to hơn
+          child: OutlinedButton(
             key: const Key('route_drawing_save_button'),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
               side: BorderSide(color: colorScheme.primary, width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            icon: HeroIcon(
-              HeroIcons.bookmark,
-              size: 18,
-              color: colorScheme.primary,
-            ),
-            label: Text(
-              tr(LocaleKeys.route_drawing_ui_save_route),
-              style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
-                fontSize: 14,
+            onPressed: onSavePressed,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                tr(LocaleKeys.route_drawing_ui_save_route),
+                maxLines: 1,
+                style: colorScheme.primary.textTheme.semiBoldStyle.copyWith(
+                  fontSize: 12,
+                ),
               ),
             ),
-            onPressed: onSavePressed,
           ),
         ),
-        const SizedBox(width: 12),
         Expanded(
-          child: ElevatedButton.icon(
+          flex: 2, // nút Navigate to hơn
+          child: ElevatedButton(
             key: const Key('route_drawing_navigate_button'),
             style: ElevatedButton.styleFrom(
               backgroundColor: colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 12),
               elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            icon: Icon(
-              Icons.navigation_rounded,
-              size: 18,
-              color: colorScheme.onPrimary,
-            ),
-            label: Text(
-              tr(LocaleKeys.route_drawing_ui_start_navigation),
-              style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
-                fontSize: 14,
+            onPressed: onNavigatePressed,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                tr(LocaleKeys.route_drawing_ui_start_navigation),
+                maxLines: 1,
+                style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
+                  fontSize: 12,
+                ),
               ),
             ),
-            onPressed: onNavigatePressed,
           ),
         ),
       ],

@@ -7,6 +7,7 @@ class SnappedRoadPoint extends Equatable {
   final double originalLon;
   final double snappedLat;
   final double snappedLon;
+  final String displayName;
   final String streetName;
   final double distanceToRoad;
   final int edgeId;
@@ -19,6 +20,7 @@ class SnappedRoadPoint extends Equatable {
     required this.originalLon,
     required this.snappedLat,
     required this.snappedLon,
+    this.displayName = '',
     this.streetName = '',
     this.distanceToRoad = 0.0,
     this.edgeId = -1,
@@ -54,6 +56,7 @@ class SnappedRoadPoint extends Equatable {
       snappedLon: (map['snappedLon'] as num?)?.toDouble() ??
           (map['originalLon'] as num?)?.toDouble() ??
           0.0,
+      displayName: map['displayName'] as String? ?? '',
       streetName: map['streetName'] as String? ?? '',
       distanceToRoad: (map['distanceToRoad'] as num?)?.toDouble() ?? 0.0,
       edgeId: (map['edgeId'] as num?)?.toInt() ?? -1,
@@ -68,6 +71,7 @@ class SnappedRoadPoint extends Equatable {
         'originalLon': originalLon,
         'snappedLat': snappedLat,
         'snappedLon': snappedLon,
+        'displayName': displayName,
         'streetName': streetName,
         'distanceToRoad': distanceToRoad,
         'edgeId': edgeId,
@@ -82,6 +86,7 @@ class SnappedRoadPoint extends Equatable {
         originalLon,
         snappedLat,
         snappedLon,
+        displayName,
         streetName,
         distanceToRoad,
         edgeId,

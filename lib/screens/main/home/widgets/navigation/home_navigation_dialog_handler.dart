@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/screens/main/home/widgets/home/home_dialog_coordinator.dart';
+import 'package:s_map/screens/main/home/widgets/navigation/home_navigation_dialog_coordinator.dart';
 
 /// Điều phối hiển thị các hộp thoại liên quan đến trạng thái Navigation
 class HomeNavigationDialogHandler {
@@ -26,7 +26,7 @@ class HomeNavigationDialogHandler {
         (curr.status == NavigationStatus.arrived ||
             curr.status == NavigationStatus.stopped)) {
       isTripSummaryShown = true;
-      HomeDialogCoordinator.showTripSummaryModal(
+      HomeNavigationDialogCoordinator.showTripSummaryModal(
         context: context,
         summary: curr.tripSummary!,
         onDone: () {
@@ -36,18 +36,9 @@ class HomeNavigationDialogHandler {
         onDismissed: () => isTripSummaryShown = false,
       );
     }
-    if (prev.promptBatteryOptimizationOem !=
-            curr.promptBatteryOptimizationOem &&
-        curr.promptBatteryOptimizationOem != null) {
-      HomeDialogCoordinator.showBatteryOptimizationPrompt(
-        context: context,
-        oemType: curr.promptBatteryOptimizationOem,
-        navigationBloc: navigationBloc,
-      );
-    }
     if (prev.pendingResumeSession != curr.pendingResumeSession &&
         curr.pendingResumeSession != null) {
-      HomeDialogCoordinator.showResumeSessionPrompt(
+      HomeNavigationDialogCoordinator.showResumeSessionPrompt(
         context: context,
         session: curr.pendingResumeSession,
         navigationBloc: navigationBloc,

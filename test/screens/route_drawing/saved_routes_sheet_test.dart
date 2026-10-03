@@ -7,7 +7,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/screens/route_drawing/widgets/widgets.dart';
+import 'package:s_map/screens/main/home/widgets/drawing/widgets.dart';
 
 class MockCustomRouteRepository implements ICustomRouteRepository {
   List<CustomRouteModel> routes = [];

@@ -14,6 +14,8 @@ class MapControls extends StatelessWidget {
   final double rotation;
   final MapOrientationMode orientationMode;
   final Object? locateHeroTag;
+  final Widget? customMiddleControl;
+  final bool showLayers;
 
   const MapControls({
     super.key,
@@ -25,6 +27,8 @@ class MapControls extends StatelessWidget {
     this.rotation = 0.0,
     this.orientationMode = MapOrientationMode.northUp,
     this.locateHeroTag,
+    this.customMiddleControl,
+    this.showLayers = true,
   });
 
   @override
@@ -51,16 +55,21 @@ class MapControls extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ],
-          _buildControlButton(
-            context: context,
-            icon: Icons.layers_rounded,
-            tooltip: tr(LocaleKeys.map_switch_layers),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              (onSwitchLayers ?? () {})();
-            },
-          ),
-          const SizedBox(height: 10),
+          if (customMiddleControl != null) ...[
+            customMiddleControl!,
+            const SizedBox(height: 10),
+          ] else if (showLayers) ...[
+            _buildControlButton(
+              context: context,
+              icon: Icons.layers_rounded,
+              tooltip: tr(LocaleKeys.map_switch_layers),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                (onSwitchLayers ?? () {})();
+              },
+            ),
+            const SizedBox(height: 10),
+          ],
           // Compact Zoom Pill
           Container(
             width: 44,

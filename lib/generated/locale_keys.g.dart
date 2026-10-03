@@ -48,6 +48,7 @@ abstract class  LocaleKeys {
   static const feature_under_development = 'feature_under_development';
   static const cancel = 'cancel';
   static const confirm = 'confirm';
+  static const back_again_to_exit = 'back_again_to_exit';
   static const retry = 'retry';
   static const reviews = 'reviews';
   static const only = 'only';
@@ -212,11 +213,9 @@ abstract class  LocaleKeys {
   static const route_drawing_ui_custom_route_name = 'route_drawing_ui.custom_route_name';
   static const route_drawing_ui_default_route_name = 'route_drawing_ui.default_route_name';
   static const route_drawing_ui_follow_custom_route = 'route_drawing_ui.follow_custom_route';
-  static const route_drawing_ui_undo = 'route_drawing_ui.undo';
-  static const route_drawing_ui_redo = 'route_drawing_ui.redo';
-  static const route_drawing_ui_clear_all = 'route_drawing_ui.clear_all';
-  static const route_drawing_ui_clear_confirm_title = 'route_drawing_ui.clear_confirm_title';
-  static const route_drawing_ui_clear_confirm_desc = 'route_drawing_ui.clear_confirm_desc';
+  static const route_drawing_ui_exit_confirm_title = 'route_drawing_ui.exit_confirm_title';
+  static const route_drawing_ui_exit_confirm_desc = 'route_drawing_ui.exit_confirm_desc';
+  static const route_drawing_ui_exit_confirm_action = 'route_drawing_ui.exit_confirm_action';
   static const route_drawing_ui_fit_bounds = 'route_drawing_ui.fit_bounds';
   static const route_drawing_ui_save_route = 'route_drawing_ui.save_route';
   static const route_drawing_ui_start_navigation = 'route_drawing_ui.start_navigation';
