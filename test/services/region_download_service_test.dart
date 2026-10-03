@@ -57,12 +57,15 @@ class FakeHttpClient implements HttpClient {
   final Uint8List zipBytes;
   final int statusCode;
   final Duration chunkDelay;
+  final Uint8List releaseManifestBytes;
 
   FakeHttpClient({
     required this.zipBytes,
     this.statusCode = HttpStatus.ok,
     this.chunkDelay = Duration.zero,
-  });
+    String releaseManifest =
+        '{"region":"vietnam","version":"1.3.0","package":{"size_bytes":1234,"download_url":"https://example.com/vietnam.zip"}}',
+  }) : releaseManifestBytes = Uint8List.fromList(releaseManifest.codeUnits);
 
   @override
   Duration? connectionTimeout;
@@ -70,7 +73,9 @@ class FakeHttpClient implements HttpClient {
   @override
   Future<HttpClientRequest> getUrl(Uri url) async {
     return FakeHttpClientRequest(
-      zipBytes: zipBytes,
+      responseBytes: url.path.endsWith('_latest.json')
+          ? releaseManifestBytes
+          : zipBytes,
       statusCode: statusCode,
       chunkDelay: chunkDelay,
     );
@@ -81,12 +86,12 @@ class FakeHttpClient implements HttpClient {
 }
 
 class FakeHttpClientRequest implements HttpClientRequest {
-  final Uint8List zipBytes;
+  final Uint8List responseBytes;
   final int statusCode;
   final Duration chunkDelay;
 
   FakeHttpClientRequest({
-    required this.zipBytes,
+    required this.responseBytes,
     required this.statusCode,
     this.chunkDelay = Duration.zero,
   });
@@ -94,7 +99,7 @@ class FakeHttpClientRequest implements HttpClientRequest {
   @override
   Future<HttpClientResponse> close() async {
     return FakeHttpClientResponse(
-      zipBytes: zipBytes,
+      responseBytes: responseBytes,
       statusCode: statusCode,
       chunkDelay: chunkDelay,
     );
@@ -106,19 +111,19 @@ class FakeHttpClientRequest implements HttpClientRequest {
 
 class FakeHttpClientResponse extends Stream<List<int>>
     implements HttpClientResponse {
-  final Uint8List zipBytes;
+  final Uint8List responseBytes;
   @override
   final int statusCode;
   final Duration chunkDelay;
 
   FakeHttpClientResponse({
-    required this.zipBytes,
+    required this.responseBytes,
     required this.statusCode,
     this.chunkDelay = Duration.zero,
   });
 
   @override
-  int get contentLength => zipBytes.length;
+  int get contentLength => responseBytes.length;
 
   @override
   StreamSubscription<List<int>> listen(
@@ -129,13 +134,13 @@ class FakeHttpClientResponse extends Stream<List<int>>
   }) {
     final controller = StreamController<List<int>>();
     controller.onListen = () async {
-      final half = zipBytes.length ~/ 2;
-      controller.add(zipBytes.sublist(0, half));
+      final half = responseBytes.length ~/ 2;
+      controller.add(responseBytes.sublist(0, half));
       if (chunkDelay > Duration.zero) {
         await Future.delayed(chunkDelay);
       }
       if (!controller.isClosed) {
-        controller.add(zipBytes.sublist(half));
+        controller.add(responseBytes.sublist(half));
         controller.close();
       }
     };
@@ -237,7 +242,7 @@ void main() {
       final savedData = fakeBox.get('vietnam');
       expect(savedData, isNotNull);
       expect(savedData['status'], equals(RegionDownloadStatus.downloaded.name));
-      expect(savedData['localVersion'], equals('1.2.0'));
+      expect(savedData['localVersion'], equals('1.3.0'));
 
       final downloaded = await service.getDownloadedRegions();
       expect(downloaded.length, 1);
@@ -369,6 +374,9 @@ void main() {
       final region = await service.checkRegionVersion('vietnam');
       expect(region, isNotNull);
       expect(region!.name, contains('Việt Nam'));
+      expect(region.version, equals('1.3.0'));
+      expect(region.sizeBytes, equals(1234));
+      expect(region.downloadUrl, equals('https://example.com/vietnam.zip'));
 
       final nonExistent = await service.checkRegionVersion('non_existent');
       expect(nonExistent, isNull);

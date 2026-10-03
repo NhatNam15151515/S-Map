@@ -22,7 +22,8 @@ class _OfflineRegionsScreenState extends State<OfflineRegionsScreen>
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => DownloadRegionCubit()..loadRegions(),
+      create: (context) => DownloadRegionCubit()
+        ..loadRegions(checkUpdates: true),
       child: const _OfflineRegionsContent(),
     );
   }

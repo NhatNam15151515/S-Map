@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/repos/repos.dart';
+import 'package:s_map/search_engine/search_engine.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -275,6 +276,28 @@ void main() {
 
       expect(results.any((e) => e.category == 'street'), isTrue);
       expect(results.any((e) => e.name == 'Nguyễn Súy'), isTrue);
+    });
+
+    test('search orchestrator should find Tam Dao when house number is missing',
+        () async {
+      await db.insert('poi', {
+        'name': 'Tam Đảo',
+        'name_ascii': 'Tam Dao',
+        'category': 'place',
+        'sub_category': 'locality',
+        'lat': 10.78,
+        'lon': 106.68,
+        'address': 'Thị trấn Tam Đảo, Vĩnh Phúc',
+        'street': 'Đường Tam Đảo',
+        'housenumber': '',
+        'city': 'Vĩnh Phúc',
+      });
+
+      final orchestrator = SearchOrchestrator(poiRepository: poiRepo);
+      final results = await orchestrator.search(query: '76 tam dao');
+
+      expect(results, isNotEmpty);
+      expect(results.any((poi) => poi.name == 'Tam Đảo'), isTrue);
     });
 
     test('search should return empty list for invalid or short query',

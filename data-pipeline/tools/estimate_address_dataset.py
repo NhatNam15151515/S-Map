@@ -3,7 +3,7 @@
 """Ước lượng độ phủ và dung lượng dataset địa chỉ offline từ OSM PBF.
 
 Script này chỉ đọc file PBF, không tạo hoặc thay đổi database. Nó đếm các
-element có đủ ``addr:housenumber`` và ``addr:street`` để pipeline có thể
+element có ``addr:housenumber`` kèm ``addr:street`` hoặc ``addr:place`` để pipeline có thể
 định vị một địa chỉ cụ thể thay vì chỉ tìm POI có sẵn.
 """
 
@@ -39,6 +39,7 @@ class AddressEstimator(osmium.SimpleHandler):
             "ways": 0,
             "with_any_address_tag": 0,
             "with_house_and_street": 0,
+            "with_house_and_street_or_place": 0,
             "with_house_and_street_named": 0,
             "with_house_and_street_poi": 0,
             "new_address_candidates": 0,
@@ -60,16 +61,19 @@ class AddressEstimator(osmium.SimpleHandler):
         self.counts[kind + "s"] += 1
         housenumber = (tags.get("addr:housenumber") or "").strip()
         street = (tags.get("addr:street") or "").strip()
+        place = (tags.get("addr:place") or "").strip()
         name = (tags.get("name") or "").strip()
         has_any = any((tags.get(key) or "").strip() for key in (
             "addr:housenumber", "addr:street", "addr:city", "addr:postcode", "addr:place"
         ))
         if has_any:
             self.counts["with_any_address_tag"] += 1
-        if not housenumber or not street:
+        if not housenumber or not (street or place):
             return
 
-        self.counts["with_house_and_street"] += 1
+        self.counts["with_house_and_street_or_place"] += 1
+        if street:
+            self.counts["with_house_and_street"] += 1
         if name:
             self.counts["with_house_and_street_named"] += 1
 
@@ -91,7 +95,7 @@ class AddressEstimator(osmium.SimpleHandler):
                 self.samples.append({
                     "kind": kind,
                     "housenumber": housenumber,
-                    "street": street,
+                    "street": street or place,
                     "city": tags.get("addr:city", ""),
                     "name": name,
                 })

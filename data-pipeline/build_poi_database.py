@@ -749,8 +749,11 @@ class POIExtractorHandler(osmium.SimpleHandler):
 
     @staticmethod
     def _address_fields(tags):
-        """Lấy các trường địa chỉ từ OSM và tạo chuỗi hiển thị/search."""
-        street = (tags.get("addr:street") or "").strip()
+        """Lấy địa chỉ đường hoặc địa chỉ theo địa danh từ OSM."""
+        # OSM uses addr:place where an address is grouped by a locality rather
+        # than a street. Keep it in the searchable street field for schema
+        # compatibility, while preserving it in the rendered address string.
+        street = (tags.get("addr:street") or tags.get("addr:place") or "").strip()
         housenumber = (tags.get("addr:housenumber") or "").strip()
         city = (tags.get("addr:city") or "").strip()
         address_parts = [part for part in (housenumber, street, city) if part]
@@ -783,7 +786,10 @@ class POIExtractorHandler(osmium.SimpleHandler):
     def _has_complete_address(tags):
         return bool(
             (tags.get("addr:housenumber") or "").strip()
-            and (tags.get("addr:street") or "").strip()
+            and (
+                (tags.get("addr:street") or "").strip()
+                or (tags.get("addr:place") or "").strip()
+            )
         )
 
     def _build_record(
@@ -1154,15 +1160,20 @@ def load_osm_pois_from_database(db_path: Path):
     ]
 
 
-def process_region(region_key: str, use_overture=True, reuse_existing_osm_db=False):
+def process_region(
+    region_key: str,
+    use_overture=True,
+    reuse_existing_osm_db=False,
+    output_dir: Path = OUTPUT_DIR,
+):
     """Trích xuất và đóng gói SQLite database cho 1 vùng cụ thể."""
     region_info = REGIONS[region_key]
     print(f"\n==================================================", flush=True)
     print(f"📦 BẮT ĐẦU DỰNG POI DATABASE CHO: {region_info['name']} ({region_key})", flush=True)
     print(f"==================================================", flush=True)
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_db_path = OUTPUT_DIR / f"{region_key}_poi.db"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    out_db_path = output_dir / f"{region_key}_poi.db"
 
     if reuse_existing_osm_db:
         print(f"⚡ Đọc lại OSM POI database có sẵn: {out_db_path.name}", flush=True)
@@ -1249,6 +1260,12 @@ def main():
         action="store_true",
         help="Dùng POI DB OSM hiện có làm baseline, không đọc lại PBF.",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=OUTPUT_DIR,
+        help="Thư mục DB đầu ra; có thể dùng để dựng thử trước khi thay package đang dùng.",
+    )
     args = parser.parse_args()
 
     results = {}
@@ -1260,12 +1277,14 @@ def main():
                 key,
                 use_overture=not args.no_overture,
                 reuse_existing_osm_db=args.reuse_existing_osm_db,
+                output_dir=args.output_dir,
             )
     elif target_region in REGIONS:
         results[target_region] = process_region(
             target_region,
             use_overture=not args.no_overture,
             reuse_existing_osm_db=args.reuse_existing_osm_db,
+            output_dir=args.output_dir,
         )
     else:
         print(f"❌ Vùng không hợp lệ: {target_region}. Chọn 1 trong: {list(REGIONS.keys())} hoặc all")

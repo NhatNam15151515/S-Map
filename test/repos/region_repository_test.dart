@@ -57,7 +57,11 @@ class MockRegionDownloadService implements IRegionDownloadService {
     try {
       final region = regions.firstWhere((r) => r.id == regionId);
       // Return newer version to test update detection
-      return region.copyWith(version: '1.1.0');
+      return region.copyWith(
+        version: '1.1.0',
+        downloadUrl: 'https://example.com/latest/metro_hcm.zip',
+        sizeBytes: 7654321,
+      );
     } catch (_) {
       return null;
     }
@@ -146,6 +150,10 @@ void main() {
       expect(updated.length, 2);
       expect(updated.first.id, equals('metro_hcm'));
       expect(updated.first.status, equals(RegionDownloadStatus.updateAvailable));
+      expect(updated.first.version, equals('1.1.0'));
+      expect(updated.first.downloadUrl,
+          equals('https://example.com/latest/metro_hcm.zip'));
+      expect(updated.first.sizeBytes, equals(7654321));
       expect(updated[1].id, equals('metro_hn'));
       expect(updated[1].status, equals(RegionDownloadStatus.notDownloaded));
     });

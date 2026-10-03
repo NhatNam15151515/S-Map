@@ -27,12 +27,23 @@ from pathlib import Path
 
 # Thêm data-pipeline vào sys.path để import config
 sys.path.append(str(Path(__file__).parent))
-from config import REGIONS, RAW_PBF, PMTILES_DIR, GHZ_DIR, POI_DB_DIR, PACKAGES_DIR
+from config import (
+    OVERTURE_METADATA,
+    REGIONS,
+    RAW_PBF,
+    PMTILES_DIR,
+    GHZ_DIR,
+    POI_DB_DIR,
+    PACKAGES_DIR,
+)
 
 MIN_REAL_PMTILES_BYTES = 1024 * 1024
 MIN_REAL_GHZ_BYTES = 1024 * 1024
 MIN_REAL_POI_DB_BYTES = 1024 * 1024
-DATA_PACKAGE_VERSION = "1.2.0"
+DATA_PACKAGE_VERSION = "1.3.0"
+GITHUB_LATEST_DOWNLOAD_URL = (
+    "https://github.com/NhatNam15151515/S-Map/releases/latest/download"
+)
 
 
 def _has_real_data_file(path: Path, minimum_bytes: int) -> bool:
@@ -87,6 +98,43 @@ def compute_sha256(filepath: Path) -> str:
         for chunk in iter(lambda: f.read(65536), b""):
             sha256.update(chunk)
     return sha256.hexdigest()
+
+
+def collect_source_metadata() -> dict:
+    """Record the actual source vintages included in an offline package."""
+    sources = {
+        "openstreetmap": {
+            "dataset": "Geofabrik Vietnam OSM extract",
+            "url": "https://download.geofabrik.de/asia/vietnam-latest.osm.pbf",
+            "license": "ODbL-1.0",
+        }
+    }
+    if RAW_PBF.exists():
+        try:
+            import osmium
+
+            reader = osmium.io.Reader(str(RAW_PBF))
+            try:
+                timestamp = reader.header().get("osmosis_replication_timestamp")
+            finally:
+                reader.close()
+            if timestamp:
+                sources["openstreetmap"]["data_timestamp"] = timestamp
+        except (ImportError, RuntimeError, OSError):
+            pass
+
+    if OVERTURE_METADATA.exists():
+        try:
+            overture = json.loads(OVERTURE_METADATA.read_text(encoding="utf-8"))
+            sources["overture_places"] = {
+                "dataset": "Overture Maps Places",
+                "license": "Per-source; see Overture source metadata",
+                "downloaded_at_utc": overture.get("downloaded_at_utc"),
+                "release_selection": overture.get("selection"),
+            }
+        except (OSError, json.JSONDecodeError):
+            pass
+    return sources
 
 
 def run_sub_script(script_name: str, region_key: str):
@@ -173,6 +221,7 @@ def create_region_package(region_key: str) -> dict:
         "region_name": region_info["name"],
         "version": DATA_PACKAGE_VERSION,
         "updated_at": now_utc,
+        "data_sources": collect_source_metadata(),
         "files": {
             "vector_tiles": {
                 "filename": pmtiles_file.name,
@@ -219,6 +268,25 @@ def create_region_package(region_key: str) -> dict:
     zip_size = zip_path.stat().st_size
     zip_size_mb = zip_size / (1024 * 1024)
 
+    # Publish this small sidecar as a release asset. Apps can fetch the latest
+    # release metadata without downloading the ~1 GB package first.
+    latest_manifest = {
+        "region": region_key,
+        "version": DATA_PACKAGE_VERSION,
+        "updated_at": now_utc,
+        "package": {
+            "filename": zip_path.name,
+            "size_bytes": zip_size,
+            "sha256": compute_sha256(zip_path),
+            "download_url": f"{GITHUB_LATEST_DOWNLOAD_URL}/{zip_path.name}",
+        },
+    }
+    latest_manifest_file = PACKAGES_DIR / f"{region_key}_latest.json"
+    latest_manifest_file.write_text(
+        json.dumps(latest_manifest, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
     print(f"✅ Đóng gói thành công `{zip_path.name}` ({zip_size_mb:.2f} MB) trong {zip_time:.2f}s!", flush=True)
 
     return {
@@ -226,6 +294,7 @@ def create_region_package(region_key: str) -> dict:
         "region_name": region_info["name"],
         "zip_name": zip_path.name,
         "zip_size_bytes": zip_size,
+        "latest_manifest_name": latest_manifest_file.name,
     }
 
 

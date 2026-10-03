@@ -29,6 +29,7 @@ class SearchOrchestrator {
   }) async {
     final trie = await _resolveTrie();
     final normalizedQuery = VnPhoneticEncoder.normalize(query);
+    final addressFallbackQuery = _withoutAddressNumber(query);
     final phoneticQuery = VnPhoneticEncoder.encodePhonetic(query);
     final localCandidates = userLocation == null
         ? const <PoiModel>[]
@@ -58,7 +59,19 @@ class SearchOrchestrator {
       }
     }
 
-    final triePois = await _poiRepository.getPoisByIds(trieIds);
+    final relaxedTrieIds = <int>[];
+    if (trie != null && addressFallbackQuery != null) {
+      final normalizedFallbackQuery =
+          VnPhoneticEncoder.normalize(addressFallbackQuery);
+      if (normalizedFallbackQuery.isNotEmpty) {
+        relaxedTrieIds.addAll(
+          trie.prefixSearch(normalizedFallbackQuery, limit: limit * 2),
+        );
+      }
+    }
+
+    final allTrieIds = <int>{...trieIds, ...relaxedTrieIds}.toList();
+    final triePois = await _poiRepository.getPoisByIds(allTrieIds);
     final rankedTrie = SearchResultRanker.rank(
       [...localCandidates, ...triePois],
       center: userLocation,
@@ -68,15 +81,34 @@ class SearchOrchestrator {
           ? null
           : SearchResultRanker.defaultNearbySearchRadiusKm,
     );
-    if (rankedTrie.length >= limit ||
-        (normalizedQuery.length <= 2 && rankedTrie.isNotEmpty)) {
+    // 50 results are not needed to make autocomplete useful. Avoid a second,
+    // much slower database search once the local index has enough candidates.
+    final usefulResultCount = limit < 20 ? limit : 20;
+    if (rankedTrie.length >= usefulResultCount ||
+        (normalizedQuery.length <= 2 && rankedTrie.isNotEmpty) ||
+        (relaxedTrieIds.isNotEmpty && rankedTrie.isNotEmpty)) {
       return rankedTrie;
     }
 
-    final deepResults = await _poiRepository.search(query, limit: limit * 2);
+    // OSM address coverage is incomplete: a leading house number often has no
+    // corresponding housenumber field. Retry by street/place name so the
+    // number does not hide an otherwise useful result (e.g. "76 Tam Đảo").
+    final searches = await Future.wait([
+      _poiRepository.search(query, limit: limit * 2),
+      if (addressFallbackQuery != null)
+        _poiRepository.search(addressFallbackQuery, limit: limit * 2),
+    ]);
+    final deepResults = searches.first;
+    final addressFallbackResults =
+        addressFallbackQuery == null ? const <PoiModel>[] : searches.last;
     final merged = <PoiModel>[];
     final seen = <String>{};
-    for (final poi in [...localCandidates, ...triePois, ...deepResults]) {
+    for (final poi in [
+      ...localCandidates,
+      ...triePois,
+      ...deepResults,
+      ...addressFallbackResults,
+    ]) {
       final key = poi.id != null
           ? 'id:${poi.id}'
           : '${poi.name}|${poi.lat}|${poi.lon}';
@@ -85,12 +117,29 @@ class SearchOrchestrator {
     return SearchResultRanker.rank(
       merged,
       center: userLocation,
+      // Keep the original query for ranking: a real number + street match
+      // should outrank the relaxed street/place fallback.
       query: query,
       limit: limit,
       maxDistanceKm: userLocation == null
           ? null
           : SearchResultRanker.defaultNearbySearchRadiusKm,
     );
+  }
+
+  String? _withoutAddressNumber(String query) {
+    final tokens = query.trim().split(RegExp(r'\s+'));
+    if (!tokens.any((token) => RegExp(r'\d').hasMatch(token))) return null;
+
+    // Search the remaining words as either a street or place name. This also
+    // handles "Tam Đảo 76" and common address prefixes such as "số 76 đường…".
+    final textTokens = tokens.where((token) {
+      if (RegExp(r'\d').hasMatch(token)) return false;
+      final normalized = VnPhoneticEncoder.normalize(token);
+      return !const {'so', 'duong', 'pho', 'street', 'road', 'no', 'number'}
+          .contains(normalized);
+    }).toList(growable: false);
+    return textTokens.isEmpty ? null : textTokens.join(' ');
   }
 
   Future<List<PoiModel>> _searchNearbyCandidates({

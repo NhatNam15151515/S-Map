@@ -44,7 +44,7 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
     super.emit(state);
   }
 
-  Future<void> loadRegions() async {
+  Future<void> loadRegions({bool checkUpdates = false}) async {
     emit(state.copyWith(
       status: DownloadRegionStatus.loading,
       clearError: true,
@@ -61,6 +61,18 @@ class DownloadRegionCubit extends Cubit<DownloadRegionState> {
         totalStorageBytes: storageBytes,
         clearError: true,
       ));
+      if (checkUpdates) {
+        try {
+          final updatedRegions = await _repository.checkForUpdates();
+          emit(state.copyWith(
+            status: DownloadRegionStatus.loaded,
+            regions: updatedRegions,
+          ));
+        } catch (e) {
+          DLog.warning(
+              '⚠️ [DownloadRegionCubit] Không kiểm tra được cập nhật dữ liệu: $e');
+        }
+      }
     } catch (e) {
       DLog.error('❌ [DownloadRegionCubit] Lỗi tải danh sách vùng: $e');
       emit(state.copyWith(

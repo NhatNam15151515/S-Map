@@ -18,6 +18,20 @@ MODULE_SPEC.loader.exec_module(BUILD)
 
 
 class OverturePoiTests(unittest.TestCase):
+    def test_osm_address_place_is_retained_without_a_street_name(self):
+        tags = {"addr:housenumber": "76", "addr:place": "Tam Đảo"}
+
+        self.assertTrue(BUILD.POIExtractorHandler._has_complete_address(tags))
+        record = BUILD.POIExtractorHandler(bbox=None)._build_record(
+            "n-address-place", tags, 10.7, 106.6, has_poi_tag=False
+        )
+
+        self.assertEqual(record["category"], "address")
+        self.assertEqual(record["housenumber"], "76")
+        self.assertEqual(record["street"], "Tam Đảo")
+        self.assertIn("76", record["address"])
+        self.assertIn("Tam Đảo", record["address"])
+
     def test_load_geojsonseq_maps_and_filters_records(self):
         fixture_path = PIPELINE_DIR / "testdata" / "overture_places.geojsonseq"
         pois = list(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:hive/hive.dart';
@@ -15,12 +16,13 @@ typedef RegionDownloadService = IRegionDownloadService;
 class RegionDownloadServiceImpl implements IRegionDownloadService {
   static const String boxName = 'offline_regions_box';
   static const String basePackageUrl =
-      'https://github.com/NhatNam15151515/S-Map/releases/download/map-data-v1.2.0';
+      'https://github.com/NhatNam15151515/S-Map/releases/latest/download';
 
   final Box<dynamic>? _customBox;
   final HttpClient? _customHttpClient;
   final String? _customBaseDir;
   final Map<String, bool> _cancellationMap = {};
+  final Map<String, RegionModel> _latestRemoteRegions = {};
   Box<dynamic>? _box;
 
   RegionDownloadServiceImpl({
@@ -41,8 +43,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
           'Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn quốc; hỗ trợ địa chỉ trước và sau sáp nhập',
       bbox: [102.10, 8.50, 109.50, 23.40],
       downloadUrl: '$basePackageUrl/vietnam.zip',
-      sizeBytes: 1000234095,
-      version: '1.2.0',
+      sizeBytes: 1001634529,
+      version: '1.3.0',
     ),
   ];
 
@@ -122,6 +124,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
       final regions = <RegionModel>[];
 
       for (final defaultRegion in defaultRegions) {
+        final catalogRegion =
+            _latestRemoteRegions[defaultRegion.id] ?? defaultRegion;
         final raw = box.get(defaultRegion.id);
         if (raw != null && raw is Map) {
           final map = Map<String, dynamic>.from(raw);
@@ -144,12 +148,12 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
             // Dữ liệu cũ bị thiếu hoặc đã bị xóa ngoài luồng -> reset trạng thái để người dùng tải lại
             DLog.warning(
                 '⚠️ [RegionDownloadService] Vùng ${defaultRegion.id} thiếu tệp trên đĩa, tự động reset trạng thái.');
-            final resetRegion = defaultRegion.copyWith(
+            final resetRegion = catalogRegion.copyWith(
                 status: RegionDownloadStatus.notDownloaded);
             await box.put(defaultRegion.id, resetRegion.toMap());
             regions.add(resetRegion);
           } else {
-            regions.add(defaultRegion.copyWith(
+            regions.add(catalogRegion.copyWith(
               status: local.status,
               localVersion: local.localVersion,
               downloadProgress: local.downloadProgress,
@@ -158,7 +162,7 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
             ));
           }
         } else {
-          regions.add(defaultRegion);
+          regions.add(catalogRegion);
         }
       }
 
@@ -203,11 +207,51 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
 
   @override
   Future<RegionModel?> checkRegionVersion(String regionId) async {
-    final all = await getAvailableRegions();
     try {
-      final region = all.firstWhere((r) => r.id == regionId);
-      return region;
+      final region = defaultRegions.firstWhere((r) => r.id == regionId);
+      final ownsClient = _customHttpClient == null;
+      final client = _customHttpClient ?? HttpClient();
+      client.connectionTimeout = const Duration(seconds: 10);
+      try {
+        final request = await client
+            .getUrl(Uri.parse('$basePackageUrl/${region.id}_latest.json'))
+            .timeout(const Duration(seconds: 15));
+        request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+        request.headers.set(HttpHeaders.userAgentHeader, 'S-Map offline data updater');
+        final response = await request.close().timeout(const Duration(seconds: 15));
+        if (response.statusCode != HttpStatus.ok) return region;
+
+        final body = await response
+            .transform(utf8.decoder)
+            .join()
+            .timeout(const Duration(seconds: 15));
+        final decoded = jsonDecode(body);
+        if (decoded is! Map<String, dynamic> ||
+            decoded['region'] != regionId ||
+            decoded['version'] is! String) {
+          return region;
+        }
+
+        final package = decoded['package'];
+        final packageData = package is Map<String, dynamic> ? package : const {};
+        final remoteRegion = region.copyWith(
+          version: decoded['version'] as String,
+          sizeBytes: (packageData['size_bytes'] as num?)?.toInt() ??
+              region.sizeBytes,
+          downloadUrl: packageData['download_url'] as String? ??
+              '$basePackageUrl/${region.id}.zip',
+        );
+        _latestRemoteRegions[regionId] = remoteRegion;
+        return remoteRegion;
+      } finally {
+        if (ownsClient) client.close(force: true);
+      }
     } catch (_) {
+      // Keep the bundled catalog usable offline and while the release endpoint
+      // is unavailable. The app can still compare against its bundled version.
+      for (final region in defaultRegions) {
+        if (region.id == regionId) return _latestRemoteRegions[regionId] ?? region;
+      }
       return null;
     }
   }

@@ -67,15 +67,22 @@ class RegionRepositoryImpl implements IRegionRepository {
     final updatedList = <RegionModel>[];
 
     for (final region in regions) {
-      if (!region.isDownloaded) {
-        updatedList.add(region);
-        continue;
-      }
       final latest = await _service.checkRegionVersion(region.id);
-      if (latest != null && latest.version != region.localVersion) {
-        updatedList.add(region.copyWith(status: RegionDownloadStatus.updateAvailable));
+      if (latest != null &&
+          region.isDownloaded &&
+          latest.version != region.localVersion) {
+        updatedList.add(region.copyWith(
+          version: latest.version,
+          downloadUrl: latest.downloadUrl,
+          sizeBytes: latest.sizeBytes,
+          status: RegionDownloadStatus.updateAvailable,
+        ));
       } else {
-        updatedList.add(region);
+        updatedList.add(region.copyWith(
+          version: latest?.version ?? region.version,
+          downloadUrl: latest?.downloadUrl ?? region.downloadUrl,
+          sizeBytes: latest?.sizeBytes ?? region.sizeBytes,
+        ));
       }
     }
 
