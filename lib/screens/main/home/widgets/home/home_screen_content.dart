@@ -126,14 +126,33 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
         AppReposProvider.instance.routingRepos.isEngineReady();
         final initialPayload = widget.initialRoutePayload;
         if (initialPayload != null) {
-          _searchCoordinator.searchResults = [];
-          _searchCoordinator.activeSearchText = null;
-          _searchCoordinator.showSearchThisArea = false;
-          _poiController.selectedPoi = null;
-          _drawingController.enter(initialPayload);
+          _openDrawingPayload(initialPayload);
         }
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreenContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final payload = widget.initialRoutePayload;
+    if (payload == null || identical(payload, oldWidget.initialRoutePayload)) {
+      return;
+    }
+
+    // Home is kept alive by StatefulShellRoute.indexedStack. Selecting a
+    // saved drawing updates this widget's payload without calling initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _openDrawingPayload(payload);
+    });
+  }
+
+  void _openDrawingPayload(RouteDrawingPayload payload) {
+    _searchCoordinator.searchResults = [];
+    _searchCoordinator.activeSearchText = null;
+    _searchCoordinator.showSearchThisArea = false;
+    _poiController.selectedPoi = null;
+    _drawingController.enter(payload);
   }
 
   @override
@@ -181,57 +200,70 @@ class _HomeScreenContentState extends State<HomeScreenContent> with AppMixin {
                   displayCubit.updateMapTheme(isDarkMode: isDark),
               onNavigationChanged: _navDialogHandler.handleNavigationState,
               onSinglePoiFound: _poiController.handlePoiSelected,
-              child: HomeScreenContentView(
-                mapLayerKey: _mapLayerKey,
-                topPadding: topPadding,
-                controlsBottom: controlsBottom,
-                displayCubit: displayCubit,
-                savedRoutesCubit: savedRoutesCubit,
-                drawingBloc: _routeDrawingBloc,
-                searchCoordinator: _searchCoordinator,
-                routeActions: _routeActions,
-                sheetController: _sheetController,
-                routeDrawing: _drawingController.isActive,
-                crosshairActive: _drawingController.isCrosshairActive,
-                drawingToolsActive: _drawingController.isToolsActive,
-                selectedPoi: _poiController.selectedPoi,
-                routeSearchResults: routeResults,
-                routeSearchQuery: _drawingController.searchQuery,
-                onDrawingMapTap: _drawingController.handleMapTap,
-                onPoiTap: _poiController.handleMapPoiTap,
-                onSearchAreaVisibilityChanged: (show) {
-                  if (mounted && !_drawingController.isActive) {
-                    setState(() => _searchCoordinator.showSearchThisArea = show);
-                  }
-                },
-                onReverseRoute: () {
-                  HapticFeedback.mediumImpact();
-                  _routeDrawingBloc.add(const RouteDrawingReverseRoute());
-                },
-                onToggleCrosshair: _drawingController.toggleCrosshair,
-                onPoiSelected: _poiController.handlePoiSelected,
-                onSearchResultPoiTap: _poiController.handleSearchResultPoiTap,
-                onClosePoiCard: _poiController.closeActivePoiCard,
-                onAddPointAtCenter: _drawingController.addPointAtCenter,
-                onOpenSearch: () =>
-                    _routeActions.handleOpenAddDestinationSearch(
-                  context,
-                  onSelectedPoi: _drawingController.addDestination,
-                  onSelectedLocation:
-                      _drawingController.addDestinationLocation,
-                ),
-                onExitDrawing: () => _backHandler.confirmExitDrawing(context),
-                onDrawingPoiTap: _poiController.handleDrawingPoiTap,
-                onAddDestination: _drawingController.addDestination,
-                onToggleDrawingMode: _drawingController.toggleTools,
-                onCloseSearchResults: _drawingController.closeSearchResults,
-                onNavigatePressed: (drawingState) {
-                  HomeRouteActions.startNavigationFromDrawnRoute(
-                    context: context,
-                    state: drawingState,
-                  );
+              child: BlocListener<RouteDrawingBloc, RouteDrawingState>(
+                listenWhen: (previous, current) =>
+                    previous.status != RouteDrawingStatus.saved &&
+                    current.status == RouteDrawingStatus.saved,
+                listener: (context, state) {
                   _drawingController.exit();
+                  showSuccess(tr(LocaleKeys.route_drawing_ui_save_success));
                 },
+                child: HomeScreenContentView(
+                  mapLayerKey: _mapLayerKey,
+                  topPadding: topPadding,
+                  controlsBottom: controlsBottom,
+                  displayCubit: displayCubit,
+                  savedRoutesCubit: savedRoutesCubit,
+                  drawingBloc: _routeDrawingBloc,
+                  searchCoordinator: _searchCoordinator,
+                  routeActions: _routeActions,
+                  sheetController: _sheetController,
+                  routeDrawing: _drawingController.isActive,
+                  crosshairActive: _drawingController.isCrosshairActive,
+                  drawingToolsActive: _drawingController.isToolsActive,
+                  selectedPoi: _poiController.selectedPoi,
+                  routeSearchResults: routeResults,
+                  routeSearchQuery: _drawingController.searchQuery,
+                  onDrawingMapTap: _drawingController.handleMapTap,
+                  onPoiTap: _poiController.handleMapPoiTap,
+                  onSearchAreaVisibilityChanged: (show) {
+                    if (mounted && !_drawingController.isActive) {
+                      setState(() =>
+                          _searchCoordinator.showSearchThisArea = show);
+                    }
+                  },
+                  onReverseRoute: () {
+                    HapticFeedback.mediumImpact();
+                    _routeDrawingBloc.add(const RouteDrawingReverseRoute());
+                  },
+                  onToggleCrosshair: _drawingController.toggleCrosshair,
+                  onPoiSelected: _poiController.handlePoiSelected,
+                  onSearchResultPoiTap:
+                      _poiController.handleSearchResultPoiTap,
+                  onClosePoiCard: _poiController.closeActivePoiCard,
+                  onAddPointAtCenter: _drawingController.addPointAtCenter,
+                  onOpenSearch: () =>
+                      _routeActions.handleOpenAddDestinationSearch(
+                    context,
+                    onSelectedPoi: _drawingController.addDestination,
+                    onSelectedLocation:
+                        _drawingController.addDestinationLocation,
+                  ),
+                  onExitDrawing: () =>
+                      _backHandler.confirmExitDrawing(context),
+                  onDrawingPoiTap: _poiController.handleDrawingPoiTap,
+                  onAddDestination: _drawingController.addDestination,
+                  onToggleDrawingMode: _drawingController.toggleTools,
+                  onCloseSearchResults:
+                      _drawingController.closeSearchResults,
+                  onNavigatePressed: (drawingState) {
+                    HomeRouteActions.startNavigationFromDrawnRoute(
+                      context: context,
+                      state: drawingState,
+                    );
+                    _drawingController.exit();
+                  },
+                ),
               ),
             ),
           ),

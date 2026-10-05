@@ -4,7 +4,7 @@ import 'package:s_map/commons/utils/trip_leg_extractor.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
-class FakePoiRepository implements IPoiRepository {
+class FakePoiRepository extends IPoiRepository {
   List<PoiModel> candidatesToReturn = [];
   double? lastMinLat;
   double? lastMaxLat;

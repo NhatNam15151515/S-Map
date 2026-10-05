@@ -30,6 +30,15 @@ class PoiModel {
   final String? housenumber;
   final String? city;
   final int prominence;
+  final String? provinceCode;
+  final String? provinceLegacyCode;
+  final String? districtCode;
+  final int? streetId;
+  final String? streetCore;
+  final String? houseNo;
+  final int? houseNoMain;
+  final String? adminSource;
+  final String? scope;
 
   const PoiModel({
     this.id,
@@ -45,6 +54,15 @@ class PoiModel {
     this.housenumber,
     this.city,
     this.prominence = 0,
+    this.provinceCode,
+    this.provinceLegacyCode,
+    this.districtCode,
+    this.streetId,
+    this.streetCore,
+    this.houseNo,
+    this.houseNoMain,
+    this.adminSource,
+    this.scope,
   });
 
   factory PoiModel.fromMap(Map<String, dynamic> map) {
@@ -62,6 +80,19 @@ class PoiModel {
       housenumber: map['housenumber']?.toString(),
       city: map['city']?.toString(),
       prominence: (map['prominence'] as num?)?.toInt() ?? 0,
+      provinceCode: map['province_code']?.toString(),
+      provinceLegacyCode: map['province_legacy_code']?.toString(),
+      districtCode: map['district_code']?.toString(),
+      streetId: map['street_id'] is int
+          ? map['street_id'] as int
+          : int.tryParse(map['street_id']?.toString() ?? ''),
+      streetCore: map['street_core']?.toString(),
+      houseNo: map['house_no']?.toString(),
+      houseNoMain: map['house_no_main'] is int
+          ? map['house_no_main'] as int
+          : int.tryParse(map['house_no_main']?.toString() ?? ''),
+      adminSource: map['admin_source']?.toString(),
+      scope: map['scope']?.toString(),
     );
   }
 
@@ -80,6 +111,15 @@ class PoiModel {
       if (housenumber != null) 'housenumber': housenumber,
       if (city != null) 'city': city,
       'prominence': prominence,
+      if (provinceCode != null) 'province_code': provinceCode,
+      if (provinceLegacyCode != null) 'province_legacy_code': provinceLegacyCode,
+      if (districtCode != null) 'district_code': districtCode,
+      if (streetId != null) 'street_id': streetId,
+      if (streetCore != null) 'street_core': streetCore,
+      if (houseNo != null) 'house_no': houseNo,
+      if (houseNoMain != null) 'house_no_main': houseNoMain,
+      if (adminSource != null) 'admin_source': adminSource,
+      if (scope != null) 'scope': scope,
     };
   }
 

@@ -1,8 +1,10 @@
 export 'app_error.dart';
 export 'device_oem_type.dart';
 export 'help_center_question.dart';
+export 'admin_unit_model.dart';
 export 'place_model.dart';
 export 'poi_model.dart';
+export 'street_model.dart';
 export 'map_style_palette.dart';
 export 'routing/active_trip_snapshot.dart';
 export 'routing/custom_route_model.dart';

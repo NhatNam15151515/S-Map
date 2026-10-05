@@ -71,6 +71,7 @@ class SearchResultRanker {
     String? query,
     int limit = 50,
     double? maxDistanceKm,
+    bool isDestinationQuery = false,
   }) {
     final unique = <String, PoiModel>{};
     for (final poi in source) {
@@ -106,6 +107,7 @@ class SearchResultRanker {
         query: cleanQuery,
         textScore: textScore,
         prominence: poi.prominence,
+        isDestinationQuery: isDestinationQuery,
       )) {
         continue;
       }
@@ -137,9 +139,14 @@ class SearchResultRanker {
     required String query,
     required double textScore,
     required int prominence,
+    bool isDestinationQuery = false,
   }) {
+    if (isDestinationQuery) return true;
     if (distanceKm == null || maxDistanceKm == null) return true;
     if (distanceKm <= maxDistanceKm) return true;
+
+    // Khớp tên chính xác hoặc khớp mạnh (Tier 1) luôn được bảo vệ kể cả ngoài bán kính local
+    if (textScore >= 2000.0) return true;
 
     // Chỉ cho phép một landmark nổi bật vượt bán kính local khi người dùng
     // nhập đủ dài và tên POI thực sự khớp mạnh. Không áp dụng cho truy vấn

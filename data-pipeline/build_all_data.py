@@ -40,7 +40,7 @@ from config import (
 MIN_REAL_PMTILES_BYTES = 1024 * 1024
 MIN_REAL_GHZ_BYTES = 1024 * 1024
 MIN_REAL_POI_DB_BYTES = 1024 * 1024
-DATA_PACKAGE_VERSION = "1.3.0"
+DATA_PACKAGE_VERSION = "1.4.0"
 GITHUB_LATEST_DOWNLOAD_URL = (
     "https://github.com/NhatNam15151515/S-Map/releases/latest/download"
 )

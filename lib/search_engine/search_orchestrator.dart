@@ -4,6 +4,7 @@ import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
+import 'address/address.dart';
 import 'fuzzy_matcher.dart';
 import 'trie_index.dart';
 import 'vn_phonetic_encoder.dart';
@@ -12,32 +13,54 @@ class SearchOrchestrator {
   final IPoiRepository _poiRepository;
   final TrieIndex? _trieIndex;
   final Future<TrieIndex?>? _trieIndexFuture;
+  final AddressParser _addressParser;
   TrieIndex? _loadedTrieIndex;
 
   SearchOrchestrator({
     required IPoiRepository poiRepository,
     TrieIndex? trieIndex,
     Future<TrieIndex?>? trieIndexFuture,
+    AddressParser? addressParser,
   })  : _poiRepository = poiRepository,
         _trieIndex = trieIndex,
-        _trieIndexFuture = trieIndexFuture;
+        _trieIndexFuture = trieIndexFuture,
+        _addressParser = addressParser ?? AddressParser.instance;
 
   Future<List<PoiModel>> search({
     required String query,
     LatLng? userLocation,
     int limit = 20,
   }) async {
+    final cleanQuery = query.trim();
+    if (cleanQuery.isEmpty) return const [];
+
+    final parsed = _addressParser.parse(cleanQuery);
+    final usefulResultCount = limit < 20 ? limit : 20;
+
+    // === NHÁNH 1: CÓ Ý ĐỊNH ĐIỂM ĐẾN / PHẠM VI HÀNH CHÍNH CỤ THỂ ===
+    if (parsed.isDestinationIntent && parsed.hasProvince) {
+      return _searchDestinationScoped(
+        parsed: parsed,
+        userLocation: userLocation,
+        limit: limit,
+        usefulResultCount: usefulResultCount,
+      );
+    }
+
+    // === NHÁNH 2: TÌM KIẾM TỰ DO / CỤC BỘ (LOCAL-FIRST) ===
     final trie = await _resolveTrie();
-    final normalizedQuery = VnPhoneticEncoder.normalize(query);
-    final addressFallbackQuery = _withoutAddressNumber(query);
-    final phoneticQuery = VnPhoneticEncoder.encodePhonetic(query);
+    final normalizedQuery = VnPhoneticEncoder.normalize(cleanQuery);
+    final addressFallbackQuery = _withoutAddressNumber(cleanQuery);
+    final phoneticQuery = VnPhoneticEncoder.encodePhonetic(cleanQuery);
+
     final localCandidates = userLocation == null
         ? const <PoiModel>[]
         : await _searchNearbyCandidates(
-            query: query,
+            query: cleanQuery,
             center: userLocation,
             limit: limit < 100 ? 100 : limit * 4,
           );
+
     final trieIds = <int>[];
     if (trie != null && normalizedQuery.isNotEmpty) {
       trieIds.addAll(trie.prefixSearch(normalizedQuery, limit: limit * 2));
@@ -72,35 +95,34 @@ class SearchOrchestrator {
 
     final allTrieIds = <int>{...trieIds, ...relaxedTrieIds}.toList();
     final triePois = await _poiRepository.getPoisByIds(allTrieIds);
-    final rankedTrie = SearchResultRanker.rank(
+
+    // Ưu tiên xếp hạng trong bán kính cục bộ trước
+    final rankedLocal = SearchResultRanker.rank(
       [...localCandidates, ...triePois],
       center: userLocation,
-      query: query,
+      query: cleanQuery,
       limit: limit,
       maxDistanceKm: userLocation == null
           ? null
           : SearchResultRanker.defaultNearbySearchRadiusKm,
     );
-    // 50 results are not needed to make autocomplete useful. Avoid a second,
-    // much slower database search once the local index has enough candidates.
-    final usefulResultCount = limit < 20 ? limit : 20;
-    if (rankedTrie.length >= usefulResultCount ||
-        (normalizedQuery.length <= 2 && rankedTrie.isNotEmpty) ||
-        (relaxedTrieIds.isNotEmpty && rankedTrie.isNotEmpty)) {
-      return rankedTrie;
+
+    if (rankedLocal.length >= usefulResultCount ||
+        (normalizedQuery.length <= 2 && rankedLocal.isNotEmpty) ||
+        (relaxedTrieIds.isNotEmpty && rankedLocal.isNotEmpty)) {
+      return rankedLocal;
     }
 
-    // OSM address coverage is incomplete: a leading house number often has no
-    // corresponding housenumber field. Retry by street/place name so the
-    // number does not hide an otherwise useful result (e.g. "76 Tam Đảo").
+    // Nếu kết quả cục bộ chưa đủ, tìm kiếm sâu trong CSDL POI
     final searches = await Future.wait([
-      _poiRepository.search(query, limit: limit * 2),
+      _poiRepository.search(cleanQuery, limit: limit * 2),
       if (addressFallbackQuery != null)
         _poiRepository.search(addressFallbackQuery, limit: limit * 2),
     ]);
     final deepResults = searches.first;
     final addressFallbackResults =
         addressFallbackQuery == null ? const <PoiModel>[] : searches.last;
+
     final merged = <PoiModel>[];
     final seen = <String>{};
     for (final poi in [
@@ -114,16 +136,134 @@ class SearchOrchestrator {
           : '${poi.name}|${poi.lat}|${poi.lon}';
       if (seen.add(key)) merged.add(poi);
     }
-    return SearchResultRanker.rank(
+
+    // Thử lọc bán kính local trước
+    final localRanked = SearchResultRanker.rank(
       merged,
       center: userLocation,
-      // Keep the original query for ranking: a real number + street match
-      // should outrank the relaxed street/place fallback.
-      query: query,
+      query: cleanQuery,
       limit: limit,
       maxDistanceKm: userLocation == null
           ? null
           : SearchResultRanker.defaultNearbySearchRadiusKm,
+    );
+
+    // Nếu không có kết quả trong bán kính 50km, mở rộng toàn quốc với Soft Decay
+    if (localRanked.isEmpty && merged.isNotEmpty) {
+      return SearchResultRanker.rank(
+        merged,
+        center: userLocation,
+        query: cleanQuery,
+        limit: limit,
+        maxDistanceKm: null,
+      );
+    }
+
+    return localRanked;
+  }
+
+  /// Xử lý tìm kiếm điểm đến theo cấp độ hành chính (Hierarchical Scoped Cascading)
+  Future<List<PoiModel>> _searchDestinationScoped({
+    required ParsedAddress parsed,
+    required LatLng? userLocation,
+    required int limit,
+    required int usefulResultCount,
+  }) async {
+    final merged = <PoiModel>[];
+    final seen = <String>{};
+
+    void addPois(Iterable<PoiModel> pois) {
+      for (final poi in pois) {
+        final key = poi.id != null
+            ? 'id:${poi.id}'
+            : '${poi.name}|${poi.lat}|${poi.lon}';
+        if (seen.add(key)) merged.add(poi);
+      }
+    }
+
+    // --- TIER 1: TÌM TRONG PHẠM VI TỈNH ĐÍCH (TARGET PROVINCE) ---
+    // A. Tra cứu số nhà & tuyến đường trực tiếp nếu có
+    if (parsed.hasStreet) {
+      final streets = await _poiRepository.findStreets(
+        nameQuery: parsed.street!,
+        provinceCode: parsed.provinceCode,
+        districtCode: parsed.districtCode,
+        limit: 3,
+      );
+
+      if (streets.isNotEmpty) {
+        final primaryStreet = streets.first;
+        final houseMatches = await _poiRepository.findHouseNumbers(
+          streetId: primaryStreet.id,
+          targetHouseNo: parsed.houseNoMain,
+          limit: 10,
+        );
+        addPois(houseMatches);
+
+        if (houseMatches.isEmpty) {
+          addPois([
+            PoiModel(
+              id: -(1000000 + primaryStreet.id),
+              name: primaryStreet.name,
+              nameAscii: primaryStreet.nameCore,
+              lat: primaryStreet.centerLat,
+              lon: primaryStreet.centerLon,
+              category: 'street',
+              street: primaryStreet.name,
+              city: parsed.provinceName,
+            )
+          ]);
+        }
+      }
+    }
+
+    // B. Scoped FTS trong tỉnh đích
+    final targetFtsQuery = parsed.freeText.isNotEmpty ? parsed.freeText : parsed.rawQuery;
+    final scopedResults = await _poiRepository.searchScoped(
+      query: targetFtsQuery,
+      provinceCode: parsed.provinceCode,
+      districtCode: parsed.districtCode,
+      limit: limit * 2,
+    );
+    addPois(scopedResults);
+
+    // Nếu đã tìm thấy kết quả tại tỉnh đích, xếp hạng và trả về ngay
+    if (merged.isNotEmpty) {
+      return SearchResultRanker.rank(
+        merged,
+        center: userLocation,
+        query: parsed.rawQuery,
+        limit: limit,
+        maxDistanceKm: null,
+        isDestinationQuery: true,
+      );
+    }
+
+    // --- TIER 2: MỞ RỘNG RA CÁC TỈNH LÁNG GIỀNG KHI TỈNH ĐÍCH CHƯA CÓ KẾT QUẢ ---
+    final neighbors = await _poiRepository.getNeighborProvinces(parsed.provinceCode!);
+    for (final neighborCode in neighbors.take(4)) {
+      final neighborResults = await _poiRepository.searchScoped(
+        query: targetFtsQuery,
+        provinceCode: neighborCode,
+        limit: limit,
+      );
+      addPois(neighborResults);
+      if (merged.isNotEmpty) break;
+    }
+
+    // --- TIER 3: DỰ PHÒNG TOÀN QUỐC (NATIONAL FALLBACK) ---
+    if (merged.isEmpty) {
+      final globalFallback = await _poiRepository.search(targetFtsQuery, limit: limit);
+      addPois(globalFallback);
+    }
+
+    return SearchResultRanker.rank(
+      merged,
+      center: userLocation,
+      query: parsed.rawQuery,
+      limit: limit,
+      maxDistanceKm: null,
+      isDestinationQuery: true,
     );
   }
 
@@ -131,8 +271,6 @@ class SearchOrchestrator {
     final tokens = query.trim().split(RegExp(r'\s+'));
     if (!tokens.any((token) => RegExp(r'\d').hasMatch(token))) return null;
 
-    // Search the remaining words as either a street or place name. This also
-    // handles "Tam Đảo 76" and common address prefixes such as "số 76 đường…".
     final textTokens = tokens.where((token) {
       if (RegExp(r'\d').hasMatch(token)) return false;
       final normalized = VnPhoneticEncoder.normalize(token);
@@ -169,5 +307,4 @@ class SearchOrchestrator {
     _loadedTrieIndex = await future;
     return _loadedTrieIndex;
   }
-
 }

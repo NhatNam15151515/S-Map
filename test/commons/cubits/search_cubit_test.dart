@@ -4,7 +4,7 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
-class FakePoiRepository implements IPoiRepository {
+class FakePoiRepository extends IPoiRepository {
   int searchCallCount = 0;
   String? lastSearchQuery;
 

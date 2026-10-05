@@ -1,3 +1,4 @@
+export 'address/address.dart';
 export 'fuzzy_matcher.dart';
 export 'radix_trie.dart';
 export 'search_debouncer.dart';

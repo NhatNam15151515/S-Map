@@ -43,8 +43,8 @@ class RegionDownloadServiceImpl implements IRegionDownloadService {
           'Dữ liệu bản đồ, tìm kiếm & dẫn đường offline toàn quốc; hỗ trợ địa chỉ trước và sau sáp nhập',
       bbox: [102.10, 8.50, 109.50, 23.40],
       downloadUrl: '$basePackageUrl/vietnam.zip',
-      sizeBytes: 1001634529,
-      version: '1.3.0',
+      sizeBytes: 1011415587,
+      version: '1.4.0',
     ),
   ];
 

@@ -12,7 +12,7 @@ import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/search/search_screen.dart';
 import 'package:s_map/screens/search/widgets/widgets.dart';
 
-class _FakePoiRepository implements IPoiRepository {
+class _FakePoiRepository extends IPoiRepository {
   @override
   Future<List<PoiModel>> searchByName(String query, {int limit = 20}) async => [];
 

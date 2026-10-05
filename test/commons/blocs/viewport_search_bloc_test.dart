@@ -8,7 +8,7 @@ import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
-class FakePoiRepository implements IPoiRepository {
+class FakePoiRepository extends IPoiRepository {
   List<PoiModel> mockPois = [];
   List<PoiModel> globalSearchPois = [];
   Duration delay = Duration.zero;

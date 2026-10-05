@@ -4,7 +4,7 @@ import 'package:s_map/commons/usecases/progressive_area_search_usecase.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
-class MockPoiRepository implements IPoiRepository {
+class MockPoiRepository extends IPoiRepository {
   List<PoiModel> inBoundsPois = [];
   List<PoiModel> textSearchPois = [];
 
