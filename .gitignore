@@ -47,6 +47,15 @@ app.*.map.json
 *.ghz
 *.mbtiles
 *.pmtiles
+output_ghz/
+output_pmtiles/
+graph-cache/
+data/
+data-pipeline/data/
+data-pipeline/*.jar
+data-pipeline/tmp*/
+data-pipeline/.test_*.db*
+*.jar
 data/*.db
 data/*.zip
 
@@ -61,3 +70,6 @@ data/*.zip
 # OS generated
 Thumbs.db
 *.DS_Store
+
+# Coverage
+coverage/

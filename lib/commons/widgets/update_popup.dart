@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:boilerplate/commons/utils/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/flavor/flavor.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/flavor/flavor.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UpdatePopup extends StatelessWidget with AppMixin {
@@ -40,7 +39,7 @@ class UpdatePopup extends StatelessWidget with AppMixin {
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap: (){
+                        onTap: () {
                           removeUpdateOverlayCompleter.complete();
                         },
                         child: Container(
@@ -48,7 +47,9 @@ class UpdatePopup extends StatelessWidget with AppMixin {
                           alignment: Alignment.center,
                           child: Text(
                             "Không",
-                            style: AppColors.redPigment.textTheme.subTitleStyle.copyWith(
+                            style: styles
+                                .colorScheme.error.textTheme.subTitleStyle
+                                .copyWith(
                               fontSize: 13,
                             ),
                           ),
@@ -57,7 +58,7 @@ class UpdatePopup extends StatelessWidget with AppMixin {
                     ),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: (){
+                        onPressed: () {
                           removeUpdateOverlayCompleter.complete();
                           final appId = Platform.isAndroid
                               ? Flavor.instance.bundleId
@@ -74,7 +75,9 @@ class UpdatePopup extends StatelessWidget with AppMixin {
                         },
                         child: Text(
                           "Có",
-                          style: styles.greysTextColor.last.textTheme.subTitleStyle.copyWith(
+                          style: styles
+                              .greysTextColor.last.textTheme.subTitleStyle
+                              .copyWith(
                             fontSize: 13,
                           ),
                         ),

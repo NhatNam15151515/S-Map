@@ -1,11 +1,8 @@
 import 'dart:io';
 
-import 'package:boilerplate/constants/app_asset.dart';
-import 'package:boilerplate/screens/main/full_image.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 
 class AppImage {
   final String? path;
@@ -54,24 +51,27 @@ class AppImage {
   Widget errorPlaceHolder({
     Size? size,
     BoxFit fit = BoxFit.contain,
-  }){
+  }) {
     return SizedBox(
       height: size?.height,
       width: size?.width,
       child: LayoutBuilder(
         builder: (context, snapshot) {
+          final iconSize = (snapshot.maxHeight * 0.3).clamp(16.0, 48.0);
           return Container(
             constraints: BoxConstraints(
               maxHeight: snapshot.maxHeight,
               maxWidth: snapshot.maxWidth,
             ),
-            color: Colors.grey.withAlpha(77),
-            child: FittedBox(
-              child: Padding(
-                padding: EdgeInsets.all(snapshot.maxHeight*0.1),
-                child: AppAsset.logo.image.build(
-                  color: Colors.white,
-                ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F3F4),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.image_outlined,
+                size: iconSize,
+                color: const Color(0xFF9AA0A6),
               ),
             ),
           );
@@ -116,7 +116,7 @@ class AppImage {
         height: size?.height,
         fit: fit,
         colorFilter:
-        color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+            color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
       );
     }
     if (path != null) {
@@ -125,7 +125,8 @@ class AppImage {
         width: size?.width,
         height: size?.height,
         fit: fit,
-        colorFilter: color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
+        colorFilter:
+            color != null ? ColorFilter.mode(color, BlendMode.srcIn) : null,
       );
     }
     return SizedBox(
@@ -145,19 +146,18 @@ class AppImage {
     double? memCacheHeight,
     String? cacheKey,
   }) {
-    Widget? child;
     if (isNull) {
       return errorPlaceHolder(size: size);
     }
     if (isSvg) {
-      child ??= svgImg(
+      return svgImg(
         size: size,
         fit: fit,
         color: color,
       );
     }
     if (isNetwork) {
-      child ??= network(
+      return network(
         memCacheHeight: memCacheHeight,
         memCacheWidth: memCacheWidth,
         cacheKey: cacheKey,
@@ -168,19 +168,27 @@ class AppImage {
         color: color,
       );
     }
-    final file = File(path ?? "");
-    final isLocalFile = file.existsSync();
-    if (isLocalFile) {
-      child = Image.file(
-        file,
+    final trimmedPath = path?.trim() ?? "";
+    final isLocalFilePath = trimmedPath.startsWith('/') ||
+        trimmedPath.startsWith('file://') ||
+        RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(trimmedPath);
+
+    if (isLocalFilePath) {
+      final cleanPath = trimmedPath.startsWith('file://')
+          ? trimmedPath.substring(7)
+          : trimmedPath;
+      return Image.file(
+        File(cleanPath),
         fit: fit,
         height: size?.height,
         width: size?.width,
         cacheHeight: _getCacheValue(memCacheHeight),
         cacheWidth: _getCacheValue(memCacheWidth),
+        errorBuilder: (context, err, stack) => errorPlaceHolder(size: size),
       );
     }
-    child ??= asset(
+
+    return asset(
       size: size,
       fit: fit,
       color: color,
@@ -188,38 +196,6 @@ class AppImage {
       cacheKey: cacheKey,
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
-    );
-    return child;
-  }
-}
-
-extension AppImageToFullScreen on AppImage {
-  Widget buildWithFullScreen(BuildContext context, {
-    Widget? placeHolder,
-    Widget? error,
-    Size? size,
-    BoxFit fit = BoxFit.contain,
-    Color? color,
-    Alignment? alignment,
-    double? memCacheWidth,
-    double? memCacheHeight,
-    String? cacheKey,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        context.push(FullImageScreen.path, extra: this);
-      },
-      child: build(
-        placeHolder: placeHolder,
-        error: error,
-        size: size,
-        fit: fit,
-        color: color,
-        alignment: alignment,
-        memCacheHeight: memCacheHeight,
-        memCacheWidth: memCacheWidth,
-        cacheKey: cacheKey,
-      ),
     );
   }
 }

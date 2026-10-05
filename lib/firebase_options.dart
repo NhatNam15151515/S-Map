@@ -29,19 +29,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDKXo2tcww6Zt4G4ndxMELYsKrWvuX5VGI',
-    appId: '1:779346109460:android:11b0bd1bdd7dd8629b7301',
-    messagingSenderId: '779346109460',
-    projectId: 'boilerplate-aaron-tech',
-    storageBucket: 'boilerplate-aaron-tech.appspot.com',
+    apiKey: 'AIzaSyBd3_1M-0IErOc-NdHjC9mgAdS03Cx7DHQ',
+    appId: '1:495182969568:android:c4083fca783d0d9cd46e85',
+    messagingSenderId: '495182969568',
+    projectId: 'vn-s-map',
+    storageBucket: 'vn-s-map.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAvlC92QkF6Cee5lnBjyaEG-Zv5lZbTYXw',
-    appId: '1:779346109460:ios:43c1a3e120f0b4dd9b7301',
-    messagingSenderId: '779346109460',
-    projectId: 'boilerplate-aaron-tech',
-    storageBucket: 'boilerplate-aaron-tech.appspot.com',
-    iosBundleId: 'com.aarontech.boilerplate.dev',
+    apiKey: 'AIzaSyBd3_1M-0IErOc-NdHjC9mgAdS03Cx7DHQ',
+    appId: '1:495182969568:ios:c4083fca783d0d9cd46e85',
+    messagingSenderId: '495182969568',
+    projectId: 'vn-s-map',
+    storageBucket: 'vn-s-map.firebasestorage.app',
+    iosBundleId: 'com.vnsmap.app',
   );
 }

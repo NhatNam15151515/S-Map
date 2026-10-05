@@ -1,0 +1,202 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:s_map/generated/codegen_loader.g.dart';
+import 'package:s_map/screens/main/home/widgets/drawing/widgets.dart';
+
+Widget createTestableWidget(Widget child) {
+  return EasyLocalization(
+    supportedLocales: const [Locale('vi'), Locale('en')],
+    path: 'assets/translations',
+    fallbackLocale: const Locale('vi'),
+    startLocale: const Locale('vi'),
+    assetLoader: const CodegenLoader(),
+    child: Builder(
+      builder: (context) => MaterialApp(
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+        home: Scaffold(
+          body: Stack(
+            children: [child],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    EasyLocalization.logger.enableLevels = [];
+  });
+
+  group('RouteDrawingBottomCard Widget Tests', () {
+    testWidgets('displays initial tap prompt when pointCount == 0', (tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 0,
+            distanceMeters: 0,
+            durationMs: 0,
+            isLoading: false,
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chạm vào bản đồ để chọn điểm bắt đầu'), findsOneWidget);
+    });
+
+    testWidgets('displays next waypoint prompt when pointCount == 1', (tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 1,
+            distanceMeters: 0,
+            durationMs: 0,
+            isLoading: false,
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chạm điểm tiếp theo để tạo lộ trình'), findsOneWidget);
+      expect(find.text('1 điểm mốc'), findsOneWidget);
+    });
+
+    testWidgets('displays stats and buttons when pointCount >= 2', (tester) async {
+      bool saveCalled = false;
+      bool navigateCalled = false;
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 3,
+            distanceMeters: 2500,
+            durationMs: 180000,
+            isLoading: true,
+            onSavePressed: () => saveCalled = true,
+            onNavigatePressed: () => navigateCalled = true,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.text('2.5 km'), findsOneWidget);
+      expect(find.text('3 phút'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('Điểm mốc'), findsOneWidget);
+      expect(find.byKey(const Key('route_drawing_save_button')), findsOneWidget);
+      expect(find.byKey(const Key('route_drawing_navigate_button')), findsOneWidget);
+
+      // Tap Save button
+      await tester.tap(find.byKey(const Key('route_drawing_save_button')));
+      await tester.pump();
+      expect(saveCalled, isTrue);
+
+      // Tap Navigate button
+      await tester.tap(find.byKey(const Key('route_drawing_navigate_button')));
+      await tester.pump();
+      expect(navigateCalled, isTrue);
+    });
+
+    testWidgets('displays straight-line mode active badge when isStraightLineMode is true', (tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 2,
+            distanceMeters: 1200,
+            durationMs: 60000,
+            isLoading: false,
+            isStraightLineMode: true,
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Đường chim bay'), findsOneWidget);
+      expect(find.byIcon(Icons.airplanemode_active_rounded), findsOneWidget);
+    });
+
+    testWidgets('triggers onClose when close button is tapped', (tester) async {
+      bool closeCalled = false;
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 2,
+            distanceMeters: 1200,
+            durationMs: 60000,
+            isLoading: false,
+            onClose: () => closeCalled = true,
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final closeButtonFinder =
+          find.byKey(const Key('route_drawing_bottom_sheet_close_button'));
+      expect(closeButtonFinder, findsOneWidget);
+
+      await tester.tap(closeButtonFinder);
+      await tester.pump();
+      expect(closeCalled, isTrue);
+    });
+
+    testWidgets('renders action buttons with compact padding on narrow screen width without wrapping', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          RouteDrawingBottomCard(
+            pointCount: 2,
+            distanceMeters: 1200,
+            durationMs: 60000,
+            isLoading: false,
+            onToggleDrawingMode: () {},
+            onSavePressed: () {},
+            onNavigatePressed: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final saveButton = tester.widget<OutlinedButton>(
+        find.byKey(const Key('route_drawing_save_button')),
+      );
+      expect(
+        saveButton.style?.padding?.resolve({}),
+        const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      );
+
+      final navButton = tester.widget<ElevatedButton>(
+        find.byKey(const Key('route_drawing_navigate_button')),
+      );
+      expect(
+        navButton.style?.padding?.resolve({}),
+        const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      );
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+}

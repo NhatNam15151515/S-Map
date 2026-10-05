@@ -1,41 +1,59 @@
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/mixin/auth_mixin.dart';
-import 'package:boilerplate/commons/widgets/main_app_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/commons/blocs/blocs.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/repos/repos.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
-  static const String path = '/HomeScreen';
+  final RouteDrawingPayload? initialRoutePayload;
 
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.initialRoutePayload});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with AppMixin, AuthMixin {
+class _HomeScreenState extends State<HomeScreen> {
+  late final MapExploreCubit _exploreCubit;
+  late final ViewportSearchBloc _viewportBloc;
+  NavigationBloc? _localNavigationBloc;
 
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+    _exploreCubit = MapExploreCubit()..watchExplorePlaces();
+    _viewportBloc = ViewportSearchBloc();
   }
 
   @override
   void dispose() {
+    _exploreCubit.close();
+    _viewportBloc.close();
+    _localNavigationBloc?.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const MainAppBar(),
-      body: Center(
-        child: Text(locale.home),
-      ),
+    NavigationBloc navBloc;
+    try {
+      navBloc = context.read<NavigationBloc>();
+    } catch (_) {
+      navBloc = _localNavigationBloc ??= NavigationBloc(
+        routingRepository: AppReposProvider.instance.routingRepos,
+        tripRepository: AppReposProvider.instance.tripRepos,
+      );
+    }
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _exploreCubit),
+        BlocProvider.value(value: _viewportBloc),
+        BlocProvider.value(value: navBloc),
+      ],
+      child: HomeScreenContent(initialRoutePayload: widget.initialRoutePayload),
     );
   }
 }

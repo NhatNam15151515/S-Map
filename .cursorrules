@@ -2,23 +2,58 @@ You are an expert Flutter/Dart developer working on S-Map, a mobile app (Android
 Always respond in Vietnamese.
 
 ## AI Tools Available — USE AUTOMATICALLY
+ 
+### 1. Codebase Intelligence (`tools/codebase_mcp`)
+ALWAYS use `smap-codebase-intel` MCP tools when working with the codebase:
+- Survey: `get_repo_map`, `query_symbol`, `get_file_dependencies`
+- Architecture Check: `check_architecture_rules`, `get_architecture_report` (ensure 0 violations, 0 circular)
+- Static Analysis: `get_violations_summary`, `run_dart_analyze`
+- Script Execution: ALWAYS run script files directly (`python test_server.py`, `python tools/...`). NEVER run inline `python -c "..."` commands.
 
-### UI/UX Pro Max (Design Intelligence)
+ 
+### 2. UI/UX Pro Max (Design Intelligence)
 When making design decisions (colors, fonts, UI styles, UX patterns), run this search:
 ```powershell
 python "c:\Nhat Nam\intern flutter\S-map\.ai-tools\ui-ux-pro-max-skill\src\ui-ux-pro-max\scripts\search.py" "<query>" --stack flutter --domain <domain>
 ```
 Domains: style, color, typography, ux, icons, chart, landing, product
-
-### AgentMemory
+ 
+### 3. AgentMemory
 Memory server at http://localhost:3111. Check: curl http://localhost:3111/agentmemory/health
 
 ## Tech Stack
 Flutter/Dart, flutter_bloc, go_router, dio, easy_localization, Firebase (Firestore, Messaging, Analytics, Crashlytics, Remote Config)
 Font: Montserrat. Platforms: Android & iOS ONLY.
 
-## Conventions
+## Conventions & Architectural Rules
 - Use WidgetStateProperty (not MaterialStateProperty)
 - Use CardThemeData (not CardTheme in ThemeData)
 - Feature-based architecture with commons layer
 - Keep existing comments and docstrings
+- **Interface-First Architecture**: All Services and Repositories MUST have an abstract interface in `lib/interfaces/`
+- **Dependency Inversion**: Higher layers (Cubits, Screens, Repos) must depend on Interfaces (e.g. `ILocationService`, `IAuthRepos`), not concrete implementations
+- **Unit Test Mocks**: Mock services by `implements IService` to avoid constructor side-effects
+- **Equatable Standard**: All BLoC/Cubit states must use `extends Equatable` (NEVER use deprecated `with EquatableMixin` or manual `operator ==`)
+- **BLoC/Cubit Purity (Separation of Concerns)**:
+  - NEVER hold or manipulate UI Controllers (`MapLibreMapController`, `ScrollController`, `TextEditingController`, `AnimationController`) inside Cubit/BLoC. Cubit is pure state & business logic.
+  - UI Widgets hold controllers locally and react to Cubit state changes via `BlocListener` / `BlocConsumer`.
+  - NEVER mix UI mixins (`with AppMixin`) or UI Context into Cubits, Services, or Repositories.
+  - NEVER use `ValueNotifier` / `ChangeNotifier` controllers alongside Cubits for the same state (No Dual State Management).
+  - Use Error Mapping Pattern instead of repetitive duplicate catch blocks in Cubit.
+- **UI Architecture & Management Rules**:
+  - **No Future in UI (Pure Declarative & Reactive UI)**: UI Widgets are functions of state (`UI = f(State)`). NEVER define `Future<T>` business logic, `async-await`, manual `try-catch`, or ad-hoc `setState(isLoading = true)` inside Widgets. UI triggers synchronous Cubit methods and renders/listens via `BlocConsumer`, `BlocListener`, and `BlocBuilder`.
+  - **Controller & Manager Separation**: Complex platform-view or map operations (Marker/Symbol rendering, Sprite asset loading, Camera movement & Bounding Box calculations) MUST be encapsulated in dedicated Manager/Controller classes (e.g. `MapSymbolManager`, `MapCameraController`) in `lib/commons/utils/`. UI Widgets act purely as View wrappers and delegate execution to Managers.
+  - **Pure Functions in Helpers**: Computational and transformation algorithms (Haversine distance calculation, sorting by proximity, address/distance formatting, POI unique key extraction, bounding box computation) MUST live in `lib/commons/utils/` (e.g. `PoiCategoryHelper`, `AppUtils`), NOT embedded directly inside Cubits or UI Widgets.
+  - **Centralized Route Management**: ALL route paths MUST be declared centrally in `lib/routers/app_routes.dart` (`AppRoutes`). NEVER hardcode string paths (`'/search'`, `'/HomeScreen'`) and NEVER define `static const String path` scattered across individual Screen Widgets. Use `context.go(AppRoutes.home)` or `context.push(AppRoutes.search)`.
+- **Localization & i18n Rules**:
+  - NEVER hardcode UI strings. All UI text must use `tr(LocaleKeys.xxx)` (wrap in `tr()`).
+  - When modifying `assets/translations/vi.json` or `en.json`, ALWAYS run:
+    `dart run easy_localization:generate -S assets/translations -O lib/generated; dart run easy_localization:generate -S assets/translations -f keys -O lib/generated -o locale_keys.g.dart`
+  - Avoid duplicate keys between primitive Strings and nested Maps (e.g. use separate `notification_tabs` namespace if `notification` is a string).
+- **Authentic Testing & Verification Standards (No Fake/Dummy Tests)**:
+  - NEVER write dummy/placeholder tests, superficial assertions (`expect(true, isTrue)`), or unverified mocks.
+  - MUST test with realistic coordinates (e.g. Vietnam GPS), real payloads, deep assertions across all model fields (`distance`, `duration`, `points`, `instructions`, `bbox`).
+  - MUST cover edge cases, null arguments, invalid data types, error/exception fallbacks, and real performance benchmarks with minimum 20 iterations (500 for native engine stress tests) and latency assertions (< 300ms).
+  - MUST verify real Release APK compilation (`assembleRelease` with R8 minification) for reflection and ProGuard safety.
+
+

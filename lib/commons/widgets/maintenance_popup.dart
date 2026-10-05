@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/constants/app_asset.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/constants/constants.dart';
 
 class MaintenancePopup extends StatelessWidget with AppMixin {
   final Completer removeUpdateOverlayCompleter;
@@ -19,7 +19,7 @@ class MaintenancePopup extends StatelessWidget with AppMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppAsset.logo.image.build(
+              AppAsset.logoOf(context).image.build(
                 size: const Size(240, 240),
               ),
               Text(

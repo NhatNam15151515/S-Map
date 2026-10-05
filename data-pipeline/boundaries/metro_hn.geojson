@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "metro_hn",
+        "description": "Ha Noi + Bac Ninh + Hung Yen + Vinh Phuc"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [105.30, 20.60],
+            [106.30, 20.60],
+            [106.30, 21.40],
+            [105.30, 21.40],
+            [105.30, 20.60]
+          ]
+        ]
+      }
+    }
+  ]
+}

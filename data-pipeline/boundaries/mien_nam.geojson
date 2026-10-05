@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "mien_nam",
+        "description": "Cac tinh Nam Bo (Dong Nam Bo + Tay Nam Bo)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [104.40, 8.50],
+            [107.80, 8.50],
+            [107.80, 12.00],
+            [104.40, 12.00],
+            [104.40, 8.50]
+          ]
+        ]
+      }
+    }
+  ]
+}
