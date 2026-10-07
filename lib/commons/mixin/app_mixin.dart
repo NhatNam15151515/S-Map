@@ -1,3 +1,4 @@
+import 'package:s_map/di/app_repos_provider.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
@@ -5,7 +6,6 @@ import 'package:s_map/commons/utils/popup_utils.dart';
 import 'package:s_map/commons/validators/validator.dart';
 export 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:s_map/repos/repos.dart';
 import 'package:s_map/routers/routers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

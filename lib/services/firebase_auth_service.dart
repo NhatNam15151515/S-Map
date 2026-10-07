@@ -95,11 +95,23 @@ class FirebaseAuthService implements IFirebaseAuthService {
         }
       }
 
-      // 4. Lưu/Cập nhật thông tin người dùng lên Cloud Firestore (không chặn luồng đăng nhập nếu Firestore lỗi quyền/mạng)
+      // 4. Lấy profile đã có từ Firestore (nếu có) để giữ lại avatarBase64 và dữ liệu tùy biến
       try {
+        if (appUser.id != null && appUser.id!.isNotEmpty) {
+          final existingProfile =
+              await FireStoreService.instance.getUserProfile(appUser.id!);
+          if (existingProfile != null) {
+            appUser = appUser.copyWith(
+              avatarBase64: existingProfile.avatarBase64,
+              username: (appUser.username != null && appUser.username!.isNotEmpty)
+                  ? appUser.username
+                  : existingProfile.username,
+            );
+          }
+        }
         await FireStoreService.instance.saveUserProfile(appUser);
       } catch (fsErr) {
-        DLog.error("Không thể lưu profile lên Cloud Firestore: $fsErr");
+        DLog.error("Không thể lấy/lưu profile lên Cloud Firestore: $fsErr");
       }
       return appUser;
     } catch (e) {
@@ -123,12 +135,20 @@ class FirebaseAuthService implements IFirebaseAuthService {
             final suffix = firebaseUser.uid.length >= 6
                 ? firebaseUser.uid.substring(0, 6)
                 : firebaseUser.uid;
-            final user = User(
+            User user = User(
               id: firebaseUser.uid,
               username: 'Khách_$suffix',
             );
 
             try {
+              final existingProfile =
+                  await FireStoreService.instance.getUserProfile(user.id!);
+              if (existingProfile != null) {
+                user = user.copyWith(
+                  avatarBase64: existingProfile.avatarBase64,
+                  username: existingProfile.username ?? user.username,
+                );
+              }
               await FireStoreService.instance.saveUserProfile(user);
             } catch (fsErr) {
               DLog.error("Không thể lưu anonymous profile lên Cloud Firestore: $fsErr");

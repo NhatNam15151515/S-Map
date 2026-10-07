@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
@@ -8,7 +9,7 @@ import 'package:s_map/constants/constants.dart';
 import 'package:s_map/screens/auth/login_screen.dart';
 import 'package:s_map/screens/initial/initial_screen.dart';
 import 'package:s_map/screens/onboarding/onboarding_screen.dart';
-import 'package:s_map/screens/main/full_image.dart';
+import 'package:s_map/screens/main/user/full_image.dart';
 import 'package:s_map/screens/main/home/home_screen.dart';
 import 'package:s_map/screens/main/main_screen.dart';
 import 'package:s_map/screens/main/saved/saved_screen.dart';
@@ -23,6 +24,8 @@ import 'package:s_map/screens/settings/offline_regions/offline_regions_screen.da
 import 'package:easy_localization/easy_localization.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/services/services.dart';
+import 'package:s_map/flavor/flavor.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
@@ -78,16 +81,19 @@ class Routes extends NavigatorObserver {
             final extra = state.extra;
             LatLng? userLocation;
             bool? hasExistingDestinations;
+            String? initialQuery;
 
             if (extra is SearchScreenArgs) {
               userLocation = extra.userLocation;
               hasExistingDestinations = extra.hasExistingDestinations;
+              initialQuery = extra.initialQuery;
             } else if (extra is LatLng) {
               userLocation = extra;
             }
             return SearchScreen(
               userLocation: userLocation,
               hasExistingDestinations: hasExistingDestinations ?? false,
+              initialQuery: initialQuery,
             );
           },
         ),
@@ -281,7 +287,26 @@ class Routes extends NavigatorObserver {
     final Completer removeUpdateOverlayCompleter = Completer();
     OverlayEntry overlayEntry = OverlayEntry(builder: (context) {
       return UpdatePopup(
-        removeUpdateOverlayCompleter: removeUpdateOverlayCompleter,
+        onCancel: () {
+          if (!removeUpdateOverlayCompleter.isCompleted) {
+            removeUpdateOverlayCompleter.complete();
+          }
+        },
+        onConfirm: () {
+          if (!removeUpdateOverlayCompleter.isCompleted) {
+            removeUpdateOverlayCompleter.complete();
+          }
+          final isAndroid = Platform.isAndroid;
+          final appId = isAndroid
+              ? Flavor.instance.bundleId
+              : Flavor.instance.iosAppId;
+          final storeUrl = Uri.parse(
+            isAndroid
+                ? 'https://play.google.com/store/apps/details?id=$appId'
+                : 'https://apps.apple.com/app/id$appId',
+          );
+          launchUrl(storeUrl, mode: LaunchMode.externalApplication);
+        },
       );
     });
     _appOverlayState?.insert(overlayEntry);

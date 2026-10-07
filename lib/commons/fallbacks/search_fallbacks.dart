@@ -5,7 +5,10 @@ class NoOpRecentSearchService implements IRecentSearchService {
   final List<String> _searches = [];
 
   @override
-  Future<void> addRecentSearch(String query) async {
+  Future<void> addRecentSearch(
+    String query, {
+    Map<String, dynamic>? destination,
+  }) async {
     _searches.remove(query);
     _searches.insert(0, query);
   }
@@ -19,6 +22,10 @@ class NoOpRecentSearchService implements IRecentSearchService {
   Future<List<String>> getRecentSearches() async {
     return List.unmodifiable(_searches);
   }
+
+  @override
+  Future<List<String>> getFrequentSearches({int limit = 10}) async =>
+      List.unmodifiable(_searches.take(limit));
 
   @override
   Future<void> removeRecentSearch(String query) async {

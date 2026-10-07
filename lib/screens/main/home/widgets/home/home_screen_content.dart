@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:s_map/di/app_repos_provider.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/repos/repos.dart';
 import 'package:s_map/screens/main/home/widgets/widgets.dart';
 
 class HomeScreenContent extends StatefulWidget {

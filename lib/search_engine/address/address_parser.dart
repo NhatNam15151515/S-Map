@@ -1,9 +1,14 @@
+import 'package:s_map/models/admin_unit_model.dart';
+
 import 'parsed_address.dart';
 
 class AddressParser {
   AddressParser._();
 
   static final AddressParser instance = AddressParser._();
+  List<AdminUnitModel>? _sourceAdminUnits;
+  List<({AdminUnitModel unit, String exactName, String nameCore})>
+      _districtIndex = const [];
 
   static const List<String> _provincePrefixes = [
     'thanh pho',
@@ -236,6 +241,14 @@ class AddressParser {
     'hai phong city': '31',
   };
 
+  static final List<MapEntry<String, String>> _sortedCustomAliases =
+      _customAliases.entries.toList()
+        ..sort((a, b) => b.key.length.compareTo(a.key.length));
+
+  static final List<MapEntry<String, String>> _sortedProvinceAliases =
+      _provinceCoreToOldCode.entries.toList()
+        ..sort((a, b) => b.key.length.compareTo(a.key.length));
+
   // Một số quận/huyện phổ biến để nhận diện khi query không có tỉnh
   static final Map<String, ({String code, String provCode})> _knownDistricts = {
     // TP.HCM
@@ -294,6 +307,10 @@ class AddressParser {
     r'^(?:so\s+)?(\d+[a-z]?(?:\s*[/-]\s*\d+[a-z]?)*)$',
     caseSensitive: false,
   );
+  static final RegExp _houseNumberAnywhereRegExp = RegExp(
+    r'(?:so\s+)?(\d+[a-z]?(?:\s*[/-]\s*\d+[a-z]?)*)',
+    caseSensitive: false,
+  );
 
   /// Bỏ dấu tiếng Việt, chuyển sang lowercase ASCII
   static String toAscii(String text) {
@@ -325,7 +342,10 @@ class AddressParser {
   }
 
   /// Bóc tách một chuỗi tìm kiếm đầu vào thành cấu trúc `ParsedAddress`
-  ParsedAddress parse(String query) {
+  ParsedAddress parse(
+    String query, {
+    List<AdminUnitModel> adminUnits = const [],
+  }) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
       return ParsedAddress(rawQuery: query);
@@ -366,23 +386,19 @@ class AddressParser {
     // Nếu phân tách bằng dấu phẩy không tìm thấy tỉnh, quét theo regex cuối chuỗi
     if (foundProvinceCode == null) {
       final normAll = normalizeCore(trimmed);
-      for (final entry in _customAliases.entries) {
-        if (normAll == entry.key ||
-            normAll.endsWith(' ${entry.key}') ||
-            normAll.startsWith('${entry.key} ')) {
+      for (final entry in _sortedCustomAliases) {
+        if (_containsWholePhrase(normAll, normalizeCore(entry.key))) {
           foundProvinceCode = entry.value;
           foundProvinceName = _newProvinceNames[foundProvinceCode];
-          // Bỏ alias khỏi workingText
+          // Remove the recognized province regardless of its position.
           workingText = _removeSubstring(trimmed, entry.key);
           break;
         }
       }
       if (foundProvinceCode == null) {
-        for (final entry in _provinceCoreToOldCode.entries) {
+        for (final entry in _sortedProvinceAliases) {
           final core = entry.key;
-          if (normAll == core ||
-              normAll.endsWith(' $core') ||
-              normAll.startsWith('$core ')) {
+          if (_containsWholePhrase(normAll, normalizeCore(core))) {
             foundProvinceLegacyCode = entry.value;
             foundProvinceCode = _oldCodeToNewCode[entry.value] ?? entry.value;
             foundProvinceName = _newProvinceNames[foundProvinceCode];
@@ -393,28 +409,72 @@ class AddressParser {
       }
     }
 
-    // 2. Tìm Quận/Huyện trong workingText
+    // 2. Tìm phường/quận/huyện từ danh mục hành chính trong DB. Danh mục
+    // hiện hành có cả đơn vị trước và sau sáp nhập, nên ưu tiên mã đơn vị
+    // phù hợp với tỉnh đã nhận diện; static map bên dưới chỉ là fallback.
     final normWorking = normalizeCore(workingText);
-    for (final entry in _knownDistricts.entries) {
-      final distCore = entry.key;
-      final hasPrefix = _districtPrefixes
-          .any((p) => distCore.startsWith('$p ') || distCore.startsWith(p));
-      final isExactMatch = normWorking == distCore;
-      final isSegmentMatch = commaSegments.any((s) => normalizeCore(s) == distCore);
-      final isPrefixedSub = hasPrefix &&
-          (normWorking.contains(' $distCore') ||
-              normWorking.startsWith('$distCore ') ||
-              normWorking.contains(' $distCore '));
+    final accentedWorking = _normalizeAccented(workingText);
+    if (!identical(_sourceAdminUnits, adminUnits)) {
+      _sourceAdminUnits = adminUnits;
+      _districtIndex = adminUnits
+          .where((unit) => unit.level == 6)
+          .map((unit) => (
+                unit: unit,
+                exactName: _normalizeAccented(unit.name),
+                nameCore: normalizeCore(unit.name),
+              ))
+          .toList()
+        ..sort((a, b) => b.nameCore.length.compareTo(a.nameCore.length));
+    }
+    final dynamicUnits = _districtIndex
+        .where((entry) => foundProvinceCode == null ||
+            entry.unit.parentCode == foundProvinceCode ||
+            entry.unit.successorCode == foundProvinceCode)
+        .toList();
+    final exactUnits = dynamicUnits.where((unit) {
+      return unit.exactName.isNotEmpty &&
+          _containsWholePhrase(accentedWorking, unit.exactName);
+    }).toList();
+    final fallbackUnits = dynamicUnits.where((unit) {
+      return unit.nameCore.isNotEmpty &&
+          _containsWholePhrase(normWorking, unit.nameCore);
+    }).toList();
+    final ({AdminUnitModel unit, String exactName, String nameCore})?
+        matchedUnit = exactUnits.length == 1
+        ? exactUnits.first
+        : exactUnits.isEmpty && fallbackUnits.length == 1
+            ? fallbackUnits.first
+            : null;
+    if (matchedUnit != null) {
+      final unit = matchedUnit.unit;
+      final unitName = normalizeCore(unit.name);
+      foundDistrictCode = unit.code;
+      foundDistrictName = unitName;
+      foundProvinceCode ??= unit.successorCode ?? unit.parentCode;
+      foundProvinceName ??= _newProvinceNames[foundProvinceCode];
+      workingText = _removeSubstring(workingText, unit.name);
+    }
 
-      if (isExactMatch || isSegmentMatch || isPrefixedSub) {
-        foundDistrictCode = entry.value.code;
-        foundDistrictName = distCore;
-        if (foundProvinceCode == null) {
-          foundProvinceCode = entry.value.provCode;
-          foundProvinceName = _newProvinceNames[foundProvinceCode];
+    if (foundDistrictCode == null) {
+      for (final entry in _knownDistricts.entries) {
+        final distCore = entry.key;
+        final isExactMatch = normWorking == distCore;
+        final isSegmentMatch =
+            commaSegments.any((s) => normalizeCore(s) == distCore);
+        final isPrefixedSub = _districtPrefixes.any((prefix) =>
+            distCore.startsWith('$prefix ') || distCore.startsWith(prefix)) &&
+            _containsWholePhrase(normWorking, distCore);
+
+        if (isExactMatch || isSegmentMatch || isPrefixedSub) {
+          foundDistrictCode = entry.value.code;
+          foundDistrictName = distCore;
+          if (foundProvinceCode == null) {
+            foundProvinceCode = entry.value.provCode;
+            foundProvinceName = _newProvinceNames[foundProvinceCode];
+          }
+          workingText = _removeSubstring(workingText, distCore);
+          break;
         }
-        workingText = _removeSubstring(workingText, distCore);
-        break;
       }
     }
 
@@ -444,17 +504,47 @@ class AddressParser {
           foundHouseNoMain = int.tryParse(digitsMatch.group(0)!);
         }
         cleanRemaining = '';
+      } else {
+        final remainingCore = normalizeCore(cleanRemaining);
+        final hasStreetPrefixHint = _streetPrefixes.any(
+          (prefix) => remainingCore.startsWith('$prefix '),
+        );
+        final hasAddressContext = foundProvinceCode != null ||
+            foundDistrictCode != null ||
+            hasStreetPrefixHint;
+        final anywhereMatch = hasAddressContext
+            ? _houseNumberAnywhereRegExp.firstMatch(cleanRemaining)
+            : null;
+        if (anywhereMatch != null) {
+          final rawHouse =
+              anywhereMatch.group(1)!.replaceAll(' ', '').toLowerCase();
+          foundHouseNo = rawHouse;
+          final digitsMatch = RegExp(r'^\d+').firstMatch(rawHouse);
+          if (digitsMatch != null) {
+            foundHouseNoMain = int.tryParse(digitsMatch.group(0)!);
+          }
+          cleanRemaining = [
+            cleanRemaining.substring(0, anywhereMatch.start),
+            cleanRemaining.substring(anywhereMatch.end),
+          ].where((part) => part.trim().isNotEmpty).join(' ');
+          cleanRemaining = cleanRemaining
+              .replaceAll(RegExp(r'\s*[,;|]\s*'), ' ')
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim();
+        }
       }
     }
 
     // Bỏ tiền tố tên đường nếu có (đường, phố, đại lộ...)
     final remainingNorm = normalizeCore(cleanRemaining);
+    var hasStreetPrefix = false;
     for (final prefix in _streetPrefixes) {
       if (remainingNorm == prefix) {
         cleanRemaining = '';
         break;
       }
       if (remainingNorm.startsWith('$prefix ')) {
+        hasStreetPrefix = true;
         final prefixWords = prefix.split(' ').length;
         final words = cleanRemaining.split(RegExp(r'\s+'));
         if (words.length > prefixWords) {
@@ -464,7 +554,10 @@ class AddressParser {
       }
     }
 
-    if (foundHouseNo != null && cleanRemaining.isNotEmpty) {
+    if (cleanRemaining.isNotEmpty &&
+        (foundHouseNo != null ||
+            hasStreetPrefix ||
+            foundDistrictCode != null)) {
       foundStreet = normalizeCore(cleanRemaining);
     }
 
@@ -485,6 +578,19 @@ class AddressParser {
       houseNoMain: foundHouseNoMain,
       isDestinationIntent: hasExplicitAdmin,
     );
+  }
+
+  static bool _containsWholePhrase(String text, String phrase) {
+    return RegExp(r'(^|\s)' + RegExp.escape(phrase) + r'(\s|$)')
+        .hasMatch(text);
+  }
+
+  static String _normalizeAccented(String text) {
+    return text
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\p{L}\p{M}\p{N} ]+', unicode: true), ' ')
+        .replaceAll(_multipleSpaces, ' ')
+        .trim();
   }
 
   static ({String oldCode, String newCode})? _matchProvince(String norm) {
@@ -514,20 +620,42 @@ class AddressParser {
   static String _removeSubstring(String source, String toRemove) {
     final normSource = normalizeCore(source);
     final normRemove = normalizeCore(toRemove);
-    final idx = normSource.indexOf(normRemove);
-    if (idx < 0) return source;
-
-    // Cắt bỏ an toàn tương ứng độ dài token
-    final words = source.split(RegExp(r'\s+'));
-    final removeWordCount = normRemove.split(RegExp(r'\s+')).length;
-    final normWords = words.map(normalizeCore).toList();
-
-    for (var i = 0; i <= normWords.length - removeWordCount; i++) {
-      final slice = normWords.sublist(i, i + removeWordCount).join(' ');
-      if (slice == normRemove) {
-        words.removeRange(i, i + removeWordCount);
-        return words.join(' ').replaceAll(RegExp(r'[,.\-]+$'), '').trim();
+    if (!normSource.contains(normRemove)) return source;
+    final targetTokens = normRemove.split(' ');
+    final sourceTokens = <({String value, int start, int end})>[];
+    final tokenPattern = RegExp(r'[\p{L}\p{M}\p{N}]+', unicode: true);
+    for (final match in tokenPattern.allMatches(source)) {
+      for (final token in normalizeCore(match.group(0)!).split(' ')) {
+        if (token.isNotEmpty) {
+          sourceTokens.add((
+            value: token,
+            start: match.start,
+            end: match.end,
+          ));
+        }
       }
+    }
+
+    for (var start = 0;
+        start <= sourceTokens.length - targetTokens.length;
+        start++) {
+      var matches = true;
+      for (var offset = 0; offset < targetTokens.length; offset++) {
+        if (sourceTokens[start + offset].value != targetTokens[offset]) {
+          matches = false;
+          break;
+        }
+      }
+      if (!matches) continue;
+
+      final first = sourceTokens[start];
+      final last = sourceTokens[start + targetTokens.length - 1];
+      final prefix = source.substring(0, first.start);
+      final remainder = source.substring(last.end)
+          .replaceAll(RegExp(r'\s*[,;|]\s*'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      return '$prefix $remainder'.trim();
     }
     return source.replaceAll(toRemove, '').trim();
   }

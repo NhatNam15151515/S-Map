@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/enums/enums.dart';
 import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/models/models.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/onboarding/widgets/widgets.dart';
 
@@ -117,6 +118,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                   }
                 },
                 builder: (context, state) {
+                  final downloadingRegionId =
+                      state.currentlyDownloadingRegionId;
+                  final downloadingRegion = downloadingRegionId == null
+                      ? null
+                      : state.getRegion(downloadingRegionId);
+                  final downloadProgress = state.getProgress(
+                    downloadingRegionId ?? '',
+                  );
+                  final safeProgress =
+                      (downloadProgress.isNaN || downloadProgress.isInfinite)
+                          ? 0.0
+                          : downloadProgress.clamp(0.0, 1.0).toDouble();
+                  final progressPercent =
+                      (safeProgress * 100).toStringAsFixed(1);
+                  final progressText = downloadingRegion != null &&
+                          downloadingRegion.sizeBytes > 0
+                      ? '$progressPercent% '
+                          '(${(downloadingRegion.sizeBytes * safeProgress / (1024 * 1024)).toStringAsFixed(1)} MB '
+                          '/ ${downloadingRegion.formattedSize})'
+                      : '$progressPercent%';
+                  final availableRegions = state.regions
+                      .where((region) => !region.isDownloaded)
+                      .map((region) {
+                        final isCurrentDownload =
+                            region.id == downloadingRegionId;
+                        return region.copyWith(
+                          status: isCurrentDownload && !region.isDownloading
+                              ? RegionDownloadStatus.downloading
+                              : region.status,
+                          downloadProgress: state.getProgress(region.id),
+                        );
+                      })
+                      .toList(growable: false);
+
                   return PageView(
                     controller: _pageController,
                     onPageChanged: (index) {
@@ -130,7 +165,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                         onContinue: _nextPage,
                       ),
                       OnboardingRegionPickerView(
-                        state: state,
+                        regions: availableRegions,
+                        isLoading: state.isLoading,
+                        hasError: state.isError,
+                        hasDownloadedRegions:
+                            state.regions.any((region) => region.isDownloaded),
                         onSkip: () => _finishOnboarding(context),
                         onRetry: () =>
                             context.read<DownloadRegionCubit>().loadRegions(),
@@ -145,7 +184,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> with AppMixin {
                             .cancelDownload(regionId),
                       ),
                       OnboardingDownloadingView(
-                        state: state,
+                        regionName: downloadingRegion?.name ??
+                            tr(LocaleKeys.onboarding_downloading_region_fallback),
+                        progress: downloadProgress,
+                        progressText: progressText,
                         onCancel: () {
                           final regionId = state.currentlyDownloadingRegionId;
                           if (regionId != null) {

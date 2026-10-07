@@ -47,10 +47,19 @@ class MockFireStoreService implements IFireStoreService {
   Future<void> clearSavedPlaces(String userId) async {}
 
   @override
-  Future<void> saveSearchQuery(String userId, String query) async {}
+  Future<void> saveSearchQuery(
+    String userId,
+    String query, {
+    Map<String, dynamic>? destination,
+  }) async {}
 
   @override
   Future<List<String>> getSearchQueries(String userId, {int limit = 20}) async => [];
+
+  @override
+  Future<List<String>> getFrequentSearchQueries(String userId,
+      {int limit = 10}) async =>
+      [];
 
   @override
   Future<void> deleteSearchQuery(String userId, String query) async {}

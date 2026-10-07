@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:s_map/interfaces/interfaces.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 // Backward compatibility alias
 typedef PoiDatabaseService = IPoiDatabaseService;
@@ -12,10 +12,14 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
   Database? _db;
   Future<Database>? _openFuture;
   Future<void>? _closeFuture;
-  final DatabaseFactory? _customFactory;
+  final DatabaseFactory _databaseFactory;
+  final bool _usesBundledSqlite;
 
+  // POI data contains FTS5 and R*Tree virtual tables. Use the bundled SQLite
+  // build here because Android's platform SQLite may omit either module.
   PoiDatabaseServiceImpl({DatabaseFactory? customFactory, Database? initialDb})
-      : _customFactory = customFactory,
+      : _databaseFactory = customFactory ?? databaseFactoryFfi,
+        _usesBundledSqlite = customFactory == null,
         _db = initialDb;
 
   static final PoiDatabaseServiceImpl instance = PoiDatabaseServiceImpl();
@@ -105,21 +109,16 @@ class PoiDatabaseServiceImpl implements IPoiDatabaseService {
       }
     }
 
-    if (_customFactory != null) {
-      _db = await _customFactory.openDatabase(
-        dbPath,
-        options: OpenDatabaseOptions(
-          readOnly: true,
-          singleInstance: true,
-        ),
-      );
-    } else {
-      _db = await openDatabase(
-        dbPath,
+    if (_usesBundledSqlite) {
+      sqfliteFfiInit();
+    }
+    _db = await _databaseFactory.openDatabase(
+      dbPath,
+      options: OpenDatabaseOptions(
         readOnly: true,
         singleInstance: true,
-      );
-    }
+      ),
+    );
 
     return _db!;
   }

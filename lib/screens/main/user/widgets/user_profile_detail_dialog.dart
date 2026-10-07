@@ -1,8 +1,10 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/screens/main/user/widgets/user_avatar_preview_dialog.dart';
 
 class UserProfileDetailDialog extends StatelessWidget {
   final User profile;
@@ -19,32 +21,33 @@ class UserProfileDetailDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final hasAvatar = profile.avatarBase64 != null &&
+        profile.avatarBase64!.trim().isNotEmpty;
 
-    return AlertDialog(
-      backgroundColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      title: Row(
-        children: [
-          Icon(
-            Icons.account_circle_rounded,
-            color: colorScheme.primary,
-            size: 28,
-          ),
-          const SizedBox(width: 10),
-          Text(
-            tr(LocaleKeys.profile),
-            style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-              fontSize: 18,
-            ),
-          ),
-        ],
-      ),
+    return AppInfoDialog(
+      icon: Icons.account_circle_rounded,
+      title: tr(LocaleKeys.profile),
+      actionLabel: 'Đóng',
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: ProfileAvatar(
+                size: 64,
+                borderWidth: 2,
+                avatarBase64: profile.avatarBase64,
+                onTap: hasAvatar
+                    ? () => UserAvatarPreviewDialog.show(
+                          context,
+                          profile.avatarBase64!,
+                        )
+                    : null,
+              ),
+            ),
+          ),
           Text(
             'Tên: ${profile.username ?? "Khách"}',
             style: colorScheme.onSurface.textTheme.textStyle.copyWith(
@@ -60,25 +63,15 @@ class UserProfileDetailDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
           ],
-          if (profile.id != null)
+          if (profile.id != null) ...[
             Text(
               'ID: ${profile.id}',
               style: colorScheme.onSurfaceVariant.textTheme.textStyle,
             ),
+            const SizedBox(height: 4),
+          ],
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => context.safePop(),
-          child: Text(
-            'Đóng',
-            style: TextStyle(
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -53,6 +54,7 @@ class NavigationTrackingCoordinator {
     required int currentSegmentIndex,
     required int currentInstructionIndex,
     required bool hasMoved,
+    double? accuracyMeters,
     int lookAheadSegments = 5,
   }) {
     // 1. Cập nhật tiến trình chỉ dẫn
@@ -86,6 +88,12 @@ class NavigationTrackingCoordinator {
       routePoints: route.points,
       currentSegmentIndex: currentSegmentIndex,
       lookAheadSegments: lookAheadSegments,
+      // Fix có sai số lớn thì đừng để GPS jitter kích hoạt reroute. Với fix
+      // tốt, ngưỡng 10m giúp phát hiện sớm khi người dùng rẽ nhầm.
+      thresholdMeters: math.max(
+        10.0,
+        (accuracyMeters ?? 10.0) * 1.5,
+      ),
     );
 
     final isSnapped =

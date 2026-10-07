@@ -250,3 +250,37 @@ class NoOpVisitedPoiService implements IVisitedPoiService {
   Stream<List<PoiModel>> watchVisitedPois() => const Stream.empty();
 }
 
+/// Fallback / No-Op implementation for ISpeechRecognitionService.
+class NoOpSpeechRecognitionService implements ISpeechRecognitionService {
+  const NoOpSpeechRecognitionService();
+
+  @override
+  Future<bool> initialize() async => false;
+
+  @override
+  bool get isListening => false;
+
+  @override
+  bool get isAvailable => false;
+
+  @override
+  Future<void> startListening({
+    String localeId = 'vi_VN',
+    void Function(String words, bool isFinal)? onResult,
+    void Function(double soundLevel)? onSoundLevel,
+    void Function(String error)? onError,
+    void Function(String status)? onStatus,
+  }) async {
+    onError?.call('Speech recognition not supported in this environment');
+  }
+
+  @override
+  Future<void> stopListening() async {}
+
+  @override
+  Future<void> cancelListening() async {}
+
+  @override
+  void dispose() {}
+}
+

@@ -47,6 +47,9 @@ class NavigationMapControls extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
+        MapStyleToggleButton(onPressed: displayCubit.toggleNightMode),
+        const SizedBox(height: 12),
+
         // 2. Recenter button (chỉ lắng nghe trạng thái isFollowingUser)
         BlocBuilder<MapDisplayCubit, MapDisplayState>(
           buildWhen: (prev, curr) =>

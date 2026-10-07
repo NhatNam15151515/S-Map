@@ -1,4 +1,3 @@
-export 'app_repos_provider.dart';
 export 'auth_repos.dart';
 export 'custom_route_repository.dart';
 export 'poi_repository.dart';
@@ -6,3 +5,8 @@ export 'region_repository.dart';
 export 'routing_repository.dart';
 export 'sync_repository.dart';
 export 'trip_repository.dart';
+export 'fallbacks/no_op_auth_repository.dart';
+export 'fallbacks/no_op_poi_repository.dart';
+export 'fallbacks/no_op_region_repository.dart';
+export 'fallbacks/no_op_sync_repository.dart';
+export 'fallbacks/no_op_trip_repository.dart';

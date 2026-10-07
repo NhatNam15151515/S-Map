@@ -3,6 +3,7 @@ import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_colors.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/utils/douglas_peucker.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/map_marker_helper.dart';
 import 'package:s_map/commons/utils/off_route_detector.dart';
 import 'package:s_map/constants/constants.dart';
@@ -19,10 +20,13 @@ class MapRouteManager {
   bool _isAssetLoaded = false;
   Symbol? _destinationSymbol;
   int _lastPassedSegmentIndex = -1;
+  LatLng? _lastProgressPoint;
+  double? _lastProgressDistanceMeters;
 
   /// Polyline đã simplify lưu lại để updateNavigationProgress dùng trực tiếp,
   /// tránh lệch pha giữa polyline trên bản đồ và raw points.
   List<LatLng>? _displayedLatLngs;
+  List<double> _displayedCumulativeMeters = const [];
 
   /// Nạp icon marker vào engine MapLibre
   Future<void> loadMarkerAssets(MapLibreMapController? controller, {bool force = false}) async {
@@ -110,7 +114,10 @@ class MapRouteManager {
     if (latLngs.isEmpty) return false;
 
     _lastPassedSegmentIndex = -1;
+    _lastProgressPoint = null;
+    _lastProgressDistanceMeters = null;
     _displayedLatLngs = latLngs;
+    _displayedCumulativeMeters = _buildCumulativeDistances(latLngs);
     DLog.info('🗺️ [MapRouteManager] Drawing route on map [Gen #$generation]: ${latLngs.length} points | Destination: "$destinationName" | Alternatives: ${alternativeRoutes.length}');
 
     Line? casingLine;
@@ -222,8 +229,9 @@ class MapRouteManager {
     required int currentSegmentIndex,
     double? currentLat,
     double? currentLon,
+    bool isOffRoute = false,
   }) async {
-    if (controller == null || _routeLine == null) {
+    if (controller == null || _routeLine == null || isOffRoute) {
       return;
     }
 
@@ -235,7 +243,7 @@ class MapRouteManager {
 
     // Tìm segment gần nhất trên DISPLAYED polyline dựa trên GPS position hiện tại.
     // Đây là cách chính xác hơn so với dùng currentSegmentIndex từ raw points.
-    final displaySegmentIndex = _findClosestDisplaySegment(
+    final match = _findClosestDisplayPosition(
       allPoints,
       currentLat,
       currentLon,
@@ -243,9 +251,19 @@ class MapRouteManager {
       rawPoints,
     );
 
-    if (displaySegmentIndex <= 0 ||
-        displaySegmentIndex >= allPoints.length ||
-        displaySegmentIndex == _lastPassedSegmentIndex) {
+    // Không để GPS nhiễu hoặc quay đầu tạm thời kéo tiến độ polyline lùi lại.
+    final lastProgressDistance = _lastProgressDistanceMeters;
+    if (lastProgressDistance != null &&
+        match.progressMeters + 1.0 < lastProgressDistance) {
+      return;
+    }
+
+    final displaySegmentIndex = match.segmentIndex;
+    if (displaySegmentIndex < 0 ||
+        displaySegmentIndex >= allPoints.length - 1 ||
+        (displaySegmentIndex == _lastPassedSegmentIndex &&
+            _lastProgressPoint != null &&
+            _distanceBetween(_lastProgressPoint!, match.point) < 2.0)) {
       return;
     }
 
@@ -254,10 +272,15 @@ class MapRouteManager {
 
     try {
       final passedPoints = allPoints.sublist(0, displaySegmentIndex + 1);
-      final remainingPoints = allPoints.sublist(displaySegmentIndex);
+      if (_distanceBetween(passedPoints.last, match.point) >= 1.0) {
+        passedPoints.add(match.point);
+      }
+      final remainingPoints = [match.point, ...allPoints.skip(displaySegmentIndex + 1)];
 
       // 1. Cập nhật hoặc tạo đường xám mờ cho đoạn đã đi qua
-      if (_passedRouteLine == null) {
+      if (passedPoints.length < 2) {
+        // Chưa đi đủ xa từ điểm xuất phát để tạo polyline đã đi.
+      } else if (_passedRouteLine == null) {
         final newPassedLine = await controller.addLine(
           LineOptions(
             geometry: passedPoints,
@@ -283,7 +306,7 @@ class MapRouteManager {
       }
 
       // 2. Thu gọn đường màu xanh chính và viền ngoài vào phần còn lại phía trước
-      if (remainingPoints.isNotEmpty && _routeLine != null) {
+      if (remainingPoints.length >= 2 && _routeLine != null) {
         await controller.updateLine(
           _routeLine!,
           LineOptions(geometry: remainingPoints),
@@ -303,6 +326,8 @@ class MapRouteManager {
       }
 
       _lastPassedSegmentIndex = displaySegmentIndex;
+      _lastProgressPoint = match.point;
+      _lastProgressDistanceMeters = match.progressMeters;
     } catch (e) {
       DLog.warning('⚠️ [MapRouteManager] Error updating navigation progress polyline: $e');
     }
@@ -311,7 +336,8 @@ class MapRouteManager {
   /// Tìm segment gần GPS nhất trên polyline đã simplify (displayed polyline).
   /// Ưu tiên dùng lat/lon GPS với [OffRouteDetector.calculatePointToSegmentDistance],
   /// fallback về ánh xạ tỷ lệ từ raw segment index.
-  int _findClosestDisplaySegment(
+  ({int segmentIndex, double distanceMeters, double progressMeters, LatLng point})
+  _findClosestDisplayPosition(
     List<LatLng> displayedPoints,
     double? currentLat,
     double? currentLon,
@@ -322,13 +348,15 @@ class MapRouteManager {
     if (currentLat != null && currentLon != null) {
       double minDist = double.infinity;
       int bestIndex = 0;
+      LatLng bestPoint = displayedPoints.first;
 
       final totalSegments = displayedPoints.length - 1;
       for (int i = 0; i < totalSegments; i++) {
         final a = displayedPoints[i];
         final b = displayedPoints[i + 1];
 
-        final (dist, _, _) = OffRouteDetector.calculatePointToSegmentDistance(
+        final (dist, closestLat, closestLon) =
+            OffRouteDetector.calculatePointToSegmentDistance(
           pLat: currentLat,
           pLon: currentLon,
           aLat: a.latitude,
@@ -340,16 +368,60 @@ class MapRouteManager {
         if (dist < minDist) {
           minDist = dist;
           bestIndex = i;
+          bestPoint = LatLng(closestLat, closestLon);
         }
       }
 
-      return bestIndex;
+      return (
+        segmentIndex: bestIndex,
+        distanceMeters: minDist,
+        progressMeters: _displayedCumulativeMeters[bestIndex] +
+            _distanceBetween(displayedPoints[bestIndex], bestPoint),
+        point: bestPoint,
+      );
     }
 
     // Fallback: ánh xạ tỷ lệ raw segment index sang displayed segment index
-    if (rawPoints.isEmpty || displayedPoints.isEmpty) return 0;
+    if (rawPoints.isEmpty || displayedPoints.isEmpty) {
+      return (
+        segmentIndex: 0,
+        distanceMeters: double.infinity,
+        progressMeters: 0.0,
+        point: const LatLng(0, 0),
+      );
+    }
     final ratio = rawSegmentIndex / rawPoints.length;
-    return (ratio * displayedPoints.length).round().clamp(0, displayedPoints.length - 1);
+    final segmentIndex = (ratio * displayedPoints.length)
+        .round()
+        .clamp(0, displayedPoints.length - 2)
+        .toInt();
+    return (
+      segmentIndex: segmentIndex,
+      distanceMeters: double.infinity,
+      progressMeters: _displayedCumulativeMeters.isEmpty
+          ? 0.0
+          : _displayedCumulativeMeters[segmentIndex],
+      point: displayedPoints[segmentIndex],
+    );
+  }
+
+  double _distanceBetween(LatLng first, LatLng second) {
+    return MapGeometryUtils.haversineDistanceMeters(
+      first.latitude,
+      first.longitude,
+      second.latitude,
+      second.longitude,
+    );
+  }
+
+  List<double> _buildCumulativeDistances(List<LatLng> points) {
+    if (points.isEmpty) return const [];
+    final cumulative = List<double>.filled(points.length, 0.0);
+    for (var i = 1; i < points.length; i++) {
+      cumulative[i] = cumulative[i - 1] +
+          _distanceBetween(points[i - 1], points[i]);
+    }
+    return cumulative;
   }
 
   /// Căn chỉnh Camera ôm trọn lộ trình với khoảng cách an toàn (tránh đè BottomSheet)
@@ -405,7 +477,10 @@ class MapRouteManager {
     _renderGeneration++;
     _progressGeneration++;
     _lastPassedSegmentIndex = -1;
+    _lastProgressPoint = null;
+    _lastProgressDistanceMeters = null;
     _displayedLatLngs = null;
+    _displayedCumulativeMeters = const [];
     await _clearLinesAndSymbols(controller);
   }
 

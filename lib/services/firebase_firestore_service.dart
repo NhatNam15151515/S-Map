@@ -65,7 +65,9 @@ class FireStoreService implements IFireStoreService {
     try {
       final doc = await usersCollection!.doc(userId).get();
       if (doc.exists && doc.data() != null) {
-        return User.fromJson(doc.data() as Map<String, dynamic>);
+        final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
+        data['id'] ??= doc.id;
+        return User.fromJson(data);
       }
     } catch (e) {
       DLog.error("Firestore getUserProfile error: $e");
@@ -205,7 +207,11 @@ class FireStoreService implements IFireStoreService {
   }
 
   @override
-  Future<void> saveSearchQuery(String userId, String query) async {
+  Future<void> saveSearchQuery(
+    String userId,
+    String query, {
+    Map<String, dynamic>? destination,
+  }) async {
     final normalized = query.trim();
     final fs = _fs;
     if (normalized.isEmpty || fs == null) return;
@@ -216,9 +222,11 @@ class FireStoreService implements IFireStoreService {
           .collection('search_history')
           .doc(_safeDocumentId(normalized.toLowerCase()))
           .set({
-        'query': normalized,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+          'query': normalized,
+          'searchCount': FieldValue.increment(1),
+          'updatedAt': FieldValue.serverTimestamp(),
+          if (destination != null) 'destination': destination,
+        }, SetOptions(merge: true));
     } catch (e) {
       DLog.error("Firestore saveSearchQuery error: $e");
     }
@@ -242,6 +250,29 @@ class FireStoreService implements IFireStoreService {
           .toList();
     } catch (e) {
       DLog.error("Firestore getSearchQueries error: $e");
+      return [];
+    }
+  }
+
+  @override
+  Future<List<String>> getFrequentSearchQueries(String userId,
+      {int limit = 10}) async {
+    final fs = _fs;
+    if (fs == null) return [];
+    try {
+      final snapshot = await fs
+          .collection('users')
+          .doc(userId)
+          .collection('search_history')
+          .orderBy('searchCount', descending: true)
+          .limit(limit)
+          .get();
+      return snapshot.docs
+          .map((doc) => (doc.data()['query'] ?? '').toString().trim())
+          .where((query) => query.isNotEmpty)
+          .toList();
+    } catch (e) {
+      DLog.error('Firestore getFrequentSearchQueries error: $e');
       return [];
     }
   }

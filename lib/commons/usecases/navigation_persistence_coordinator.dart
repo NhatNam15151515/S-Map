@@ -13,10 +13,7 @@ class TripFinalizationResult {
   final TripSummary summary;
   final TripRecordModel record;
 
-  const TripFinalizationResult({
-    required this.summary,
-    required this.record,
-  });
+  const TripFinalizationResult({required this.summary, required this.record});
 }
 
 /// Coordinator quản lý lưu trữ và vòng đời dữ liệu chuyến đi
@@ -35,9 +32,9 @@ class NavigationPersistenceCoordinator {
     required IActiveTripService activeTripService,
     required IVisitedPoiService visitedPoiService,
     this.autoSaveInterval = const Duration(seconds: 30),
-  })  : _tripRepository = tripRepository,
-        _activeTripService = activeTripService,
-        _visitedPoiService = visitedPoiService;
+  }) : _tripRepository = tripRepository,
+       _activeTripService = activeTripService,
+       _visitedPoiService = visitedPoiService;
 
   void startAutoSave(void Function() onAutoSave) {
     stopAutoSave();
@@ -60,7 +57,8 @@ class NavigationPersistenceCoordinator {
   Future<bool> isSessionExpired(ActiveTripSnapshot snapshot) async {
     if (!snapshot.isValid()) {
       DLog.warning(
-          '⚠️ [NavigationPersistenceCoordinator] Cannot resume: active session expired (> 24h)');
+        '⚠️ [NavigationPersistenceCoordinator] Cannot resume: active session expired (> 24h)',
+      );
       unawaited(clearActiveSessionSafely());
       return true;
     }
@@ -72,9 +70,10 @@ class NavigationPersistenceCoordinator {
       await _activeTripService.clearActiveSession();
     } catch (e, stack) {
       DLog.error(
-          '❌ [NavigationPersistenceCoordinator] Failed to clear active session: $e',
-          e,
-          stack);
+        '❌ [NavigationPersistenceCoordinator] Failed to clear active session: $e',
+        e,
+        stack,
+      );
     }
   }
 
@@ -83,9 +82,10 @@ class NavigationPersistenceCoordinator {
       await _tripRepository.saveTrip(trip);
     } catch (e, stack) {
       DLog.error(
-          '❌ [NavigationPersistenceCoordinator] Failed to auto-save trip: $e',
-          e,
-          stack);
+        '❌ [NavigationPersistenceCoordinator] Failed to auto-save trip: $e',
+        e,
+        stack,
+      );
     }
   }
 
@@ -111,8 +111,9 @@ class NavigationPersistenceCoordinator {
       await _visitedPoiService.recordVisited(poi);
     } catch (e, stack) {
       DLog.warning(
-          '⚠️ [NavigationPersistenceCoordinator] Không thể lưu POI đã đến: $e',
-          stack);
+        '⚠️ [NavigationPersistenceCoordinator] Không thể lưu POI đã đến: $e',
+        stack,
+      );
     }
   }
 
@@ -120,6 +121,7 @@ class NavigationPersistenceCoordinator {
   Future<TripFinalizationResult> finalizeTrip({
     required TripMetricsTracker metrics,
     required DateTime? startTime,
+    RoutePoint? origin,
     required RoutePoint? destination,
     required String? destinationName,
     required String profile,
@@ -168,15 +170,16 @@ class NavigationPersistenceCoordinator {
     // Ưu tiên snapToRoad (GraphHopper) để lấy tên đường chính xác tại toạ độ GPS,
     // tránh lấy nhầm tên đường từ POI gần nhưng thuộc đường khác (ví dụ: ngã ba)
     String? effectiveOriginName = originName;
+    final originCoordinates = origin == null
+        ? (polyline != null && polyline.isNotEmpty ? polyline.first : null)
+        : [origin.lat, origin.lon];
     if ((effectiveOriginName == null || effectiveOriginName.trim().isEmpty) &&
-        polyline != null &&
-        polyline.isNotEmpty) {
-      final startPoint = polyline.first;
+        originCoordinates != null) {
+      final startPoint = originCoordinates;
 
       // Thử 1: snapToRoad cho tên đường chính xác nhất
       try {
-        final routingService =
-            await _getRoutingService();
+        final routingService = await _getRoutingService();
         if (routingService != null) {
           final snapped = await routingService.snapToRoad(
             lat: startPoint[0],
@@ -190,16 +193,17 @@ class NavigationPersistenceCoordinator {
         }
       } catch (e) {
         DLog.warning(
-            '⚠️ [NavigationPersistenceCoordinator] snapToRoad for origin failed: $e');
+          '⚠️ [NavigationPersistenceCoordinator] snapToRoad for origin failed: $e',
+        );
       }
 
       // Thử 2: Fallback về TripAddressResolver (POI database)
       if (effectiveOriginName == null || effectiveOriginName.trim().isEmpty) {
         effectiveOriginName =
             await TripAddressResolver.resolveAddressAtCoordinate(
-          startPoint[0],
-          startPoint[1],
-        );
+              startPoint[0],
+              startPoint[1],
+            );
       }
     }
 
@@ -229,6 +233,23 @@ class NavigationPersistenceCoordinator {
         }
       } else {
         effectivePolyline = polyline;
+      }
+    }
+
+    if (origin != null && effectivePolyline != null) {
+      final originCoordinates = [origin.lat, origin.lon];
+      if (effectivePolyline.isEmpty) {
+        effectivePolyline = [originCoordinates];
+      } else if (MapGeometryUtils.haversineDistanceMeters(
+            origin.lat,
+            origin.lon,
+            effectivePolyline.first[0],
+            effectivePolyline.first[1],
+          ) >
+          1.0) {
+        effectivePolyline = [originCoordinates, ...effectivePolyline];
+      } else {
+        effectivePolyline = [originCoordinates, ...effectivePolyline.skip(1)];
       }
     }
 

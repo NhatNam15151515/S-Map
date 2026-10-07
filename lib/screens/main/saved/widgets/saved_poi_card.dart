@@ -108,12 +108,13 @@ class SavedPoiCard extends StatelessWidget {
                   onPressed: onDirections,
                 ),
                 IconButton(
+                  key: Key('remove_favorite_poi_${poi.id}'),
                   icon: Icon(
                     Icons.bookmark_remove_rounded,
                     color: colorScheme.error,
                     size: 20,
                   ),
-                  tooltip: tr(LocaleKeys.common_cancel),
+                  tooltip: tr(LocaleKeys.route_drawing_ui_delete_route),
                   onPressed: onRemove,
                 ),
               ],

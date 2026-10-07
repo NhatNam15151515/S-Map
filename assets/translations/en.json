@@ -19,7 +19,13 @@
   "search_bar": {
     "title": "Search places",
     "placeholder": "Search here",
-    "voice": "Voice Search"
+    "voice": "Voice Search",
+    "voice_listening": "Listening...",
+    "voice_hint": "Say a place name or address",
+    "voice_try_again": "Didn't catch that, please try again",
+    "voice_permission_denied": "Microphone permission is required for voice search",
+    "voice_open_settings": "Open Settings",
+    "voice_unavailable": "Voice recognition is not available on this device"
   },
   "search_input_hint": "Search places, streets...",
   "recentSearches": "Recent Searches",
@@ -364,5 +370,22 @@
   "appVersionNumber": "1.0.0",
   "close": "Close",
   "aboutAppDesc": "S-Map is a digital map and offline navigation app optimized for users in Vietnam. Supports place search, voice navigation for motorbikes, and offline map management for 63 provinces.",
-  "versionPrefix": "Version: {}"
+  "versionPrefix": "Version: {}",
+  "help_feedback_content": "For any questions or feedback about map and navigation features, please contact the S-Map development team.",
+  "user_avatar_title": "Profile Avatar",
+  "user_avatar_view": "View profile avatar",
+  "user_avatar_view_desc": "View avatar in full size",
+  "user_avatar_take_photo": "Take new photo",
+  "user_avatar_take_photo_desc": "Use device camera",
+  "user_avatar_pick_gallery": "Choose from gallery",
+  "user_avatar_pick_gallery_desc": "Select photo from device album",
+  "user_avatar_delete": "Delete profile avatar",
+  "user_avatar_delete_desc": "Restore default avatar icon",
+  "user_update_avatar_success": "Avatar updated successfully",
+  "user_delete_avatar_success": "Avatar deleted successfully",
+  "user_process_avatar_error": "Unable to process avatar: {}",
+  "user_open_camera_error": "Unable to open camera: {}",
+  "user_pick_gallery_error": "Error selecting photo: {}",
+  "user_share_location_message": "Current location: {}",
+  "user_share_location_fallback": "Open S-Map app to explore and navigate offline!"
 }

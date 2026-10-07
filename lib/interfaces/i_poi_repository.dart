@@ -7,6 +7,25 @@ abstract class IPoiRepository {
   /// Tìm kiếm theo tên/địa chỉ không dấu (FTS5 name_ascii và address query)
   Future<List<PoiModel>> searchByNameAscii(String query, {int limit = 20});
 
+  /// Tìm prefix tên bằng B-tree `idx_poi_name_ascii`, không phụ thuộc FTS5.
+  Future<List<PoiModel>> searchByNamePrefix(
+    String query, {
+    int limit = 80,
+    String? provinceCode,
+  }) =>
+      search(query, limit: limit);
+
+  /// Tìm ứng viên FTS trong vùng quanh vị trí hiện tại bằng R*Tree.
+  /// Repository mặc định dùng tìm kiếm tên để giữ tương thích với fake repo.
+  Future<List<PoiModel>> searchByNameNear({
+    required String query,
+    required double latitude,
+    required double longitude,
+    String? provinceCode,
+    int limit = 160,
+  }) =>
+      search(query, limit: limit);
+
   /// Tìm kiếm tự động phát hiện có dấu / không dấu và địa chỉ (Unified Search)
   Future<List<PoiModel>> search(String query, {int limit = 20});
 

@@ -67,11 +67,17 @@
     {
       "id": "smap-background",
       "type": "background",
+      "metadata": {
+        "comment": "Màu nền canvas đáy cùng của bản đồ"
+      },
       "paint": {"background-color": "__MAP_BACKGROUND__"}
     },
     {
       "id": "smap-landcover",
       "type": "fill",
+      "metadata": {
+        "comment": "Thảm thực vật tự nhiên (rừng cây, đồng cỏ, bụi rậm, đầm lầy)"
+      },
       "source": "smap-vietnam",
       "source-layer": "landcover",
       "minzoom": 7,
@@ -91,6 +97,9 @@
     {
       "id": "smap-landuse",
       "type": "fill",
+      "metadata": {
+        "comment": "Quy hoạch sử dụng đất (khu dân cư, thương mại, công nghiệp, nghĩa trang, quân sự)"
+      },
       "source": "smap-vietnam",
       "source-layer": "landuse",
       "minzoom": 5,
@@ -110,6 +119,9 @@
     {
       "id": "smap-parks",
       "type": "fill",
+      "metadata": {
+        "comment": "Công viên, vườn hoa, mảng xanh đô thị"
+      },
       "source": "smap-vietnam",
       "source-layer": "park",
       "minzoom": 6,
@@ -122,6 +134,9 @@
     {
       "id": "smap-water",
       "type": "fill",
+      "metadata": {
+        "comment": "Mặt nước lớn (sông, hồ, vịnh, biển)"
+      },
       "source": "smap-vietnam",
       "source-layer": "water",
       "paint": {
@@ -132,6 +147,9 @@
     {
       "id": "smap-waterway",
       "type": "line",
+      "metadata": {
+        "comment": "Kênh rạch, suối nhỏ (vẽ dạng nét line)"
+      },
       "source": "smap-vietnam",
       "source-layer": "waterway",
       "minzoom": 8,
@@ -147,6 +165,9 @@
     {
       "id": "smap-boundaries",
       "type": "line",
+      "metadata": {
+        "comment": "Ranh giới hành chính, biên giới quốc gia (nét đứt)"
+      },
       "source": "smap-vietnam",
       "source-layer": "boundary",
       "minzoom": 4,
@@ -163,6 +184,9 @@
     {
       "id": "smap-aeroway-fill",
       "type": "fill",
+      "metadata": {
+        "comment": "Mặt bằng khu vực sân bay, bãi đáp máy bay"
+      },
       "source": "smap-vietnam",
       "source-layer": "aeroway",
       "minzoom": 10,
@@ -174,6 +198,9 @@
     {
       "id": "smap-aeroway-line",
       "type": "line",
+      "metadata": {
+        "comment": "Đường kẻ tim đường băng sân bay"
+      },
       "source": "smap-vietnam",
       "source-layer": "aeroway",
       "minzoom": 10,
@@ -189,6 +216,9 @@
     {
       "id": "smap-buildings",
       "type": "fill",
+      "metadata": {
+        "comment": "Nóc tòa nhà, khối công trình xây dựng 2D"
+      },
       "source": "smap-vietnam",
       "source-layer": "building",
       "minzoom": 13,
@@ -201,13 +231,16 @@
     {
       "id": "smap-road-casing",
       "type": "line",
+      "metadata": {
+        "comment": "Viền mép đường ngõ hẻm / dân sinh nội bộ (casing)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 11,
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_CASING__",
-        "line-opacity": __ROAD_CASING_OPACITY__,
+        "line-opacity": "__ROAD_CASING_OPACITY__",
         "line-width": [
           "interpolate", ["linear"], ["zoom"],
           4, 0.5, 8, 1.1, 12, 2.4, 14, 4.0, 16, 5.2, 19, 7.5
@@ -217,6 +250,9 @@
     {
       "id": "smap-road-casing-major",
       "type": "line",
+      "metadata": {
+        "comment": "Viền mép đường cao tốc & quốc lộ chính (motorway, trunk)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 4,
@@ -224,13 +260,16 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_CASING__",
-        "line-opacity": __ROAD_CASING_OPACITY__,
+        "line-opacity": "__ROAD_CASING_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.9, 8, 2.0, 12, 5.2, 14, 8.5, 16, 11.0, 19, 14.0]
       }
     },
     {
       "id": "smap-road-casing-primary",
       "type": "line",
+      "metadata": {
+        "comment": "Viền mép đường trục chính / tỉnh lộ lớn (primary)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 6,
@@ -238,13 +277,16 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_CASING__",
-        "line-opacity": __ROAD_CASING_OPACITY__,
+        "line-opacity": "__ROAD_CASING_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.8, 8, 1.8, 12, 4.4, 14, 7.4, 16, 9.5, 19, 12.5]
       }
     },
     {
       "id": "smap-road-casing-secondary",
       "type": "line",
+      "metadata": {
+        "comment": "Viền mép đường nhánh cấp 2 / liên huyện (secondary)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 8,
@@ -252,13 +294,16 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_CASING__",
-        "line-opacity": __ROAD_CASING_OPACITY__,
+        "line-opacity": "__ROAD_CASING_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.7, 8, 1.5, 12, 3.8, 14, 6.3, 16, 8.2, 19, 11.0]
       }
     },
     {
       "id": "smap-road-casing-tertiary",
       "type": "line",
+      "metadata": {
+        "comment": "Viền mép đường liên xã / đô thị nhỏ (tertiary)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 10,
@@ -266,20 +311,23 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_CASING__",
-        "line-opacity": __ROAD_CASING_OPACITY__,
+        "line-opacity": "__ROAD_CASING_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.6, 8, 1.3, 12, 3.2, 14, 5.4, 16, 7.0, 19, 9.2]
       }
     },
     {
       "id": "smap-road-surface",
       "type": "line",
+      "metadata": {
+        "comment": "Mặt lòng đường ngõ hẻm / dân sinh nội bộ (surface)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 11,
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_SURFACE__",
-        "line-opacity": __ROAD_SURFACE_OPACITY__,
+        "line-opacity": "__ROAD_SURFACE_OPACITY__",
         "line-width": [
           "interpolate", ["linear"], ["zoom"],
           4, 0.3, 8, 0.8, 12, 1.7, 14, 3.0, 16, 4.2, 19, 6.0
@@ -289,6 +337,9 @@
     {
       "id": "smap-road-surface-major",
       "type": "line",
+      "metadata": {
+        "comment": "Mặt lòng đường cao tốc & quốc lộ chính (motorway, trunk)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 4,
@@ -296,13 +347,16 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_SURFACE__",
-        "line-opacity": __ROAD_SURFACE_OPACITY__,
+        "line-opacity": "__ROAD_SURFACE_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.5, 8, 1.5, 12, 4.0, 14, 7.2, 16, 9.5, 19, 12.5]
       }
     },
     {
       "id": "smap-road-surface-primary",
       "type": "line",
+      "metadata": {
+        "comment": "Mặt lòng đường trục chính / tỉnh lộ lớn (primary)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 6,
@@ -310,13 +364,16 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_SURFACE__",
-        "line-opacity": __ROAD_SURFACE_OPACITY__,
+        "line-opacity": "__ROAD_SURFACE_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.45, 8, 1.35, 12, 3.4, 14, 6.1, 16, 8.2, 19, 11.0]
       }
     },
     {
       "id": "smap-road-surface-secondary",
       "type": "line",
+      "metadata": {
+        "comment": "Mặt lòng đường nhánh cấp 2 / liên huyện (secondary)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 8,
@@ -324,13 +381,16 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_SURFACE__",
-        "line-opacity": __ROAD_SURFACE_OPACITY__,
+        "line-opacity": "__ROAD_SURFACE_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.4, 8, 1.1, 12, 2.8, 14, 5.0, 16, 6.9, 19, 9.0]
       }
     },
     {
       "id": "smap-road-surface-tertiary",
       "type": "line",
+      "metadata": {
+        "comment": "Mặt lòng đường liên xã / đô thị nhỏ (tertiary)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 10,
@@ -338,13 +398,102 @@
       "layout": {"line-cap": "round", "line-join": "round"},
       "paint": {
         "line-color": "__ROAD_SURFACE__",
-        "line-opacity": __ROAD_SURFACE_OPACITY__,
+        "line-opacity": "__ROAD_SURFACE_OPACITY__",
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.35, 8, 1.0, 12, 2.4, 14, 4.2, 16, 5.8, 19, 7.5]
+      }
+    },
+    {
+      "id": "smap-road-centerline",
+      "type": "line",
+      "metadata": {
+        "comment": "Vạch kẻ tim đường phân làn nét đứt (Centerline)"
+      },
+      "source": "smap-vietnam",
+      "source-layer": "transportation",
+      "minzoom": 16,
+      "filter": [
+        "all",
+        ["!=", ["get", "oneway"], 1],
+        ["!=", ["get", "oneway"], "1"],
+        ["!=", ["get", "oneway"], "yes"],
+        [
+          "match",
+          ["get", "class"],
+          ["motorway", "trunk", "primary", "secondary"],
+          true,
+          false
+        ]
+      ],
+      "layout": {"line-cap": "butt", "line-join": "round"},
+      "paint": {
+        "line-color": "__LABEL_PRIMARY__",
+        "line-opacity": 0.75,
+        "line-dasharray": [3, 4],
+        "line-width": [
+          "interpolate", ["linear"], ["zoom"],
+          16, 0.5,
+          18, 0.8,
+          19, 1.1
+        ]
+      }
+    },
+    {
+      "id": "smap-road-oneway-arrow",
+      "type": "symbol",
+      "metadata": {
+        "comment": "Mũi tên chỉ hướng đường 1 chiều như Google Maps"
+      },
+      "source": "smap-vietnam",
+      "source-layer": "transportation",
+      "minzoom": 16,
+      "filter": [
+        "all",
+        [
+          "any",
+          ["==", ["get", "oneway"], 1],
+          ["==", ["get", "oneway"], "1"],
+          ["==", ["get", "oneway"], "yes"],
+          ["==", ["get", "oneway"], -1],
+          ["==", ["get", "oneway"], "-1"]
+        ],
+        ["!=", ["get", "class"], "path"],
+        ["!=", ["get", "class"], "pedestrian"],
+        ["!=", ["get", "class"], "steps"]
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "symbol-spacing": 95,
+        "text-field": [
+          "case",
+          ["any", ["==", ["get", "oneway"], -1], ["==", ["get", "oneway"], "-1"]],
+          "←",
+          "→"
+        ],
+        "text-font": ["Montserrat Regular"],
+        "text-size": [
+          "interpolate", ["linear"], ["zoom"],
+          16, 13.0,
+          18, 16.0,
+          19, 19.0
+        ],
+        "text-offset": [0, -0.09],
+        "text-keep-upright": false,
+        "text-allow-overlap": true,
+        "text-ignore-placement": true
+      },
+      "paint": {
+        "text-color": "__LABEL_PRIMARY__",
+        "text-halo-color": "__ROAD_SURFACE__",
+        "text-halo-width": 1.0,
+        "text-opacity": 0.95
       }
     },
     {
       "id": "smap-road-labels",
       "type": "symbol",
+      "metadata": {
+        "comment": "Tên đường chạy dọc theo tuyến đường (văn bản bo theo đường cong)"
+      },
       "source": "smap-vietnam",
       "source-layer": "transportation_name",
       "minzoom": 10,
@@ -376,6 +525,9 @@
     {
       "id": "smap-places",
       "type": "circle",
+      "metadata": {
+        "comment": "Chấm tròn đánh dấu vị trí địa danh (thị trấn, làng xóm, đô thị)"
+      },
       "source": "smap-vietnam",
       "source-layer": "place",
       "minzoom": 5,
@@ -393,6 +545,9 @@
     {
       "id": "smap-place-labels",
       "type": "symbol",
+      "metadata": {
+        "comment": "Chữ tên địa danh (tỉnh/thành phố, quận huyện, xã phường)"
+      },
       "source": "smap-vietnam",
       "source-layer": "place",
       "minzoom": 5,
@@ -425,6 +580,9 @@
     {
       "id": "smap-water-labels",
       "type": "symbol",
+      "metadata": {
+        "comment": "Chữ tên sông ngòi, hồ nước, vùng biển"
+      },
       "source": "smap-vietnam",
       "source-layer": "water_name",
       "minzoom": 8,
@@ -450,50 +608,62 @@
       }
     },
     {
-      "id": "smap-poi-dots",
-      "type": "circle",
-      "source": "smap-vietnam",
-      "source-layer": "poi",
-      "minzoom": 12,
-      "layout": {
-        "visibility": "none"
-      },
-      "paint": {
-        "circle-color": "__POI_DOT__",
-        "circle-opacity": 0.88,
-        "circle-radius": [
-          "interpolate", ["linear"], ["zoom"],
-          12, 1.6, 14, 3.2
-        ],
-        "circle-stroke-color": "__POI_STROKE__",
-        "circle-stroke-width": 1
-      }
-    },
-    {
-      "id": "smap-poi-labels",
+      "id": "smap-poi-markers",
       "type": "symbol",
+      "metadata": {
+        "comment": "Biểu tượng và tên địa điểm POI badges theo category khi zoom 17-22"
+      },
       "source": "smap-vietnam",
       "source-layer": "poi",
-      "minzoom": 15,
+      "minzoom": 17,
       "filter": ["has", "name"],
       "layout": {
-        "visibility": "none",
+        "icon-image": [
+          "match",
+          ["get", "class"],
+          ["cafe", "coffee"], "poi-marker-cafe",
+          ["restaurant", "fast_food", "food"], "poi-marker-food",
+          ["hotel", "motel", "lodging", "hostel", "guest_house"], "poi-marker-hotel",
+          ["supermarket", "grocery"], "poi-marker-supermarket",
+          ["shop", "convenience", "mall", "department_store", "clothes", "electronics", "bakery"], "poi-marker-shop",
+          ["fuel", "gas"], "poi-marker-fuel",
+          ["bank", "atm"], "poi-marker-bank",
+          ["hospital", "pharmacy", "clinic", "doctors"], "poi-marker-hospital",
+          ["school", "university", "college", "kindergarten"], "poi-marker-school",
+          ["park", "pitch", "sports_centre"], "poi-marker-park",
+          "poi-marker-default"
+        ],
+        "icon-size": [
+          "interpolate", ["linear"], ["zoom"],
+          17, 0.48,
+          19, 0.58,
+          22, 0.72
+        ],
+        "icon-anchor": "bottom",
+        "icon-allow-overlap": false,
+        "icon-ignore-placement": false,
         "text-field": [
           "coalesce",
           ["get", "name:vi"],
           ["get", "name"]
         ],
         "text-font": ["Montserrat Regular"],
-        "text-size": 10,
-        "text-offset": [0, 1.1],
-        "text-padding": 2,
+        "text-size": [
+          "interpolate", ["linear"], ["zoom"],
+          17, 10.0,
+          19, 11.5,
+          22, 13.0
+        ],
+        "text-anchor": "top",
+        "text-offset": [0, 0.35],
         "text-max-width": 8,
+        "text-padding": 2,
         "text-allow-overlap": false
       },
       "paint": {
-        "text-color": "__LABEL_POI__",
+        "text-color": "__LABEL_PRIMARY__",
         "text-halo-color": "__LABEL_HALO__",
-        "text-halo-width": 1.2
+        "text-halo-width": 1.5
       }
     },
     {

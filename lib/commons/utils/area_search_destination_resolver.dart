@@ -1,4 +1,5 @@
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/di/app_repos_provider.dart';
 import 'package:s_map/commons/utils/search_result_ranker.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/interfaces/i_poi_repository.dart';

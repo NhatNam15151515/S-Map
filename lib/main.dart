@@ -1,5 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:s_map/di/app_repos_provider.dart';
 import 'package:s_map/firebase_options.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -11,7 +13,6 @@ import 'package:s_map/app.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/flavor/flavor.dart';
-import 'package:s_map/repos/repos.dart';
 import 'dart:io';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/services/services.dart';
@@ -144,4 +145,16 @@ void main() async {
 
   stderr.writeln('🚀 [S-MAP] calling runApp with theme: $initialThemeMode');
   runApp(MyApp(initialThemeMode: initialThemeMode));
+
+  // Begin opening the offline POI database as soon as the first frame is
+  // submitted. Search routes and map category searches share this singleton,
+  // so the user's first typed query does not pay the asset-copy/open cost.
+  unawaited(
+    PoiDatabaseServiceImpl.instance
+        .openDatabaseInstance()
+        .then<void>((_) {})
+        .catchError((Object error) {
+      DLog.warning('POI database warm-up deferred until first use: $error');
+    }),
+  );
 }

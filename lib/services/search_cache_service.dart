@@ -6,7 +6,7 @@ import 'package:s_map/models/models.dart';
 /// kết quả cuối trong RAM. Không ghi Hive để tránh tạo một kho dữ liệu POI thứ
 /// hai và để cache tự sạch khi app khởi động lại.
 class SearchCacheService {
-  static const String cacheVersion = 'search-v1';
+  static const String cacheVersion = 'search-v2';
   static const int maxEntries = 24;
 
   static final SearchCacheService instance = SearchCacheService();

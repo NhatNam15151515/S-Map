@@ -12,6 +12,7 @@ class SearchState extends Equatable {
   final List<String> recentSearches;
   final LatLng? userLocation;
   final String? errorMessage;
+  final bool submitCompleted;
 
   const SearchState({
     this.status = SearchStatus.initial,
@@ -21,6 +22,7 @@ class SearchState extends Equatable {
     this.recentSearches = const [],
     this.userLocation,
     this.errorMessage,
+    this.submitCompleted = false,
   });
 
   bool get isInitial => status == SearchStatus.initial;
@@ -39,6 +41,7 @@ class SearchState extends Equatable {
     List<String>? recentSearches,
     LatLng? userLocation,
     String? errorMessage,
+    bool? submitCompleted,
     bool clearError = false,
   }) {
     return SearchState(
@@ -49,6 +52,7 @@ class SearchState extends Equatable {
       recentSearches: recentSearches ?? this.recentSearches,
       userLocation: userLocation ?? this.userLocation,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      submitCompleted: submitCompleted ?? this.submitCompleted,
     );
   }
 
@@ -61,5 +65,6 @@ class SearchState extends Equatable {
         recentSearches,
         userLocation,
         errorMessage,
+        submitCompleted,
       ];
 }

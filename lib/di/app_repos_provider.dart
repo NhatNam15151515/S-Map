@@ -2,6 +2,7 @@ import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/repos/repos.dart';
 import 'package:s_map/services/services.dart';
 
+/// Composition root for application repositories and their service adapters.
 class AppReposProvider {
   final IAuthRepos authRepos;
   final IPoiRepository poiRepos;
@@ -31,12 +32,15 @@ class AppReposProvider {
         syncRepos = syncRepos ??
             SyncRepositoryImpl(
               syncService: TripSyncServiceImpl.instance,
-              tripRepository: tripRepos ?? TripRepositoryImpl(tripService: TripServiceImpl.instance),
+              tripRepository: tripRepos ??
+                  TripRepositoryImpl(tripService: TripServiceImpl.instance),
               fireStoreService: FireStoreService.instance,
             ),
         routingRepos = routingRepos ?? _resolveRoutingRepos(routingService);
 
-  static IRoutingRepository _resolveRoutingRepos(IRoutingService? routingService) {
+  static IRoutingRepository _resolveRoutingRepos(
+    IRoutingService? routingService,
+  ) {
     if (routingService == null) {
       throw ArgumentError(
         'Either routingRepos or routingService must be provided to AppReposProvider',

@@ -7,6 +7,8 @@ import 'package:s_map/models/routing/route_result.dart';
 /// dùng để khôi phục (Resume) khi ứng dụng bị tắt hoặc kill giữa chừng.
 class ActiveTripSnapshot extends Equatable {
   final RoutePoint origin;
+  final RoutePoint? tripOrigin;
+  final String? tripOriginName;
   final RoutePoint destination;
   final String? destinationName;
   final String profile;
@@ -21,9 +23,12 @@ class ActiveTripSnapshot extends Equatable {
   final int speedSampleCount;
   final double? lastKnownLat;
   final double? lastKnownLon;
+  final List<List<double>> completedRoutePoints;
 
   const ActiveTripSnapshot({
     required this.origin,
+    this.tripOrigin,
+    this.tripOriginName,
     required this.destination,
     this.destinationName,
     this.profile = RoutingConstants.defaultProfile,
@@ -38,6 +43,7 @@ class ActiveTripSnapshot extends Equatable {
     this.speedSampleCount = 0,
     this.lastKnownLat,
     this.lastKnownLon,
+    this.completedRoutePoints = const [],
   });
 
   /// Kiểm tra xem snapshot có còn hợp lệ theo thời gian tối đa cho phép (mặc định 24h)
@@ -48,6 +54,8 @@ class ActiveTripSnapshot extends Equatable {
 
   ActiveTripSnapshot copyWith({
     RoutePoint? origin,
+    RoutePoint? tripOrigin,
+    String? tripOriginName,
     RoutePoint? destination,
     String? destinationName,
     bool clearDestinationName = false,
@@ -64,9 +72,12 @@ class ActiveTripSnapshot extends Equatable {
     double? lastKnownLat,
     double? lastKnownLon,
     bool clearLastKnownPosition = false,
+    List<List<double>>? completedRoutePoints,
   }) {
     return ActiveTripSnapshot(
       origin: origin ?? this.origin,
+      tripOrigin: tripOrigin ?? this.tripOrigin,
+      tripOriginName: tripOriginName ?? this.tripOriginName,
       destination: destination ?? this.destination,
       destinationName: clearDestinationName
           ? null
@@ -89,12 +100,15 @@ class ActiveTripSnapshot extends Equatable {
       lastKnownLon: clearLastKnownPosition
           ? null
           : (lastKnownLon ?? this.lastKnownLon),
+      completedRoutePoints: completedRoutePoints ?? this.completedRoutePoints,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'origin': origin.toMap(),
+      'tripOrigin': tripOrigin?.toMap(),
+      'tripOriginName': tripOriginName,
       'destination': destination.toMap(),
       'destinationName': destinationName,
       'profile': profile,
@@ -109,6 +123,7 @@ class ActiveTripSnapshot extends Equatable {
       'speedSampleCount': speedSampleCount,
       'lastKnownLat': lastKnownLat,
       'lastKnownLon': lastKnownLon,
+      'completedRoutePoints': completedRoutePoints,
     };
   }
 
@@ -119,44 +134,55 @@ class ActiveTripSnapshot extends Equatable {
     }
     final origin = RoutePoint.fromMap(Map<String, dynamic>.from(rawOrigin));
 
+    final rawTripOrigin = map['tripOrigin'];
+    final tripOrigin = rawTripOrigin is Map
+        ? RoutePoint.fromMap(Map<String, dynamic>.from(rawTripOrigin))
+        : null;
+
     final rawDest = map['destination'];
     if (rawDest == null || rawDest is! Map) {
       throw const FormatException('Field "destination" must be a valid Map');
     }
-    final destination =
-        RoutePoint.fromMap(Map<String, dynamic>.from(rawDest));
+    final destination = RoutePoint.fromMap(Map<String, dynamic>.from(rawDest));
 
     final rawInitialRoute = map['initialRoute'];
     if (rawInitialRoute == null || rawInitialRoute is! Map) {
       throw const FormatException('Field "initialRoute" must be a valid Map');
     }
-    final initialRoute =
-        RouteResult.fromMap(Map<String, dynamic>.from(rawInitialRoute));
+    final initialRoute = RouteResult.fromMap(
+      Map<String, dynamic>.from(rawInitialRoute),
+    );
 
     final rawStartTime = map['tripStartTime'];
     if (rawStartTime == null || rawStartTime is! String) {
       throw const FormatException(
-          'Field "tripStartTime" must be a valid ISO8601 String');
+        'Field "tripStartTime" must be a valid ISO8601 String',
+      );
     }
     final tripStartTime = DateTime.tryParse(rawStartTime);
     if (tripStartTime == null) {
       throw const FormatException(
-          'Field "tripStartTime" could not be parsed to DateTime');
+        'Field "tripStartTime" could not be parsed to DateTime',
+      );
     }
 
     final rawLastSaved = map['lastSavedTime'];
     if (rawLastSaved == null || rawLastSaved is! String) {
       throw const FormatException(
-          'Field "lastSavedTime" must be a valid ISO8601 String');
+        'Field "lastSavedTime" must be a valid ISO8601 String',
+      );
     }
     final lastSavedTime = DateTime.tryParse(rawLastSaved);
     if (lastSavedTime == null) {
       throw const FormatException(
-          'Field "lastSavedTime" could not be parsed to DateTime');
+        'Field "lastSavedTime" could not be parsed to DateTime',
+      );
     }
 
     return ActiveTripSnapshot(
       origin: origin,
+      tripOrigin: tripOrigin,
+      tripOriginName: map['tripOriginName'] as String?,
       destination: destination,
       destinationName: map['destinationName'] as String?,
       profile: (map['profile'] as String?) ?? RoutingConstants.defaultProfile,
@@ -173,25 +199,38 @@ class ActiveTripSnapshot extends Equatable {
       speedSampleCount: (map['speedSampleCount'] as num?)?.toInt() ?? 0,
       lastKnownLat: (map['lastKnownLat'] as num?)?.toDouble(),
       lastKnownLon: (map['lastKnownLon'] as num?)?.toDouble(),
+      completedRoutePoints:
+          (map['completedRoutePoints'] as List<dynamic>?)
+              ?.whereType<List<dynamic>>()
+              .map(
+                (point) => point
+                    .map((coordinate) => (coordinate as num).toDouble())
+                    .toList(),
+              )
+              .toList() ??
+          const [],
     );
   }
 
   @override
   List<Object?> get props => [
-        origin,
-        destination,
-        destinationName,
-        profile,
-        initialRoute,
-        currentSegmentIndex,
-        currentInstructionIndex,
-        tripStartTime,
-        lastSavedTime,
-        totalDistanceTraveledMeters,
-        maxSpeedKmh,
-        speedSampleSum,
-        speedSampleCount,
-        lastKnownLat,
-        lastKnownLon,
-      ];
+    origin,
+    tripOrigin,
+    tripOriginName,
+    destination,
+    destinationName,
+    profile,
+    initialRoute,
+    currentSegmentIndex,
+    currentInstructionIndex,
+    tripStartTime,
+    lastSavedTime,
+    totalDistanceTraveledMeters,
+    maxSpeedKmh,
+    speedSampleSum,
+    speedSampleCount,
+    lastKnownLat,
+    lastKnownLon,
+    completedRoutePoints,
+  ];
 }

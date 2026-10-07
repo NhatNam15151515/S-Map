@@ -1,9 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -16,6 +13,9 @@ class PoiQuickCard extends StatelessWidget {
   final VoidCallback? onDirections;
   final VoidCallback? onCustomRoute;
   final VoidCallback? onAddDestination;
+  final bool isFavorite;
+  final VoidCallback? onFavoriteTap;
+  final VoidCallback? onCopyCoordinates;
 
   const PoiQuickCard({
     super.key,
@@ -25,20 +25,14 @@ class PoiQuickCard extends StatelessWidget {
     this.onDirections,
     this.onCustomRoute,
     this.onAddDestination,
+    this.isFavorite = false,
+    this.onFavoriteTap,
+    this.onCopyCoordinates,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (userLocation != null) {
-      return _buildCard(context, userLocation);
-    }
-
-    return BlocBuilder<MapDisplayCubit, MapDisplayState>(
-      buildWhen: (prev, curr) => prev.currentPosition != curr.currentPosition,
-      builder: (context, state) {
-        return _buildCard(context, state.currentPosition);
-      },
-    );
+    return _buildCard(context, userLocation);
   }
 
   Widget _buildCard(BuildContext context, LatLng? effectiveLocation) {
@@ -187,29 +181,21 @@ class PoiQuickCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              BlocBuilder<FavoritesCubit, FavoritesState>(
-                builder: (context, favState) {
-                  final cubit = context.read<FavoritesCubit>();
-                  final key = cubit.getPoiKey(poi);
-                  final isFav = favState.isFavorite(key);
-
-                  return IconButton(
+              IconButton(
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.all(4),
                     constraints: const BoxConstraints(),
                     icon: Icon(
-                      isFav
+                      isFavorite
                           ? Icons.bookmark_rounded
                           : Icons.bookmark_outline_rounded,
                       size: 22,
-                      color: isFav
+                      color: isFavorite
                           ? colorScheme.primary
                           : colorScheme.onSurfaceVariant,
                     ),
-                    onPressed: () => cubit.toggleFavorite(poi),
+                    onPressed: onFavoriteTap,
                     tooltip: tr(LocaleKeys.savedPlaces),
-                  );
-                },
               ),
               const SizedBox(width: 4),
               IconButton(
@@ -273,17 +259,7 @@ class PoiQuickCard extends StatelessWidget {
           const SizedBox(height: 6),
           InkWell(
             borderRadius: BorderRadius.circular(6),
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: latLonStr));
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  duration: const Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                  content: Text('Đã sao chép tọa độ: $latLonStr'),
-                ),
-              );
-            },
+            onTap: onCopyCoordinates,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(

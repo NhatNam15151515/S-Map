@@ -24,6 +24,7 @@ class RouteDrawingWaypointPanel extends StatefulWidget {
   final void Function(int index) onRemovePoint;
   final void Function(int segmentIndex) onToggleSegmentStraightLine;
   final bool showStraightLineToggles;
+  final Widget? searchBarTrailing;
 
   const RouteDrawingWaypointPanel({
     super.key,
@@ -36,6 +37,7 @@ class RouteDrawingWaypointPanel extends StatefulWidget {
     required this.onRemovePoint,
     required this.onToggleSegmentStraightLine,
     this.showStraightLineToggles = true,
+    this.searchBarTrailing,
   });
 
   @override
@@ -70,6 +72,7 @@ class _RouteDrawingWaypointPanelState extends State<RouteDrawingWaypointPanel> {
                     key: const Key('route_drawing_search_destination_button'),
                     showBackButton: false,
                     onTap: widget.onSearchDestinationPressed,
+                    trailing: widget.searchBarTrailing,
                   )
                 : Container(
                     decoration: BoxDecoration(

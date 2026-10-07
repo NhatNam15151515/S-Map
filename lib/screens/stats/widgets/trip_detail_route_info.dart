@@ -6,15 +6,16 @@ import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 import 'trip_route_point_item.dart';
 
-import 'package:s_map/services/services.dart';
 
 /// Khối hiển thị thông tin lộ trình (Điểm xuất phát -> Đường nối -> Điểm đến / Điểm dừng)
 class TripDetailRouteInfo extends StatefulWidget {
   final TripRecordModel trip;
+  final Future<void> Function(TripRecordModel trip)? onTripUpdated;
 
   const TripDetailRouteInfo({
     super.key,
     required this.trip,
+    this.onTripUpdated,
   });
 
   @override
@@ -94,11 +95,9 @@ class _TripDetailRouteInfoState extends State<TripDetailRouteInfo> {
       }
     }
 
-    // Lưu ngầm vào cơ sở dữ liệu để lần sau mở lên tức thì
+    // Notify the screen coordinator so persistence stays outside this widget.
     if (needsUpdate) {
-      try {
-        TripServiceImpl.instance.saveTrip(updatedTrip);
-      } catch (_) {}
+      await widget.onTripUpdated?.call(updatedTrip);
     }
   }
 

@@ -23,6 +23,12 @@ abstract class  LocaleKeys {
   static const search_bar_title = 'search_bar.title';
   static const search_bar_placeholder = 'search_bar.placeholder';
   static const search_bar_voice = 'search_bar.voice';
+  static const search_bar_voice_listening = 'search_bar.voice_listening';
+  static const search_bar_voice_hint = 'search_bar.voice_hint';
+  static const search_bar_voice_try_again = 'search_bar.voice_try_again';
+  static const search_bar_voice_permission_denied = 'search_bar.voice_permission_denied';
+  static const search_bar_voice_open_settings = 'search_bar.voice_open_settings';
+  static const search_bar_voice_unavailable = 'search_bar.voice_unavailable';
   static const search_bar = 'search_bar';
   static const search_input_hint = 'search_input_hint';
   static const recentSearches = 'recentSearches';
@@ -358,5 +364,22 @@ abstract class  LocaleKeys {
   static const close = 'close';
   static const aboutAppDesc = 'aboutAppDesc';
   static const versionPrefix = 'versionPrefix';
+  static const help_feedback_content = 'help_feedback_content';
+  static const user_avatar_title = 'user_avatar_title';
+  static const user_avatar_view = 'user_avatar_view';
+  static const user_avatar_view_desc = 'user_avatar_view_desc';
+  static const user_avatar_take_photo = 'user_avatar_take_photo';
+  static const user_avatar_take_photo_desc = 'user_avatar_take_photo_desc';
+  static const user_avatar_pick_gallery = 'user_avatar_pick_gallery';
+  static const user_avatar_pick_gallery_desc = 'user_avatar_pick_gallery_desc';
+  static const user_avatar_delete = 'user_avatar_delete';
+  static const user_avatar_delete_desc = 'user_avatar_delete_desc';
+  static const user_update_avatar_success = 'user_update_avatar_success';
+  static const user_delete_avatar_success = 'user_delete_avatar_success';
+  static const user_process_avatar_error = 'user_process_avatar_error';
+  static const user_open_camera_error = 'user_open_camera_error';
+  static const user_pick_gallery_error = 'user_pick_gallery_error';
+  static const user_share_location_message = 'user_share_location_message';
+  static const user_share_location_fallback = 'user_share_location_fallback';
 
 }

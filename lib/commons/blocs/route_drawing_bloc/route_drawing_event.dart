@@ -122,4 +122,8 @@ class RouteDrawingRemovePoint extends RouteDrawingEvent {
   List<Object?> get props => [index];
 }
 
+/// Hoàn tác bước vẽ cuối cùng (xóa điểm cuối trong danh sách waypoints)
+class RouteDrawingUndo extends RouteDrawingEvent {
+  const RouteDrawingUndo();
+}
 

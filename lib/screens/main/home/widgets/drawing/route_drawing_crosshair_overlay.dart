@@ -24,14 +24,15 @@ class RouteDrawingCrosshairOverlay extends StatelessWidget {
     return Stack(
       children: [
         // Tâm ngắm ở giữa màn hình
-        GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () {
-            if (!isLoading) {
-              onAddPoint();
-            }
-          },
-          child: Center(
+        Center(
+          child: GestureDetector(
+            // HIT-TEST NOTE: Giữ detector giới hạn đúng vùng 56x56 của tâm
+            // ngắm. Không bọc detector quanh Center toàn màn hình: map nằm
+            // bên dưới PlatformView và mọi tap trên map khi đó sẽ bị hiểu
+            // thành thao tác thêm điểm tại tâm. Nếu gặp click xuyên map trong
+            // state vẽ, sửa vùng hit-test ở đây; không cần debounce tap toàn cục.
+            behavior: HitTestBehavior.opaque,
+            onTap: isLoading ? null : onAddPoint,
             child: SizedBox(
               width: 56,
               height: 56,

@@ -1,0 +1,69 @@
+[
+  // ─── 1. RANH GIỚI HÀNH CHÍNH & BIÊN GIỚI QUỐC GIA (Nét đứt) ───
+  {
+    "id": "smap-boundaries",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "boundary",
+    "minzoom": 4,
+    "paint": {
+      "line-color": "__BOUNDARY_LINE__",
+      "line-opacity": 0.78,
+      "line-width": [
+        "interpolate", ["linear"], ["zoom"],
+        4, 0.6,
+        10, 1.1,
+        14, 1.8
+      ],
+      "line-dasharray": [3, 2] // Kiểu nét đứt: [gạch 3px, khoảng trống 2px]
+    }
+  },
+
+  // ─── 2. MẶT BẰNG SÂN BAY / BÃI ĐÁP MÁY BAY ───
+  {
+    "id": "smap-aeroway-fill",
+    "type": "fill",
+    "source": "smap-vietnam",
+    "source-layer": "aeroway",
+    "minzoom": 10,
+    "paint": {
+      "fill-color": "__AEROWAY_FILL__",
+      "fill-opacity": 0.72
+    }
+  },
+
+  // ─── 3. ĐƯỜNG KẺ TIM ĐƯỜNG BĂNG SÂN BAY ───
+  {
+    "id": "smap-aeroway-line",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "aeroway",
+    "minzoom": 10,
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__AEROWAY_LINE__",
+      "line-width": [
+        "interpolate", ["linear"], ["zoom"],
+        10, 0.6,
+        14, 2.2
+      ]
+    }
+  },
+
+  // ─── 4. TÒA NHÀ & CÔNG TRÌNH XÂY DỰNG 2D ───
+  {
+    "id": "smap-buildings",
+    "type": "fill",
+    "source": "smap-vietnam",
+    "source-layer": "building",
+    "minzoom": 13, // Chỉ hiện khi zoom gần từ mức 13 trở lên để tránh rối bản đồ
+    "paint": {
+      "fill-color": "__BUILDING_FILL__",       // Màu nóc tòa nhà
+      "fill-outline-color": "__BUILDING_OUTLINE__", // Viền mép tường/mái tòa nhà
+      "fill-opacity": 0.90
+    }
+  }
+]

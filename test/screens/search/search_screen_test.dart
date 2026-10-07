@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
@@ -109,14 +110,14 @@ void main() {
 
     testWidgets('SearchScreenContent handles onAcquireLocation callback', (tester) async {
       bool acquired = false;
-      final searchCubit = SearchCubit(
+      final searchBloc = SearchBloc(
         poiRepository: _FakePoiRepository(),
         recentSearchService: NoOpRecentSearchService(),
       );
 
       await tester.pumpWidget(createTestableWidget(
         BlocProvider.value(
-          value: searchCubit,
+          value: searchBloc,
           child: SearchScreenContent(
             hasExistingDestinations: false,
             onAcquireLocation: () async {
@@ -133,11 +134,11 @@ void main() {
       await tester.pump();
       expect(acquired, isTrue);
 
-      searchCubit.close();
+      searchBloc.close();
     });
 
     testWidgets('SearchScreenContent passes hasExistingDestinations to SearchResultsList', (tester) async {
-      final searchCubit = SearchCubit(
+      final searchBloc = SearchBloc(
         poiRepository: _FakePoiRepository(),
         recentSearchService: NoOpRecentSearchService(),
         userLocation: const LatLng(21.0, 105.8),
@@ -145,7 +146,7 @@ void main() {
 
       await tester.pumpWidget(createTestableWidget(
         BlocProvider.value(
-          value: searchCubit,
+          value: searchBloc,
           child: const SearchScreenContent(
             hasExistingDestinations: true,
           ),
@@ -154,19 +155,18 @@ void main() {
       await tester.pumpAndSettle();
 
       // Trigger search query
-      searchCubit.onQueryChanged('Hồ', debounceDuration: Duration.zero);
+      searchBloc.add(const SearchQueryChanged('Hồ', debounceDuration: Duration.zero));
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pumpAndSettle();
 
       // Should show the add destination button
       expect(find.byKey(const Key('poi_list_tile_add_destination_button')), findsOneWidget);
 
-      searchCubit.close();
+      searchBloc.close();
     });
 
     testWidgets('Enter returns the result list to the map workflow', (tester) async {
-      final searchCubit = SearchCubit(
+      final searchBloc = SearchBloc(
         poiRepository: _FakePoiRepository(),
         recentSearchService: NoOpRecentSearchService(),
         userLocation: const LatLng(21.0, 105.8),
@@ -174,7 +174,7 @@ void main() {
 
       await tester.pumpWidget(createTestableWidget(
         BlocProvider.value(
-          value: searchCubit,
+          value: searchBloc,
           child: const SearchScreenContent(
             hasExistingDestinations: true,
           ),
@@ -187,7 +187,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('root'), findsOneWidget);
-      searchCubit.close();
+      searchBloc.close();
     });
   });
 }

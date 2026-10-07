@@ -229,6 +229,21 @@ class AppColors {
   static const darkStatsSuccessBg = Color(0xFF1B5E20);
   static const darkWarning = Color(0xFFFFD54F);
   static const darkWarningBg = Color(0xFF5D4037);
+
+  // POI Category Badge Marker Colors
+  static const poiBadgeCafe = burningTrail;
+  static const poiBadgeFood = sunOrange;
+  static const poiBadgeHotel = darkStatsPink;
+  static const poiBadgeShop = darkStatsBlue;
+  static const poiBadgeSupermarket = cherenkovRadiation;
+  static const poiBadgeFuel = flameOrange;
+  static const poiBadgeBank = googleGreen;
+  static const poiBadgeHospital = googleRed;
+  static const poiBadgeSchool = andreaBlue;
+  static const poiBadgePark = aareRiver;
+  static const poiBadgeDefault = whiteout;
+  static const poiBadgeIcon = mapSymbolText;
+  static const poiBadgeBorder = darkOutline;
 }
 
 

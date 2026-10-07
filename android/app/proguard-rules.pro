@@ -59,6 +59,12 @@
 -keepclassmembers class com.google.firebase.** { *; }
 -keepclassmembers class com.google.android.gms.** { *; }
 
+# Google Play Services resolves FragmentActivity through its lifecycle bridge.
+# Keep its AndroidX name stable so R8 does not rename it to an internal class
+# name that Play Services cannot resolve at runtime.
+-keep class androidx.fragment.app.FragmentActivity { *; }
+-keep interface androidx.core.app.PictureInPictureProvider { *; }
+
 # ------------------------------------------------------------------------------
 # Flutter Engine, Plugins & Pigeon (MethodChannel / Pigeon IPC)
 # ------------------------------------------------------------------------------

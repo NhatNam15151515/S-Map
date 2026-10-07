@@ -219,8 +219,8 @@ void main() {
       expect(find.byKey(const Key('route_drawing_save_button')), findsOneWidget);
       expect(find.byKey(const Key('route_drawing_navigate_button')), findsOneWidget);
 
-      // Tap Undo
-      await tester.tap(find.byKey(const Key('route_drawing_undo_button')));
+      // Undo point
+      drawingBloc.add(const RouteDrawingUndo());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
@@ -258,9 +258,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const Key('route_drawing_undo_button')),
-      );
+      drawingBloc.add(const RouteDrawingUndo());
       await tester.pumpAndSettle();
 
       expect(drawingBloc.state.points, isEmpty);

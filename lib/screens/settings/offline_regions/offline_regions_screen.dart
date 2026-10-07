@@ -24,13 +24,13 @@ class _OfflineRegionsScreenState extends State<OfflineRegionsScreen>
     return BlocProvider(
       create: (context) => DownloadRegionCubit()
         ..loadRegions(checkUpdates: true),
-      child: const _OfflineRegionsContent(),
+      child: const OfflineRegionsContent(),
     );
   }
 }
 
-class _OfflineRegionsContent extends StatelessWidget with AppMixin {
-  const _OfflineRegionsContent();
+class OfflineRegionsContent extends StatelessWidget with AppMixin {
+  const OfflineRegionsContent({super.key});
 
   void _handleMessage(BuildContext context, DownloadRegionState state) {
     if (state.isSuccess && state.successMessage != null) {
@@ -78,7 +78,7 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
                     children: [
                       // Header Card: Storage summary
                       OfflineStorageSummaryCard(
-                        state: state,
+                        formattedStorage: state.formattedTotalStorage,
                         onCheckUpdates: () {
                           context.read<DownloadRegionCubit>().checkForUpdates();
                         },
@@ -90,10 +90,12 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            tr(LocaleKeys.offline_maps_available_regions),
-                            style: colorScheme.onSurface.textTheme.boldStyle
-                                .copyWith(fontSize: 16.sp),
+                          Expanded(
+                            child: Text(
+                              tr(LocaleKeys.offline_maps_available_regions),
+                              style: colorScheme.onSurface.textTheme.boldStyle
+                                  .copyWith(fontSize: 16.sp),
+                            ),
                           ),
                           Text(
                             '${state.downloadedRegionsCount}/${state.regions.length}',
@@ -105,34 +107,51 @@ class _OfflineRegionsContent extends StatelessWidget with AppMixin {
 
                       SizedBox(height: 12.h),
 
-                      // Danh sách các vùng
-                      ...state.regions.map((region) {
-                        final isCurrentlyDownloading =
-                            state.currentlyDownloadingRegionId == region.id;
-                        final progress = state.getProgress(region.id);
+                      // Danh sách các vùng hoặc Trạng thái trống
+                      if (state.regions.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(top: 40.h),
+                          child: EmptyWidget(
+                            icon: state.isError
+                                ? Icons.wifi_off_rounded
+                                : Icons.cloud_off_rounded,
+                            title: state.isError
+                                ? tr(LocaleKeys.offline_maps_error)
+                                : tr(LocaleKeys.offline_maps_available_regions),
+                            onRefresh: () => context
+                                .read<DownloadRegionCubit>()
+                                .loadRegions(),
+                            actionLabel: tr(LocaleKeys.offline_maps_check_updates),
+                          ),
+                        )
+                      else
+                        ...state.regions.map((region) {
+                          final isCurrentlyDownloading =
+                              state.currentlyDownloadingRegionId == region.id;
+                          final progress = state.getProgress(region.id);
 
-                        return RegionCard(
-                          key: ValueKey(region.id),
-                          region: region,
-                          progress: progress,
-                          isCurrentlyDownloading: isCurrentlyDownloading,
-                          onDownload: () {
-                            context
-                                .read<DownloadRegionCubit>()
-                                .downloadRegion(region.id);
-                          },
-                          onDelete: () {
-                            context
-                                .read<DownloadRegionCubit>()
-                                .deleteRegion(region.id);
-                          },
-                          onCancel: () {
-                            context
-                                .read<DownloadRegionCubit>()
-                                .cancelDownload(region.id);
-                          },
-                        );
-                      }),
+                          return RegionCard(
+                            key: ValueKey(region.id),
+                            region: region,
+                            progress: progress,
+                            isCurrentlyDownloading: isCurrentlyDownloading,
+                            onDownload: () {
+                              context
+                                  .read<DownloadRegionCubit>()
+                                  .downloadRegion(region.id);
+                            },
+                            onDelete: () {
+                              context
+                                  .read<DownloadRegionCubit>()
+                                  .deleteRegion(region.id);
+                            },
+                            onCancel: () {
+                              context
+                                  .read<DownloadRegionCubit>()
+                                  .cancelDownload(region.id);
+                            },
+                          );
+                        }),
                     ],
                   ),
                 ),

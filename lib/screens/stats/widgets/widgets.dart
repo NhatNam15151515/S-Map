@@ -8,5 +8,7 @@ export 'stats_vehicle_filter_chips.dart';
 export 'trip_detail_kpi_grid.dart';
 export 'trip_detail_panel.dart';
 export 'trip_detail_route_info.dart';
+export 'trip_detail_streets_card.dart';
+export 'trip_leg_item_tile.dart';
 export 'trip_route_point_item.dart';
 

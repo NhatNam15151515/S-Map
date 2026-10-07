@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:flutter/services.dart';
 
@@ -62,10 +63,13 @@ class TrieIndex {
 
   static Future<TrieIndex> loadAsset(String assetPath) async {
     final data = await rootBundle.load(assetPath);
-    return TrieIndex.fromBytes(data.buffer.asUint8List(
+    final bytes = data.buffer.asUint8List(
       data.offsetInBytes,
       data.lengthInBytes,
-    ));
+    );
+    // The index contains many small nodes. Decoding it on the UI isolate can
+    // block the first search for seconds on mid-range devices.
+    return Isolate.run(() => TrieIndex.fromBytes(bytes));
   }
 
   static Future<TrieIndex?> tryLoadAsset(String assetPath) async {
@@ -115,14 +119,19 @@ class _BinaryReader {
   }
 
   String readAscii(int length) => String.fromCharCodes(
-        List<int>.generate(length, (_) => readUint8()),
+        _readBytes(length),
       );
 
   String readUtf8(int length) {
-    final bytes = Uint8List(length);
-    for (var index = 0; index < length; index++) {
-      bytes[index] = readUint8();
-    }
-    return utf8.decode(bytes);
+    return utf8.decode(_readBytes(length));
+  }
+
+  Uint8List _readBytes(int length) {
+    final bytes = _data.buffer.asUint8List(
+      _data.offsetInBytes + _offset,
+      length,
+    );
+    _offset += length;
+    return bytes;
   }
 }

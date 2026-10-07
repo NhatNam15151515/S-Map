@@ -116,6 +116,12 @@ class AuthCubit extends Cubit<AuthState> {
         if (isClosed) return;
         faceIdAcceptStream.value = reqAuth;
         await onAuthenticated(profile);
+
+        if (profile.id != null &&
+            profile.id!.isNotEmpty &&
+            (profile.avatarBase64 == null || profile.avatarBase64!.isEmpty)) {
+          unawaited(_refreshProfileFromRemote(profile));
+        }
       } else {
         if (isClosed) return;
         if (state.isInitial) {
@@ -162,6 +168,35 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> onLoggedIn(User user) async {
     faceIdAcceptStream.value = false;
     await onAuthenticated(user);
+
+    if (user.id != null && user.id!.isNotEmpty) {
+      unawaited(_refreshProfileFromRemote(user));
+    }
+  }
+
+  Future<void> _refreshProfileFromRemote(User current) async {
+    try {
+      final remoteProfile = await _authRepos
+          .getProfile()
+          .timeout(const Duration(seconds: 4), onTimeout: () => null);
+      if (remoteProfile != null && !isClosed) {
+        final merged = current.copyWith(
+          avatarBase64: remoteProfile.avatarBase64 ?? current.avatarBase64,
+          username: (remoteProfile.username != null &&
+                  remoteProfile.username!.isNotEmpty)
+              ? remoteProfile.username
+              : current.username,
+          email: remoteProfile.email ?? current.email,
+          avatarUrl: remoteProfile.avatarUrl ?? current.avatarUrl,
+        );
+        if (merged.avatarBase64 != current.avatarBase64 ||
+            merged.username != current.username) {
+          await onAuthenticated(merged);
+        }
+      }
+    } catch (e) {
+      DLog.warning('Lỗi sync remote profile: $e');
+    }
   }
 
   Future<void> completeOnboarding() async {
@@ -233,10 +268,22 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> updateProfile(User user) async {
     await _secureStorage.saveProfile(user);
+    if (user.id != null && user.id!.isNotEmpty) {
+      try {
+        await _authRepos.updateProfile(user);
+      } catch (e) {
+        DLog.warning('Lỗi đồng bộ hồ sơ lên Firestore: $e');
+      }
+    }
     emit(state.copyWith(
       type: AuthStateType.authenticated,
       loggedInProfile: user,
     ));
+  }
+
+  Future<void> updateAvatarBase64(String base64) async {
+    final updated = currentProfile.copyWith(avatarBase64: base64);
+    await updateProfile(updated);
   }
 
   Future<void> getProfile() async {

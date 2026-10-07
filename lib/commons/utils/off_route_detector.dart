@@ -44,7 +44,10 @@ class OffRouteDetector implements IOffRouteDetector {
     required List<List<double>> routePoints,
     int currentSegmentIndex = 0,
     int lookAheadSegments = 5,
+    double? thresholdMeters,
   }) {
+    final effectiveThreshold = thresholdMeters ?? this.thresholdMeters;
+
     // Trường hợp danh sách điểm không đủ tạo thành đoạn thẳng
     if (routePoints.isEmpty) {
       return const OffRouteStatus(
@@ -63,7 +66,7 @@ class OffRouteDetector implements IOffRouteDetector {
         p0[1],
       );
       return OffRouteStatus(
-        isOffRoute: dist > thresholdMeters,
+        isOffRoute: dist > effectiveThreshold,
         distanceToRoute: dist,
         segmentIndex: 0,
         closestPoint: [p0[0], p0[1]],
@@ -102,8 +105,8 @@ class OffRouteDetector implements IOffRouteDetector {
       }
     }
 
-    // Nếu khoảng cách trong cửa sổ trượt <= ngưỡng (50m) -> Đang On-Route
-    if (minDistanceWindow <= thresholdMeters) {
+    // Nếu khoảng cách trong cửa sổ trượt nằm trong hành lang hiện tại -> On-Route.
+    if (minDistanceWindow <= effectiveThreshold) {
       return OffRouteStatus(
         isOffRoute: false,
         distanceToRoute: minDistanceWindow,
@@ -141,11 +144,11 @@ class OffRouteDetector implements IOffRouteDetector {
       }
     }
 
-    final isOffRoute = globalMinDistance > thresholdMeters;
+    final isOffRoute = globalMinDistance > effectiveThreshold;
 
     if (isOffRoute) {
       DLog.info(
-          '🚨 [OffRouteDetector] Vehicle off-route detected: dist=${globalMinDistance.toStringAsFixed(1)}m > ${thresholdMeters.toStringAsFixed(0)}m (Closest seg: $globalBestSegment/$totalSegments)');
+          '🚨 [OffRouteDetector] Vehicle off-route detected: dist=${globalMinDistance.toStringAsFixed(1)}m > ${effectiveThreshold.toStringAsFixed(1)}m (Closest seg: $globalBestSegment/$totalSegments)');
     }
 
     return OffRouteStatus(

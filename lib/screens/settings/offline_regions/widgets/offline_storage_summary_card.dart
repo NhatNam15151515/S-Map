@@ -1,17 +1,17 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
 class OfflineStorageSummaryCard extends StatelessWidget {
-  final DownloadRegionState state;
+  final String formattedStorage;
   final VoidCallback onCheckUpdates;
 
   const OfflineStorageSummaryCard({
     super.key,
-    required this.state,
+    required this.formattedStorage,
     required this.onCheckUpdates,
   });
 
@@ -58,26 +58,24 @@ class OfflineStorageSummaryCard extends StatelessWidget {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  state.formattedTotalStorage,
+                  formattedStorage,
                   style: colorScheme.onPrimary.textTheme.boldStyle
                       .copyWith(fontSize: 20.sp),
                 ),
               ],
             ),
           ),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: colorScheme.onPrimary),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r)),
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-            ),
+          AppButton.outlined(
+            text: tr(LocaleKeys.offline_maps_check_updates),
+            width: null,
+            height: 36.h,
+            borderRadius: 8.r,
+            textColor: colorScheme.onPrimary,
+            borderColor: colorScheme.onPrimary,
+            textStyle: colorScheme.onPrimary.textTheme.semiBoldStyle
+                .copyWith(fontSize: 12.sp),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             onPressed: onCheckUpdates,
-            child: Text(
-              tr(LocaleKeys.offline_maps_check_updates),
-              style: colorScheme.onPrimary.textTheme.semiBoldStyle
-                  .copyWith(fontSize: 12.sp),
-            ),
           ),
         ],
       ),

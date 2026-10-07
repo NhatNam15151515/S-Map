@@ -32,6 +32,21 @@ class MapMarkerHelper {
   /// Khóa định danh marker kết quả tìm kiếm
   static const String searchResultPinId = 'smap-search-result-pin-marker';
 
+  /// Danh mục các icon POI marker và màu nền đại diện dùng design token từ AppColors
+  static const Map<String, ({IconData icon, Color bg})> categoryPoiMarkers = {
+    'poi-marker-cafe': (icon: Icons.coffee_rounded, bg: AppColors.poiBadgeCafe),
+    'poi-marker-food': (icon: Icons.restaurant_rounded, bg: AppColors.poiBadgeFood),
+    'poi-marker-hotel': (icon: Icons.hotel_rounded, bg: AppColors.poiBadgeHotel),
+    'poi-marker-shop': (icon: Icons.shopping_bag_rounded, bg: AppColors.poiBadgeShop),
+    'poi-marker-supermarket': (icon: Icons.shopping_cart_rounded, bg: AppColors.poiBadgeSupermarket),
+    'poi-marker-fuel': (icon: Icons.local_gas_station_rounded, bg: AppColors.poiBadgeFuel),
+    'poi-marker-bank': (icon: Icons.account_balance_rounded, bg: AppColors.poiBadgeBank),
+    'poi-marker-hospital': (icon: Icons.local_hospital_rounded, bg: AppColors.poiBadgeHospital),
+    'poi-marker-school': (icon: Icons.school_rounded, bg: AppColors.poiBadgeSchool),
+    'poi-marker-park': (icon: Icons.park_rounded, bg: AppColors.poiBadgePark),
+    'poi-marker-default': (icon: Icons.place_rounded, bg: AppColors.poiBadgeDefault),
+  };
+
   /// Tạo ảnh Red Pin Marker giọt nước có đổ bóng 3D (Ground Shadow elip dưới chân + Body Drop Shadow)
   /// Dùng cho: Click chọn điểm trên map, Kết quả tìm kiếm POI, Điểm đến lộ trình và Đích đến hoàn thành.
   static Future<Uint8List> createRedPinMarkerBytes({
@@ -266,10 +281,129 @@ class MapMarkerHelper {
       );
       await _safeAddImage(controller, stopMarkerId, stopBytes);
 
-      DLog.info('🗺️ [MapMarkerHelper] Common map markers with 3D shadows loaded successfully into engine');
+      // 4. Các biểu tượng POI ghim badge tròn theo Category (hiện khi zoom sâu)
+      for (final entry in categoryPoiMarkers.entries) {
+        try {
+          final badgeBytes = await createCategoryBadgeMarkerBytes(
+            icon: entry.value.icon,
+            backgroundColor: entry.value.bg,
+          );
+          await _safeAddImage(controller, entry.key, badgeBytes);
+        } catch (e, stack) {
+          DLog.warning(
+              '⚠️ [MapMarkerHelper] Failed to load POI badge ${entry.key}: $e',
+              stack);
+        }
+      }
+
+      DLog.info('🗺️ [MapMarkerHelper] Common map markers with 3D shadows and POI badges loaded successfully into engine');
     } catch (e, stack) {
       DLog.warning('⚠️ [MapMarkerHelper] Failed to load common markers: $e', stack);
     }
+  }
+
+  /// Tạo ảnh badge tròn ghim vị trí theo danh mục (Category POI Badge Pin)
+  /// Có viền tròn, nền màu theo danh mục, icon Material ở giữa, chân ghim nhọn cắm xuống đất và đổ bóng.
+  static Future<Uint8List> createCategoryBadgeMarkerBytes({
+    required IconData icon,
+    required Color backgroundColor,
+    Color iconColor = AppColors.poiBadgeIcon,
+    Color borderColor = AppColors.poiBadgeBorder,
+    double width = 56,
+    double height = 66,
+  }) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    final centerX = width / 2;
+    final tipY = height - 5.0;
+    final headRadius = width * 0.40;
+    final headCenterY = headRadius + 4.0;
+
+    // 1. Ground Shadow (bóng tiếp xúc mặt đất elip)
+    final groundShadowPaint = Paint()
+      ..color = AppColors.blackOpa25
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(centerX, height - 3.0),
+        width: width * 0.45,
+        height: 6.0,
+      ),
+      groundShadowPaint,
+    );
+
+    // 2. Thân ghim (Pin Pointer: tam giác nhọn ở chân kết hợp vòng tròn)
+    final pinPath = Path();
+    pinPath.moveTo(centerX, tipY);
+    pinPath.lineTo(centerX - headRadius * 0.50, headCenterY + headRadius * 0.75);
+    pinPath.arcTo(
+      Rect.fromCircle(center: Offset(centerX, headCenterY), radius: headRadius),
+      math.pi * 0.68,
+      math.pi * 1.64,
+      false,
+    );
+    pinPath.lineTo(centerX, tipY);
+    pinPath.close();
+
+    // 2.1. Đổ bóng toàn thân (Drop shadow)
+    final bodyShadowPaint = Paint()
+      ..color = AppColors.blackOpa25
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
+    canvas.drawPath(pinPath.shift(const Offset(0, 1.5)), bodyShadowPaint);
+
+    // 2.2. Viền ngoài bo ghim
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(pinPath, borderPaint);
+
+    // 2.3. Nền trong màu Category (Inner Fill)
+    final innerRadius = headRadius - 2.5;
+    final innerPath = Path();
+    innerPath.moveTo(centerX, tipY - 3.0);
+    innerPath.lineTo(
+        centerX - innerRadius * 0.50, headCenterY + innerRadius * 0.75);
+    innerPath.arcTo(
+      Rect.fromCircle(center: Offset(centerX, headCenterY), radius: innerRadius),
+      math.pi * 0.68,
+      math.pi * 1.64,
+      false,
+    );
+    innerPath.lineTo(centerX, tipY - 3.0);
+    innerPath.close();
+
+    final bgPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(innerPath, bgPaint);
+
+    // 3. Icon Material ở tâm vòng tròn
+    final iconPainter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+          fontSize: innerRadius * 1.05,
+          fontFamily: icon.fontFamily,
+          package: icon.fontPackage,
+          color: iconColor,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    iconPainter.paint(
+      canvas,
+      Offset(
+        centerX - iconPainter.width / 2,
+        headCenterY - iconPainter.height / 2,
+      ),
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(width.toInt(), height.toInt());
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
   }
 
   /// Thêm image an toàn, bắt lỗi nếu sprite key đã tồn tại trong Map engine

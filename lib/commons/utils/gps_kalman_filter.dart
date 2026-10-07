@@ -106,7 +106,14 @@ class GpsKalmanFilter {
       return GpsFilteredPosition(lat: _lat, lon: _lon);
     }
 
-    final clampedDt = dt.clamp(0.001, _maxPredictDt);
+    // Sau một quãng mất GPS dài, không dead-reckon nhiều giây từ vận tốc cũ:
+    // hướng có thể đã đổi. Lấy fix mới làm mốc để tránh marker tiếp tục trôi sai.
+    if (dt > _maxPredictDt) {
+      _initialize(gpsLat, gpsLon, accuracyMeters, speedMps, headingDeg);
+      return GpsFilteredPosition(lat: _lat, lon: _lon);
+    }
+
+    final clampedDt = dt.clamp(0.001, _maxPredictDt).toDouble();
 
     // Kiểm tra GPS teleport (nhảy vị trí bất thường)
     final jumpDist = _haversineMeters(_lat, _lon, gpsLat, gpsLon);

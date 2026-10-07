@@ -8,7 +8,10 @@ import 'package:s_map/constants/constants.dart';
 class MaintenancePopup extends StatelessWidget with AppMixin {
   final Completer removeUpdateOverlayCompleter;
 
-  const MaintenancePopup({super.key, required this.removeUpdateOverlayCompleter});
+  const MaintenancePopup({
+    super.key,
+    required this.removeUpdateOverlayCompleter,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +22,9 @@ class MaintenancePopup extends StatelessWidget with AppMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppAsset.logoOf(context).image.build(
-                size: const Size(240, 240),
-              ),
+              AppAsset.logoOf(context).image.build(size: const Size(240, 240)),
               Text(
+                //hard code string
                 "Chúng tôi đang thực hiện bảo trì hệ thống để nâng cấp, xin hãy trở lại sau.",
                 style: styles.blackTextColor.textTheme.boldStyle.copyWith(
                   fontSize: 16,

@@ -17,6 +17,9 @@ class NavigationState extends Equatable {
   final NavigationStatus status;
   final RouteResult? currentRoute;
   final RoutePoint? origin;
+  final RoutePoint? tripOrigin;
+  final String? tripOriginName;
+  final List<List<double>> completedRoutePoints;
   final RoutePoint? destination;
   final String? destinationName;
   final String profile;
@@ -24,6 +27,7 @@ class NavigationState extends Equatable {
   // GPS real-time properties
   final double? currentLat;
   final double? currentLon;
+
   /// Toạ độ đã lọc qua Kalman Filter (mượt, giảm jitter trong hẻm/gầm cầu)
   final double? filteredLat;
   final double? filteredLon;
@@ -75,6 +79,9 @@ class NavigationState extends Equatable {
     this.status = NavigationStatus.initial,
     this.currentRoute,
     this.origin,
+    this.tripOrigin,
+    this.tripOriginName,
+    this.completedRoutePoints = const [],
     this.destination,
     this.destinationName,
     this.profile = RoutingConstants.defaultProfile,
@@ -115,10 +122,12 @@ class NavigationState extends Equatable {
 
   /// Toạ độ hiển thị tối ưu: Ưu tiên toạ độ đã được snap vào tim đường nếu đang on-route,
   /// nếu không có thì dùng toạ độ Kalman-filtered mượt mà, cuối cùng là GPS thô.
-  double? get displayLat =>
-      isSnappedToRoute ? (snappedLat ?? filteredLat ?? currentLat) : (filteredLat ?? currentLat);
-  double? get displayLon =>
-      isSnappedToRoute ? (snappedLon ?? filteredLon ?? currentLon) : (filteredLon ?? currentLon);
+  double? get displayLat => isSnappedToRoute
+      ? (snappedLat ?? filteredLat ?? currentLat)
+      : (filteredLat ?? currentLat);
+  double? get displayLon => isSnappedToRoute
+      ? (snappedLon ?? filteredLon ?? currentLon)
+      : (filteredLon ?? currentLon);
 
   bool get isNavigating =>
       status == NavigationStatus.navigating ||
@@ -149,6 +158,9 @@ class NavigationState extends Equatable {
     NavigationStatus? status,
     RouteResult? currentRoute,
     RoutePoint? origin,
+    RoutePoint? tripOrigin,
+    String? tripOriginName,
+    List<List<double>>? completedRoutePoints,
     RoutePoint? destination,
     String? destinationName,
     bool clearDestinationName = false,
@@ -201,6 +213,9 @@ class NavigationState extends Equatable {
       status: status ?? this.status,
       currentRoute: currentRoute ?? this.currentRoute,
       origin: origin ?? this.origin,
+      tripOrigin: tripOrigin ?? this.tripOrigin,
+      tripOriginName: tripOriginName ?? this.tripOriginName,
+      completedRoutePoints: completedRoutePoints ?? this.completedRoutePoints,
       destination: destination ?? this.destination,
       destinationName: clearDestinationName
           ? null
@@ -208,22 +223,27 @@ class NavigationState extends Equatable {
       profile: profile ?? this.profile,
       currentLat: clearCurrentPosition ? null : (currentLat ?? this.currentLat),
       currentLon: clearCurrentPosition ? null : (currentLon ?? this.currentLon),
-      filteredLat:
-          clearCurrentPosition ? null : (filteredLat ?? this.filteredLat),
-      filteredLon:
-          clearCurrentPosition ? null : (filteredLon ?? this.filteredLon),
+      filteredLat: clearCurrentPosition
+          ? null
+          : (filteredLat ?? this.filteredLat),
+      filteredLon: clearCurrentPosition
+          ? null
+          : (filteredLon ?? this.filteredLon),
       currentSpeedKmh: clearCurrentPosition
           ? null
           : (currentSpeedKmh ?? this.currentSpeedKmh),
-      currentHeading:
-          clearCurrentPosition ? null : (currentHeading ?? this.currentHeading),
+      currentHeading: clearCurrentPosition
+          ? null
+          : (currentHeading ?? this.currentHeading),
       currentAccuracy: clearCurrentPosition
           ? null
           : (currentAccuracy ?? this.currentAccuracy),
-      snappedLat:
-          clearSnappedCoordinates ? null : (snappedLat ?? this.snappedLat),
-      snappedLon:
-          clearSnappedCoordinates ? null : (snappedLon ?? this.snappedLon),
+      snappedLat: clearSnappedCoordinates
+          ? null
+          : (snappedLat ?? this.snappedLat),
+      snappedLon: clearSnappedCoordinates
+          ? null
+          : (snappedLon ?? this.snappedLon),
       isSnappedToRoute: isSnappedToRoute ?? this.isSnappedToRoute,
       currentSegmentIndex: currentSegmentIndex ?? this.currentSegmentIndex,
       distanceToRoute: distanceToRoute ?? this.distanceToRoute,
@@ -245,16 +265,18 @@ class NavigationState extends Equatable {
       remainingDurationMs: remainingDurationMs ?? this.remainingDurationMs,
       isPreAnnounced: isPreAnnounced ?? this.isPreAnnounced,
       tripSummary: clearTripSummary ? null : (tripSummary ?? this.tripSummary),
-      tripStartTime:
-          clearTripStartTime ? null : (tripStartTime ?? this.tripStartTime),
+      tripStartTime: clearTripStartTime
+          ? null
+          : (tripStartTime ?? this.tripStartTime),
       maxSpeedKmh: maxSpeedKmh ?? this.maxSpeedKmh,
       totalDistanceTraveledMeters:
           totalDistanceTraveledMeters ?? this.totalDistanceTraveledMeters,
       speedSampleSum: speedSampleSum ?? this.speedSampleSum,
       speedSampleCount: speedSampleCount ?? this.speedSampleCount,
       messageKey: clearMessage ? null : (messageKey ?? this.messageKey),
-      errorMessageKey:
-          clearError ? null : (errorMessageKey ?? this.errorMessageKey),
+      errorMessageKey: clearError
+          ? null
+          : (errorMessageKey ?? this.errorMessageKey),
       promptBatteryOptimizationOem: clearPromptBatteryOptimization
           ? null
           : (promptBatteryOptimizationOem ?? this.promptBatteryOptimizationOem),
@@ -266,46 +288,49 @@ class NavigationState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        currentRoute,
-        origin,
-        destination,
-        destinationName,
-        profile,
-        currentLat,
-        currentLon,
-        filteredLat,
-        filteredLon,
-        currentSpeedKmh,
-        currentHeading,
-        currentAccuracy,
-        snappedLat,
-        snappedLon,
-        isSnappedToRoute,
-        currentSegmentIndex,
-        distanceToRoute,
-        isOffRoute,
-        isRerouting,
-        rerouteCount,
-        requestGeneration,
-        currentInstructionIndex,
-        currentInstruction,
-        nextInstruction,
-        distanceToNextInstruction,
-        remainingDistance,
-        remainingDurationMs,
-        isPreAnnounced,
-        tripSummary,
-        tripStartTime,
-        maxSpeedKmh,
-        totalDistanceTraveledMeters,
-        speedSampleSum,
-        speedSampleCount,
-        messageKey,
-        errorMessageKey,
-        promptBatteryOptimizationOem,
-        pendingResumeSession,
-      ];
+    status,
+    currentRoute,
+    origin,
+    tripOrigin,
+    tripOriginName,
+    completedRoutePoints,
+    destination,
+    destinationName,
+    profile,
+    currentLat,
+    currentLon,
+    filteredLat,
+    filteredLon,
+    currentSpeedKmh,
+    currentHeading,
+    currentAccuracy,
+    snappedLat,
+    snappedLon,
+    isSnappedToRoute,
+    currentSegmentIndex,
+    distanceToRoute,
+    isOffRoute,
+    isRerouting,
+    rerouteCount,
+    requestGeneration,
+    currentInstructionIndex,
+    currentInstruction,
+    nextInstruction,
+    distanceToNextInstruction,
+    remainingDistance,
+    remainingDurationMs,
+    isPreAnnounced,
+    tripSummary,
+    tripStartTime,
+    maxSpeedKmh,
+    totalDistanceTraveledMeters,
+    speedSampleSum,
+    speedSampleCount,
+    messageKey,
+    errorMessageKey,
+    promptBatteryOptimizationOem,
+    pendingResumeSession,
+  ];
 
   /// Chuyển đổi trạng thái sang ActiveTripSnapshot để lưu vào bộ nhớ tạm
   ActiveTripSnapshot? toSnapshot({required TripMetricsTracker metrics}) {
@@ -318,6 +343,8 @@ class NavigationState extends Equatable {
 
     return ActiveTripSnapshot(
       origin: origin!,
+      tripOrigin: tripOrigin ?? origin,
+      tripOriginName: tripOriginName,
       destination: destination!,
       destinationName: destinationName,
       profile: profile,
@@ -330,8 +357,9 @@ class NavigationState extends Equatable {
       maxSpeedKmh: metrics.maxSpeedKmh,
       speedSampleSum: metrics.speedSampleSum,
       speedSampleCount: metrics.speedSampleCount,
-      lastKnownLat: currentLat,
-      lastKnownLon: currentLon,
+      lastKnownLat: filteredLat ?? currentLat,
+      lastKnownLon: filteredLon ?? currentLon,
+      completedRoutePoints: completedRoutePoints,
     );
   }
 
@@ -339,6 +367,7 @@ class NavigationState extends Equatable {
   static NavigationState start({
     required RouteResult initialRoute,
     required RoutePoint origin,
+    String? originName,
     required RoutePoint destination,
     required String? destinationName,
     required String profile,
@@ -349,6 +378,8 @@ class NavigationState extends Equatable {
       status: NavigationStatus.navigating,
       currentRoute: initialRoute,
       origin: origin,
+      tripOrigin: origin,
+      tripOriginName: originName,
       destination: destination,
       destinationName: destinationName,
       profile: profile,
@@ -379,6 +410,9 @@ class NavigationState extends Equatable {
       status: NavigationStatus.navigating,
       currentRoute: snapshot.initialRoute,
       origin: snapshot.origin,
+      tripOrigin: snapshot.tripOrigin ?? snapshot.origin,
+      tripOriginName: snapshot.tripOriginName,
+      completedRoutePoints: snapshot.completedRoutePoints,
       destination: snapshot.destination,
       destinationName: snapshot.destinationName,
       profile: snapshot.profile,
@@ -498,11 +532,13 @@ class NavigationState extends Equatable {
     required InstructionProgress newProgress,
     required int requestGeneration,
     required String messageKey,
+    required List<List<double>> completedRoutePoints,
   }) {
     return copyWith(
       status: NavigationStatus.navigating,
       currentRoute: newRoute,
       origin: newOrigin,
+      completedRoutePoints: completedRoutePoints,
       currentSegmentIndex: 0,
       isOffRoute: false,
       isRerouting: false,

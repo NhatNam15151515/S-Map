@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/screens/main/home/widgets/home/home_poi_quick_card.dart';
+import 'package:s_map/screens/main/home/widgets/home/home_search_results_sheet.dart';
 
 class HomeBottomOverlay extends StatelessWidget {
   final DraggableScrollableController sheetController;
@@ -41,18 +43,11 @@ class HomeBottomOverlay extends StatelessWidget {
         left: 0,
         right: 0,
         bottom: kBottomNavigationBarHeight + 12 /*+ bottomPadding*/,
-        child: BlocBuilder<MapDisplayCubit, MapDisplayState>(
-          buildWhen: (prev, curr) =>
-              prev.currentPosition != curr.currentPosition,
-          builder: (context, mapDisplayState) {
-            return PoiQuickCard(
-              poi: selectedMarkerPoi!,
-              userLocation: mapDisplayState.currentPosition,
-              onClose: onClosePoiCard,
-              onDirections: onDirections,
-              onCustomRoute: onCustomRoute,
-            );
-          },
+        child: HomePoiQuickCard(
+          poi: selectedMarkerPoi!,
+          onClose: onClosePoiCard,
+          onDirections: onDirections,
+          onCustomRoute: onCustomRoute,
         ),
       );
     }
@@ -71,7 +66,7 @@ class HomeBottomOverlay extends StatelessWidget {
               MediaQuery.paddingOf(context).bottom +
               8,
         ),
-        child: SearchResultsBottomSheet(
+        child: HomeSearchResultsSheet(
           key: const ValueKey('search_results_bottom_sheet'),
           pois: searchResults ?? const [],
           query: searchQuery,

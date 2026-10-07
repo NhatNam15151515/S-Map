@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/drawing/widgets.dart';
@@ -158,7 +159,10 @@ void main() {
       await tester.tap(find.byKey(const Key('delete_saved_route_route_1')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Xóa lộ trình đã lưu?'), findsOneWidget);
+      expect(
+        find.text(tr(LocaleKeys.route_drawing_ui_delete_confirm_title)),
+        findsOneWidget,
+      );
       await tester.tap(find.byKey(const Key('delete_saved_route_confirm_btn')));
       await tester.pumpAndSettle();
 

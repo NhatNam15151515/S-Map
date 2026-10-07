@@ -3,13 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 import 'search_current_location_tile.dart';
 import 'search_input_field.dart';
 import 'search_recent_list.dart';
 import 'search_results_list.dart';
+import 'voice_search_bottom_sheet.dart';
 
 /// Nội dung chính của màn hình tìm kiếm.
 ///
@@ -21,11 +22,13 @@ import 'search_results_list.dart';
 class SearchScreenContent extends StatefulWidget {
   final bool hasExistingDestinations;
   final Future<LatLng?> Function()? onAcquireLocation;
+  final String? initialQuery;
 
   const SearchScreenContent({
     super.key,
     this.hasExistingDestinations = false,
     this.onAcquireLocation,
+    this.initialQuery,
   });
 
   @override
@@ -40,7 +43,7 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
   @override
   void initState() {
     super.initState();
-    _textController = TextEditingController();
+    _textController = TextEditingController(text: widget.initialQuery ?? '');
     _focusNode = FocusNode();
   }
 
@@ -58,7 +61,7 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
       final latLng = await widget.onAcquireLocation!();
       if (mounted && latLng != null) {
         HapticFeedback.lightImpact();
-        context.read<SearchCubit>().updateUserLocation(latLng);
+        context.read<SearchBloc>().add(SearchUserLocationChanged(latLng));
       }
       return latLng;
     } finally {
@@ -77,7 +80,7 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
   }
 
   void _onPoiSelected(PoiModel poi) {
-    context.read<SearchCubit>().addRecentSearch(poi.name);
+    context.read<SearchBloc>().add(SearchDestinationAdded(poi));
     if (widget.hasExistingDestinations) {
       context.pop(SearchResultPayload.addDestination(poi));
     } else {
@@ -86,7 +89,7 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
   }
 
   void _onAddDestination(PoiModel poi) {
-    context.read<SearchCubit>().addRecentSearch(poi.name);
+    context.read<SearchBloc>().add(SearchDestinationAdded(poi));
     context.pop(SearchResultPayload.addDestination(poi));
   }
 
@@ -112,7 +115,7 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
       TextPosition(offset: text.length),
     );
     _focusNode.unfocus();
-    context.read<SearchCubit>().search(text);
+    context.read<SearchBloc>().add(SearchSubmitted(text));
   }
 
   void _updateTextAndSubmit(String value, {required bool isCategory}) {
@@ -130,19 +133,9 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
   Future<void> _onSubmitted(String query) async {
     final clean = query.trim();
     if (clean.isEmpty) return;
-
-    final searchCubit = context.read<SearchCubit>();
-    await searchCubit.search(clean);
-    if (!mounted || searchCubit.state.query != clean) return;
-
-    // Enter dùng cùng một danh sách kết quả với realtime search. Home map sẽ
-    // hiển thị bottom sheet; nếu đang có route, mỗi item tự có nút thêm điểm.
-    context.pop(
-      SearchResultPayload.all(
-        allResults: searchCubit.state.results,
-        submittedQuery: clean,
-      ),
-    );
+    context
+        .read<SearchBloc>()
+        .add(SearchSubmitted(clean, returnResults: true));
   }
 
   void _submitAreaSearch({String? query, String? category}) {
@@ -154,7 +147,7 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
     }
 
     if (cleanQuery != null && cleanQuery.isNotEmpty) {
-      context.read<SearchCubit>().addRecentSearch(cleanQuery);
+      context.read<SearchBloc>().add(SearchRecentAdded(cleanQuery));
     }
 
     context.pop(
@@ -162,19 +155,19 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
         submittedQuery: cleanQuery?.isNotEmpty == true ? cleanQuery : null,
         searchCategory:
             cleanCategory?.isNotEmpty == true ? cleanCategory : null,
-        searchCenter: context.read<SearchCubit>().state.userLocation,
+        searchCenter: context.read<SearchBloc>().state.userLocation,
       ),
     );
   }
 
   void _onClear() {
     _textController.clear();
-    context.read<SearchCubit>().clearSearch();
+    context.read<SearchBloc>().add(const SearchCleared());
   }
 
   @override
   Widget build(BuildContext context) {
-    final searchCubit = context.read<SearchCubit>();
+    final searchBloc = context.read<SearchBloc>();
 
     return Scaffold(
       body: SafeArea(
@@ -183,13 +176,36 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
             SearchInputField(
               controller: _textController,
               focusNode: _focusNode,
-              onQueryChanged: searchCubit.onQueryChanged,
+              onQueryChanged: (query) =>
+                  searchBloc.add(SearchQueryChanged(query)),
               onSubmitted: _onSubmitted,
               onClear: _onClear,
               onBackPressed: () => context.pop(),
+              onVoicePressed: () async {
+                final query = await showVoiceSearchBottomSheet(context);
+                if (query != null && query.isNotEmpty && mounted) {
+                  _textController.text = query;
+                  _textController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: query.length),
+                  );
+                  setState(() {});
+                  searchBloc.add(SearchQueryChanged(query));
+                }
+              },
             ),
             Expanded(
-              child: BlocBuilder<SearchCubit, SearchState>(
+              child: BlocConsumer<SearchBloc, SearchState>(
+                listenWhen: (previous, current) =>
+                    !previous.submitCompleted && current.submitCompleted,
+                listener: (context, state) {
+                  // Enter returns the current full result list to the map.
+                  context.pop(
+                    SearchResultPayload.all(
+                      allResults: state.results,
+                      submittedQuery: state.query,
+                    ),
+                  );
+                },
                 builder: (context, state) {
                   final isQueryEmpty =
                       state.query.isEmpty && state.results.isEmpty;
@@ -213,8 +229,10 @@ class _SearchScreenContentState extends State<SearchScreenContent> {
                           child: SearchRecentList(
                             recentSearches: state.recentSearches,
                             onItemTap: _onKeywordSelected,
-                            onItemRemove: searchCubit.removeRecentSearch,
-                            onClearAll: searchCubit.clearRecentSearches,
+                            onItemRemove: (query) => searchBloc
+                                .add(SearchRecentRemoved(query)),
+                            onClearAll: () => searchBloc
+                                .add(const SearchHistoryCleared()),
                           ),
                         ),
                       ],

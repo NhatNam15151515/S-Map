@@ -1,11 +1,11 @@
 import 'dart:math';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/di/app_repos_provider.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/utils/app_utils.dart';
 import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/repos/repos.dart';
 
 /// Helper chuyên trách giải mã (decode) và làm giàu (enrich) thông tin POI
 /// từ các Map Feature (Vector Tiles) khi người dùng chạm vào bản đồ.

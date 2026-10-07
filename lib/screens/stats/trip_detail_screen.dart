@@ -1,25 +1,39 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/di/app_repos_provider.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/map_drawing_route_manager.dart';
+import 'package:s_map/commons/log/log.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/map_constants.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
+import 'package:s_map/repos/repos.dart';
 import 'package:s_map/screens/stats/widgets/trip_detail_panel.dart';
 import 'package:s_map/services/map_style_service.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final TripRecordModel trip;
   final IMapStyleService? mapStyleService;
+  final ITripRepository? tripRepository;
+  final MapDisplayCubit? mapDisplayCubit;
   final Widget Function(
-      BuildContext context, MapLibreMapController? controller)? mapLayerBuilder;
+    BuildContext context,
+    MapLibreMapController? controller,
+  )?
+  mapLayerBuilder;
 
   const TripDetailScreen({
     super.key,
     required this.trip,
     this.mapStyleService,
+    this.tripRepository,
+    this.mapDisplayCubit,
     this.mapLayerBuilder,
   });
 
@@ -32,8 +46,38 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   final MapDrawingRouteManager _routeManager = MapDrawingRouteManager();
   bool _isMapReady = false;
   String? _lastAppliedMapStyle;
+  MapDisplayCubit? _activeDisplayCubit;
+  StreamSubscription<MapDisplayState>? _mapDisplaySubscription;
+
+  ITripRepository get _tripRepository =>
+      widget.tripRepository ??
+      (AppReposProvider.isInitialized
+          ? AppReposProvider.instance.tripRepos
+          : const NoOpTripRepository());
+
+  Future<void> _saveResolvedTrip(TripRecordModel trip) async {
+    try {
+      await _tripRepository.saveTrip(trip);
+    } catch (error, stackTrace) {
+      DLog.error('Failed to save resolved trip addresses: $error', error, stackTrace);
+    }
+  }
+
+  MapDisplayCubit? _resolveDisplayCubit() {
+    if (widget.mapDisplayCubit != null) return widget.mapDisplayCubit;
+    try {
+      return context.read<MapDisplayCubit>();
+    } catch (_) {
+      return null;
+    }
+  }
 
   String _mapStyleForCurrentTheme() {
+    final activeDisplayCubit = _activeDisplayCubit;
+    if (activeDisplayCubit != null &&
+        activeDisplayCubit.state.styleString.isNotEmpty) {
+      return activeDisplayCubit.state.styleString;
+    }
     return (widget.mapStyleService ?? MapStyleService.instance).getStyleJson(
       isDarkMode: Theme.of(context).brightness == Brightness.dark,
     );
@@ -42,8 +86,29 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final displayCubit = _resolveDisplayCubit();
+    if (displayCubit != _activeDisplayCubit) {
+      _mapDisplaySubscription?.cancel();
+      _activeDisplayCubit = displayCubit;
+      _mapDisplaySubscription = displayCubit?.stream.listen((state) {
+        if (state.styleString.isNotEmpty &&
+            state.styleString != _lastAppliedMapStyle) {
+          _applyMapStyle(state.styleString);
+        }
+      });
+    }
+
     final controller = _mapController;
     final style = _mapStyleForCurrentTheme();
+    if (controller == null || style.isEmpty || style == _lastAppliedMapStyle) {
+      return;
+    }
+
+    _applyMapStyle(style);
+  }
+
+  void _applyMapStyle(String style) {
+    final controller = _mapController;
     if (controller == null || style.isEmpty || style == _lastAppliedMapStyle) {
       return;
     }
@@ -61,6 +126,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   @override
   void dispose() {
+    _mapDisplaySubscription?.cancel();
     _routeManager.clear(_mapController);
     super.dispose();
   }
@@ -128,6 +194,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final trip = widget.trip;
+    final displayCubit = _resolveDisplayCubit();
     final mapStyle = _mapStyleForCurrentTheme();
     final startLatLng = trip.polyline?.isNotEmpty == true
         ? LatLng(trip.polyline!.first[0], trip.polyline!.first[1])
@@ -189,12 +256,25 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             ),
           ),
 
+          if (displayCubit != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 16,
+              child: MapStyleToggleButton(
+                key: const Key('trip_detail_map_style_button'),
+                onPressed: displayCubit.toggleNightMode,
+              ),
+            ),
+
           // 3. Bottom Detail Panel
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: TripDetailPanel(trip: trip),
+            child: TripDetailPanel(
+              trip: trip,
+              onTripUpdated: _saveResolvedTrip,
+            ),
           ),
         ],
       ),

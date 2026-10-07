@@ -6,14 +6,18 @@ import 'package:s_map/generated/locale_keys.g.dart';
 
 class UserProfileCard extends StatelessWidget {
   final String? username;
+  final String? avatarBase64;
   final String appName;
   final VoidCallback? onViewProfile;
+  final VoidCallback? onAvatarTap;
 
   const UserProfileCard({
     super.key,
     this.username,
+    this.avatarBase64,
     required this.appName,
     this.onViewProfile,
+    this.onAvatarTap,
   });
 
   @override
@@ -48,7 +52,38 @@ class UserProfileCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const ProfileAvatar(size: 72, borderWidth: 2.5),
+          GestureDetector(
+            onTap: onAvatarTap,
+            child: Stack(
+              children: [
+                ProfileAvatar(
+                  size: 72,
+                  borderWidth: 2.5,
+                  avatarBase64: avatarBase64,
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: colorScheme.surface,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.camera_alt_rounded,
+                      size: 13,
+                      color: colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           Text(
             displayName,

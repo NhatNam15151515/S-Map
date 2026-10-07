@@ -1,0 +1,232 @@
+[
+  // ─── 1. TÊN ĐƯỜNG CHẠY DỌC TUYẾN ĐƯỜNG (Uốn lượn theo đường cong) ───
+  {
+    "id": "smap-road-labels",
+    "type": "symbol",
+    "source": "smap-vietnam",
+    "source-layer": "transportation_name",
+    "minzoom": 10,
+    "filter": ["has", "name"],
+    "layout": {
+      "symbol-placement": "line",     // Chữ bám theo đường cong
+      "text-field": [
+        "coalesce",
+        ["get", "name:vi"],          // Ưu tiên tên tiếng Việt
+        ["get", "name"]
+      ],
+      "text-font": ["Montserrat Regular"],
+      "text-size": [
+        "interpolate", ["linear"], ["zoom"],
+        10, 9,
+        14, 13
+      ],
+      "text-max-width": 7,
+      "text-padding": 2,
+      "text-allow-overlap": false    // Không cho chữ đè lên nhau
+    },
+    "paint": {
+      "text-color": "__LABEL_SECONDARY__",
+      "text-halo-color": "__LABEL_HALO__",
+      "text-halo-width": 1.4,
+      "text-halo-blur": 0.1
+    }
+  },
+
+  // ─── 2. CHẤM VỊ TRÍ ĐỊA DANH (Thị trấn, thôn xóm, xã) ───
+  {
+    "id": "smap-places",
+    "type": "circle",
+    "source": "smap-vietnam",
+    "source-layer": "place",
+    "minzoom": 5,
+    "paint": {
+      "circle-color": "__PLACE_DOT__",
+      "circle-opacity": 0.82,
+      "circle-radius": [
+        "interpolate", ["linear"], ["zoom"],
+        5, 1.2,
+        9, 2.2,
+        14, 3.2
+      ],
+      "circle-stroke-color": "__PLACE_STROKE__",
+      "circle-stroke-width": 1
+    }
+  },
+
+  // ─── 3. TÊN ĐỊA DANH (Quốc gia, tỉnh, thành phố, quận huyện) ───
+  {
+    "id": "smap-place-labels",
+    "type": "symbol",
+    "source": "smap-vietnam",
+    "source-layer": "place",
+    "minzoom": 5,
+    "filter": ["has", "name"],
+    "layout": {
+      "text-field": [
+        "coalesce",
+        ["get", "name:vi"],
+        ["get", "name"]
+      ],
+      "text-font": ["Montserrat Regular"],
+      "text-size": [
+        "step", ["zoom"],
+        9,
+        8, 11,
+        11, 13,
+        13, 15
+      ],
+      "text-offset": [0, 0.8],
+      "text-padding": 2,
+      "text-allow-overlap": false
+    },
+    "paint": {
+      "text-color": "__LABEL_PRIMARY__",
+      "text-halo-color": "__LABEL_HALO__",
+      "text-halo-width": 1.8,
+      "text-halo-blur": 0.1
+    }
+  },
+
+  // ─── 4. TÊN SÔNG, HỒ, VÙNG BIỂN ───
+  {
+    "id": "smap-water-labels",
+    "type": "symbol",
+    "source": "smap-vietnam",
+    "source-layer": "water_name",
+    "minzoom": 8,
+    "filter": ["has", "name"],
+    "layout": {
+      "text-field": [
+        "coalesce",
+        ["get", "name:vi"],
+        ["get", "name"]
+      ],
+      "text-font": ["Montserrat Regular"],
+      "text-size": [
+        "interpolate", ["linear"], ["zoom"],
+        8, 9,
+        14, 13
+      ],
+      "text-allow-overlap": false
+    },
+    "paint": {
+      "text-color": "__LABEL_WATER__",
+      "text-halo-color": "__LABEL_HALO__",
+      "text-halo-width": 1.3
+    }
+  },
+
+  // ─── 5. BIỂU TƯỢNG VÀ TÊN ĐỊA ĐIỂM (POI BADGES THEO CATEGORY) ───
+  {
+    "id": "smap-poi-markers",
+    "type": "symbol",
+    "source": "smap-vietnam",
+    "source-layer": "poi",
+    "minzoom": 17, // Hiện khi zoom sâu (zoom 17-22)
+    "filter": ["has", "name"],
+    "layout": {
+      "icon-image": [
+        "match",
+        ["get", "class"],
+        ["cafe", "coffee"], "poi-marker-cafe",
+        ["restaurant", "fast_food", "food"], "poi-marker-food",
+        ["hotel", "motel", "lodging", "hostel", "guest_house"], "poi-marker-hotel",
+        ["supermarket", "grocery"], "poi-marker-supermarket",
+        ["shop", "convenience", "mall", "department_store", "clothes", "electronics", "bakery"], "poi-marker-shop",
+        ["fuel", "gas"], "poi-marker-fuel",
+        ["bank", "atm"], "poi-marker-bank",
+        ["hospital", "pharmacy", "clinic", "doctors"], "poi-marker-hospital",
+        ["school", "university", "college", "kindergarten"], "poi-marker-school",
+        ["park", "pitch", "sports_centre"], "poi-marker-park",
+        "poi-marker-default" // Icon địa điểm mặc định cho các điểm chưa phân loại
+      ],
+      "icon-size": [
+        "interpolate", ["linear"], ["zoom"],
+        17, 0.48,
+        19, 0.58,
+        22, 0.72
+      ],
+      "icon-anchor": "bottom",
+      "icon-allow-overlap": false,
+      "icon-ignore-placement": false,
+      "text-field": [
+        "coalesce",
+        ["get", "name:vi"],
+        ["get", "name"]
+      ],
+      "text-font": ["Montserrat Regular"],
+      "text-size": [
+        "interpolate", ["linear"], ["zoom"],
+        17, 10.0,
+        19, 11.5,
+        22, 13.0
+      ],
+      "text-anchor": "top",
+      "text-offset": [0, 0.35],
+      "text-max-width": 8,
+      "text-padding": 2,
+      "text-allow-overlap": false
+    },
+    "paint": {
+      "text-color": "__LABEL_PRIMARY__",
+      "text-halo-color": "__LABEL_HALO__",
+      "text-halo-width": 1.5
+    }
+  },
+
+  // ─── 7. CHẤM VỊ TRÍ SỐ NHÀ ───
+  {
+    "id": "smap-house-number-dots",
+    "type": "circle",
+    "source": "smap-vietnam",
+    "source-layer": "housenumber",
+    "minzoom": 14,
+    "paint": {
+      "circle-color": "__HOUSE_NUMBER_DOT__",
+      "circle-opacity": 0.56,
+      "circle-radius": 1.25
+    }
+  },
+
+  // ─── 8. NHÃN CHỮ SỐ NHÀ ───
+  {
+    "id": "smap-house-number-labels",
+    "type": "symbol",
+    "source": "smap-vietnam",
+    "source-layer": "housenumber",
+    "minzoom": 15,
+    "filter": ["has", "housenumber"],
+    "layout": {
+      "text-field": ["get", "housenumber"],
+      "text-font": ["Montserrat Regular"],
+      "text-size": 8,
+      "text-padding": 1,
+      "text-allow-overlap": false
+    },
+    "paint": {
+      "text-color": "__LABEL_SECONDARY__",
+      "text-halo-color": "__LABEL_HALO__",
+      "text-halo-width": 0.8
+    }
+  },
+
+  // ─── 9. NHÃN CHỦ QUYỀN BIỂN ĐẢO (Hoàng Sa, Trường Sa, Biển Đông) ───
+  {
+    "id": "smap-sovereignty-layer",
+    "type": "symbol",
+    "source": "smap-sovereignty-source",
+    "layout": {
+      "text-field": ["get", "name"],
+      "text-size": ["get", "textSize"],
+      "text-anchor": "center",
+      "text-letter-spacing": ["get", "letterSpacing"],
+      "text-allow-overlap": true,
+      "text-ignore-placement": true
+    },
+    "paint": {
+      "text-color": ["get", "textColor"],
+      "text-halo-color": "#FFFFFF",
+      "text-halo-width": 2.0
+    }
+  }
+]

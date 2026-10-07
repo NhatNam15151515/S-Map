@@ -69,7 +69,6 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
   LatLng? get currentCenter =>
       _mapController?.cameraPosition?.target ?? displayCubit.state.center;
 
-
   bool get _hasActiveRouteOrNavigation {
     final previewState = routePreviewCubit.state;
     final navigationState = context.read<NavigationBloc>().state;
@@ -98,7 +97,8 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     );
   }
 
-  Future<void> clearDrawingRoute() => _drawingRouteManager.clear(_mapController);
+  Future<void> clearDrawingRoute() =>
+      _drawingRouteManager.clear(_mapController);
 
   @override
   void didChangeDependencies() {
@@ -229,18 +229,24 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       // Tránh click nhầm hoặc gesture xuyên qua Top Bar / Bottom Card tự động sinh điểm.
       if (widget.isCrosshairActive) return;
 
-      // Nếu người dùng tắt tâm ngắm, kiểm tra tọa độ pixel để không tap xuyên qua Top Bar hoặc Bottom Card
+      // Lớp dự phòng: kiểm tra vùng pixel của Top Bar / Bottom Card / Controls.
       final mediaQuery = MediaQuery.maybeOf(context);
       if (mediaQuery != null) {
+        // Android trả point theo physical pixel, iOS theo logical point.
+        final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+        final scale = isAndroid ? mediaQuery.devicePixelRatio : 1.0;
+        final x = point.x / scale;
+        final y = point.y / scale;
+
         final screenHeight = mediaQuery.size.height;
         final screenWidth = mediaQuery.size.width;
         final topThreshold = mediaQuery.padding.top + 280;
         final bottomThreshold = screenHeight - mediaQuery.padding.bottom - 180;
         final rightControlsThreshold = screenWidth - 110;
 
-        if (point.y < topThreshold ||
-            point.y > bottomThreshold ||
-            point.x > rightControlsThreshold) {
+        if (y < topThreshold ||
+            y > bottomThreshold ||
+            x > rightControlsThreshold) {
           return;
         }
       }

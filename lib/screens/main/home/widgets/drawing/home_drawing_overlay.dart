@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/screens/main/home/widgets/drawing/widgets.dart';
 import 'package:s_map/screens/main/home/widgets/home/home_route_actions.dart';
+import 'package:s_map/screens/main/home/widgets/home/home_poi_quick_card.dart';
+import 'package:s_map/screens/main/home/widgets/home/home_search_results_sheet.dart';
 
 /// Overlay chế độ vẽ lộ trình tuỳ chỉnh (Route Drawing State).
 ///
@@ -109,7 +110,7 @@ class HomeDrawingOverlay extends StatelessWidget {
             8,
         child: SafeArea(
           top: false,
-          child: PoiQuickCard(
+          child: HomePoiQuickCard(
             poi: selectedMarkerPoi!,
             onClose: onClosePoiCard,
             onAddDestination: () => onAddDestination(selectedMarkerPoi!),
@@ -129,7 +130,7 @@ class HomeDrawingOverlay extends StatelessWidget {
               MediaQuery.paddingOf(context).bottom +
               8,
         ),
-        child: SearchResultsBottomSheet(
+        child: HomeSearchResultsSheet(
           key: const ValueKey('drawing_search_results_sheet'),
           pois: searchResults!,
           query: searchQuery,

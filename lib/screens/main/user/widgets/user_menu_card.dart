@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/app_setting_tile.dart';
 
 class UserMenuTile extends StatelessWidget {
   final IconData icon;
@@ -17,48 +17,11 @@ class UserMenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
-    final color =
-        isDestructive ? colorScheme.error : colorScheme.onSurface;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: (isDestructive ? colorScheme.error : colorScheme.primary)
-                      .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: isDestructive ? colorScheme.error : colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: color.textTheme.boldStyle.copyWith(fontSize: 15),
-                ),
-              ),
-              if (!isDestructive)
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: colorScheme.onSurfaceVariant,
-                  size: 20,
-                ),
-            ],
-          ),
-        ),
-      ),
+    return AppSettingTile(
+      icon: icon,
+      title: title,
+      onTap: onTap,
+      isDestructive: isDestructive,
     );
   }
 }
@@ -73,20 +36,10 @@ class UserMenuCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
-    return Container(
+    return AppSettingGroup(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withAlpha(50),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        children: children,
-      ),
+      hasBorder: true,
+      children: children,
     );
   }
 }

@@ -7,6 +7,8 @@ import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/models/models.dart';
 
 import 'package:s_map/routers/routers.dart';
+import 'package:s_map/screens/search/widgets/voice_search_bottom_sheet.dart';
+import 'package:s_map/screens/main/home/widgets/home/home_profile_avatar.dart';
 
 class HomeHeaderSearchBar extends StatelessWidget {
   final double topPadding;
@@ -34,6 +36,39 @@ class HomeHeaderSearchBar extends StatelessWidget {
     this.onClearSearch,
   });
 
+  void _navigateToSearch(BuildContext context, {String? initialQuery}) {
+    onSearchOpened?.call();
+    final mapState = context.read<MapDisplayCubit>().state;
+    final routeState = context.read<RoutePreviewCubit>().state;
+    final searchCenter = mapState.currentPosition ?? mapState.center;
+    context.push<dynamic>(
+      AppRoutes.search,
+      extra: SearchScreenArgs(
+        userLocation: searchCenter,
+        hasExistingDestinations: routeState.destination != null,
+        initialQuery: initialQuery,
+      ),
+    ).then((result) {
+      if (result != null && context.mounted) {
+        if (result is SearchResultPayload) {
+          if (result.isLocation && result.searchCenter != null) {
+            onCurrentLocation(result.searchCenter!);
+          } else if (result.isAddDestination && result.selectedPoi != null) {
+            onAddDestination?.call(result.selectedPoi!);
+          } else if (result.isArea) {
+            onAreaSearch?.call(result);
+          } else if (result.isSingle && result.selectedPoi != null) {
+            onPoiSelected(result.selectedPoi!);
+          } else if (result.isAll && result.allResults != null) {
+            onSearchResults(result.allResults!, result.submittedQuery);
+          }
+        } else if (result is PoiModel) {
+          onPoiSelected(result);
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Positioned(
@@ -47,41 +82,14 @@ class HomeHeaderSearchBar extends StatelessWidget {
             activeSearchText: activeSearchText,
             onClearSearch: onClearSearch,
             onPoiSelected: onPoiSelected,
-            onTap: () {
-              // Bắt đầu một search workflow mới thì bỏ context marker/list
-              // hiện tại ngay cả khi người dùng sau đó bấm Back.
-              onSearchOpened?.call();
-              final mapState = context.read<MapDisplayCubit>().state;
-              final routeState = context.read<RoutePreviewCubit>().state;
-              // Ưu tiên GPS để kết quả gần người dùng. Khi GPS chưa sẵn
-              // sàng, dùng tâm camera hiện tại thay vì tìm toàn bộ dữ liệu.
-              final searchCenter = mapState.currentPosition ?? mapState.center;
-              context.push<dynamic>(
-                AppRoutes.search,
-                extra: SearchScreenArgs(
-                  userLocation: searchCenter,
-                  hasExistingDestinations: routeState.destination != null,
-                ),
-              ).then((result) {
-                if (result != null && context.mounted) {
-                  if (result is SearchResultPayload) {
-                    if (result.isLocation && result.searchCenter != null) {
-                      onCurrentLocation(result.searchCenter!);
-                    } else if (result.isAddDestination && result.selectedPoi != null) {
-                      onAddDestination?.call(result.selectedPoi!);
-                    } else if (result.isArea) {
-                      onAreaSearch?.call(result);
-                    } else if (result.isSingle && result.selectedPoi != null) {
-                      onPoiSelected(result.selectedPoi!);
-                    } else if (result.isAll && result.allResults != null) {
-                      onSearchResults(result.allResults!, result.submittedQuery);
-                    }
-                  } else if (result is PoiModel) {
-                    onPoiSelected(result);
-                  }
-                }
-              });
+            onTap: () => _navigateToSearch(context),
+            onVoicePressed: () async {
+              final query = await showVoiceSearchBottomSheet(context);
+              if (query != null && query.isNotEmpty && context.mounted) {
+                _navigateToSearch(context, initialQuery: query);
+              }
             },
+            trailing: const HomeProfileAvatar(),
           ),
           const SizedBox(height: 10),
           BlocBuilder<MapExploreCubit, MapExploreState>(

@@ -58,7 +58,9 @@
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>${DISPLAY_NAME} requires location to recommend services</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>${DISPLAY_NAME} requires your microphone to use camera</string>
+		<string>${DISPLAY_NAME} requires your microphone for voice search</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>${DISPLAY_NAME} requires speech recognition to transcribe voice search queries</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>${DISPLAY_NAME} requires to add the photo to your photo for use of product</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>

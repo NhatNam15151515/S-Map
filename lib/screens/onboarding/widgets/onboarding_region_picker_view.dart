@@ -1,14 +1,16 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
 class OnboardingRegionPickerView extends StatelessWidget {
-  final DownloadRegionState state;
+  final List<RegionModel> regions;
+  final bool isLoading;
+  final bool hasError;
+  final bool hasDownloadedRegions;
   final VoidCallback onSkip;
   final VoidCallback onRetry;
   final ValueChanged<String> onDownload;
@@ -17,7 +19,10 @@ class OnboardingRegionPickerView extends StatelessWidget {
 
   const OnboardingRegionPickerView({
     super.key,
-    required this.state,
+    required this.regions,
+    required this.isLoading,
+    required this.hasError,
+    this.hasDownloadedRegions = false,
     required this.onSkip,
     required this.onRetry,
     required this.onDownload,
@@ -25,13 +30,9 @@ class OnboardingRegionPickerView extends StatelessWidget {
     required this.onCancel,
   });
 
-  List<RegionModel> get _availableRegions =>
-      state.regions.where((r) => !r.isDownloaded).toList();
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
-    final availableRegions = _availableRegions;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -52,57 +53,36 @@ class OnboardingRegionPickerView extends StatelessWidget {
           ),
           SizedBox(height: 24.h),
           Expanded(
-            child: state.isLoading && state.regions.isEmpty
+            child: isLoading && regions.isEmpty
                 ? Center(
                     child: CircularProgressIndicator(color: colorScheme.onPrimary))
-                : availableRegions.isEmpty
+                : regions.isEmpty
                     ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                                state.regions.isNotEmpty
-                                    ? Icons.check_circle_outline_rounded
-                                    : Icons.wifi_off_rounded,
-                                size: 48.r,
-                                color: colorScheme.onPrimary),
-                            SizedBox(height: 12.h),
-                            Text(
-                              state.regions.isNotEmpty
-                                  ? tr(LocaleKeys.offline_maps_all_downloaded)
-                                  : tr(LocaleKeys.offline_maps_error),
-                              style: colorScheme.onPrimary.textTheme.mediumStyle
-                                  .copyWith(fontSize: 14.sp),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (state.regions.isEmpty) ...[
-                              SizedBox(height: 12.h),
-                              TextButton(
-                                onPressed: onRetry,
-                                child: Text(
-                                  tr(LocaleKeys.onboarding_retry_btn),
-                                  style: colorScheme.onPrimary.textTheme.boldStyle
-                                      .copyWith(
-                                    fontSize: 14.sp,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: colorScheme.onPrimary,
-                                  ),
-                                ),
-                              ),
-                            ]
-                          ],
+                        child: EmptyWidget(
+                          icon: hasDownloadedRegions
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.wifi_off_rounded,
+                          title: hasDownloadedRegions
+                              ? tr(LocaleKeys.offline_maps_all_downloaded)
+                              : tr(LocaleKeys.offline_maps_error),
+                          textColor: colorScheme.onPrimary,
+                          iconColor: colorScheme.onPrimary,
+                          onRefresh: (!hasDownloadedRegions &&
+                                  (hasError || regions.isEmpty))
+                              ? onRetry
+                              : null,
+                          actionLabel: tr(LocaleKeys.onboarding_retry_btn),
                         ),
                       )
                     : ListView.separated(
-                        itemCount: availableRegions.length,
+                        itemCount: regions.length,
                         separatorBuilder: (_, __) => SizedBox(height: 12.h),
                         itemBuilder: (context, index) {
-                          final region = availableRegions[index];
+                          final region = regions[index];
                           return RegionCard(
                             region: region,
-                            progress: state.getProgress(region.id),
-                            isCurrentlyDownloading:
-                                state.currentlyDownloadingRegionId == region.id,
+                            progress: region.downloadProgress,
+                            isCurrentlyDownloading: region.isDownloading,
                             onDownload: () => onDownload(region.id),
                             onDelete: () => onDelete(region.id),
                             onCancel: () => onCancel(region.id),
@@ -112,16 +92,15 @@ class OnboardingRegionPickerView extends StatelessWidget {
           ),
           SizedBox(height: 16.h),
           Center(
-            child: TextButton(
-              onPressed: onSkip,
-              child: Text(
-                tr(LocaleKeys.onboarding_skip_btn),
-                style: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
-                  fontSize: 14.sp,
-                  decoration: TextDecoration.underline,
-                  decorationColor: colorScheme.onPrimary,
-                ),
+            child: AppButton.text(
+              text: tr(LocaleKeys.onboarding_skip_btn),
+              textColor: colorScheme.onPrimary,
+              textStyle: colorScheme.onPrimary.textTheme.semiBoldStyle.copyWith(
+                fontSize: 14.sp,
+                decoration: TextDecoration.underline,
+                decorationColor: colorScheme.onPrimary,
               ),
+              onPressed: onSkip,
             ),
           ),
           SizedBox(height: 24.h),

@@ -6,6 +6,7 @@ import 'package:s_map/commons/fallbacks/fallbacks.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
 import 'package:s_map/commons/usecases/usecases.dart';
+import 'package:s_map/commons/utils/map_geometry_utils.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
@@ -43,6 +44,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   StreamSubscription<Position>? _locationSubscription;
   int _requestGeneration = 0;
   DateTime? _lastRerouteTime;
+  DateTime? _lastGpsTimestamp;
 
   /// Optional global default service resolvers set by the composition root
   static ILocationService? defaultLocationService;
@@ -51,14 +53,15 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   static IActiveTripService? defaultActiveTripService;
   static IVisitedPoiService? defaultVisitedPoiService;
 
-  /// Số nhịp GPS liên tiếp phát hiện lệch tuyến bắt buộc trước khi kích hoạt Reroute
+  /// Cần hai fix liên tiếp để bỏ qua một lần GPS nhảy đơn lẻ; với stream 500ms,
+  /// xác nhận lệch tuyến thường hoàn tất trong khoảng một giây.
   static const int minConsecutiveOffRouteTicks = 2;
 
   /// Ngưỡng vận tốc tối thiểu (km/h) để cho phép tự động tính lại đường (tránh trôi dạt khi đứng yên)
   static const double minMovingSpeedForRerouteKmh = 5.0;
 
-  /// Khoảng thời gian tối thiểu giữa 2 lần kích hoạt reroute tự động (cooldown 4 giây)
-  static const Duration _rerouteCooldown = Duration(seconds: 4);
+  /// Chặn lặp route do GPS rung nhưng vẫn cho phép route đổi nhanh sau khi lệch thật.
+  static const Duration _rerouteCooldown = Duration(milliseconds: 1500);
 
   int _consecutiveOffRouteTicks = 0;
 
@@ -75,38 +78,47 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     NavigationPersistenceCoordinator? persistenceCoordinator,
     NavigationDevicePolicy? devicePolicy,
     NavigationTrackingCoordinator? trackingCoordinator,
-  })  : _routingRepository = routingRepository,
-        _locationService = locationService ??
-            defaultLocationService ??
-            const NoOpLocationService(),
-        _metricsTracker = metricsTracker ?? TripMetricsTracker(),
-        _persistenceCoordinator = persistenceCoordinator ??
-            NavigationPersistenceCoordinator(
-              tripRepository: tripRepository,
-              activeTripService: activeTripService ??
-                  defaultActiveTripService ??
-                  const NoOpActiveTripService(),
-              visitedPoiService: visitedPoiService ??
-                  defaultVisitedPoiService ??
-                  const NoOpVisitedPoiService(),
-            ),
-        _devicePolicy = devicePolicy ??
-            NavigationDevicePolicy(
-              locationService: locationService ??
-                  defaultLocationService ??
-                  const NoOpLocationService(),
-              deviceInfoService: deviceInfoService ??
-                  defaultDeviceInfoService ??
-                  const NoOpDeviceInfoService(),
-            ),
-        _trackingCoordinator = trackingCoordinator ??
-            NavigationTrackingCoordinator(
-              turnByTurnEngine: turnByTurnEngine ??
-                  defaultTurnByTurnEngine ??
-                  const TurnByTurnEngine(),
-              offRouteDetector: offRouteDetector ?? const OffRouteDetector(),
-            ),
-        super(const NavigationState()) {
+  }) : _routingRepository = routingRepository,
+       _locationService =
+           locationService ??
+           defaultLocationService ??
+           const NoOpLocationService(),
+       _metricsTracker = metricsTracker ?? TripMetricsTracker(),
+       _persistenceCoordinator =
+           persistenceCoordinator ??
+           NavigationPersistenceCoordinator(
+             tripRepository: tripRepository,
+             activeTripService:
+                 activeTripService ??
+                 defaultActiveTripService ??
+                 const NoOpActiveTripService(),
+             visitedPoiService:
+                 visitedPoiService ??
+                 defaultVisitedPoiService ??
+                 const NoOpVisitedPoiService(),
+           ),
+       _devicePolicy =
+           devicePolicy ??
+           NavigationDevicePolicy(
+             locationService:
+                 locationService ??
+                 defaultLocationService ??
+                 const NoOpLocationService(),
+             deviceInfoService:
+                 deviceInfoService ??
+                 defaultDeviceInfoService ??
+                 const NoOpDeviceInfoService(),
+           ),
+       _trackingCoordinator =
+           trackingCoordinator ??
+           NavigationTrackingCoordinator(
+             turnByTurnEngine:
+                 turnByTurnEngine ??
+                 defaultTurnByTurnEngine ??
+                 const TurnByTurnEngine(),
+             offRouteDetector: offRouteDetector ?? const OffRouteDetector(),
+           ),
+       super(const NavigationState()) {
     on<StartNavigation>(_onStartNavigation);
     on<LocationUpdated>(_onLocationUpdated);
     on<RerouteRequested>(_onRerouteRequested, transformer: restartable());
@@ -145,7 +157,10 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     } catch (e, stack) {
       if (isClosed || emit.isDone) return;
       DLog.error(
-          '❌ [NavigationBloc] Error checking active session: $e', e, stack);
+        '❌ [NavigationBloc] Error checking active session: $e',
+        e,
+        stack,
+      );
     }
   }
 
@@ -170,39 +185,43 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     if (generation != _requestGeneration || isClosed || emit.isDone) return;
 
     _lastRerouteTime = null;
+    _lastGpsTimestamp = null;
     _kalmanFilter.reset();
     _metricsTracker.restoreFromSnapshot(snapshot);
 
-    final progress = _trackingCoordinator.processLocationTick(
-      currentLat: snapshot.lastKnownLat ?? snapshot.origin.lat,
-      currentLon: snapshot.lastKnownLon ?? snapshot.origin.lon,
-      route: snapshot.initialRoute,
-      destination: snapshot.destination,
-      currentSegmentIndex: snapshot.currentSegmentIndex,
-      currentInstructionIndex: snapshot.currentInstructionIndex,
-      hasMoved: false,
-    ).progress;
+    final progress = _trackingCoordinator
+        .processLocationTick(
+          currentLat: snapshot.lastKnownLat ?? snapshot.origin.lat,
+          currentLon: snapshot.lastKnownLon ?? snapshot.origin.lon,
+          route: snapshot.initialRoute,
+          destination: snapshot.destination,
+          currentSegmentIndex: snapshot.currentSegmentIndex,
+          currentInstructionIndex: snapshot.currentInstructionIndex,
+          hasMoved: false,
+        )
+        .progress;
 
-    emit(NavigationState.resume(
-      snapshot: snapshot,
-      progress: progress,
-      promptBatteryOptimizationOem: null,
-    ));
+    emit(
+      NavigationState.resume(
+        snapshot: snapshot,
+        progress: progress,
+        promptBatteryOptimizationOem: null,
+      ),
+    );
 
     _persistenceCoordinator.startAutoSave(() {
       if (!isClosed) add(const SaveActiveSessionSnapshot());
     });
     add(const SaveActiveSessionSnapshot());
 
-    await _devicePolicy.requestNotificationPermission();
-    if (generation != _requestGeneration || isClosed || emit.isDone) return;
-
     // Keep Screen On — giữ màn hình sáng suốt phiên chỉ đường (resume)
     unawaited(_devicePolicy.enableKeepScreenOn());
 
-    final destName = snapshot.destinationName ??
+    final destName =
+        snapshot.destinationName ??
         LocaleKeys.routing_destination_fallback.tr();
     _listenGpsStream(destName);
+    _requestNotificationPermissionInBackground();
   }
 
   Future<void> _onDiscardActiveSession(
@@ -240,7 +259,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     Emitter<NavigationState> emit,
   ) async {
     DLog.info(
-        '🚀 [NavigationBloc] Starting Navigation to "${event.destinationName}" (${event.destination.lat}, ${event.destination.lon})');
+      '🚀 [NavigationBloc] Starting Navigation to "${event.destinationName}" (${event.destination.lat}, ${event.destination.lon})',
+    );
 
     final generation = ++_requestGeneration;
     await _cancelGpsSubscription();
@@ -249,6 +269,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     if (generation != _requestGeneration || isClosed) return;
 
     _lastRerouteTime = null;
+    _lastGpsTimestamp = null;
     _consecutiveOffRouteTicks = 0;
     _metricsTracker.reset();
     _kalmanFilter.reset();
@@ -257,23 +278,23 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       event.initialRoute.instructions,
     );
 
-    emit(NavigationState.start(
-      initialRoute: event.initialRoute,
-      origin: event.origin,
-      destination: event.destination,
-      destinationName: event.destinationName,
-      profile: event.profile,
-      initialProgress: initialProgress,
-      promptBatteryOptimizationOem: null,
-    ));
+    emit(
+      NavigationState.start(
+        initialRoute: event.initialRoute,
+        origin: event.origin,
+        originName: event.originName,
+        destination: event.destination,
+        destinationName: event.destinationName,
+        profile: event.profile,
+        initialProgress: initialProgress,
+        promptBatteryOptimizationOem: null,
+      ),
+    );
 
     _persistenceCoordinator.startAutoSave(() {
       if (!isClosed) add(const SaveActiveSessionSnapshot());
     });
     add(const SaveActiveSessionSnapshot());
-
-    await _devicePolicy.requestNotificationPermission();
-    if (generation != _requestGeneration || isClosed) return;
 
     // Keep Screen On — giữ màn hình sáng suốt phiên chỉ đường
     unawaited(_devicePolicy.enableKeepScreenOn());
@@ -281,6 +302,17 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     final destName =
         event.destinationName ?? LocaleKeys.routing_destination_fallback.tr();
     _listenGpsStream(destName);
+    _requestNotificationPermissionInBackground();
+  }
+
+  void _requestNotificationPermissionInBackground() {
+    unawaited(
+      _devicePolicy.requestNotificationPermission().catchError((Object error) {
+        DLog.warning(
+          '⚠️ [NavigationBloc] Notification permission request failed: $error',
+        );
+      }),
+    );
   }
 
   Future<void> _onAllowBatteryOptimization(
@@ -312,17 +344,16 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   ) async {
     if (!state.isNavigating || !state.hasRoute) return;
 
-    final currentLat = event.latitude;
-    final currentLon = event.longitude;
+    // Một số thiết bị có thể phát fix cũ sau fix mới. Bỏ qua để bộ lọc và
+    // tiến độ tuyến không bị lùi về vị trí trước đó.
+    final timestamp = event.timestamp;
+    if (timestamp != null &&
+        _lastGpsTimestamp != null &&
+        !timestamp.isAfter(_lastGpsTimestamp!)) {
+      return;
+    }
+    if (timestamp != null) _lastGpsTimestamp = timestamp;
 
-    // Lọc GPS thô qua Kalman Filter để ước lượng toạ độ mượt, chống rung giật marker
-    final filtered = _kalmanFilter.update(
-      gpsLat: event.latitude,
-      gpsLon: event.longitude,
-      accuracyMeters: event.accuracy ?? 10.0,
-      speedMps: event.speed,
-      headingDeg: event.heading,
-    );
     final speedKmh = event.speed != null
         ? event.speed! * RoutingConstants.msToKmhFactor
         : null;
@@ -331,36 +362,50 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     final isAccuracyAcceptable =
         accuracy == null || accuracy <= RoutingConstants.maxGpsAccuracyMeters;
 
-    // Nếu GPS fix kém chính xác (> 35m), chỉ cập nhật toạ độ hiển thị, không chạy engine/reroute
+    // Không đưa fix kém chính xác vào Kalman Filter: nếu correction bằng một
+    // mẫu nhiễu thì trạng thái lọc và map matching sẽ bị kéo lệch theo.
     if (!isAccuracyAcceptable) {
-      emit(state.copyWith(
-        currentLat: currentLat,
-        currentLon: currentLon,
-        filteredLat: filtered.lat,
-        filteredLon: filtered.lon,
-        currentSpeedKmh: speedKmh,
-        currentHeading: event.heading,
-        currentAccuracy: event.accuracy,
-      ));
+      emit(
+        state.copyWith(
+          currentLat: state.currentLat ?? event.latitude,
+          currentLon: state.currentLon ?? event.longitude,
+          currentSpeedKmh: speedKmh,
+          currentHeading: event.heading,
+          currentAccuracy: event.accuracy,
+        ),
+      );
       return;
     }
 
+    // Dùng timestamp gốc của thiết bị để dự đoán đúng khoảng cách giữa hai fix.
+    final filtered = _kalmanFilter.update(
+      gpsLat: event.latitude,
+      gpsLon: event.longitude,
+      accuracyMeters: accuracy ?? 10.0,
+      speedMps: event.speed,
+      headingDeg: event.heading,
+      timestamp: timestamp,
+    );
+    final trackingLat = filtered.lat;
+    final trackingLon = filtered.lon;
+
     // 0. Tích luỹ số liệu vận tốc và quãng đường vào MetricsTracker
     _metricsTracker.recordFix(
-      lat: currentLat,
-      lon: currentLon,
+      lat: trackingLat,
+      lon: trackingLon,
       speedKmh: speedKmh,
     );
 
     // 1. Phân tích chu kỳ vị trí thông qua TrackingCoordinator
     final tick = _trackingCoordinator.processLocationTick(
-      currentLat: currentLat,
-      currentLon: currentLon,
+      currentLat: trackingLat,
+      currentLon: trackingLon,
       route: state.currentRoute!,
       destination: state.destination,
       currentSegmentIndex: state.currentSegmentIndex,
       currentInstructionIndex: state.currentInstructionIndex,
       hasMoved: _metricsTracker.hasMoved,
+      accuracyMeters: accuracy,
     );
 
     // 2. Xử lý khi đã đến đích
@@ -369,51 +414,65 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       _requestGeneration++;
       await _cancelGpsSubscription();
 
+      final tripRoute = _buildTripRouteForFinalization();
       final result = await _persistenceCoordinator.finalizeTrip(
         metrics: _metricsTracker,
         startTime: state.tripStartTime,
+        origin: state.tripOrigin ?? state.origin,
+        originName: state.tripOriginName,
         destination: state.destination,
         destinationName: state.destinationName,
         profile: state.profile,
-        polyline: state.currentRoute?.points,
+        polyline: tripRoute.points,
         hasArrived: true,
-        stopLat: currentLat,
-        stopLon: currentLon,
+        stopLat: trackingLat,
+        stopLon: trackingLon,
       );
       if (isClosed) return;
 
-      emit(state.copyWithArrival(
-        currentLat: currentLat,
-        currentLon: currentLon,
+      emit(
+        state.copyWithArrival(
+          currentLat: event.latitude,
+          currentLon: event.longitude,
+          filteredLat: filtered.lat,
+          filteredLon: filtered.lon,
+          currentSpeedKmh: speedKmh,
+          currentHeading: event.heading,
+          currentAccuracy: event.accuracy,
+          currentInstructionIndex: tick.progress.currentInstructionIndex,
+          currentInstruction: tick.progress.currentInstruction,
+          nextInstruction: tick.progress.nextInstruction,
+          metrics: _metricsTracker,
+          tripSummary: result.summary,
+        ),
+      );
+      return;
+    }
+
+    // 3. Cập nhật toạ độ và chỉ dẫn đường (có map-matched snapping)
+    emit(
+      state.copyWithTick(
+        tick: tick,
+        currentLat: event.latitude,
+        currentLon: event.longitude,
         filteredLat: filtered.lat,
         filteredLon: filtered.lon,
         currentSpeedKmh: speedKmh,
         currentHeading: event.heading,
         currentAccuracy: event.accuracy,
-        currentInstructionIndex: tick.progress.currentInstructionIndex,
-        currentInstruction: tick.progress.currentInstruction,
-        nextInstruction: tick.progress.nextInstruction,
         metrics: _metricsTracker,
-        tripSummary: result.summary,
-      ));
-      return;
-    }
+      ),
+    );
 
-    // 3. Cập nhật toạ độ và chỉ dẫn đường (có map-matched snapping)
-    emit(state.copyWithTick(
-      tick: tick,
-      currentLat: currentLat,
-      currentLon: currentLon,
-      filteredLat: filtered.lat,
-      filteredLon: filtered.lon,
-      currentSpeedKmh: speedKmh,
-      currentHeading: event.heading,
-      currentAccuracy: event.accuracy,
-      metrics: _metricsTracker,
-    ));
-
-    // 4. Tự động kích hoạt tính lại đường (Reroute) khi phát hiện lệch tuyến > 50m (kèm Hysteresis)
-    _checkAutoReroute(tick, currentLat, currentLon, speedKmh);
+    // Chỉ tính route mới sau khi nhiều fix liên tiếp xác nhận lệch tuyến.
+    _checkAutoReroute(
+      tick,
+      trackingLat,
+      trackingLon,
+      speedKmh,
+      event.heading,
+      event.headingAccuracy,
+    );
   }
 
   Future<void> _onRerouteRequested(
@@ -427,15 +486,18 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     final generation = ++_requestGeneration;
     DLog.info(
-        '🔄 [NavigationBloc] Rerouting [Gen #$generation] from (${event.currentPosition.lat.toStringAsFixed(5)}, ${event.currentPosition.lon.toStringAsFixed(5)}) to (${state.destination!.lat.toStringAsFixed(5)}, ${state.destination!.lon.toStringAsFixed(5)})');
+      '🔄 [NavigationBloc] Rerouting [Gen #$generation] from (${event.currentPosition.lat.toStringAsFixed(5)}, ${event.currentPosition.lon.toStringAsFixed(5)}) to (${state.destination!.lat.toStringAsFixed(5)}, ${state.destination!.lon.toStringAsFixed(5)})',
+    );
 
-    emit(state.copyWith(
-      status: NavigationStatus.rerouting,
-      isRerouting: true,
-      requestGeneration: generation,
-      messageKey: LocaleKeys.routing_rerouting,
-      clearError: true,
-    ));
+    emit(
+      state.copyWith(
+        status: NavigationStatus.rerouting,
+        isRerouting: true,
+        requestGeneration: generation,
+        messageKey: LocaleKeys.routing_rerouting,
+        clearError: true,
+      ),
+    );
 
     try {
       final newRoute = await _routingRepository.calculateRoute(
@@ -448,46 +510,63 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
       if (isClosed || emit.isDone || generation != _requestGeneration) {
         DLog.info(
-            '⏭️ [NavigationBloc] Stale reroute response discarded (#$generation vs #$_requestGeneration)');
+          '⏭️ [NavigationBloc] Stale reroute response discarded (#$generation vs #$_requestGeneration)',
+        );
         return;
       }
 
       if (newRoute.isSuccess && newRoute.hasPoints) {
         DLog.info(
-            '✅ [NavigationBloc] Reroute calculated successfully: ${(newRoute.distance / 1000).toStringAsFixed(2)}km, ${(newRoute.time / 60000).round()} mins');
+          '✅ [NavigationBloc] Reroute calculated successfully: ${(newRoute.distance / 1000).toStringAsFixed(2)}km, ${(newRoute.time / 60000).round()} mins',
+        );
         final newProgress = _trackingCoordinator.initializeProgress(
           newRoute.instructions,
         );
 
-        emit(state.copyWithRerouteSuccess(
-          newRoute: newRoute,
-          newOrigin: event.currentPosition,
-          newProgress: newProgress,
-          requestGeneration: generation,
-          messageKey: LocaleKeys.routing_reroute_success,
-        ));
+        emit(
+          state.copyWithRerouteSuccess(
+            newRoute: newRoute,
+            newOrigin: event.currentPosition,
+            newProgress: newProgress,
+            requestGeneration: generation,
+            messageKey: LocaleKeys.routing_reroute_success,
+            completedRoutePoints: _appendCompletedRoutePrefix(
+              state.completedRoutePoints,
+              state.currentRoute?.points ?? const [],
+              event.currentPosition,
+            ),
+          ),
+        );
         add(const SaveActiveSessionSnapshot());
       } else {
         DLog.error(
-            '❌ [NavigationBloc] Reroute calculation failed: ${newRoute.errorMessage}');
-        emit(state.copyWith(
-          status: NavigationStatus.navigating,
-          isRerouting: false,
-          requestGeneration: generation,
-          errorMessageKey:
-              newRoute.errorMessage ?? LocaleKeys.routing_error_generic,
-        ));
+          '❌ [NavigationBloc] Reroute calculation failed: ${newRoute.errorMessage}',
+        );
+        emit(
+          state.copyWith(
+            status: NavigationStatus.navigating,
+            isRerouting: false,
+            requestGeneration: generation,
+            errorMessageKey:
+                newRoute.errorMessage ?? LocaleKeys.routing_error_generic,
+          ),
+        );
       }
     } catch (e, stack) {
       if (isClosed || emit.isDone || generation != _requestGeneration) return;
       DLog.error(
-          '❌ [NavigationBloc] Exception in reroute calculation: $e', e, stack);
-      emit(state.copyWith(
-        status: NavigationStatus.navigating,
-        isRerouting: false,
-        requestGeneration: generation,
-        errorMessageKey: LocaleKeys.routing_error_generic,
-      ));
+        '❌ [NavigationBloc] Exception in reroute calculation: $e',
+        e,
+        stack,
+      );
+      emit(
+        state.copyWith(
+          status: NavigationStatus.navigating,
+          isRerouting: false,
+          requestGeneration: generation,
+          errorMessageKey: LocaleKeys.routing_error_generic,
+        ),
+      );
     }
   }
 
@@ -518,28 +597,35 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       final stopLon =
           state.snappedLon ?? state.currentLon ?? _metricsTracker.lastValidLon;
 
+      final tripRoute = _buildTripRouteForFinalization();
       final result = await _persistenceCoordinator.finalizeTrip(
         metrics: _metricsTracker,
         startTime: state.tripStartTime,
+        origin: state.tripOrigin ?? state.origin,
+        originName: state.tripOriginName,
         destination: state.destination,
         destinationName: state.destinationName,
         profile: state.profile,
-        polyline: state.currentRoute?.points,
+        polyline: tripRoute.points,
         hasArrived: false,
         stopLat: stopLat,
         stopLon: stopLon,
-        currentSegmentIndex: state.currentSegmentIndex,
+        currentSegmentIndex: tripRoute.currentSegmentIndex,
       );
 
-      emit(state.copyWith(
-        status: NavigationStatus.stopped,
-        tripSummary: result.summary,
-      ));
+      emit(
+        state.copyWith(
+          status: NavigationStatus.stopped,
+          tripSummary: result.summary,
+        ),
+      );
     } else {
-      emit(state.copyWith(
-        status: NavigationStatus.stopped,
-        clearTripSummary: true,
-      ));
+      emit(
+        state.copyWith(
+          status: NavigationStatus.stopped,
+          clearTripSummary: true,
+        ),
+      );
     }
   }
 
@@ -559,6 +645,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     if (generation != _requestGeneration || isClosed) return;
 
     _lastRerouteTime = null;
+    _lastGpsTimestamp = null;
     _metricsTracker.reset();
     _kalmanFilter.reset();
     _consecutiveOffRouteTicks = 0;
@@ -570,12 +657,20 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     double currentLat,
     double currentLon,
     double? speedKmh,
+    double? headingDeg,
+    double? headingAccuracyDeg,
   ) {
-    if (!tick.isOffRoute) {
-      // Decay dần thay vì reset về 0 để tránh flip-flop khi đi gần đường song song
-      if (_consecutiveOffRouteTicks > 0) {
-        _consecutiveOffRouteTicks--;
-      }
+    final isOppositeDirection = _isMovingOppositeRoute(
+      segmentIndex: tick.segmentIndex,
+      headingDeg: headingDeg,
+      headingAccuracyDeg: headingAccuracyDeg,
+      speedKmh: speedKmh,
+    );
+    final isDeviationCandidate = tick.isOffRoute || isOppositeDirection;
+
+    if (!isDeviationCandidate) {
+      // Cần các fix lệch liên tiếp; fix trở lại đúng tuyến xoá xác nhận cũ.
+      _consecutiveOffRouteTicks = 0;
       return;
     }
 
@@ -583,7 +678,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     if (_consecutiveOffRouteTicks < minConsecutiveOffRouteTicks) {
       DLog.info(
-          '⏳ [NavigationBloc] Off-route detected ($_consecutiveOffRouteTicks/$minConsecutiveOffRouteTicks ticks, dist: ${tick.distanceToRoute.toStringAsFixed(1)}m). Awaiting confirmation window.');
+        '⏳ [NavigationBloc] Off-route detected ($_consecutiveOffRouteTicks/$minConsecutiveOffRouteTicks ticks, dist: ${tick.distanceToRoute.toStringAsFixed(1)}m). Awaiting confirmation window.',
+      );
       return;
     }
 
@@ -595,25 +691,166 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     if (isStationary) {
       DLog.info(
-          '🛑 [NavigationBloc] Off-route suppressed: vehicle is stationary (${speedKmh?.toStringAsFixed(1)} km/h).');
+        '🛑 [NavigationBloc] Off-route suppressed: vehicle is stationary (${speedKmh?.toStringAsFixed(1)} km/h).',
+      );
       return;
     }
 
     if (!state.isRerouting) {
       final now = DateTime.now();
-      final canReroute = _lastRerouteTime == null ||
+      final canReroute =
+          _lastRerouteTime == null ||
           now.difference(_lastRerouteTime!) >= _rerouteCooldown;
 
       if (canReroute) {
         _lastRerouteTime = now;
         _consecutiveOffRouteTicks = 0;
         DLog.info(
-            '🔄 [NavigationBloc] Auto-triggering reroute after 3 confirmed off-route ticks (${tick.distanceToRoute.toStringAsFixed(1)}m > 50m)');
-        add(RerouteRequested(
-          currentPosition: RoutePoint(lat: currentLat, lon: currentLon),
-        ));
+          '🔄 [NavigationBloc] Auto-triggering reroute after $minConsecutiveOffRouteTicks confirmed fixes (distance=${tick.distanceToRoute.toStringAsFixed(1)}m, oppositeDirection=$isOppositeDirection)',
+        );
+        add(
+          RerouteRequested(
+            currentPosition: RoutePoint(lat: currentLat, lon: currentLon),
+          ),
+        );
       }
     }
+  }
+
+  bool _isMovingOppositeRoute({
+    required int segmentIndex,
+    required double? headingDeg,
+    required double? headingAccuracyDeg,
+    required double? speedKmh,
+  }) {
+    if (headingDeg == null ||
+        speedKmh == null ||
+        speedKmh < minMovingSpeedForRerouteKmh ||
+        (headingAccuracyDeg != null && headingAccuracyDeg > 45.0)) {
+      return false;
+    }
+
+    final points = state.currentRoute?.points;
+    if (points == null || points.length < 2) return false;
+    final index = segmentIndex.clamp(0, points.length - 2).toInt();
+    final start = points[index];
+    final end = points[index + 1];
+    if (start.length < 2 || end.length < 2) return false;
+    final routeHeading = MapGeometryUtils.bearing(
+      start[0],
+      start[1],
+      end[0],
+      end[1],
+    );
+    final difference = ((headingDeg - routeHeading + 540.0) % 360.0) - 180.0;
+
+    // Chỉ xem là đi ngược khi lệch gần 180°, tránh nhầm những khúc cong hoặc
+    // thao tác rẽ trái/phải bình thường với việc đi sai hướng trên cùng tuyến.
+    return difference.abs() >= 120.0;
+  }
+
+  List<List<double>> _appendCompletedRoutePrefix(
+    List<List<double>> completed,
+    List<List<double>> routePoints,
+    RoutePoint currentPosition,
+  ) {
+    if (routePoints.isEmpty) return completed;
+
+    final (
+      segmentIndex,
+      _,
+      closestLat,
+      closestLon,
+    ) = MapGeometryUtils.findClosestPointOnPolyline(
+      pLat: currentPosition.lat,
+      pLon: currentPosition.lon,
+      points: routePoints,
+    );
+    final prefix = routePoints
+        .take(segmentIndex + 1)
+        .map((point) => List<double>.from(point))
+        .toList();
+    final projectedPoint = [closestLat, closestLon];
+    if (prefix.isEmpty ||
+        MapGeometryUtils.haversineDistanceMeters(
+              prefix.last[0],
+              prefix.last[1],
+              closestLat,
+              closestLon,
+            ) >
+            1.0) {
+      prefix.add(projectedPoint);
+    }
+
+    if (MapGeometryUtils.haversineDistanceMeters(
+          prefix.last[0],
+          prefix.last[1],
+          currentPosition.lat,
+          currentPosition.lon,
+        ) >
+        3.0) {
+      prefix.add([currentPosition.lat, currentPosition.lon]);
+    }
+
+    return _joinRoutePoints(completed, prefix);
+  }
+
+  ({List<List<double>>? points, int? currentSegmentIndex})
+  _buildTripRouteForFinalization() {
+    final completed = state.completedRoutePoints;
+    final current = state.currentRoute?.points;
+    if (current == null || current.isEmpty) {
+      return (
+        points: completed.isEmpty ? null : completed,
+        currentSegmentIndex: null,
+      );
+    }
+    if (completed.isEmpty) {
+      return (points: current, currentSegmentIndex: state.currentSegmentIndex);
+    }
+
+    final startsAtCompletedEnd =
+        MapGeometryUtils.haversineDistanceMeters(
+          completed.last[0],
+          completed.last[1],
+          current.first[0],
+          current.first[1],
+        ) <=
+        5.0;
+    final points = _joinRoutePoints(
+      completed,
+      startsAtCompletedEnd ? current.skip(1).toList() : current,
+    );
+    final segmentOffset = startsAtCompletedEnd
+        ? completed.length - 1
+        : completed.length;
+
+    return (
+      points: points,
+      currentSegmentIndex: segmentOffset + state.currentSegmentIndex,
+    );
+  }
+
+  List<List<double>> _joinRoutePoints(
+    List<List<double>> first,
+    List<List<double>> second,
+  ) {
+    if (first.isEmpty) return second.map(List<double>.from).toList();
+    if (second.isEmpty) return first.map(List<double>.from).toList();
+
+    final joined = first.map((point) => List<double>.from(point)).toList();
+    final skipFirst =
+        MapGeometryUtils.haversineDistanceMeters(
+          joined.last[0],
+          joined.last[1],
+          second.first[0],
+          second.first[1],
+        ) <=
+        5.0;
+    joined.addAll(
+      second.skip(skipFirst ? 1 : 0).map((point) => List<double>.from(point)),
+    );
+    return joined;
   }
 
   Future<void> _cancelGpsSubscription() async {
@@ -623,19 +860,16 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
   void _listenGpsStream(String destName) {
     final stream = _locationService.getPositionStream(
-      // Tối ưu pin: dùng 'high' thay vì 'bestForNavigation'
-      // — chênh lệch chỉ 1-2m nhưng tiết kiệm pin đáng kể
-      // (bestForNavigation = GPS + Wi-Fi + Cell + Sensor fusion liên tục)
-      accuracy: LocationAccuracy.high,
-      // Lọc GPS noise: chỉ báo khi dịch chuyển ≥ 3m
-      // → giảm callback khi đứng yên (đèn đỏ, kẹt xe)
-      distanceFilter: 3,
+      // Dẫn đường cần nhận fix thường xuyên để camera và chỉ dẫn không tụt
+      // phía sau người dùng. Mức này chỉ hoạt động trong phiên navigation.
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: 1,
       enableBackground: true,
       notificationTitle: LocaleKeys.routing_foreground_notification_title.tr(),
       notificationText: LocaleKeys.routing_foreground_notification_text.tr(
         args: [destName],
       ),
-      intervalDuration: const Duration(seconds: 1),
+      intervalDuration: const Duration(milliseconds: 500),
       enableWakeLock: true,
     );
 
@@ -654,10 +888,12 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   @override
   Future<void> close() async {
     DLog.info(
-        '🧹 [NavigationBloc] Disposing NavigationBloc and cancelling GPS listeners');
+      '🧹 [NavigationBloc] Disposing NavigationBloc and cancelling GPS listeners',
+    );
     _requestGeneration++;
     _persistenceCoordinator.dispose();
     _lastRerouteTime = null;
+    _lastGpsTimestamp = null;
     _metricsTracker.reset();
     await _cancelGpsSubscription();
     // Safety: tắt wakelock khi bloc bị dispose

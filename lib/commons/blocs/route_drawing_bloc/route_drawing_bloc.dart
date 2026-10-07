@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/di/app_repos_provider.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/commons/transformers/transformers.dart';
@@ -8,7 +9,6 @@ import 'package:s_map/constants/constants.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/repos/repos.dart';
 import 'route_drawing_event.dart';
 import 'route_drawing_state.dart';
 
@@ -48,6 +48,7 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     on<RouteDrawingToggleSegmentStraightLine>(_onToggleSegmentStraightLine);
     on<RouteDrawingReorderPoints>(_onReorderPoints);
     on<RouteDrawingRemovePoint>(_onRemovePoint);
+    on<RouteDrawingUndo>(_onUndo);
   }
 
   void _onToggleStraightLineMode(
@@ -792,6 +793,17 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
     if (idx < 0 || idx >= state.points.length) return;
 
     final newPoints = List<SnappedRoadPoint>.from(state.points)..removeAt(idx);
+    await _recalculateRouteForPoints(newPoints, emit);
+  }
+
+  /// Hoàn tác bước vẽ cuối cùng – xóa waypoint cuối cùng.
+  Future<void> _onUndo(
+    RouteDrawingUndo event,
+    Emitter<RouteDrawingState> emit,
+  ) async {
+    if (state.points.isEmpty) return;
+    final lastIndex = state.points.length - 1;
+    final newPoints = List<SnappedRoadPoint>.from(state.points)..removeAt(lastIndex);
     await _recalculateRouteForPoints(newPoints, emit);
   }
 

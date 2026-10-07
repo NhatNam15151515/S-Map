@@ -1,8 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -13,6 +11,8 @@ class MapSearchBar extends StatelessWidget {
   final VoidCallback? onTap;
   final String? activeSearchText;
   final VoidCallback? onClearSearch;
+  final VoidCallback? onVoicePressed;
+  final Widget? trailing;
 
   const MapSearchBar({
     super.key,
@@ -22,6 +22,8 @@ class MapSearchBar extends StatelessWidget {
     this.onTap,
     this.activeSearchText,
     this.onClearSearch,
+    this.onVoicePressed,
+    this.trailing,
   });
 
   bool get _hasActiveSearch =>
@@ -74,7 +76,7 @@ class MapSearchBar extends StatelessWidget {
                         color: colorScheme.onSurface,
                         size: 22,
                       ),
-                      onPressed: onBackPressed ?? () => context.pop(),
+                      onPressed: onBackPressed,
                       tooltip: tr(LocaleKeys.common_back),
                     )
                   else
@@ -125,16 +127,17 @@ class MapSearchBar extends StatelessWidget {
                         color: colorScheme.onSurface,
                         size: 22,
                       ),
-                      onPressed: () {},
+                      onPressed: onVoicePressed ?? () {},
                       tooltip: tr(LocaleKeys.search_bar_voice),
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(),
                     ),
                   const SizedBox(width: 4),
-                  const Padding(
-                    padding: EdgeInsets.only(right: 6),
-                    child: ProfileAvatar(size: 32, borderWidth: 1.5),
-                  ),
+                  if (trailing != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: trailing!,
+                    ),
                 ],
               ),
             ),

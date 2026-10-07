@@ -384,6 +384,15 @@ class MapDisplayCubit extends Cubit<MapDisplayState> {
     ));
   }
 
+  /// Bắt đầu bám theo GPS khi vào chế độ dẫn đường.
+  ///
+  /// Không phát camera action ở đây; camera sẽ nhận GPS fix đầu tiên qua
+  /// NavigationState và di chuyển theo vị trí thật.
+  void resumeUserFollowing() {
+    if (state.isFollowingUser) return;
+    emit(state.copyWith(isFollowingUser: true));
+  }
+
   void clearError() {
     if (state.errorMessageKey != null) {
       emit(state.copyWith(clearError: true));

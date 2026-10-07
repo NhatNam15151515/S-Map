@@ -19,7 +19,13 @@
   "search_bar": {
     "title": "Thanh tìm kiếm địa điểm",
     "placeholder": "Tìm kiếm ở đây",
-    "voice": "Tìm kiếm bằng giọng nói"
+    "voice": "Tìm kiếm bằng giọng nói",
+    "voice_listening": "Đang lắng nghe...",
+    "voice_hint": "Hãy nói tên địa điểm hoặc địa chỉ",
+    "voice_try_again": "Chưa nghe rõ, vui lòng thử lại",
+    "voice_permission_denied": "Cần cấp quyền Microphone để tìm kiếm bằng giọng nói",
+    "voice_open_settings": "Mở Cài đặt",
+    "voice_unavailable": "Thiết bị không hỗ trợ nhận diện giọng nói"
   },
   "search_input_hint": "Tìm địa điểm, đường phố...",
   "recentSearches": "Tìm kiếm gần đây",
@@ -364,5 +370,22 @@
   "appVersionNumber": "1.0.0",
   "close": "Đóng",
   "aboutAppDesc": "S-Map là ứng dụng bản đồ số và dẫn đường ngoại tuyến tối ưu cho người dùng Việt Nam. Hỗ trợ tìm kiếm địa điểm, dẫn đường bằng giọng nói cho xe máy và quản lý bản đồ offline 63 tỉnh thành.",
-  "versionPrefix": "Phiên bản: {}"
+  "versionPrefix": "Phiên bản: {}",
+  "help_feedback_content": "Mọi thắc mắc hoặc đóng góp ý kiến về tính năng bản đồ và dẫn đường, vui lòng liên hệ đội ngũ phát triển S-Map.",
+  "user_avatar_title": "Ảnh đại diện",
+  "user_avatar_view": "Xem ảnh đại diện",
+  "user_avatar_view_desc": "Xem ảnh ở kích thước lớn",
+  "user_avatar_take_photo": "Chụp ảnh mới",
+  "user_avatar_take_photo_desc": "Sử dụng máy ảnh thiết bị",
+  "user_avatar_pick_gallery": "Chọn ảnh từ thư viện",
+  "user_avatar_pick_gallery_desc": "Chọn ảnh từ album thiết bị",
+  "user_avatar_delete": "Xóa ảnh đại diện",
+  "user_avatar_delete_desc": "Khôi phục biểu tượng mặc định",
+  "user_update_avatar_success": "Đã cập nhật ảnh đại diện thành công",
+  "user_delete_avatar_success": "Đã xóa ảnh đại diện",
+  "user_process_avatar_error": "Không thể xử lý ảnh đại diện: {}",
+  "user_open_camera_error": "Không thể mở máy ảnh: {}",
+  "user_pick_gallery_error": "Lỗi chọn ảnh: {}",
+  "user_share_location_message": "Vị trí hiện tại: {}",
+  "user_share_location_fallback": "Mở ứng dụng S-Map để khám phá và dẫn đường ngoại tuyến!"
 }

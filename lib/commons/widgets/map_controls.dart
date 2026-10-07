@@ -59,15 +59,7 @@ class MapControls extends StatelessWidget {
             customMiddleControl!,
             const SizedBox(height: 10),
           ] else if (showLayers) ...[
-            _buildControlButton(
-              context: context,
-              icon: Icons.layers_rounded,
-              tooltip: tr(LocaleKeys.map_switch_layers),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                (onSwitchLayers ?? () {})();
-              },
-            ),
+            MapStyleToggleButton(onPressed: onSwitchLayers ?? () {}),
             const SizedBox(height: 10),
           ],
           // Compact Zoom Pill
@@ -92,8 +84,11 @@ class MapControls extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: Icon(Icons.add_rounded,
-                      color: colorScheme.onSurface, size: 20),
+                  icon: Icon(
+                    Icons.add_rounded,
+                    color: colorScheme.onSurface,
+                    size: 20,
+                  ),
                   tooltip: tr(LocaleKeys.map_zoom_in),
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -107,8 +102,11 @@ class MapControls extends StatelessWidget {
                   color: colorScheme.outline.withAlpha(80),
                 ),
                 IconButton(
-                  icon: Icon(Icons.remove_rounded,
-                      color: colorScheme.onSurface, size: 20),
+                  icon: Icon(
+                    Icons.remove_rounded,
+                    color: colorScheme.onSurface,
+                    size: 20,
+                  ),
                   tooltip: tr(LocaleKeys.map_zoom_out),
                   onPressed: () {
                     HapticFeedback.lightImpact();
@@ -120,45 +118,8 @@ class MapControls extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          MapLocateButton(
-            heroTag: locateHeroTag,
-            onPressed: onLocateMe,
-          ),
+          MapLocateButton(heroTag: locateHeroTag, onPressed: onLocateMe),
         ],
-      ),
-    );
-  }
-
-  Widget _buildControlButton({
-    required BuildContext context,
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: colorScheme.outline.withAlpha(50),
-          width: 0.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: colorScheme.onSurface, size: 20),
-        tooltip: tooltip,
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
       ),
     );
   }

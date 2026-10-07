@@ -7,7 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:s_map/commons/cubits/cubits.dart';
-import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/screens/main/home/widgets/home/home_poi_quick_card.dart';
 import 'package:s_map/generated/codegen_loader.g.dart';
 import 'package:s_map/models/models.dart';
 
@@ -137,7 +137,7 @@ void main() {
       final favCubit = FavoritesCubit(favoritesService: favService);
 
       await tester.pumpWidget(createTestableWidget(
-        PoiQuickCard(
+        HomePoiQuickCard(
           poi: samplePoi,
           onClose: () => closed = true,
           onDirections: () => directionsTapped = true,
@@ -175,7 +175,7 @@ void main() {
       final mapDisplayCubit = MapDisplayCubit(locationService: mockLocation);
 
       await tester.pumpWidget(createTestableWidget(
-        PoiQuickCard(
+        HomePoiQuickCard(
           poi: samplePoi,
           onClose: () {},
         ),

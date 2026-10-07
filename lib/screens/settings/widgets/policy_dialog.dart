@@ -1,7 +1,5 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:s_map/commons/styles/styles.dart';
-import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 
 class PolicyDialog extends StatelessWidget {
   final String title;
@@ -18,51 +16,18 @@ class PolicyDialog extends StatelessWidget {
     required String title,
     required String content,
   }) {
-    return showDialog<void>(
-      context: context,
-      builder: (_) => PolicyDialog(
-        title: title,
-        content: content,
-      ),
+    return AppInfoDialog.show(
+      context,
+      title: title,
+      message: content,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
-
-    return AlertDialog(
-      backgroundColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      title: Text(
-        title,
-        style: colorScheme.onSurface.textTheme.boldStyle.copyWith(
-          fontSize: 18,
-        ),
-      ),
-      content: SingleChildScrollView(
-        child: Text(
-          content,
-          style: colorScheme.onSurface.textTheme.textStyle.copyWith(
-            fontSize: 14,
-            height: 1.4,
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => context.safePop(),
-          child: Text(
-            tr(LocaleKeys.close),
-            style: TextStyle(
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
+    return AppInfoDialog(
+      title: title,
+      message: content,
     );
   }
 }

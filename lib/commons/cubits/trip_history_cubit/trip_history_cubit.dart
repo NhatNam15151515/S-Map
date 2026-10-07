@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:s_map/di/app_repos_provider.dart';
 import 'package:s_map/commons/cubits/trip_history_cubit/trip_history_state.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/interfaces.dart';

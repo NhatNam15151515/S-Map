@@ -96,27 +96,33 @@ class MapStyleService implements IMapStyleService {
     final palette = _themeProvider
         .paletteFor(isDarkMode: isDarkMode)
         .tokens;
+
+    // Bóc nháy kép quanh các token dạng số (float) nếu file template bọc ngoặc kép để tránh lỗi IDE
+    final casingOpacity = palette['__ROAD_CASING_OPACITY__'];
+    if (casingOpacity != null) {
+      style = style.replaceAll('"__ROAD_CASING_OPACITY__"', casingOpacity);
+    }
+    final surfaceOpacity = palette['__ROAD_SURFACE_OPACITY__'];
+    if (surfaceOpacity != null) {
+      style = style.replaceAll('"__ROAD_SURFACE_OPACITY__"', surfaceOpacity);
+    }
+
     for (final entry in palette.entries) {
       style = style.replaceAll(entry.key, entry.value);
     }
-    return style;
+    return stripJsonComments(style);
   }
 
   @override
   Future<void> init() async {
     try {
-      _onlineStyleJson = await rootBundle.loadString('assets/map/style.json');
+      final raw = await rootBundle.loadString('assets/map/style.json');
+      _onlineStyleJson = stripJsonComments(raw);
     } catch (_) {
       _onlineStyleJson = '';
     }
 
-    try {
-      _offlineStyleTemplate =
-          await rootBundle.loadString('assets/map/offline_style.json');
-    } catch (error) {
-      _offlineStyleTemplate = null;
-      DLog.warning('⚠️ Không tải được offline map style template: $error');
-    }
+    _offlineStyleTemplate = await _loadOfflineStyleTemplate();
 
     await _prepareOfflineFont();
 
@@ -124,6 +130,116 @@ class MapStyleService implements IMapStyleService {
     // is installed, both light and dark modes use the local vector style.
     _onlineNightStyleJson = openFreeMapDarkStyleUrl;
     await refreshOfflineMap(emitChange: false);
+  }
+
+  /// Nạp template offline vector map: Ưu tiên ghép từ các module layer
+  /// (assets/map/layers/), nếu không có sẽ fallback về assets/map/offline_style.json.
+  Future<String?> _loadOfflineStyleTemplate() async {
+    try {
+      final baseStr = await _loadLayerAsset('base');
+      final landStr = await _loadLayerAsset('land');
+      final waterStr = await _loadLayerAsset('water');
+      final buildingStr = await _loadLayerAsset('buildings');
+      final roadStr = await _loadLayerAsset('roads');
+      final labelStr = await _loadLayerAsset('labels');
+
+      final layersMerged = [
+        _cleanLayerArray(landStr),
+        _cleanLayerArray(waterStr),
+        _cleanLayerArray(buildingStr),
+        _cleanLayerArray(roadStr),
+        _cleanLayerArray(labelStr),
+      ].where((s) => s.isNotEmpty).join(',\n');
+
+      final merged = baseStr.replaceFirst(RegExp(r'"?__LAYERS__"?'), layersMerged);
+      return stripJsonComments(merged);
+    } catch (modularError) {
+      DLog.info('ℹ️ Không tải được modular layers, fallback về offline_style.json: $modularError');
+    }
+
+    try {
+      final raw = await _loadLayerFallback();
+      return stripJsonComments(raw);
+    } catch (error) {
+      DLog.warning('⚠️ Không tải được offline map style template: $error');
+      return null;
+    }
+  }
+
+  static Future<String> _loadLayerAsset(String name) async {
+    try {
+      return await rootBundle.loadString('assets/map/layers/$name.jsonc');
+    } catch (_) {
+      return await rootBundle.loadString('assets/map/layers/$name.json');
+    }
+  }
+
+  static Future<String> _loadLayerFallback() async {
+    try {
+      return await rootBundle.loadString('assets/map/offline_style.jsonc');
+    } catch (_) {
+      return await rootBundle.loadString('assets/map/offline_style.json');
+    }
+  }
+
+  /// Chuẩn hóa mảng JSON layer: bóc tách dấu [ ] ngoài cùng và loại bỏ comment
+  static String _cleanLayerArray(String moduleContent) {
+    var trimmed = stripJsonComments(moduleContent).trim();
+    if (trimmed.startsWith('[')) {
+      trimmed = trimmed.substring(1).trim();
+    }
+    if (trimmed.endsWith(']')) {
+      trimmed = trimmed.substring(0, trimmed.length - 1).trim();
+    }
+    return trimmed;
+  }
+
+  /// Loại bỏ các dòng chú thích // và /* */ (hỗ trợ chuẩn JSONC)
+  /// mà không làm ảnh hưởng đến các URL chứa `://` (như pmtiles://, https://).
+  static String stripJsonComments(String input) {
+    final buffer = StringBuffer();
+    final len = input.length;
+    bool inString = false;
+    bool isEscaped = false;
+
+    for (int i = 0; i < len; i++) {
+      final char = input[i];
+
+      if (inString) {
+        buffer.write(char);
+        if (isEscaped) {
+          isEscaped = false;
+        } else if (char == r'\') {
+          isEscaped = true;
+        } else if (char == '"') {
+          inString = false;
+        }
+      } else {
+        if (char == '"') {
+          inString = true;
+          buffer.write(char);
+        } else if (char == '/' && i + 1 < len && input[i + 1] == '/') {
+          // Bỏ qua chú thích // cho đến hết dòng
+          while (i < len && input[i] != '\n' && input[i] != '\r') {
+            i++;
+          }
+          if (i < len) {
+            buffer.write(input[i]); // Giữ lại ký tự xuống dòng
+          }
+        } else if (char == '/' && i + 1 < len && input[i + 1] == '*') {
+          // Bỏ qua chú thích /* ... */
+          i += 2;
+          while (i + 1 < len && !(input[i] == '*' && input[i + 1] == '/')) {
+            if (input[i] == '\n') buffer.write('\n');
+            i++;
+          }
+          i++; // Bỏ qua ký tự '/' của '*/'
+        } else {
+          buffer.write(char);
+        }
+      }
+    }
+    return buffer.toString();
   }
 
   /// MapLibre Native needs a local font face when the style is offline. The

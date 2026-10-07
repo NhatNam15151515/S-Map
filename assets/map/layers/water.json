@@ -1,0 +1,35 @@
+[
+  // ─── 1. MẶT NƯỚC LỚN (Sông, hồ, vịnh, biển) ───
+  {
+    "id": "smap-water",
+    "type": "fill",
+    "source": "smap-vietnam",
+    "source-layer": "water",
+    "paint": {
+      "fill-color": "__WATER_FILL__",       // Màu lòng mặt nước
+      "fill-outline-color": "__WATER_OUTLINE__" // Mép bờ sông / bờ biển
+    }
+  },
+
+  // ─── 2. KÊNH RẠCH, SUỐI NHỎ (Vẽ dạng nét line) ───
+  {
+    "id": "smap-waterway",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "waterway",
+    "minzoom": 8, // Hiện từ zoom 8
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__WATERWAY_LINE__",
+      "line-width": [
+        "interpolate", ["linear"], ["zoom"],
+        8, 0.5,   // Zoom 8  -> nét dày 0.5px
+        12, 1.4,  // Zoom 12 -> nét dày 1.4px
+        14, 2.4   // Zoom 14 -> nét dày 2.4px
+      ]
+    }
+  }
+]

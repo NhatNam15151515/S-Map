@@ -30,6 +30,7 @@ class HomeMapSyncCoordinator {
 
   int _navListenerGeneration = 0;
   int _routeMarkerSyncGeneration = 0;
+  bool _didAutoFollowNavigation = false;
 
   HomeMapSyncCoordinator({
     required this.getMapController,
@@ -130,6 +131,10 @@ class HomeMapSyncCoordinator {
     final mapController = getMapController();
     final gen = ++_navListenerGeneration;
     if (navState.isNavigating) {
+      if (!_didAutoFollowNavigation) {
+        _didAutoFollowNavigation = true;
+        displayCubit.resumeUserFollowing();
+      }
       if (navState.currentRoute != null &&
           navState.currentRoute != getRenderedNavRoute() &&
           navState.origin != null &&
@@ -167,11 +172,13 @@ class HomeMapSyncCoordinator {
             currentSegmentIndex: navState.currentSegmentIndex,
             currentLat: navState.displayLat ?? navState.currentLat,
             currentLon: navState.displayLon ?? navState.currentLon,
+            isOffRoute: navState.isOffRoute,
           );
         }
       }
     } else if (navState.status == NavigationStatus.stopped ||
         navState.status == NavigationStatus.initial) {
+      _didAutoFollowNavigation = false;
       setRenderedNavRoute(null);
       await routeManager.clearRoute(mapController);
       if (!isMounted() || gen != _navListenerGeneration) return;
@@ -179,6 +186,7 @@ class HomeMapSyncCoordinator {
         await symbolManager.restoreSearchResultMarkers(mapController);
       }
     } else if (navState.status == NavigationStatus.arrived) {
+      _didAutoFollowNavigation = false;
       await onRefreshMemoryMarkers();
     }
   }

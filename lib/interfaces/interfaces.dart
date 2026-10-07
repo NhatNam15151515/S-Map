@@ -25,6 +25,7 @@ export 'i_routing_repository.dart';
 export 'i_routing_service.dart';
 export 'i_secure_storage.dart';
 export 'i_shared_preferences.dart';
+export 'i_speech_recognition_service.dart';
 export 'i_sync_repository.dart';
 export 'i_trip_repository.dart';
 export 'i_trip_service.dart';

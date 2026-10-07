@@ -45,20 +45,15 @@ class SearchRecentList extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              TextButton(
+              AppButton.text(
+                text: tr(LocaleKeys.clearAll),
+                textColor: colorScheme.primary,
+                textStyle: colorScheme.primary.textTheme.boldStyle.copyWith(
+                  fontSize: 13,
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 onPressed: onClearAll,
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  tr(LocaleKeys.clearAll),
-                  style: colorScheme.primary.textTheme.boldStyle.copyWith(
-                    fontSize: 13,
-                  ),
-                ),
               ),
             ],
           ),

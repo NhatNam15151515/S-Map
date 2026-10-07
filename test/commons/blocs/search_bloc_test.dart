@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 
@@ -111,7 +113,14 @@ class FakeRecentSearchService implements IRecentSearchService {
   Future<List<String>> getRecentSearches() async => List.from(storage);
 
   @override
-  Future<void> addRecentSearch(String query) async {
+  Future<List<String>> getFrequentSearches({int limit = 10}) async =>
+      List.from(storage.take(limit));
+
+  @override
+  Future<void> addRecentSearch(
+    String query, {
+    Map<String, dynamic>? destination,
+  }) async {
     final clean = query.trim();
     if (clean.isEmpty) return;
     storage.removeWhere((item) => item.toLowerCase() == clean.toLowerCase());
@@ -133,28 +142,28 @@ class FakeRecentSearchService implements IRecentSearchService {
 void main() {
   late FakePoiRepository fakeRepo;
   late FakeRecentSearchService fakeRecentService;
-  late SearchCubit searchCubit;
+  late SearchBloc searchBloc;
 
   setUp(() {
     fakeRepo = FakePoiRepository();
     fakeRecentService = FakeRecentSearchService();
-    searchCubit = SearchCubit(
+    searchBloc = SearchBloc(
       poiRepository: fakeRepo,
       recentSearchService: fakeRecentService,
     );
   });
 
   tearDown(() async {
-    await searchCubit.close();
+    await searchBloc.close();
   });
 
-  group('SearchCubit - Initial State & Recent Searches', () {
+  group('SearchBloc - Initial State & Recent Searches', () {
     test('initial state should be idle with empty results and suggestions', () {
-      expect(searchCubit.state.status, SearchStatus.initial);
-      expect(searchCubit.state.query, '');
-      expect(searchCubit.state.results, isEmpty);
-      expect(searchCubit.state.suggestions, isEmpty);
-      expect(searchCubit.state.isLoading, isFalse);
+      expect(searchBloc.state.status, SearchStatus.initial);
+      expect(searchBloc.state.query, '');
+      expect(searchBloc.state.results, isEmpty);
+      expect(searchBloc.state.suggestions, isEmpty);
+      expect(searchBloc.state.isLoading, isFalse);
     });
 
     test('loadRecentSearches should populate state with saved history',
@@ -162,28 +171,30 @@ void main() {
       await fakeRecentService.addRecentSearch('Phở Bát Đàn');
       await fakeRecentService.addRecentSearch('Cà phê Trứng');
 
-      await searchCubit.loadRecentSearches();
+      final completer = Completer<void>();
+      searchBloc.add(SearchHistoryLoadRequested(completer: completer));
+      await completer.future;
 
-      expect(searchCubit.state.recentSearches.length, 2);
-      expect(searchCubit.state.recentSearches.first, 'Cà phê Trứng');
+      expect(searchBloc.state.recentSearches.length, 2);
+      expect(searchBloc.state.recentSearches.first, 'Cà phê Trứng');
     });
   });
 
-  group('SearchCubit - Debounce 300ms Tests', () {
+  group('SearchBloc - Debounce Tests', () {
     test(
         'rapid keystrokes should trigger only ONE search call after debounce duration',
         () async {
-      // Giả lập người dùng gõ liên tục: 'p' -> 'ph' -> 'phở' với khoảng cách 50ms < 300ms
-      searchCubit.onQueryChanged('p',
-          debounceDuration: const Duration(milliseconds: 100));
+      // Gõ liên tục với khoảng cách giữa các phím ngắn hơn thời gian debounce.
+      searchBloc.add(const SearchQueryChanged('p',
+          debounceDuration: Duration(milliseconds: 100)));
       await Future.delayed(const Duration(milliseconds: 30));
 
-      searchCubit.onQueryChanged('ph',
-          debounceDuration: const Duration(milliseconds: 100));
+      searchBloc.add(const SearchQueryChanged('ph',
+          debounceDuration: Duration(milliseconds: 100)));
       await Future.delayed(const Duration(milliseconds: 30));
 
-      searchCubit.onQueryChanged('phở',
-          debounceDuration: const Duration(milliseconds: 100));
+      searchBloc.add(const SearchQueryChanged('phở',
+          debounceDuration: Duration(milliseconds: 100)));
 
       // Đợi debounce timer hoàn thành
       await Future.delayed(const Duration(milliseconds: 150));
@@ -191,34 +202,35 @@ void main() {
       // Xác minh chỉ có duy nhất 1 lần gọi search xuống repository với từ khóa 'phở'
       expect(fakeRepo.searchCallCount, 1);
       expect(fakeRepo.lastSearchQuery, 'phở');
-      expect(searchCubit.state.status, SearchStatus.success);
-      expect(searchCubit.state.results.length, greaterThanOrEqualTo(2));
+      expect(searchBloc.state.status, SearchStatus.success);
+      expect(searchBloc.state.results.length, greaterThanOrEqualTo(2));
     });
 
     test(
         'onQueryChanged with empty string should reset to initial state immediately',
         () async {
-      searchCubit.onQueryChanged('phở',
-          debounceDuration: const Duration(milliseconds: 50));
+      searchBloc.add(const SearchQueryChanged('phở',
+          debounceDuration: Duration(milliseconds: 50)));
       await Future.delayed(const Duration(milliseconds: 80));
-      expect(searchCubit.state.status, SearchStatus.success);
+      expect(searchBloc.state.status, SearchStatus.success);
 
-      searchCubit.onQueryChanged('');
-      expect(searchCubit.state.status, SearchStatus.initial);
-      expect(searchCubit.state.results, isEmpty);
-      expect(searchCubit.state.suggestions, isEmpty);
+      searchBloc.add(const SearchQueryChanged(''));
+      await Future<void>.delayed(Duration.zero);
+      expect(searchBloc.state.status, SearchStatus.initial);
+      expect(searchBloc.state.results, isEmpty);
+      expect(searchBloc.state.suggestions, isEmpty);
     });
   });
 
-  group('SearchCubit - Vietnamese Accents & Suggestions Tests', () {
+  group('SearchBloc - Vietnamese Accents & Suggestions Tests', () {
     test(
         'search "bệnh viện" and "benh vien" should yield equal results (Acceptance Criteria)',
         () async {
-      await searchCubit.search('bệnh viện');
-      final accentedResults = searchCubit.state.results;
+      await _submitSearch(searchBloc, 'bệnh viện');
+      final accentedResults = searchBloc.state.results;
 
-      await searchCubit.search('benh vien');
-      final unaccentedResults = searchCubit.state.results;
+      await _submitSearch(searchBloc, 'benh vien');
+      final unaccentedResults = searchBloc.state.results;
 
       expect(accentedResults, isNotEmpty);
       expect(unaccentedResults, isNotEmpty);
@@ -230,17 +242,17 @@ void main() {
         'suggestions should merge matching recent searches and database suggestions',
         () async {
       await fakeRecentService.addRecentSearch('Phở bò đặc biệt');
-      await searchCubit.loadRecentSearches();
+      await _loadHistory(searchBloc);
 
       // Trigger search as-you-type
-      searchCubit.onQueryChanged('phở',
-          debounceDuration: const Duration(milliseconds: 50));
+      searchBloc.add(const SearchQueryChanged('phở',
+          debounceDuration: Duration(milliseconds: 50)));
       await Future.delayed(const Duration(milliseconds: 80));
 
-      expect(searchCubit.state.suggestions, isNotEmpty);
+      expect(searchBloc.state.suggestions, isNotEmpty);
       // Recent search khớp 'phở' được ưu tiên đưa lên đầu
-      expect(searchCubit.state.suggestions.first, 'Phở bò đặc biệt');
-      expect(searchCubit.state.suggestions.contains('Phở Thìn Lò Đúc'), isTrue);
+      expect(searchBloc.state.suggestions.first, 'Phở bò đặc biệt');
+      expect(searchBloc.state.suggestions.contains('Phở Thìn Lò Đúc'), isTrue);
     });
 
     test(
@@ -248,141 +260,150 @@ void main() {
         () async {
       // Lịch sử có dấu và viết hoa: "Phở Bát Đàn"
       await fakeRecentService.addRecentSearch('Phở Bát Đàn');
-      await searchCubit.loadRecentSearches();
+      await _loadHistory(searchBloc);
 
       // Gõ không dấu viết thường: "pho"
-      searchCubit.onQueryChanged('pho',
-          debounceDuration: const Duration(milliseconds: 50));
+      searchBloc.add(const SearchQueryChanged('pho',
+          debounceDuration: Duration(milliseconds: 50)));
       await Future.delayed(const Duration(milliseconds: 80));
 
-      expect(searchCubit.state.suggestions, isNotEmpty);
-      expect(searchCubit.state.suggestions.first, 'Phở Bát Đàn');
+      expect(searchBloc.state.suggestions, isNotEmpty);
+      expect(searchBloc.state.suggestions.first, 'Phở Bát Đàn');
     });
 
     test(
         'consecutive keystrokes should update state.query immediately and avoid stale state lag',
         () async {
-      searchCubit.onQueryChanged('bệ',
-          debounceDuration: const Duration(milliseconds: 100));
-      expect(searchCubit.state.query, 'bệ');
+      searchBloc.add(const SearchQueryChanged('bệ',
+          debounceDuration: Duration(milliseconds: 100)));
+      await Future<void>.delayed(Duration.zero);
+      expect(searchBloc.state.query, 'bệ');
 
-      searchCubit.onQueryChanged('bệnh',
-          debounceDuration: const Duration(milliseconds: 100));
-      expect(searchCubit.state.query, 'bệnh');
+      searchBloc.add(const SearchQueryChanged('bệnh',
+          debounceDuration: Duration(milliseconds: 100)));
+      await Future<void>.delayed(Duration.zero);
+      expect(searchBloc.state.query, 'bệnh');
 
-      searchCubit.onQueryChanged('bệnh viện',
-          debounceDuration: const Duration(milliseconds: 100));
-      expect(searchCubit.state.query, 'bệnh viện');
+      searchBloc.add(const SearchQueryChanged('bệnh viện',
+          debounceDuration: Duration(milliseconds: 100)));
+      await Future<void>.delayed(Duration.zero);
+      expect(searchBloc.state.query, 'bệnh viện');
 
       await Future.delayed(const Duration(milliseconds: 150));
-      expect(searchCubit.state.status, SearchStatus.success);
-      expect(searchCubit.state.query, 'bệnh viện');
+      expect(searchBloc.state.status, SearchStatus.success);
+      expect(searchBloc.state.query, 'bệnh viện');
       expect(
-          searchCubit.state.results.any((e) => e.name == 'Bệnh viện Chợ Rẫy'),
+          searchBloc.state.results.any((e) => e.name == 'Bệnh viện Chợ Rẫy'),
           isTrue);
     });
   });
 
-  group('SearchCubit - Submit Search & Error Handling Tests', () {
+  group('SearchBloc - Submit Search & Error Handling Tests', () {
     test('search should update results and save to recent searches', () async {
-      await searchCubit.search('Highlands');
+      await _submitSearch(searchBloc, 'Highlands');
 
-      expect(searchCubit.state.status, SearchStatus.success);
-      expect(searchCubit.state.results.any((e) => e.name == 'Highlands Coffee'),
+      expect(searchBloc.state.status, SearchStatus.success);
+      expect(searchBloc.state.results.any((e) => e.name == 'Highlands Coffee'),
           isTrue);
-      expect(searchCubit.state.recentSearches.contains('Highlands'), isTrue);
+      expect(searchBloc.state.recentSearches.contains('Highlands'), isTrue);
     });
 
     test('search should handle errors gracefully and emit SearchStatus.error',
         () async {
-      await searchCubit.search('TRIGGER_ERROR');
+      await _submitSearch(searchBloc, 'TRIGGER_ERROR');
 
-      expect(searchCubit.state.status, SearchStatus.error);
-      expect(searchCubit.state.errorMessage, isNotNull);
+      expect(searchBloc.state.status, SearchStatus.error);
+      expect(searchBloc.state.errorMessage, isNotNull);
     });
 
     test('manage recent searches: remove and clear should work properly',
         () async {
-      await searchCubit.addRecentSearch('Quán Cơm');
-      await searchCubit.addRecentSearch('Bún Chả');
-      expect(searchCubit.state.recentSearches.length, 2);
+      await _dispatchHistory(searchBloc,
+          (completer) => SearchRecentAdded('Quán Cơm', completer: completer));
+      await _dispatchHistory(searchBloc,
+          (completer) => SearchRecentAdded('Bún Chả', completer: completer));
+      expect(searchBloc.state.recentSearches.length, 2);
 
-      await searchCubit.removeRecentSearch('Quán Cơm');
-      expect(searchCubit.state.recentSearches.contains('Quán Cơm'), isFalse);
-      expect(searchCubit.state.recentSearches.contains('Bún Chả'), isTrue);
+      await _dispatchHistory(searchBloc,
+          (completer) => SearchRecentRemoved('Quán Cơm', completer: completer));
+      expect(searchBloc.state.recentSearches.contains('Quán Cơm'), isFalse);
+      expect(searchBloc.state.recentSearches.contains('Bún Chả'), isTrue);
 
-      await searchCubit.clearRecentSearches();
-      expect(searchCubit.state.recentSearches, isEmpty);
+      await _dispatchHistory(
+          searchBloc, (completer) => SearchHistoryCleared(completer: completer));
+      expect(searchBloc.state.recentSearches, isEmpty);
     });
 
     test('clearSearch should reset query, results, and suggestions', () async {
-      await searchCubit.search('phở');
-      expect(searchCubit.state.results, isNotEmpty);
+      await _submitSearch(searchBloc, 'phở');
+      expect(searchBloc.state.results, isNotEmpty);
 
-      searchCubit.clearSearch();
-      expect(searchCubit.state.status, SearchStatus.initial);
-      expect(searchCubit.state.query, '');
-      expect(searchCubit.state.results, isEmpty);
-      expect(searchCubit.state.suggestions, isEmpty);
+      searchBloc.add(const SearchCleared());
+      await Future<void>.delayed(Duration.zero);
+      expect(searchBloc.state.status, SearchStatus.initial);
+      expect(searchBloc.state.query, '');
+      expect(searchBloc.state.results, isEmpty);
+      expect(searchBloc.state.suggestions, isEmpty);
     });
 
     test(
         'search and suggestions should sort POIs by closest distance to userLocation',
         () async {
-      final tpHcmCubit = SearchCubit(
+      final tpHcmBloc = SearchBloc(
         poiRepository: fakeRepo,
         recentSearchService: fakeRecentService,
         userLocation: const LatLng(10.7800, 106.6900), // TP.HCM
       );
 
       // Search "phở" -> Phở Hòa Pasteur (TP.HCM) must be first, Phở Thìn (Hà Nội) second
-      await tpHcmCubit.search('phở');
-      expect(tpHcmCubit.state.results.length, 2);
-      expect(tpHcmCubit.state.results[0].name, 'Phở Hòa Pasteur');
-      expect(tpHcmCubit.state.results[1].name, 'Phở Thìn Lò Đúc');
+      await _submitSearch(tpHcmBloc, 'phở');
+      expect(tpHcmBloc.state.results.length, 2);
+      expect(tpHcmBloc.state.results[0].name, 'Phở Hòa Pasteur');
+      expect(tpHcmBloc.state.results[1].name, 'Phở Thìn Lò Đúc');
 
       // Update location to Hanoi -> Phở Thìn (Hà Nội) should become first
-      tpHcmCubit.updateUserLocation(const LatLng(21.0200, 105.8500));
-      expect(tpHcmCubit.state.results[0].name, 'Phở Thìn Lò Đúc');
-      expect(tpHcmCubit.state.results[1].name, 'Phở Hòa Pasteur');
+      tpHcmBloc.add(const SearchUserLocationChanged(LatLng(21.0200, 105.8500)));
+      await Future<void>.delayed(Duration.zero);
+      expect(tpHcmBloc.state.results[0].name, 'Phở Thìn Lò Đúc');
+      expect(tpHcmBloc.state.results[1].name, 'Phở Hòa Pasteur');
 
-      await tpHcmCubit.close();
+      await tpHcmBloc.close();
     });
     test(
         '[SCH-05] Race condition guard — stale slow response is discarded when newer query arrives',
         () async {
       // Sử dụng repo có delay riêng cho từng query
       final slowRepo = FakePoiRepository();
-      final raceCubit = SearchCubit(
+      final raceBloc = SearchBloc(
         poiRepository: slowRepo,
         recentSearchService: fakeRecentService,
       );
 
       // Search 'Highlands' (fast, will resolve quickly)
-      await raceCubit.search('Highlands');
-      expect(raceCubit.state.results.any((e) => e.name == 'Highlands Coffee'),
+      await _submitSearch(raceBloc, 'Highlands');
+      expect(raceBloc.state.results.any((e) => e.name == 'Highlands Coffee'),
           isTrue);
 
       // Trigger two searches: first for 'phở', then immediately for 'Highlands'
       // Since both resolve synchronously in this mock, we verify that state.query
       // matches the most recent query to protect against race conditions.
-      raceCubit.onQueryChanged('phở',
-          debounceDuration: const Duration(milliseconds: 50));
+      raceBloc.add(const SearchQueryChanged('phở',
+          debounceDuration: Duration(milliseconds: 50)));
       await Future.delayed(const Duration(milliseconds: 10));
-      raceCubit.onQueryChanged('Highlands',
-          debounceDuration: const Duration(milliseconds: 50));
+      raceBloc.add(const SearchQueryChanged('Highlands',
+          debounceDuration: Duration(milliseconds: 50)));
       await Future.delayed(const Duration(milliseconds: 100));
 
       // The query state should match the LATEST query, not the first
-      expect(raceCubit.state.query, 'Highlands');
+      expect(raceBloc.state.query, 'Highlands');
 
-      await raceCubit.close();
+      await raceBloc.close();
     });
 
     test('[SCH-08] Suggestions are capped at maximum 10 items', () async {
       // Create a repo with many POIs to generate >10 suggestions
       final manyPoiRepo = FakePoiRepository();
-      final cubitMany = SearchCubit(
+      final blocMany = SearchBloc(
         poiRepository: manyPoiRepo,
         recentSearchService: fakeRecentService,
       );
@@ -391,15 +412,35 @@ void main() {
       for (int i = 0; i < 15; i++) {
         await fakeRecentService.addRecentSearch('Phở variant $i');
       }
-      await cubitMany.loadRecentSearches();
+      await _loadHistory(blocMany);
 
-      cubitMany.onQueryChanged('Phở',
-          debounceDuration: const Duration(milliseconds: 50));
+      blocMany.add(const SearchQueryChanged('Phở',
+          debounceDuration: Duration(milliseconds: 50)));
       await Future.delayed(const Duration(milliseconds: 100));
 
-      expect(cubitMany.state.suggestions.length, lessThanOrEqualTo(10));
+      expect(blocMany.state.suggestions.length, lessThanOrEqualTo(10));
 
-      await cubitMany.close();
+      await blocMany.close();
     });
   });
+}
+
+Future<void> _submitSearch(SearchBloc bloc, String query) async {
+  final completer = Completer<void>();
+  bloc.add(SearchSubmitted(query, completer: completer));
+  await completer.future;
+}
+
+Future<void> _loadHistory(SearchBloc bloc) => _dispatchHistory(
+      bloc,
+      (completer) => SearchHistoryLoadRequested(completer: completer),
+    );
+
+Future<void> _dispatchHistory(
+  SearchBloc bloc,
+  SearchHistoryEvent Function(Completer<void>) createEvent,
+) async {
+  final completer = Completer<void>();
+  bloc.add(createEvent(completer));
+  await completer.future;
 }

@@ -96,8 +96,7 @@ void main() {
         expect(
           (roadLayer(dark['layers'] as List<dynamic>, 'smap-road-surface')['paint']
               as Map<String, dynamic>)['line-opacity'],
-          lessThan((roadLayer(light['layers'] as List<dynamic>, 'smap-road-surface')['paint']
-              as Map<String, dynamic>)['line-opacity']),
+          equals(1.0),
         );
         expect(
           roadLayer(light['layers'] as List<dynamic>, 'smap-road-casing')['minzoom'],
@@ -118,6 +117,14 @@ void main() {
         expect(
           roadLayer(light['layers'] as List<dynamic>, 'smap-road-casing-tertiary')['minzoom'],
           equals(10),
+        );
+        expect(
+          roadLayer(light['layers'] as List<dynamic>, 'smap-road-centerline')['minzoom'],
+          equals(16),
+        );
+        expect(
+          roadLayer(light['layers'] as List<dynamic>, 'smap-road-oneway-arrow')['minzoom'],
+          equals(16),
         );
       } finally {
         await tempDir.delete(recursive: true);

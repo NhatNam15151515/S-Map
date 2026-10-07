@@ -13,10 +13,12 @@ class TripDetailPanel extends StatelessWidget {
   static const double badgeRadius = 8.0;
 
   final TripRecordModel trip;
+  final Future<void> Function(TripRecordModel trip)? onTripUpdated;
 
   const TripDetailPanel({
     super.key,
     required this.trip,
+    this.onTripUpdated,
   });
 
   @override
@@ -130,7 +132,10 @@ class TripDetailPanel extends StatelessWidget {
               const SizedBox(height: 14),
 
               // Origin & Destination Info
-              TripDetailRouteInfo(trip: trip),
+              TripDetailRouteInfo(
+                trip: trip,
+                onTripUpdated: onTripUpdated,
+              ),
 
               // Danh sách các con đường đã đi
               TripDetailStreetsCard(trip: trip),

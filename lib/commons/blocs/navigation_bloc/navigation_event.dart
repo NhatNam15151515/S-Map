@@ -14,6 +14,7 @@ abstract class NavigationEvent extends Equatable {
 class StartNavigation extends NavigationEvent {
   final RouteResult initialRoute;
   final RoutePoint origin;
+  final String? originName;
   final RoutePoint destination;
   final String? destinationName;
   final String profile;
@@ -21,6 +22,7 @@ class StartNavigation extends NavigationEvent {
   const StartNavigation({
     required this.initialRoute,
     required this.origin,
+    this.originName,
     required this.destination,
     this.destinationName,
     this.profile = RoutingConstants.defaultProfile,
@@ -28,12 +30,13 @@ class StartNavigation extends NavigationEvent {
 
   @override
   List<Object?> get props => [
-        initialRoute,
-        origin,
-        destination,
-        destinationName,
-        profile,
-      ];
+    initialRoute,
+    origin,
+    originName,
+    destination,
+    destinationName,
+    profile,
+  ];
 }
 
 /// Nhận tọa độ GPS cập nhật từ GPS Stream
@@ -42,14 +45,18 @@ class LocationUpdated extends NavigationEvent {
   final double longitude;
   final double? speed; // m/s
   final double? heading; // degrees
+  final double? headingAccuracy; // degrees
   final double? accuracy; // meters
+  final DateTime? timestamp;
 
   const LocationUpdated({
     required this.latitude,
     required this.longitude,
     this.speed,
     this.heading,
+    this.headingAccuracy,
     this.accuracy,
+    this.timestamp,
   });
 
   factory LocationUpdated.fromPosition(Position pos) {
@@ -58,12 +65,22 @@ class LocationUpdated extends NavigationEvent {
       longitude: pos.longitude,
       speed: pos.speed >= 0 ? pos.speed : null,
       heading: pos.heading >= 0 ? pos.heading : null,
+      headingAccuracy: pos.headingAccuracy >= 0 ? pos.headingAccuracy : null,
       accuracy: pos.accuracy >= 0 ? pos.accuracy : null,
+      timestamp: pos.timestamp,
     );
   }
 
   @override
-  List<Object?> get props => [latitude, longitude, speed, heading, accuracy];
+  List<Object?> get props => [
+    latitude,
+    longitude,
+    speed,
+    heading,
+    headingAccuracy,
+    accuracy,
+    timestamp,
+  ];
 }
 
 /// Yêu cầu tính lại lộ trình từ vị trí GPS hiện tại
@@ -129,4 +146,3 @@ class DiscardActiveSession extends NavigationEvent {
 class SaveActiveSessionSnapshot extends NavigationEvent {
   const SaveActiveSessionSnapshot();
 }
-

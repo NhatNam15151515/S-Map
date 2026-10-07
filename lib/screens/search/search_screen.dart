@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
-import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/interfaces/i_location_service.dart';
 import 'package:s_map/repos/repos.dart';
@@ -15,12 +15,14 @@ class SearchScreen extends StatefulWidget {
   final LatLng? userLocation;
   final bool hasExistingDestinations;
   final ILocationService? locationService;
+  final String? initialQuery;
 
   const SearchScreen({
     super.key,
     this.userLocation,
     this.hasExistingDestinations = false,
     this.locationService,
+    this.initialQuery,
   });
 
   @override
@@ -28,7 +30,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  late final SearchCubit _searchCubit;
+  late final SearchBloc _searchBloc;
   late final ILocationService _locationService;
 
   @override
@@ -36,7 +38,7 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     _locationService = widget.locationService ?? LocationService.instance;
     final poiRepository = PoiRepositoryImpl();
-    _searchCubit = SearchCubit(
+    _searchBloc = SearchBloc(
       poiRepository: poiRepository,
       searchOrchestrator: SearchOrchestrator(
         poiRepository: poiRepository,
@@ -46,12 +48,17 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       recentSearchService: RecentSearchServiceImpl.instance,
       userLocation: widget.userLocation,
-    )..loadRecentSearches();
+    )..add(const SearchHistoryLoadRequested());
+
+    if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
+      final q = widget.initialQuery!.trim();
+      _searchBloc.add(SearchQueryChanged(q));
+    }
   }
 
   @override
   void dispose() {
-    _searchCubit.close();
+    _searchBloc.close();
     super.dispose();
   }
 
@@ -68,9 +75,10 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: _searchCubit,
+      value: _searchBloc,
       child: SearchScreenContent(
         hasExistingDestinations: widget.hasExistingDestinations,
+        initialQuery: widget.initialQuery,
         onAcquireLocation: _acquireLocation,
       ),
     );

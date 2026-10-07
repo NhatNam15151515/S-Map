@@ -13,6 +13,11 @@ class DLog {
     _logger.i(message);
   }
 
+  /// Search tracing follows the same filter and output as the app's info logs.
+  static void searchTrace(dynamic message) {
+    _logger.i(message);
+  }
+
   static void warning(dynamic message, [dynamic error, StackTrace? stackTrace]) {
     if (error is StackTrace && stackTrace == null) {
       _logger.w(message, error: null, stackTrace: error);

@@ -23,8 +23,14 @@ abstract class IFireStoreService {
   Future<void> clearSavedPlaces(String userId);
 
   // --- USER SEARCH & VISITED PLACE METHODS ---
-  Future<void> saveSearchQuery(String userId, String query);
+  Future<void> saveSearchQuery(
+    String userId,
+    String query, {
+    Map<String, dynamic>? destination,
+  });
   Future<List<String>> getSearchQueries(String userId, {int limit = 20});
+  Future<List<String>> getFrequentSearchQueries(String userId,
+      {int limit = 10});
   Future<void> deleteSearchQuery(String userId, String query);
   Future<void> clearSearchQueries(String userId);
   Future<void> saveVisitedPlace(

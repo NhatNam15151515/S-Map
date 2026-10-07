@@ -7,7 +7,6 @@ import 'package:s_map/models/models.dart';
 /// Bộ máy phân tích và điều phối chỉ dẫn rẽ từng chặng (Turn-by-turn Instruction Engine)
 /// Xử lý tự động chuyển chặng (Advance logic), cảnh báo trước (Pre-announce) và tính ETA/khoảng cách còn lại.
 class TurnByTurnEngine implements ITurnByTurnEngine {
-
   @override
   final double advanceThresholdMeters;
 
@@ -18,9 +17,12 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
   final double arrivalThresholdMeters;
 
   const TurnByTurnEngine({
-    this.advanceThresholdMeters = RoutingConstants.defaultAdvanceThresholdMeters,
-    this.preAnnounceThresholdMeters = RoutingConstants.defaultPreAnnounceThresholdMeters,
-    this.arrivalThresholdMeters = RoutingConstants.defaultArrivalThresholdMeters,
+    this.advanceThresholdMeters =
+        RoutingConstants.defaultAdvanceThresholdMeters,
+    this.preAnnounceThresholdMeters =
+        RoutingConstants.defaultPreAnnounceThresholdMeters,
+    this.arrivalThresholdMeters =
+        RoutingConstants.defaultArrivalThresholdMeters,
   });
 
   @override
@@ -67,8 +69,9 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       return const InstructionProgress();
     }
 
-    int activeIndex =
-        currentInstructionIndex.clamp(0, instructions.length - 1).toInt();
+    int activeIndex = currentInstructionIndex
+        .clamp(0, instructions.length - 1)
+        .toInt();
     double distToNextMeters = 0.0;
 
     // 1. Advance Logic: Kiểm tra xem đã vượt qua / đến gần (< 30m) điểm rẽ kế tiếp chưa
@@ -77,13 +80,14 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       final currentInstruction = instructions[activeIndex];
 
       // Mốc chuyển hướng là điểm bắt đầu của chặng tiếp theo hoặc điểm kết thúc chặng hiện tại
-      final maneuverPoint = (nextInstruction.points.isNotEmpty &&
+      final maneuverPoint =
+          (nextInstruction.points.isNotEmpty &&
               _isValidCoordinate(nextInstruction.points.first))
           ? nextInstruction.points.first
           : (currentInstruction.points.isNotEmpty &&
-                  _isValidCoordinate(currentInstruction.points.last)
-              ? currentInstruction.points.last
-              : null);
+                    _isValidCoordinate(currentInstruction.points.last)
+                ? currentInstruction.points.last
+                : null);
 
       if (maneuverPoint == null) {
         distToNextMeters = currentInstruction.distance;
@@ -108,7 +112,7 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
           p1[0],
           p1[1],
         );
-        if (distToP1 < d && distToP1 < advanceThresholdMeters * 2) {
+        if (distToP1 < d) {
           hasPassedTurn = true;
         }
       }
@@ -128,7 +132,8 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
     // 2. Nếu đang ở chỉ dẫn cuối cùng (đích đến)
     if (activeIndex == instructions.length - 1) {
       final lastInstruction = instructions[activeIndex];
-      final destinationPoint = (lastInstruction.points.isNotEmpty &&
+      final destinationPoint =
+          (lastInstruction.points.isNotEmpty &&
               _isValidCoordinate(lastInstruction.points.last))
           ? lastInstruction.points.last
           : null;
@@ -151,7 +156,8 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
         : null;
 
     // 3. Kiểm tra trạng thái đến đích (Arrival: <= arrivalThresholdMeters = 20.0m)
-    final bool hasArrived = (activeIndex == instructions.length - 1) &&
+    final bool hasArrived =
+        (activeIndex == instructions.length - 1) &&
         (distToNextMeters <= arrivalThresholdMeters);
 
     // 4. Kiểm tra cảnh báo trước (Pre-announce: <= 200m)
@@ -172,10 +178,12 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       final currentTotalDist = currentInstruction.distance;
       int currentDurationPart;
       if (currentTotalDist > 0.0 && currentInstruction.time > 0) {
-        final currentFraction =
-            (distToNextMeters / currentTotalDist).clamp(0.0, 1.0);
-        currentDurationPart =
-            (currentInstruction.time * currentFraction).round();
+        final currentFraction = (distToNextMeters / currentTotalDist).clamp(
+          0.0,
+          1.0,
+        );
+        currentDurationPart = (currentInstruction.time * currentFraction)
+            .round();
       } else if (distToNextMeters > 0.0) {
         const speedMps = RoutingConstants.fallbackSpeedKmh / 3.6;
         currentDurationPart = ((distToNextMeters / speedMps) * 1000).round();

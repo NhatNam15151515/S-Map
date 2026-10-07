@@ -9,6 +9,8 @@ class EmptyWidget extends StatelessWidget {
   final IconData? icon;
   final VoidCallback? onRefresh;
   final String? actionLabel;
+  final Color? textColor;
+  final Color? iconColor;
 
   const EmptyWidget({
     super.key,
@@ -17,11 +19,15 @@ class EmptyWidget extends StatelessWidget {
     this.icon,
     this.onRefresh,
     this.actionLabel,
+    this.textColor,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final resolvedIconColor = iconColor ?? colorScheme.primary;
+    final resolvedActionColor = textColor ?? colorScheme.primary;
 
     return Container(
       alignment: Alignment.center,
@@ -35,30 +41,30 @@ class EmptyWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withAlpha(35),
+                color: resolvedIconColor.withAlpha(35),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon ?? Icons.inbox_rounded,
                 size: 48,
-                color: colorScheme.primary,
+                color: resolvedIconColor,
               ),
             ),
             const SizedBox(height: 16),
             if (title != null)
               Text(
                 title!,
-                style: colorScheme.onSurface.textTheme.subTitleStyle.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: (textColor ?? colorScheme.onSurface)
+                    .textTheme
+                    .subTitleStyle
+                    .copyWith(fontSize: 16, fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: colorScheme.onSurfaceVariant
+                style: (textColor ?? colorScheme.onSurfaceVariant)
                     .textTheme
                     .textStyle
                     .copyWith(
@@ -75,17 +81,17 @@ class EmptyWidget extends StatelessWidget {
                   icon: Icon(
                     Icons.refresh_rounded,
                     size: 18,
-                    color: colorScheme.primary,
+                    color: resolvedActionColor,
                   ),
                   label: Text(
                     actionLabel ?? tr(LocaleKeys.retry),
-                    style: colorScheme.primary.textTheme.boldStyle.copyWith(
+                    style: resolvedActionColor.textTheme.boldStyle.copyWith(
                       fontSize: 14,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.primary,
-                    side: BorderSide(color: colorScheme.primary, width: 1),
+                    foregroundColor: resolvedActionColor,
+                    side: BorderSide(color: resolvedActionColor, width: 1),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),

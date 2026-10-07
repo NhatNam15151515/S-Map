@@ -1,62 +1,10 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/widgets/poi_list_tile.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
-
-Future<SearchResultPayload?> showSearchResultsBottomSheet(
-  BuildContext context, {
-  required List<PoiModel> pois,
-  String? query,
-  bool hasExistingDestinations = false,
-}) {
-  return showModalBottomSheet<SearchResultPayload>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) => SearchResultsBottomSheet(
-      pois: pois,
-      query: query,
-      hasExistingDestinations: hasExistingDestinations,
-      onPoiTap: (poi) => Navigator.of(sheetContext).pop(
-        SearchResultPayload.single(poi),
-      ),
-      onAddDestination: (poi) => Navigator.of(sheetContext).pop(
-        SearchResultPayload.addDestination(poi),
-      ),
-    ),
-  );
-}
-
-Future<SearchResultPayload?> resolveSearchResultPayload(
-  BuildContext context,
-  dynamic result, {
-  required bool hasExistingDestinations,
-}) async {
-  if (result is SearchResultPayload) {
-    if (!result.isAll ||
-        result.allResults == null ||
-        result.allResults!.isEmpty) {
-      return result;
-    }
-
-    return showSearchResultsBottomSheet(
-      context,
-      pois: result.allResults!,
-      query: result.submittedQuery,
-      hasExistingDestinations: hasExistingDestinations,
-    );
-  }
-
-  if (result is PoiModel) {
-    return SearchResultPayload.single(result);
-  }
-
-  return null;
-}
 
 /// Bottom Sheet hiển thị danh sách tất cả các địa điểm trong kết quả tìm kiếm
 class SearchResultsBottomSheet extends StatelessWidget {
@@ -67,6 +15,7 @@ class SearchResultsBottomSheet extends StatelessWidget {
   final ValueChanged<PoiModel>? onAddDestination;
   final bool hasExistingDestinations;
   final VoidCallback? onClose;
+  final LatLng? userLocation;
 
   const SearchResultsBottomSheet({
     super.key,
@@ -77,6 +26,7 @@ class SearchResultsBottomSheet extends StatelessWidget {
     this.onAddDestination,
     this.hasExistingDestinations = false,
     this.onClose,
+    this.userLocation,
   });
 
   @override
@@ -167,13 +117,7 @@ class SearchResultsBottomSheet extends StatelessWidget {
                   ),
                 )
               else
-                BlocBuilder<MapDisplayCubit, MapDisplayState>(
-                  buildWhen: (prev, curr) =>
-                      prev.currentPosition != curr.currentPosition,
-                  builder: (context, mapState) {
-                    final userLocation = mapState.currentPosition;
-
-                    return SliverList(
+                SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final poi = pois[index];
@@ -194,9 +138,7 @@ class SearchResultsBottomSheet extends StatelessWidget {
                         },
                         childCount: pois.length,
                       ),
-                    );
-                  },
-                ),
+                    ),
 
               // Đệm đáy nhẹ nhàng để không sát mép bo tròn
               const SliverToBoxAdapter(

@@ -1,0 +1,66 @@
+[
+  // ─── 1. MÀU NỀN CANVAS DƯỚI CÙNG ───
+  {
+    "id": "smap-background",
+    "type": "background",
+    "paint": {
+      "background-color": "__MAP_BACKGROUND__" // Mã màu nền canvas bản đồ
+    }
+  },
+
+  // ─── 2. THẢM THỰC VẬT TỰ NHIÊN (Rừng cây, cỏ, bụi rậm, đầm lầy) ───
+  {
+    "id": "smap-landcover",
+    "type": "fill",
+    "source": "smap-vietnam",
+    "source-layer": "landcover",
+    "minzoom": 7, // Mức zoom tối thiểu để hiện thảm thực vật
+    "paint": {
+      "fill-color": [
+        "match", ["get", "class"],
+        "wood", "__LAND_WOOD__",       // Rừng cây
+        "forest", "__LAND_WOOD__",     // Rừng rậm
+        "grass", "__LAND_GRASS__",     // Đồng cỏ
+        "scrub", "__LAND_SCRUB__",     // Thảm cây bụi
+        "wetland", "__LAND_WETLAND__", // Vùng đất ngập nước
+        "__LAND_DEFAULT__"             // Mặc định
+      ],
+      "fill-opacity": 0.72 // Độ mờ của thảm thực vật
+    }
+  },
+
+  // ─── 3. QUY HOẠCH SỬ DỤNG ĐẤT (Khu dân cư, thương mại, công nghiệp, quân sự, nghĩa trang) ───
+  {
+    "id": "smap-landuse",
+    "type": "fill",
+    "source": "smap-vietnam",
+    "source-layer": "landuse",
+    "minzoom": 5, // Hiện từ zoom 5
+    "paint": {
+      "fill-color": [
+        "match", ["get", "class"],
+        "residential", "__LAND_RESIDENTIAL__", // Khu dân cư
+        "commercial", "__LAND_COMMERCIAL__",   // Khu thương mại, chợ
+        "industrial", "__LAND_INDUSTRIAL__",   // Khu công nghiệp
+        "cemetery", "__LAND_CEMETERY__",       // Nghĩa trang
+        "military", "__LAND_MILITARY__",       // Khu quân sự
+        "__LANDUSE_DEFAULT__"                  // Mặc định
+      ],
+      "fill-opacity": 0.60
+    }
+  },
+
+  // ─── 4. CÔNG VIÊN & KHU SINH THÁI ĐÔ THỊ ───
+  {
+    "id": "smap-parks",
+    "type": "fill",
+    "source": "smap-vietnam",
+    "source-layer": "park",
+    "minzoom": 6,
+    "paint": {
+      "fill-color": "__PARK_FILL__",       // Màu lòng công viên
+      "fill-outline-color": "__PARK_OUTLINE__", // Viền công viên
+      "fill-opacity": 0.76
+    }
+  }
+]

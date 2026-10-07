@@ -8,11 +8,11 @@ import 'package:s_map/commons/cubits/cubits.dart';
 import 'package:s_map/commons/log/log.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 import 'package:s_map/models/models.dart';
-import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/routers/app_routes.dart';
 import 'package:s_map/screens/main/home/widgets/drawing/save_custom_route_dialog.dart';
 import 'package:s_map/screens/main/home/widgets/drawing/saved_routes_sheet.dart';
 import 'package:s_map/screens/main/home/widgets/map/home_interactive_map_layer.dart';
+import 'package:s_map/screens/main/home/widgets/home/home_search_results_coordinator.dart';
 
 /// Các thao tác chỉ đường, tìm điểm đến và điều khiển tuyến từ Home.
 class HomeRouteActions {
@@ -44,7 +44,8 @@ class HomeRouteActions {
   void handleDirections(PoiModel? selectedPoi) {
     if (selectedPoi == null) return;
     DLog.info(
-        '🧭 [HomeScreen] "Chỉ đường" tapped for POI: "${selectedPoi.name}" (${selectedPoi.lat}, ${selectedPoi.lon})');
+      '🧭 [HomeScreen] "Chỉ đường" tapped for POI: "${selectedPoi.name}" (${selectedPoi.lat}, ${selectedPoi.lon})',
+    );
     mapLayerKey.currentState?.hideSearchResultMarkers();
     mapLayerKey.currentState?.clearSelectedPoiMarker(
       restoreSearchResults: false,
@@ -61,7 +62,9 @@ class HomeRouteActions {
     String? destinationName,
   }) {
     final mapState = displayCubit.state;
-    final myPos = mapState.hasRealLocation ? mapState.currentPosition : mapState.center;
+    final myPos = mapState.hasRealLocation
+        ? mapState.currentPosition
+        : mapState.center;
     final destLatLng =
         destination ?? (poi != null ? LatLng(poi.lat, poi.lon) : null);
     final name = destinationName ?? poi?.name;
@@ -105,8 +108,8 @@ class HomeRouteActions {
     final originPos = routeState.origin != null
         ? LatLng(routeState.origin!.lat, routeState.origin!.lon)
         : (mapState.hasRealLocation
-            ? mapState.currentPosition
-            : mapState.center);
+              ? mapState.currentPosition
+              : mapState.center);
 
     final destPos = routeState.destination != null
         ? LatLng(routeState.destination!.lat, routeState.destination!.lon)
@@ -166,7 +169,7 @@ class HomeRouteActions {
       return;
     }
 
-    final resolvedResult = await resolveSearchResultPayload(
+    final resolvedResult = await HomeSearchResultsCoordinator.resolvePayload(
       context,
       result,
       hasExistingDestinations: true,
@@ -206,10 +209,9 @@ class HomeRouteActions {
       context,
       initialName: defaultName,
       onSave: (name, description) {
-        drawingBloc.add(RouteDrawingSaveRoute(
-          name: name,
-          description: description,
-        ));
+        drawingBloc.add(
+          RouteDrawingSaveRoute(name: name, description: description),
+        );
       },
     );
   }
@@ -231,25 +233,28 @@ class HomeRouteActions {
     required RouteDrawingState state,
   }) {
     if (!state.hasRoute) return;
-    final rawPoints =
-        state.fullPolyline.map((point) => [point.lat, point.lon]).toList();
+    final rawPoints = state.fullPolyline
+        .map((point) => [point.lat, point.lon])
+        .toList();
     final customName = tr(LocaleKeys.route_drawing_ui_custom_route_name);
-    final destinationName = state.points.isNotEmpty &&
-            state.points.last.streetName.isNotEmpty
+    final destinationName =
+        state.points.isNotEmpty && state.points.last.streetName.isNotEmpty
         ? state.points.last.streetName
         : customName;
     final instructions = state.segments
         .expand((segment) => segment.instructions)
         .toList();
     if (instructions.isEmpty) {
-      instructions.add(RouteInstruction(
-        text: tr(LocaleKeys.route_drawing_ui_follow_custom_route),
-        streetName: customName,
-        distance: state.totalDistance,
-        time: state.totalTime,
-        sign: 0,
-        points: rawPoints,
-      ));
+      instructions.add(
+        RouteInstruction(
+          text: tr(LocaleKeys.route_drawing_ui_follow_custom_route),
+          streetName: customName,
+          distance: state.totalDistance,
+          time: state.totalTime,
+          sign: 0,
+          points: rawPoints,
+        ),
+      );
     }
     final customRoute = RouteResult(
       isSuccess: true,
@@ -258,13 +263,23 @@ class HomeRouteActions {
       points: rawPoints,
       instructions: instructions,
     );
+    final originWaypoint = state.points.first;
+    final originName = originWaypoint.displayName.trim().isNotEmpty
+        ? originWaypoint.displayName.trim()
+        : originWaypoint.streetName.trim();
     try {
-      context.read<NavigationBloc>().add(StartNavigation(
-            initialRoute: customRoute,
-            origin: state.fullPolyline.first,
-            destination: state.fullPolyline.last,
-            destinationName: destinationName,
-          ));
+      context.read<NavigationBloc>().add(
+        StartNavigation(
+          initialRoute: customRoute,
+          origin: RoutePoint(
+            lat: originWaypoint.originalLat,
+            lon: originWaypoint.originalLon,
+          ),
+          originName: originName.isEmpty ? null : originName,
+          destination: state.fullPolyline.last,
+          destinationName: destinationName,
+        ),
+      );
     } catch (_) {}
     context.go(AppRoutes.home);
   }

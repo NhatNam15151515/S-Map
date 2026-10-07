@@ -142,8 +142,9 @@ class PoiCategoryHelper {
 
   /// Định dạng địa chỉ của POI an toàn, có fallback sang loại hình khi khuyết trường địa chỉ
   static String formatAddress(PoiModel poi) {
-    if (poi.address != null && poi.address!.trim().isNotEmpty) {
-      return poi.address!.trim();
+    final address = poi.address?.trim() ?? '';
+    if (_isDisplayableAddress(address)) {
+      return address;
     }
 
     final parts = [
@@ -168,6 +169,13 @@ class PoiCategoryHelper {
     }
 
     return '';
+  }
+
+  static bool _isDisplayableAddress(String value) {
+    if (value.isEmpty) return false;
+    final sentinel = value.toLowerCase().trim();
+    return !const {'yes', 'no', 'true', 'false', 'null', 'unknown', 'n/a'}
+        .contains(sentinel);
   }
 
   /// Định dạng khoảng cách mét / kilomet thân thiện

@@ -46,7 +46,7 @@ class HomeMapControls extends StatelessWidget {
             previous.orientationMode != current.orientationMode ||
             previous.isNightMode != current.isNightMode,
         builder: (context, state) {
-          return MapControls(
+          final controls = MapControls(
             onZoomIn: displayCubit.zoomIn,
             onZoomOut: displayCubit.zoomOut,
             onLocateMe: displayCubit.locateMe,
@@ -55,9 +55,11 @@ class HomeMapControls extends StatelessWidget {
             rotation: state.rotation,
             orientationMode: state.orientationMode,
             locateHeroTag: 'home_screen_locate_fab',
-            customMiddleControl:
-                isDrawingMode ? _buildDrawingControls(context) : null,
+            customMiddleControl: isDrawingMode
+                ? _buildDrawingControls(context)
+                : null,
           );
+          return controls;
         },
       ),
     );
@@ -86,6 +88,11 @@ class HomeMapControls extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          MapStyleToggleButton(
+            onPressed: onSwitchLayers ?? displayCubit.toggleNightMode,
+          ),
+          if (onReverseRoute != null || onToggleCrosshair != null)
+            _buildDivider(colorScheme),
           if (onReverseRoute != null) ...[
             _buildActionButton(
               context: context,
@@ -100,7 +107,7 @@ class HomeMapControls extends StatelessWidget {
             ),
           ],
           if (onToggleCrosshair != null) ...[
-            _buildDivider(colorScheme),
+            if (onReverseRoute != null) _buildDivider(colorScheme),
             _buildActionButton(
               context: context,
               key: const Key('route_drawing_crosshair_button'),
@@ -158,9 +165,7 @@ class HomeMapControls extends StatelessWidget {
           child: SizedBox(
             width: 44,
             height: 38,
-            child: Center(
-              child: HeroIcon(icon, size: 19, color: iconColor),
-            ),
+            child: Center(child: HeroIcon(icon, size: 19, color: iconColor)),
           ),
         ),
       ),

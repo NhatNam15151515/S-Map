@@ -1,0 +1,72 @@
+{
+  "version": 8,
+  "name": "S-Map Offline Minimal",
+  "metadata": {
+    "smap:purpose": "offline-vietnam-vector-map",
+    "smap:labels": "local-font-faces"
+  },
+  "font-faces": {
+    "Montserrat Regular": "__FONT_URL__"
+  },
+  "sources": {
+    // Nguồn dữ liệu bản đồ vector Việt Nam (PMTiles offline)
+    "smap-vietnam": {
+      "type": "vector",
+      "url": "pmtiles://__PMTILES_URI__",
+      "bounds": [102.1, 8.5, 109.5, 23.4],
+      "attribution": "© OpenStreetMap contributors"
+    },
+    // Nguồn dữ liệu GeoJSON khẳng định chủ quyền Hoàng Sa, Trường Sa, Biển Đông
+    "smap-sovereignty-source": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [112.3394, 16.5367]
+            },
+            "properties": {
+              "name": "Quần đảo Hoàng Sa\n(Việt Nam)",
+              "textSize": 13,
+              "textColor": "#D32F2F",
+              "letterSpacing": 0
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [111.9197, 8.6433]
+            },
+            "properties": {
+              "name": "Quần đảo Trường Sa\n(Việt Nam)",
+              "textSize": 13,
+              "textColor": "#D32F2F",
+              "letterSpacing": 0
+            }
+          },
+          {
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [113.5, 13.5]
+            },
+            "properties": {
+              "name": "BIỂN ĐÔNG",
+              "textSize": 15,
+              "textColor": "#1976D2",
+              "letterSpacing": 0.2
+            }
+          }
+        ]
+      }
+    }
+  },
+  // Toàn bộ các layer từ land, water, buildings, roads, labels được tự động ghép vào đây
+  "layers": [
+    "__LAYERS__"
+  ]
+}

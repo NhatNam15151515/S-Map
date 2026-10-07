@@ -23,8 +23,5 @@ export 'route_profile_cubit/route_profile_state.dart';
 export 'saved_routes_cubit/saved_routes_cubit.dart';
 export 'saved_routes_cubit/saved_routes_fallbacks.dart';
 export 'saved_routes_cubit/saved_routes_state.dart';
-export 'search_cubit/search_cubit.dart';
-export 'search_cubit/search_fallbacks.dart';
-export 'search_cubit/search_state.dart';
 export 'trip_history_cubit/trip_history_cubit.dart';
 export 'trip_history_cubit/trip_history_state.dart';

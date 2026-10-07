@@ -3,9 +3,6 @@ import 'package:s_map/interfaces/interfaces.dart';
 import 'package:s_map/models/models.dart';
 import 'package:s_map/services/services.dart';
 
-// Backward compatibility alias
-typedef AuthRepos = IAuthRepos;
-
 class AuthReposImpl implements IAuthRepos {
   final IFirebaseAuthService _authService;
   final IFireStoreService _fireStore;
@@ -40,7 +37,7 @@ class AuthReposImpl implements IAuthRepos {
       try {
         final profile = await _fireStore
             .getUserProfile(fbUser.uid)
-            .timeout(const Duration(milliseconds: 1500), onTimeout: () => null);
+            .timeout(const Duration(seconds: 4), onTimeout: () => null);
         if (profile != null) return profile;
       } catch (e) {
         DLog.error("Firestore getProfile error: $e");
@@ -72,27 +69,4 @@ class AuthReposImpl implements IAuthRepos {
     await _authService.signOut();
     return true;
   }
-}
-
-/// Fallback implementation cho môi trường Testing hoặc Decoupled
-class NoOpAuthRepos implements IAuthRepos {
-  const NoOpAuthRepos();
-
-  @override
-  Future<User?> login(String username, String password) async => null;
-
-  @override
-  Future<User?> signInWithGoogle() async => null;
-
-  @override
-  Future<User?> signInAnonymously() async => null;
-
-  @override
-  Future<User?> getProfile() async => null;
-
-  @override
-  Future<User?> updateProfile(User user) async => user;
-
-  @override
-  Future<bool> logout() async => true;
 }

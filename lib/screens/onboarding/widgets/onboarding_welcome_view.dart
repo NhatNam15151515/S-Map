@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
 import 'package:s_map/constants/app_asset.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
 
@@ -56,26 +57,15 @@ class OnboardingWelcomeView extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 32.h),
-              SizedBox(
-                width: double.infinity,
+              AppButton.primary(
+                text: tr(LocaleKeys.onboarding_continue_btn),
                 height: 70.h,
-                child: ElevatedButton(
-                  onPressed: onContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28.r),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: Text(
-                    tr(LocaleKeys.onboarding_continue_btn),
-                    style: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
-                      fontSize: 18.sp,
-                    ),
-                  ),
+                borderRadius: 28.r,
+                elevation: 2,
+                textStyle: colorScheme.onPrimary.textTheme.boldStyle.copyWith(
+                  fontSize: 18.sp,
                 ),
+                onPressed: onContinue,
               ),
               SizedBox(height: 28.h),
             ],
