@@ -55,6 +55,9 @@ class HomeRouteActions {
     handleOpenCustomRouteDrawing(null, poi: selectedPoi);
   }
 
+  /// Đóng route preview phát sinh khi nhấn giữ một vị trí trên bản đồ.
+  void clearRoutePreview() => routePreviewCubit.clearRoute();
+
   void handleOpenCustomRouteDrawing(
     BuildContext? context, {
     PoiModel? poi,

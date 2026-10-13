@@ -14,7 +14,8 @@ import 'package:s_map/screens/main/home/widgets/widgets.dart';
 import 'package:s_map/services/services.dart';
 
 class HomeInteractiveMapLayer extends StatefulWidget {
-  final ValueChanged<PoiModel> onPoiTapped;
+  final void Function(PoiModel poi, {required bool fromRenderedFeature})
+      onPoiTapped;
   final ValueChanged<bool> onSearchAreaVisibilityChanged;
   final bool allowPoiInteractionWhenRouteActive;
   final bool isRouteSearchSheetOpen;
@@ -137,14 +138,18 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       _cameraController.applyCameraAction(_mapController, action);
 
   @override
-  Future<void> setSelectedPoiMarker(PoiModel poi) =>
-      _symbolManager.setSelectedPoiMarker(_mapController, poi);
+  Future<void> setSelectedPoiMarker(PoiModel poi) async {
+    await _featureResolver.keepSelectedPoiFeatureHidden(_mapController, poi);
+    await _symbolManager.setSelectedPoiMarker(_mapController, poi);
+  }
 
-  void clearSelectedPoiMarker({bool restoreSearchResults = true}) =>
-      _symbolManager.clearSelectedPoiMarker(
-        _mapController,
-        restoreSearchResults: restoreSearchResults,
-      );
+  void clearSelectedPoiMarker({bool restoreSearchResults = true}) {
+    unawaited(_featureResolver.clearSelectedPoiFeature(_mapController));
+    _symbolManager.clearSelectedPoiMarker(
+      _mapController,
+      restoreSearchResults: restoreSearchResults,
+    );
+  }
 
   Future<void> hideSearchResultMarkers() =>
       _symbolManager.hideSearchResultMarkers(_mapController);
@@ -193,7 +198,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     }
     final poi = _symbolManager.getPoiBySymbolId(symbol.id);
     if (poi == null) return;
-    widget.onPoiTapped(poi);
+    widget.onPoiTapped(poi, fromRenderedFeature: false);
   }
 
   void _onFeatureTapped(
@@ -258,7 +263,7 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
     final poi =
         _symbolManager.getPoiAtLocation(latLng.latitude, latLng.longitude);
     if (poi != null && mounted) {
-      widget.onPoiTapped(poi);
+      widget.onPoiTapped(poi, fromRenderedFeature: false);
       return;
     }
     await _handleRenderedFeatureTap(point, latLng);
@@ -274,7 +279,9 @@ class HomeInteractiveMapLayerState extends State<HomeInteractiveMapLayer>
       point: point,
       latLng: latLng,
     );
-    if (renderedPoi != null && mounted) widget.onPoiTapped(renderedPoi);
+    if (renderedPoi != null && mounted) {
+      widget.onPoiTapped(renderedPoi, fromRenderedFeature: true);
+    }
   }
 
   void _onMapLongClick(Point<double> point, LatLng latLng) {

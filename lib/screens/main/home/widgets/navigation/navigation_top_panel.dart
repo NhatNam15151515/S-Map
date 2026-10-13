@@ -5,6 +5,7 @@ import 'package:s_map/commons/blocs/blocs.dart';
 import 'package:s_map/commons/styles/styles.dart';
 import 'package:s_map/commons/utils/utils.dart';
 import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/models/routing/route_instruction.dart';
 
 /// Top HUD Banner hiển thị chỉ dẫn điều hướng Turn-by-Turn theo kiểu Google Maps:
 /// - Icon rẽ lớn bên trái + khoảng cách
@@ -38,17 +39,40 @@ class NavigationTopPanel extends StatelessWidget {
         }
 
         final nextInstruction = state.nextInstruction;
+        final announcesUpcomingTurn =
+            state.isPreAnnounced && nextInstruction != null;
+        final bannerInstruction = announcesUpcomingTurn
+            ? nextInstruction!
+            : currentInstruction;
+        // currentInstruction describes the segment the user is already on.
+        // Its turn sign is the maneuver used to enter that street, so while
+        // travelling along it the main banner should say "go straight".
+        final bannerType = announcesUpcomingTurn
+            ? bannerInstruction.type
+            : (currentInstruction.type.isArrive
+                ? currentInstruction.type
+                : InstructionType.continueStraight);
+        final bannerStreetName = announcesUpcomingTurn
+            ? bannerInstruction.streetName
+            : currentInstruction.streetName;
+        final instructions = state.currentRoute?.instructions ?? const [];
+        final previewIndex = state.currentInstructionIndex +
+            (announcesUpcomingTurn ? 2 : 1);
+        final previewInstruction = previewIndex < instructions.length
+            ? instructions[previewIndex]
+            : null;
         final icon = RouteFormatHelper.getInstructionIcon(
-          currentInstruction.type,
+          bannerType,
         );
-        final streetName =
-            RouteFormatHelper.getInstructionTitle(currentInstruction);
+        final streetName = bannerStreetName.isNotEmpty
+            ? bannerStreetName
+            : RouteFormatHelper.getInstructionTitle(bannerInstruction);
         final distanceStr = RouteFormatHelper.formatDistance(
           state.distanceToNextInstruction,
         );
         // Mô tả hành động rẽ (rẽ trái, đi thẳng, quay đầu...)
         final actionText = RouteFormatHelper.getInstructionActionText(
-          currentInstruction.type,
+          bannerType,
         );
 
         // Sử dụng màu primary (sMapTeal) của app thay vì statsSuccess
@@ -149,7 +173,7 @@ class NavigationTopPanel extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 // Dòng 2: "Rẽ trái vào Nguyễn Văn A" hoặc chỉ "Đi thẳng"
                                 Text(
-                                  currentInstruction.streetName.isNotEmpty
+                                  streetName.isNotEmpty
                                       ? '$actionText $streetName'
                                       : actionText,
                                   maxLines: 2,
@@ -168,7 +192,7 @@ class NavigationTopPanel extends StatelessWidget {
                     ),
 
                     // 3. Next Turn Preview — "Sau đó ➜ [hướng rẽ tiếp theo]"
-                    if (nextInstruction != null)
+                    if (previewInstruction != null)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -198,7 +222,7 @@ class NavigationTopPanel extends StatelessWidget {
                             const SizedBox(width: 6),
                             Icon(
                               RouteFormatHelper.getInstructionIcon(
-                                nextInstruction.type,
+                                previewInstruction.type,
                               ),
                               color: onPanelColor,
                               size: 20,
@@ -207,7 +231,7 @@ class NavigationTopPanel extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 RouteFormatHelper.getInstructionTitle(
-                                  nextInstruction,
+                                  previewInstruction,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,

@@ -109,8 +109,16 @@ class RoutingRepositoryImpl implements IRoutingRepository {
         toLon: toLon,
         vehicleProfile: effectiveProfile,
       );
-      DLog.info(
-          '🏍️ [RoutingRepository] Native route result status: isSuccess=${nativeResult.isSuccess}, distance=${nativeResult.distance}m, points=${nativeResult.points.length}, error="${nativeResult.errorMessage}"');
+      final routeLog =
+          '🏍️ [RoutingRepository] Native route result: ${nativeResult.isSuccess ? "SUCCESS" : "FAILURE"} '
+          '| profile=$effectiveProfile | from=($fromLat,$fromLon) -> to=($toLat,$toLon) '
+          '| distance=${nativeResult.distance}m | points=${nativeResult.points.length} '
+          '| error="${nativeResult.errorMessage}"';
+      if (nativeResult.isSuccess) {
+        DLog.info(routeLog);
+      } else {
+        DLog.warning(routeLog);
+      }
       return nativeResult;
     }
 

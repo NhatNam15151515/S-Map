@@ -124,7 +124,28 @@ class HomePoiInteractionController {
     _onStateChanged();
   }
 
-  void handleMapPoiTap(PoiModel poi) {
+  void handleMapPoiTap(
+    PoiModel poi, {
+    required bool fromRenderedFeature,
+  }) {
+    // Rendered map POIs hide their source icon before the selected red marker
+    // is added. Search result symbols and route drawing use the same marker.
+    if (fromRenderedFeature &&
+        !_drawingController.isActive &&
+        _drawingController.searchResults == null) {
+      final belongsToSearch =
+          _searchCoordinator.searchResults.any((item) => item.isSamePoi(poi));
+      if (!belongsToSearch) {
+        _mapLayerKey.currentState?.clearSearchResults();
+        _searchCoordinator.searchResults = [];
+      }
+      _displayCubit.selectPoi(poi);
+      selectedPoi = poi;
+      _searchCoordinator.activeSearchText = poi.name;
+      _searchCoordinator.showSearchThisArea = false;
+      _onStateChanged();
+      return;
+    }
     if (_drawingController.isActive) {
       handleDrawingPoiTap(poi);
     } else if (_drawingController.searchResults != null) {

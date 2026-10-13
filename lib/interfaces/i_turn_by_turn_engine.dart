@@ -5,7 +5,7 @@ abstract class ITurnByTurnEngine {
   /// Ngưỡng khoảng cách tối đa (mét) để chuyển sang chỉ dẫn tiếp theo (mặc định 30.0m)
   double get advanceThresholdMeters;
 
-  /// Ngưỡng khoảng cách tối đa (mét) để kích hoạt trạng thái thông báo trước (mặc định 200.0m)
+  /// Ngưỡng khoảng cách tối đa (mét) để kích hoạt trạng thái thông báo trước (mặc định 500.0m)
   double get preAnnounceThresholdMeters;
 
   /// Ngưỡng khoảng cách tối đa (mét) để xác nhận đã đến đích (mặc định 20.0m)

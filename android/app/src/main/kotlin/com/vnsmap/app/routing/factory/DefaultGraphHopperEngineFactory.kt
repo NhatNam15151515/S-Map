@@ -290,6 +290,11 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
             vehicleProfile: String
         ): RouteResult {
             val startTime = System.currentTimeMillis()
+            val requestId = System.nanoTime().toString(16)
+            Log.i(
+                TAG,
+                "[route:$requestId] request profile=$vehicleProfile from=($fromLat,$fromLon) to=($toLat,$toLon)"
+            )
 
             return try {
                 val request = GHRequest(fromLat, fromLon, toLat, toLon)
@@ -301,11 +306,24 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                 val elapsed = System.currentTimeMillis() - startTime
 
                 if (response.hasErrors()) {
-                    val errors = response.errors.joinToString("; ") { it.message ?: "Unknown error" }
+                    val errors = response.errors.joinToString("; ") {
+                        "${it.javaClass.simpleName}: ${it.message ?: "Unknown error"}"
+                    }
+                    Log.w(
+                        TAG,
+                        "[route:$requestId] NO_ROUTE elapsed=${elapsed}ms profile=$vehicleProfile " +
+                            "pathCount=${response.all.size} errors=[$errors]"
+                    )
+                    logRouteFailureDiagnostics(requestId, fromLat, fromLon, toLat, toLon, vehicleProfile)
                     return RouteResult.failure("${RoutingConstants.ERR_ROUTING_PREFIX}$errors", elapsed)
                 }
 
                 if (response.all.isEmpty()) {
+                    Log.w(
+                        TAG,
+                        "[route:$requestId] NO_PATH elapsed=${elapsed}ms profile=$vehicleProfile; GraphHopper returned no paths and no errors"
+                    )
+                    logRouteFailureDiagnostics(requestId, fromLat, fromLon, toLat, toLon, vehicleProfile)
                     return RouteResult.failure(RoutingConstants.ERR_NO_ROUTE_FOUND, elapsed)
                 }
 
@@ -387,10 +405,108 @@ class DefaultGraphHopperEngineFactory : IGraphHopperEngineFactory {
                     bbox = bbox,
                     instructions = instructions,
                     calculationTimeMs = elapsed
-                )
+                ).also {
+                    Log.i(
+                        TAG,
+                        "[route:$requestId] SUCCESS elapsed=${elapsed}ms profile=$vehicleProfile " +
+                            "distance=${it.distance}m points=${it.points.size} instructions=${it.instructions.size}"
+                    )
+                }
             } catch (e: Exception) {
                 val elapsed = System.currentTimeMillis() - startTime
+                Log.e(
+                    TAG,
+                    "[route:$requestId] EXCEPTION elapsed=${elapsed}ms profile=$vehicleProfile " +
+                        "from=($fromLat,$fromLon) to=($toLat,$toLon): ${e.javaClass.name}: ${e.message}",
+                    e
+                )
                 RouteResult.failure("${RoutingConstants.ERR_ROUTING_EXCEPTION}${e.message}", elapsed)
+            }
+        }
+
+        /** Adds endpoint edge metadata and a reverse-direction probe after a no-route result. */
+        private fun logRouteFailureDiagnostics(
+            requestId: String,
+            fromLat: Double,
+            fromLon: Double,
+            toLat: Double,
+            toLon: Double,
+            vehicleProfile: String
+        ) {
+            try {
+                val locationIndex = hopper.locationIndex
+                if (locationIndex == null) {
+                    Log.w(TAG, "[route:$requestId] endpoint diagnostics unavailable: LocationIndex is null")
+                    return
+                }
+
+                val vehicleAccess = hopper.encodingManager.getBooleanEncodedValue(
+                    com.graphhopper.routing.ev.VehicleAccess.key("car")
+                )
+                val roadClass = hopper.encodingManager.getEnumEncodedValue(
+                    com.graphhopper.routing.ev.RoadClass.KEY,
+                    com.graphhopper.routing.ev.RoadClass::class.java
+                )
+                val roadAccess = hopper.encodingManager.getEnumEncodedValue(
+                    com.graphhopper.routing.ev.RoadAccess.KEY,
+                    com.graphhopper.routing.ev.RoadAccess::class.java
+                )
+                fun logEndpoint(label: String, lat: Double, lon: Double) {
+                    val snap = locationIndex.findClosest(
+                        lat,
+                        lon,
+                        com.graphhopper.routing.util.AccessFilter.allEdges(vehicleAccess)
+                    )
+                    if (!snap.isValid) {
+                        Log.w(TAG, "[route:$requestId] $label nearestEdge=NONE query=($lat,$lon)")
+                        return
+                    }
+
+                    val edge = snap.closestEdge
+                    Log.w(
+                        TAG,
+                        "[route:$requestId] $label query=($lat,$lon) nearestEdgeId=${edge?.edge} " +
+                            "name=\"${edge?.name}\" edgeDistance=${snap.queryDistance}m " +
+                            "snapped=(${snap.snappedPoint.lat},${snap.snappedPoint.lon}) " +
+                            "nodes=${edge?.getBaseNode()}->${edge?.getAdjNode()} " +
+                            "roadClass=${edge?.get(roadClass)} roadAccess=${edge?.get(roadAccess)} " +
+                            "carAccessForward=${edge?.get(vehicleAccess)} " +
+                            "carAccessReverse=${edge?.getReverse(vehicleAccess)}"
+                    )
+                }
+
+                logEndpoint("FROM", fromLat, fromLon)
+                logEndpoint("TO", toLat, toLon)
+
+                // A reverse-only success strongly suggests a directed access/one-way issue.
+                // This probe runs only after a failed route and uses the same snapped coordinates/profile.
+                val reverseStartedAt = System.currentTimeMillis()
+                val reverseRequest = GHRequest(toLat, toLon, fromLat, fromLon).apply {
+                    profile = vehicleProfile
+                }
+                val reverseResponse = hopper.route(reverseRequest)
+                val reverseElapsed = System.currentTimeMillis() - reverseStartedAt
+                if (reverseResponse.hasErrors()) {
+                    val reverseErrors = reverseResponse.errors.joinToString("; ") {
+                        "${it.javaClass.simpleName}: ${it.message ?: "Unknown error"}"
+                    }
+                    Log.w(
+                        TAG,
+                        "[route:$requestId] REVERSE_PROBE=FAIL elapsed=${reverseElapsed}ms " +
+                            "pathCount=${reverseResponse.all.size} errors=[$reverseErrors]"
+                    )
+                } else if (reverseResponse.all.isNotEmpty()) {
+                    val reversePath = reverseResponse.best
+                    Log.w(
+                        TAG,
+                        "[route:$requestId] REVERSE_PROBE=SUCCESS elapsed=${reverseElapsed}ms " +
+                            "distance=${reversePath?.distance}m points=${reversePath?.points?.size()}"
+                    )
+                } else {
+                    Log.w(TAG, "[route:$requestId] REVERSE_PROBE=NO_PATH elapsed=${reverseElapsed}ms")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "[route:$requestId] route failure diagnostics failed: ${e.javaClass.simpleName}: ${e.message}", e)
             }
         }
 

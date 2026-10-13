@@ -111,11 +111,11 @@ class VoiceGuidanceService {
       return;
     }
 
-    // 3. Pre-announce (cách ngã rẽ ~200m)
+    // 3. Pre-announce (cách ngã rẽ ~500m)
     if (current.isPreAnnounced &&
         !previous.isPreAnnounced &&
-        current.currentInstruction != null) {
-      final ins = current.currentInstruction!;
+        current.nextInstruction != null) {
+      final ins = current.nextInstruction!;
       _speak(VoiceInstructionBuilder.buildPreAnnounce(
         type: ins.type,
         streetName: ins.streetName,

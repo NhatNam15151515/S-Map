@@ -52,7 +52,7 @@ class RoutingConstants {
 
   // Turn-by-turn Navigation Thresholds
   static const double defaultAdvanceThresholdMeters = 30.0;
-  static const double defaultPreAnnounceThresholdMeters = 200.0;
+  static const double defaultPreAnnounceThresholdMeters = 500.0;
   static const double defaultArrivalThresholdMeters = 20.0;
   static const double defaultOffRouteThresholdMeters = 35.0;
   static const double fallbackSpeedKmh = 30.0;

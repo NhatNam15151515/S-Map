@@ -131,8 +131,9 @@ class _MyAppState extends State<MyApp> {
                     locale: context.locale,
                     builder: (context, widget) {
                       final routeMounted = Routes.instance.routeMounted;
-                      if (!routeMounted.isCompleted)
+                      if (!routeMounted.isCompleted) {
                         routeMounted.complete(true);
+                      }
                       return GestureDetector(
                         onTap: () {
                           WidgetsBinding.instance.focusManager.primaryFocus

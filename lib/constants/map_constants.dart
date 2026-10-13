@@ -16,7 +16,7 @@ class MapConstants {
 
   /// Zoom tối thiểu và tối đa
   static const double minZoom = 3.0;
-  static const double maxZoom = 19.0;
+  static const double maxZoom = 20.0;
 
   /// Ngưỡng khoảng cách di chuyển camera tối thiểu (km) để kích hoạt nút "Tìm trong khu vực này"
   static const double viewportSearchDistanceThresholdKm = 0.4;

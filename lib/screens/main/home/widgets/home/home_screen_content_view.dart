@@ -59,7 +59,8 @@ class HomeScreenContentView extends StatelessWidget {
   final List<PoiModel>? routeSearchResults;
   final String? routeSearchQuery;
   final ValueChanged<LatLng> onDrawingMapTap;
-  final ValueChanged<PoiModel> onPoiTap;
+  final void Function(PoiModel poi, {required bool fromRenderedFeature})
+      onPoiTap;
   final ValueChanged<bool> onSearchAreaVisibilityChanged;
   final VoidCallback onReverseRoute;
   final VoidCallback onToggleCrosshair;
@@ -105,8 +106,10 @@ class HomeScreenContentView extends StatelessWidget {
                   isCrosshairActive: crosshairActive,
                   routeDrawingBloc: drawingBloc,
                   onDrawingMapTap: onDrawingMapTap,
-                  onPoiTapped: (poi) {
-                    if (!isNavigating) onPoiTap(poi);
+                  onPoiTapped: (poi, {required fromRenderedFeature}) {
+                    if (!isNavigating) {
+                      onPoiTap(poi, fromRenderedFeature: fromRenderedFeature);
+                    }
                   },
                   onSearchAreaVisibilityChanged: onSearchAreaVisibilityChanged,
                 ),

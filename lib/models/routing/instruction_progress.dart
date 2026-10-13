@@ -21,7 +21,7 @@ class InstructionProgress extends Equatable {
   /// Tổng thời gian di chuyển ước tính còn lại (mili-giây)
   final int remainingDurationMs;
 
-  /// Cờ báo hiệu đang nằm trong vùng cảnh báo trước (khoảng cách <= 200m)
+  /// Cờ báo hiệu đang nằm trong vùng cảnh báo trước (khoảng cách <= 500m)
   final bool isPreAnnounced;
 
   /// Cờ báo hiệu đã đến đích lộ trình

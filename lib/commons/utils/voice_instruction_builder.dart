@@ -8,7 +8,7 @@ import 'package:s_map/models/routing/route_instruction.dart';
 class VoiceInstructionBuilder {
   VoiceInstructionBuilder._();
 
-  /// Sinh câu thông báo trước (cách ngã rẽ ~200m).
+  /// Sinh câu thông báo trước (cách ngã rẽ ~500m).
   ///
   /// Ví dụ: "200 mét nữa, rẽ phải vào đường Nguyễn Trãi"
   static String buildPreAnnounce({

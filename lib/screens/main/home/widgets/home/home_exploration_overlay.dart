@@ -77,6 +77,7 @@ class HomeExplorationOverlay extends StatelessWidget {
           onAddDestination: (poi) =>
               routeActions.handleAddDestination(context, poi),
           onCloseSearchResults: searchCoordinator.handleCloseSearchResults,
+          onCloseRoutePreview: routeActions.clearRoutePreview,
           onClosePoiCard: onClosePoiCard,
           onDirections: () => routeActions.handleDirections(selectedMarkerPoi),
           onCustomRoute: selectedMarkerPoi != null

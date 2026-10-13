@@ -12,7 +12,12 @@
     "smap-vietnam": {
       "type": "vector",
       "url": "pmtiles://__PMTILES_URI__",
-      "bounds": [102.1, 8.5, 109.5, 23.4],
+      "bounds": [
+        102.1,
+        8.5,
+        109.5,
+        23.4
+      ],
       "attribution": "© OpenStreetMap contributors"
     },
     "smap-sovereignty-source": {
@@ -24,7 +29,10 @@
             "type": "Feature",
             "geometry": {
               "type": "Point",
-              "coordinates": [112.3394, 16.5367]
+              "coordinates": [
+                112.3394,
+                16.5367
+              ]
             },
             "properties": {
               "name": "Quần đảo Hoàng Sa\n(Việt Nam)",
@@ -37,7 +45,10 @@
             "type": "Feature",
             "geometry": {
               "type": "Point",
-              "coordinates": [111.9197, 8.6433]
+              "coordinates": [
+                111.9197,
+                8.6433
+              ]
             },
             "properties": {
               "name": "Quần đảo Trường Sa\n(Việt Nam)",
@@ -50,7 +61,10 @@
             "type": "Feature",
             "geometry": {
               "type": "Point",
-              "coordinates": [113.5, 13.5]
+              "coordinates": [
+                113.5,
+                13.5
+              ]
             },
             "properties": {
               "name": "BIỂN ĐÔNG",
@@ -70,7 +84,9 @@
       "metadata": {
         "comment": "Màu nền canvas đáy cùng của bản đồ"
       },
-      "paint": {"background-color": "__MAP_BACKGROUND__"}
+      "paint": {
+        "background-color": "__MAP_BACKGROUND__"
+      }
     },
     {
       "id": "smap-landcover",
@@ -83,12 +99,21 @@
       "minzoom": 7,
       "paint": {
         "fill-color": [
-          "match", ["get", "class"],
-          "wood", "__LAND_WOOD__",
-          "forest", "__LAND_WOOD__",
-          "grass", "__LAND_GRASS__",
-          "scrub", "__LAND_SCRUB__",
-          "wetland", "__LAND_WETLAND__",
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          "wood",
+          "__LAND_WOOD__",
+          "forest",
+          "__LAND_WOOD__",
+          "grass",
+          "__LAND_GRASS__",
+          "scrub",
+          "__LAND_SCRUB__",
+          "wetland",
+          "__LAND_WETLAND__",
           "__LAND_DEFAULT__"
         ],
         "fill-opacity": 0.72
@@ -105,12 +130,21 @@
       "minzoom": 5,
       "paint": {
         "fill-color": [
-          "match", ["get", "class"],
-          "residential", "__LAND_RESIDENTIAL__",
-          "commercial", "__LAND_COMMERCIAL__",
-          "industrial", "__LAND_INDUSTRIAL__",
-          "cemetery", "__LAND_CEMETERY__",
-          "military", "__LAND_MILITARY__",
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          "residential",
+          "__LAND_RESIDENTIAL__",
+          "commercial",
+          "__LAND_COMMERCIAL__",
+          "industrial",
+          "__LAND_INDUSTRIAL__",
+          "cemetery",
+          "__LAND_CEMETERY__",
+          "military",
+          "__LAND_MILITARY__",
           "__LANDUSE_DEFAULT__"
         ],
         "fill-opacity": 0.60
@@ -153,12 +187,26 @@
       "source": "smap-vietnam",
       "source-layer": "waterway",
       "minzoom": 8,
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__WATERWAY_LINE__",
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          8, 0.5, 12, 1.4, 14, 2.4
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          0.5,
+          12,
+          1.4,
+          14,
+          2.4
         ]
       }
     },
@@ -175,10 +223,24 @@
         "line-color": "__BOUNDARY_LINE__",
         "line-opacity": 0.78,
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          4, 0.6, 10, 1.1, 14, 1.8
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.6,
+          10,
+          1.1,
+          14,
+          1.8
         ],
-        "line-dasharray": [3, 2]
+        "line-dasharray": [
+          3,
+          2
+        ]
       }
     },
     {
@@ -204,12 +266,24 @@
       "source": "smap-vietnam",
       "source-layer": "aeroway",
       "minzoom": 10,
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__AEROWAY_LINE__",
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          10, 0.6, 14, 2.2
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.6,
+          14,
+          2.2
         ]
       }
     },
@@ -237,13 +311,33 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 11,
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_CASING__",
         "line-opacity": "__ROAD_CASING_OPACITY__",
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          4, 0.5, 8, 1.1, 12, 2.4, 14, 4.0, 16, 5.2, 19, 7.5
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.5,
+          8,
+          1.1,
+          12,
+          2.4,
+          14,
+          4.0,
+          16,
+          5.2,
+          19,
+          7.5
         ]
       }
     },
@@ -256,12 +350,53 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 4,
-      "filter": ["any", ["==", ["get", "class"], "motorway"], ["==", ["get", "class"], "trunk"]],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "class"
+          ],
+          "motorway"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "class"
+          ],
+          "trunk"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_CASING__",
         "line-opacity": "__ROAD_CASING_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.9, 8, 2.0, 12, 5.2, 14, 8.5, 16, 11.0, 19, 14.0]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.9,
+          8,
+          2.0,
+          12,
+          5.2,
+          14,
+          8.5,
+          16,
+          11.0,
+          19,
+          14.0
+        ]
       }
     },
     {
@@ -273,12 +408,42 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 6,
-      "filter": ["==", ["get", "class"], "primary"],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "primary"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_CASING__",
         "line-opacity": "__ROAD_CASING_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.8, 8, 1.8, 12, 4.4, 14, 7.4, 16, 9.5, 19, 12.5]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.8,
+          8,
+          1.8,
+          12,
+          4.4,
+          14,
+          7.4,
+          16,
+          9.5,
+          19,
+          12.5
+        ]
       }
     },
     {
@@ -290,12 +455,42 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 8,
-      "filter": ["==", ["get", "class"], "secondary"],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "secondary"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_CASING__",
         "line-opacity": "__ROAD_CASING_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.7, 8, 1.5, 12, 3.8, 14, 6.3, 16, 8.2, 19, 11.0]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.7,
+          8,
+          1.5,
+          12,
+          3.8,
+          14,
+          6.3,
+          16,
+          8.2,
+          19,
+          11.0
+        ]
       }
     },
     {
@@ -307,12 +502,42 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 10,
-      "filter": ["==", ["get", "class"], "tertiary"],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "tertiary"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_CASING__",
         "line-opacity": "__ROAD_CASING_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.6, 8, 1.3, 12, 3.2, 14, 5.4, 16, 7.0, 19, 9.2]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.6,
+          8,
+          1.3,
+          12,
+          3.2,
+          14,
+          5.4,
+          16,
+          7.0,
+          19,
+          9.2
+        ]
       }
     },
     {
@@ -324,13 +549,33 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 11,
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_SURFACE__",
         "line-opacity": "__ROAD_SURFACE_OPACITY__",
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          4, 0.3, 8, 0.8, 12, 1.7, 14, 3.0, 16, 4.2, 19, 6.0
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.3,
+          8,
+          0.8,
+          12,
+          1.7,
+          14,
+          3.0,
+          16,
+          4.2,
+          19,
+          6.0
         ]
       }
     },
@@ -343,12 +588,53 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 4,
-      "filter": ["any", ["==", ["get", "class"], "motorway"], ["==", ["get", "class"], "trunk"]],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "class"
+          ],
+          "motorway"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "class"
+          ],
+          "trunk"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_SURFACE__",
         "line-opacity": "__ROAD_SURFACE_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.5, 8, 1.5, 12, 4.0, 14, 7.2, 16, 9.5, 19, 12.5]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.5,
+          8,
+          1.5,
+          12,
+          4.0,
+          14,
+          7.2,
+          16,
+          9.5,
+          19,
+          12.5
+        ]
       }
     },
     {
@@ -360,12 +646,42 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 6,
-      "filter": ["==", ["get", "class"], "primary"],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "primary"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_SURFACE__",
         "line-opacity": "__ROAD_SURFACE_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.45, 8, 1.35, 12, 3.4, 14, 6.1, 16, 8.2, 19, 11.0]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.45,
+          8,
+          1.35,
+          12,
+          3.4,
+          14,
+          6.1,
+          16,
+          8.2,
+          19,
+          11.0
+        ]
       }
     },
     {
@@ -377,12 +693,42 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 8,
-      "filter": ["==", ["get", "class"], "secondary"],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "secondary"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_SURFACE__",
         "line-opacity": "__ROAD_SURFACE_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.4, 8, 1.1, 12, 2.8, 14, 5.0, 16, 6.9, 19, 9.0]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.4,
+          8,
+          1.1,
+          12,
+          2.8,
+          14,
+          5.0,
+          16,
+          6.9,
+          19,
+          9.0
+        ]
       }
     },
     {
@@ -394,12 +740,42 @@
       "source": "smap-vietnam",
       "source-layer": "transportation",
       "minzoom": 10,
-      "filter": ["==", ["get", "class"], "tertiary"],
-      "layout": {"line-cap": "round", "line-join": "round"},
+      "filter": [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "tertiary"
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__ROAD_SURFACE__",
         "line-opacity": "__ROAD_SURFACE_OPACITY__",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 4, 0.35, 8, 1.0, 12, 2.4, 14, 4.2, 16, 5.8, 19, 7.5]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          4,
+          0.35,
+          8,
+          1.0,
+          12,
+          2.4,
+          14,
+          4.2,
+          16,
+          5.8,
+          19,
+          7.5
+        ]
       }
     },
     {
@@ -413,27 +789,71 @@
       "minzoom": 16,
       "filter": [
         "all",
-        ["!=", ["get", "oneway"], 1],
-        ["!=", ["get", "oneway"], "1"],
-        ["!=", ["get", "oneway"], "yes"],
+        [
+          "!=",
+          [
+            "get",
+            "oneway"
+          ],
+          1
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "oneway"
+          ],
+          "1"
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "oneway"
+          ],
+          "yes"
+        ],
         [
           "match",
-          ["get", "class"],
-          ["motorway", "trunk", "primary", "secondary"],
+          [
+            "get",
+            "class"
+          ],
+          [
+            "motorway",
+            "trunk",
+            "primary",
+            "secondary"
+          ],
           true,
           false
         ]
       ],
-      "layout": {"line-cap": "butt", "line-join": "round"},
+      "layout": {
+        "line-cap": "butt",
+        "line-join": "round"
+      },
       "paint": {
         "line-color": "__LABEL_PRIMARY__",
         "line-opacity": 0.75,
-        "line-dasharray": [3, 4],
+        "line-dasharray": [
+          3,
+          4
+        ],
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          16, 0.5,
-          18, 0.8,
-          19, 1.1
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          16,
+          0.5,
+          18,
+          0.8,
+          19,
+          1.1
         ]
       }
     },
@@ -450,33 +870,121 @@
         "all",
         [
           "any",
-          ["==", ["get", "oneway"], 1],
-          ["==", ["get", "oneway"], "1"],
-          ["==", ["get", "oneway"], "yes"],
-          ["==", ["get", "oneway"], -1],
-          ["==", ["get", "oneway"], "-1"]
+          [
+            "==",
+            [
+              "get",
+              "oneway"
+            ],
+            1
+          ],
+          [
+            "==",
+            [
+              "get",
+              "oneway"
+            ],
+            "1"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "oneway"
+            ],
+            "yes"
+          ],
+          [
+            "==",
+            [
+              "get",
+              "oneway"
+            ],
+            -1
+          ],
+          [
+            "==",
+            [
+              "get",
+              "oneway"
+            ],
+            "-1"
+          ]
         ],
-        ["!=", ["get", "class"], "path"],
-        ["!=", ["get", "class"], "pedestrian"],
-        ["!=", ["get", "class"], "steps"]
+        [
+          "!=",
+          [
+            "get",
+            "class"
+          ],
+          "path"
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "class"
+          ],
+          "pedestrian"
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "class"
+          ],
+          "steps"
+        ]
       ],
       "layout": {
         "symbol-placement": "line",
         "symbol-spacing": 95,
         "text-field": [
           "case",
-          ["any", ["==", ["get", "oneway"], -1], ["==", ["get", "oneway"], "-1"]],
+          [
+            "any",
+            [
+              "==",
+              [
+                "get",
+                "oneway"
+              ],
+              -1
+            ],
+            [
+              "==",
+              [
+                "get",
+                "oneway"
+              ],
+              "-1"
+            ]
+          ],
           "←",
           "→"
         ],
-        "text-font": ["Montserrat Regular"],
-        "text-size": [
-          "interpolate", ["linear"], ["zoom"],
-          16, 13.0,
-          18, 16.0,
-          19, 19.0
+        "text-font": [
+          "Montserrat Regular"
         ],
-        "text-offset": [0, -0.09],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          16,
+          13.0,
+          18,
+          16.0,
+          19,
+          19.0
+        ],
+        "text-offset": [
+          0,
+          -0.09
+        ],
         "text-keep-upright": false,
         "text-allow-overlap": true,
         "text-ignore-placement": true
@@ -497,19 +1005,38 @@
       "source": "smap-vietnam",
       "source-layer": "transportation_name",
       "minzoom": 10,
-      "filter": ["has", "name"],
+      "filter": [
+        "has",
+        "name"
+      ],
       "layout": {
         "symbol-placement": "line",
         "text-field": [
           "coalesce",
-          ["get", "name:vi"],
-          ["get", "name"]
+          [
+            "get",
+            "name:vi"
+          ],
+          [
+            "get",
+            "name"
+          ]
         ],
-        "text-font": ["Montserrat Regular"],
+        "text-font": [
+          "Montserrat Regular"
+        ],
         "text-size": [
-          "interpolate", ["linear"], ["zoom"],
-          10, 9,
-          14, 13
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          9,
+          14,
+          13
         ],
         "text-max-width": 7,
         "text-padding": 2,
@@ -535,8 +1062,19 @@
         "circle-color": "__PLACE_DOT__",
         "circle-opacity": 0.82,
         "circle-radius": [
-          "interpolate", ["linear"], ["zoom"],
-          5, 1.2, 9, 2.2, 14, 3.2
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          5,
+          1.2,
+          9,
+          2.2,
+          14,
+          3.2
         ],
         "circle-stroke-color": "__PLACE_STROKE__",
         "circle-stroke-width": 1
@@ -551,22 +1089,42 @@
       "source": "smap-vietnam",
       "source-layer": "place",
       "minzoom": 5,
-      "filter": ["has", "name"],
+      "filter": [
+        "has",
+        "name"
+      ],
       "layout": {
         "text-field": [
           "coalesce",
-          ["get", "name:vi"],
-          ["get", "name"]
+          [
+            "get",
+            "name:vi"
+          ],
+          [
+            "get",
+            "name"
+          ]
         ],
-        "text-font": ["Montserrat Regular"],
+        "text-font": [
+          "Montserrat Regular"
+        ],
         "text-size": [
-          "step", ["zoom"],
+          "step",
+          [
+            "zoom"
+          ],
           9,
-          8, 11,
-          11, 13,
-          13, 15
+          8,
+          11,
+          11,
+          13,
+          13,
+          15
         ],
-        "text-offset": [0, 0.8],
+        "text-offset": [
+          0,
+          0.8
+        ],
         "text-padding": 2,
         "text-allow-overlap": false
       },
@@ -586,18 +1144,37 @@
       "source": "smap-vietnam",
       "source-layer": "water_name",
       "minzoom": 8,
-      "filter": ["has", "name"],
+      "filter": [
+        "has",
+        "name"
+      ],
       "layout": {
         "text-field": [
           "coalesce",
-          ["get", "name:vi"],
-          ["get", "name"]
+          [
+            "get",
+            "name:vi"
+          ],
+          [
+            "get",
+            "name"
+          ]
         ],
-        "text-font": ["Montserrat Regular"],
+        "text-font": [
+          "Montserrat Regular"
+        ],
         "text-size": [
-          "interpolate", ["linear"], ["zoom"],
-          8, 9,
-          14, 13
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          9,
+          14,
+          13
         ],
         "text-allow-overlap": false
       },
@@ -615,52 +1192,150 @@
       },
       "source": "smap-vietnam",
       "source-layer": "poi",
-      "minzoom": 17,
-      "filter": ["has", "name"],
+      "minzoom": 16,
+      "filter": [
+        "has",
+        "class"
+      ],
       "layout": {
         "icon-image": [
           "match",
-          ["get", "class"],
-          ["cafe", "coffee"], "poi-marker-cafe",
-          ["restaurant", "fast_food", "food"], "poi-marker-food",
-          ["hotel", "motel", "lodging", "hostel", "guest_house"], "poi-marker-hotel",
-          ["supermarket", "grocery"], "poi-marker-supermarket",
-          ["shop", "convenience", "mall", "department_store", "clothes", "electronics", "bakery"], "poi-marker-shop",
-          ["fuel", "gas"], "poi-marker-fuel",
-          ["bank", "atm"], "poi-marker-bank",
-          ["hospital", "pharmacy", "clinic", "doctors"], "poi-marker-hospital",
-          ["school", "university", "college", "kindergarten"], "poi-marker-school",
-          ["park", "pitch", "sports_centre"], "poi-marker-park",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "cafe",
+            "coffee"
+          ],
+          "poi-marker-cafe",
+          [
+            "restaurant",
+            "fast_food",
+            "food"
+          ],
+          "poi-marker-food",
+          [
+            "hotel",
+            "motel",
+            "lodging",
+            "hostel",
+            "guest_house"
+          ],
+          "poi-marker-hotel",
+          [
+            "supermarket",
+            "grocery"
+          ],
+          "poi-marker-supermarket",
+          [
+            "shop",
+            "convenience",
+            "mall",
+            "department_store",
+            "clothes",
+            "electronics",
+            "bakery"
+          ],
+          "poi-marker-shop",
+          [
+            "fuel",
+            "gas"
+          ],
+          "poi-marker-fuel",
+          [
+            "bank",
+            "atm"
+          ],
+          "poi-marker-bank",
+          [
+            "hospital",
+            "pharmacy",
+            "clinic",
+            "doctors"
+          ],
+          "poi-marker-hospital",
+          [
+            "school",
+            "university",
+            "college",
+            "kindergarten"
+          ],
+          "poi-marker-school",
+          [
+            "park",
+            "pitch",
+            "sports_centre"
+          ],
+          "poi-marker-park",
           "poi-marker-default"
         ],
         "icon-size": [
-          "interpolate", ["linear"], ["zoom"],
-          17, 0.48,
-          19, 0.58,
-          22, 0.72
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          20,
+          1.2
         ],
         "icon-anchor": "bottom",
-        "icon-allow-overlap": false,
-        "icon-ignore-placement": false,
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
         "text-field": [
           "coalesce",
-          ["get", "name:vi"],
-          ["get", "name"]
+          [
+            "get",
+            "name:vi"
+          ],
+          [
+            "get",
+            "name"
+          ]
         ],
-        "text-font": ["Montserrat Regular"],
+        "text-font": [
+          "Montserrat Regular"
+        ],
         "text-size": [
-          "interpolate", ["linear"], ["zoom"],
-          17, 10.0,
-          19, 11.5,
-          22, 13.0
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          17,
+          10.0,
+          19,
+          11.5,
+          22,
+          13.0
         ],
         "text-anchor": "top",
-        "text-offset": [0, 0.35],
+        "text-offset": [
+          0,
+          0.35
+        ],
         "text-max-width": 8,
         "text-padding": 2,
+        "text-optional": true,
         "text-allow-overlap": false
       },
       "paint": {
+        "icon-opacity": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          0,
+          1
+        ],
+        "text-opacity": [
+          "case",
+          ["boolean", ["feature-state", "selected"], false],
+          0,
+          1
+        ],
         "text-color": "__LABEL_PRIMARY__",
         "text-halo-color": "__LABEL_HALO__",
         "text-halo-width": 1.5
@@ -684,10 +1359,18 @@
       "source": "smap-vietnam",
       "source-layer": "housenumber",
       "minzoom": 15,
-      "filter": ["has", "housenumber"],
+      "filter": [
+        "has",
+        "housenumber"
+      ],
       "layout": {
-        "text-field": ["get", "housenumber"],
-        "text-font": ["Montserrat Regular"],
+        "text-field": [
+          "get",
+          "housenumber"
+        ],
+        "text-font": [
+          "Montserrat Regular"
+        ],
         "text-size": 8,
         "text-padding": 1,
         "text-allow-overlap": false
@@ -703,15 +1386,27 @@
       "type": "symbol",
       "source": "smap-sovereignty-source",
       "layout": {
-        "text-field": ["get", "name"],
-        "text-size": ["get", "textSize"],
+        "text-field": [
+          "get",
+          "name"
+        ],
+        "text-size": [
+          "get",
+          "textSize"
+        ],
         "text-anchor": "center",
-        "text-letter-spacing": ["get", "letterSpacing"],
+        "text-letter-spacing": [
+          "get",
+          "letterSpacing"
+        ],
         "text-allow-overlap": true,
         "text-ignore-placement": true
       },
       "paint": {
-        "text-color": ["get", "textColor"],
+        "text-color": [
+          "get",
+          "textColor"
+        ],
         "text-halo-color": "#FFFFFF",
         "text-halo-width": 2.0
       }

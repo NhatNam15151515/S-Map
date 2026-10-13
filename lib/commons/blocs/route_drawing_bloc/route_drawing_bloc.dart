@@ -426,8 +426,10 @@ class RouteDrawingBloc extends Bloc<RouteDrawingEvent, RouteDrawingState> {
         final newDistance = state.totalDistance + distMeters;
         final newTime = state.totalTime + estTimeMs;
 
-        DLog.info(
-            '🔗 [RouteDrawingBloc] Direct segment connected into alley: +${distMeters.toStringAsFixed(1)}m, total=${newDistance.toStringAsFixed(1)}m');
+        DLog.warning(
+            '⚠️ [RouteDrawingBloc] GraphHopper route failed ("${routeResult.errorMessage}"); drawing DIRECT LINE fallback '
+            'from=(${prevPoint.snappedLat},${prevPoint.snappedLon}) to=(${effectiveSnapped.snappedLat},${effectiveSnapped.snappedLon}), '
+            'straightDistance=${distMeters.toStringAsFixed(1)}m, total=${newDistance.toStringAsFixed(1)}m');
 
         emit(state.copyWith(
           status: RouteDrawingStatus.routeUpdated,

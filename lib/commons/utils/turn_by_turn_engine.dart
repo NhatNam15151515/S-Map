@@ -94,12 +94,17 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
         break;
       }
 
-      final d = MapGeometryUtils.haversineDistanceMeters(
-        currentLat,
-        currentLon,
-        maneuverPoint[0],
-        maneuverPoint[1],
-      );
+      final d = _remainingDistanceAlongInstruction(
+            currentLat,
+            currentLon,
+            currentInstruction,
+          ) ??
+          MapGeometryUtils.haversineDistanceMeters(
+            currentLat,
+            currentLon,
+            maneuverPoint[0],
+            maneuverPoint[1],
+          );
 
       // Kiểm tra xe đã rẽ qua mốc chuyển hướng và đang đi vào thân đoạn đường tiếp theo
       bool hasPassedTurn = false;
@@ -139,12 +144,17 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
           : null;
 
       if (destinationPoint != null) {
-        distToNextMeters = MapGeometryUtils.haversineDistanceMeters(
-          currentLat,
-          currentLon,
-          destinationPoint[0],
-          destinationPoint[1],
-        );
+        distToNextMeters = _remainingDistanceAlongInstruction(
+              currentLat,
+              currentLon,
+              lastInstruction,
+            ) ??
+            MapGeometryUtils.haversineDistanceMeters(
+              currentLat,
+              currentLon,
+              destinationPoint[0],
+              destinationPoint[1],
+            );
       } else {
         distToNextMeters = lastInstruction.distance;
       }
@@ -160,7 +170,7 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
         (activeIndex == instructions.length - 1) &&
         (distToNextMeters <= arrivalThresholdMeters);
 
-    // 4. Kiểm tra cảnh báo trước (Pre-announce: <= 200m)
+    // 4. Kiểm tra cảnh báo trước (Pre-announce: <= 500m)
     final bool isPreAnnounced =
         distToNextMeters <= preAnnounceThresholdMeters && !hasArrived;
 
@@ -208,6 +218,43 @@ class TurnByTurnEngine implements ITurnByTurnEngine {
       isPreAnnounced: isPreAnnounced,
       hasArrived: hasArrived,
     );
+  }
+
+  /// Estimates remaining road distance by projecting the GPS fix onto the
+  /// active instruction polyline, then summing the route geometry to its end.
+  /// Returns null when the instruction has no usable geometry.
+  double? _remainingDistanceAlongInstruction(
+    double currentLat,
+    double currentLon,
+    RouteInstruction instruction,
+  ) {
+    final points = instruction.points;
+    if (points.length < 2 || points.any((point) => !_isValidCoordinate(point))) {
+      return null;
+    }
+
+    final (segmentIndex, _, closestLat, closestLon) =
+        MapGeometryUtils.findClosestPointOnPolyline(
+      pLat: currentLat,
+      pLon: currentLon,
+      points: points,
+    );
+
+    var remaining = MapGeometryUtils.haversineDistanceMeters(
+      closestLat,
+      closestLon,
+      points[segmentIndex + 1][0],
+      points[segmentIndex + 1][1],
+    );
+    for (var i = segmentIndex + 1; i < points.length - 1; i++) {
+      remaining += MapGeometryUtils.haversineDistanceMeters(
+        points[i][0],
+        points[i][1],
+        points[i + 1][0],
+        points[i + 1][1],
+      );
+    }
+    return remaining;
   }
 
   /// Kiểm tra xem điểm tọa độ có hợp lệ và đầy đủ 2 thành phần kinh vĩ độ hay không

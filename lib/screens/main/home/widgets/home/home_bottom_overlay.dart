@@ -15,6 +15,7 @@ class HomeBottomOverlay extends StatelessWidget {
   final ValueChanged<PoiModel>? onSearchResultPoiTap;
   final ValueChanged<PoiModel>? onAddDestination;
   final VoidCallback? onCloseSearchResults;
+  final VoidCallback onCloseRoutePreview;
   final VoidCallback onClosePoiCard;
   final VoidCallback onDirections;
   final VoidCallback? onCustomRoute;
@@ -29,6 +30,7 @@ class HomeBottomOverlay extends StatelessWidget {
     this.onSearchResultPoiTap,
     this.onAddDestination,
     this.onCloseSearchResults,
+    required this.onCloseRoutePreview,
     required this.onClosePoiCard,
     required this.onDirections,
     this.onCustomRoute,
@@ -36,6 +38,27 @@ class HomeBottomOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<RoutePreviewCubit, RoutePreviewState>(
+      buildWhen: (previous, current) =>
+          previous.status != current.status ||
+          previous.currentRoute != current.currentRoute,
+      builder: (context, routeState) {
+        if (routeState.isLoading || routeState.isSuccess) {
+          return _RoutePreviewBottomCard(
+            isLoading: routeState.isLoading,
+            destinationName: routeState.destinationName,
+            distanceMeters: routeState.currentRoute?.distance,
+            durationMs: routeState.currentRoute?.time,
+            onClose: onCloseRoutePreview,
+          );
+        }
+
+        return _buildDefaultOverlay(context);
+      },
+    );
+  }
+
+  Widget _buildDefaultOverlay(BuildContext context) {
     // 1. Khi đang chọn một địa điểm cụ thể (từ sheet hoặc bấm vào marker): hiển thị Quick Card
     if (selectedMarkerPoi != null) {
       // final bottomPadding = MediaQuery.paddingOf(context).bottom;
@@ -89,6 +112,99 @@ class HomeBottomOverlay extends StatelessWidget {
           onPlaceTap: onPlaceTap,
         );
       },
+    );
+  }
+}
+
+class _RoutePreviewBottomCard extends StatelessWidget {
+  const _RoutePreviewBottomCard({
+    required this.isLoading,
+    required this.destinationName,
+    required this.distanceMeters,
+    required this.durationMs,
+    required this.onClose,
+  });
+
+  final bool isLoading;
+  final String? destinationName;
+  final double? distanceMeters;
+  final int? durationMs;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final bottom = kBottomNavigationBarHeight +
+        MediaQuery.paddingOf(context).bottom +
+        8;
+    final distance = distanceMeters;
+    final duration = durationMs;
+    final distanceText = distance == null
+        ? ''
+        : distance >= 1000
+            ? '${(distance / 1000).toStringAsFixed(1)} km'
+            : '${distance.round()} m';
+    final durationText = duration == null
+        ? ''
+        : '${(duration / Duration.millisecondsPerMinute).ceil()} phút';
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: bottom,
+      child: Material(
+        color: colors.surface,
+        elevation: 8,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLoading) const LinearProgressIndicator(minHeight: 3),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 8, 14),
+              child: Row(
+                children: [
+                  Icon(Icons.directions_rounded, color: colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isLoading
+                              ? 'Đang tính đường…'
+                              : (destinationName?.trim().isNotEmpty == true
+                                  ? destinationName!.trim()
+                                  : 'Điểm đã chọn'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        if (!isLoading && distanceText.isNotEmpty)
+                          Text(
+                            [distanceText, durationText]
+                                .where((value) => value.isNotEmpty)
+                                .join(' · '),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Đóng đường đi',
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

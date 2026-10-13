@@ -30,6 +30,10 @@ class RoutingMethodChannelHandler(
     }
 ) : MethodChannel.MethodCallHandler, Closeable {
 
+    companion object {
+        private const val TAG = "RoutingMethodChannel"
+    }
+
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             RoutingConstants.METHOD_INIT_GRAPH_HOPPER -> handleInitGraphHopper(call, result)
@@ -121,6 +125,12 @@ class RoutingMethodChannelHandler(
         val vehicleProfile = call.argument<String>(RoutingConstants.ARG_VEHICLE_PROFILE)
             ?: RoutingConstants.DEFAULT_PROFILE
 
+        Log.i(
+            TAG,
+            "getRoute received profile=$vehicleProfile from=($fromLat,$fromLon) to=($toLat,$toLon) " +
+                "initialized=${routingService.isInitialized()}"
+        )
+
         if (!isValidCoordinate(fromLat, fromLon) || !isValidCoordinate(toLat, toLon)) {
             postError(
                 result,
@@ -146,8 +156,22 @@ class RoutingMethodChannelHandler(
                 try {
                     ensureDefaultGraphInitialized()
                     val routeResult = routingService.route(fromLat!!, fromLon!!, toLat!!, toLon!!, vehicleProfile)
+                    if (routeResult.isSuccess) {
+                        Log.i(
+                            TAG,
+                            "getRoute result=SUCCESS profile=$vehicleProfile distance=${routeResult.distance}m " +
+                                "points=${routeResult.points.size} calculation=${routeResult.calculationTimeMs}ms"
+                        )
+                    } else {
+                        Log.w(
+                            TAG,
+                            "getRoute result=FAILURE profile=$vehicleProfile error=\"${routeResult.errorMessage}\" " +
+                                "calculation=${routeResult.calculationTimeMs}ms"
+                        )
+                    }
                     postSuccess(result, routeResult.toMap())
                 } catch (e: Exception) {
+                    Log.e(TAG, "getRoute threw for profile=$vehicleProfile: ${e.javaClass.simpleName}: ${e.message}", e)
                     postError(
                         result,
                         RoutingConstants.ERR_CODE_ROUTING_FAILED,
