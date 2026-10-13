@@ -1,14 +1,17 @@
 import 'dart:async';
 
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
-import 'package:boilerplate/constants/app_asset.dart';
 import 'package:flutter/material.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/constants/constants.dart';
 
 class MaintenancePopup extends StatelessWidget with AppMixin {
   final Completer removeUpdateOverlayCompleter;
 
-  const MaintenancePopup({super.key, required this.removeUpdateOverlayCompleter});
+  const MaintenancePopup({
+    super.key,
+    required this.removeUpdateOverlayCompleter,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +22,9 @@ class MaintenancePopup extends StatelessWidget with AppMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppAsset.logo.image.build(
-                size: const Size(240, 240),
-              ),
+              AppAsset.logoOf(context).image.build(size: const Size(240, 240)),
               Text(
+                //hard code string
                 "Chúng tôi đang thực hiện bảo trì hệ thống để nâng cấp, xin hãy trở lại sau.",
                 style: styles.blackTextColor.textTheme.boldStyle.copyWith(
                   fontSize: 16,

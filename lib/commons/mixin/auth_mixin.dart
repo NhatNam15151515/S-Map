@@ -1,10 +1,8 @@
 import 'dart:async';
 
-import 'package:boilerplate/commons/cubits/auth_cubit/auth_cubit.dart';
-import 'package:boilerplate/models/notification_model.dart';
-import 'package:boilerplate/models/user.dart';
-import 'package:boilerplate/routers/routers.dart';
-import 'package:boilerplate/services/firebase_messaging_services.dart';
+import 'package:s_map/commons/cubits/cubits.dart';
+import 'package:s_map/models/models.dart';
+import 'package:s_map/routers/routers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,8 +10,7 @@ mixin AuthMixin {
   AuthCubit get _authCubit => BlocProvider.of<AuthCubit>(_appContext);
   BuildContext get _appContext => Routes.instance.context;
 
-  User get currentProfile => _authCubit.profileController.current;
-
+  User get currentProfile => _authCubit.currentProfile;
 }
 
 mixin AuthStateChanged<T extends StatefulWidget> on State<T> {
@@ -28,24 +25,6 @@ mixin AuthStateChanged<T extends StatefulWidget> on State<T> {
   }
 
   void onAuthStateChanged();
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    super.dispose();
-  }
-}
-
-mixin ListenComingNotification<T extends StatefulWidget> on State<T> {
-  StreamSubscription? _sub;
-
-  @override
-  void initState() {
-    _sub = FirebaseMessagingService.instance.comingNotificationListener.listen(onComingNotification);
-    super.initState();
-  }
-
-  void onComingNotification(NotificationModel? event);
 
   @override
   void dispose() {

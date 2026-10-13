@@ -1,0 +1,118 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:s_map/commons/styles/styles.dart';
+import 'package:s_map/commons/widgets/widgets.dart';
+import 'package:s_map/generated/locale_keys.g.dart';
+import 'package:s_map/models/models.dart';
+
+class SearchResultsList extends StatelessWidget {
+  final List<PoiModel> results;
+  final List<String> suggestions;
+  final bool isLoading;
+  final LatLng? userLocation;
+  final ValueChanged<PoiModel> onPoiTap;
+  final ValueChanged<String> onSuggestionTap;
+  final bool hasExistingDestinations;
+  final ValueChanged<PoiModel>? onAddDestination;
+
+  const SearchResultsList({
+    super.key,
+    required this.results,
+    required this.suggestions,
+    required this.isLoading,
+    this.userLocation,
+    required this.onPoiTap,
+    required this.onSuggestionTap,
+    this.hasExistingDestinations = false,
+    this.onAddDestination,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
+    if (isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (results.isEmpty && suggestions.isEmpty) {
+      return Center(
+        child: EmptyWidget(
+          title: tr(LocaleKeys.no_search_results),
+          subtitle: tr(LocaleKeys.no_search_results_desc),
+          icon: Icons.search_off_rounded,
+        ),
+      );
+    }
+
+    // Kết hợp danh sách: Ưu tiên POI results nếu có, nếu không thì hiển thị keyword suggestions
+    final hasResults = results.isNotEmpty;
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: hasResults ? results.length : suggestions.length,
+      separatorBuilder: (_, __) => Divider(
+        height: 1,
+        indent: 64,
+        endIndent: 16,
+        color: colorScheme.outline.withValues(alpha: 0.2),
+      ),
+      itemBuilder: (context, index) {
+        if (hasResults) {
+          final poi = results[index];
+          return PoiListTile(
+            poi: poi,
+            userLocation: userLocation,
+            onTap: () => onPoiTap(poi),
+            onAddDestination: () => (onAddDestination ?? onPoiTap)(poi),
+            hasExistingDestinations: hasExistingDestinations,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
+          );
+        } else {
+          final suggestion = suggestions[index];
+
+          return ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.search_rounded,
+                color: colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              suggestion,
+              style: colorScheme.onSurface.textTheme.textStyle.copyWith(
+                fontSize: 15,
+                fontWeight: AppFontWeight.regular.weight,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: Icon(
+              Icons.north_west_rounded,
+              size: 18,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            onTap: () => onSuggestionTap(suggestion),
+          );
+        }
+      },
+    );
+  }
+}

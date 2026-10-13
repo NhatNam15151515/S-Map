@@ -1,0 +1,686 @@
+[
+  // =========================================================================
+  // NHÓM 1: LỚP VIỀN MÉP ĐƯỜNG (ROAD CASING - VẼ DƯỚI, NÉT TO HƠN)
+  // Quy tắc: Luôn giữ width(casing) > width(surface) để tạo viền hai bên mép đường.
+  // =========================================================================
+  // ─── 1.1. Viền đường ngõ hẻm / dân sinh nội bộ ───
+  {
+    "id": "smap-road-casing",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 11, // Cấp zoom tối thiểu để hiện đường hẻm
+    "layout": {
+      "line-cap": "round", // Bo tròn 2 đầu mút đường
+      "line-join": "round" // Bo tròn các khúc cua nối nhau
+    },
+    "paint": {
+      "line-color": "__ROAD_CASING__", // Màu viền mép đường (từ palette)
+      "line-opacity": "__ROAD_CASING_OPACITY__", // Độ mờ viền (từ palette)
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ], // [Cấp zoom, Độ dày px]:
+        4,
+        0.5,
+        8,
+        1.1,
+        12,
+        1.4,
+        14,
+        3.0,
+        16,
+        7.2,
+        23,
+        51.5
+      ]
+    }
+  },
+  // ─── 1.2. Viền đường cao tốc & quốc lộ chính (motorway, trunk) ───
+  {
+    "id": "smap-road-casing-major",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 4, // Hiện từ zoom xa (zoom 4)
+    "filter": [
+      "any",
+      [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "motorway"
+      ], // Cao tốc
+      [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "trunk"
+      ] // Quốc lộ chính
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_CASING__",
+      "line-opacity": "__ROAD_CASING_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.9,
+        8,
+        2.0,
+        12,
+        5.2,
+        14,
+        8.5,
+        16,
+        11.0,
+        23,
+        51.5
+      ]
+    }
+  },
+  // ─── 1.3. Viền đường trục chính / tỉnh lộ lớn (primary) ───
+  {
+    "id": "smap-road-casing-primary",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 6, // Hiện từ zoom 6
+    "filter": [
+      "==",
+      [
+        "get",
+        "class"
+      ],
+      "primary"
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_CASING__",
+      "line-opacity": "__ROAD_CASING_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.8,
+        8,
+        1.8,
+        12,
+        4.4,
+        14,
+        7.4,
+        16,
+        11.0,
+        23,
+        51.5
+      ]
+    }
+  },
+  // ─── 1.4. Viền đường nhánh cấp 2 / liên huyện (secondary) ───
+  {
+    "id": "smap-road-casing-secondary",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 8, // Hiện từ zoom 8
+    "filter": [
+      "==",
+      [
+        "get",
+        "class"
+      ],
+      "secondary"
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_CASING__",
+      "line-opacity": "__ROAD_CASING_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.7,
+        8,
+        1.5,
+        12,
+        3.8,
+        14,
+        5.3,
+        16,
+        11.0,
+        23,
+        51.5
+      ]
+    }
+  },
+  // ─── 1.5. Viền đường liên xã / đô thị nhỏ (tertiary) ───
+  {
+    "id": "smap-road-casing-tertiary",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 10, // Hiện từ zoom 10
+    "filter": [
+      "==",
+      [
+        "get",
+        "class"
+      ],
+      "tertiary"
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_CASING__",
+      "line-opacity": "__ROAD_CASING_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.6,
+        8,
+        1.3,
+        12,
+        3.2,
+        14,
+        5.4,
+        16,
+        11.0,
+        23,
+        51.5
+      ]
+    }
+  },
+  // =========================================================================
+  // NHÓM 2: LỚP MẶT LÒNG ĐƯỜNG (ROAD SURFACE - VẼ ĐÈ LÊN TRÊN, NÉT NHỎ HƠN)
+  // Màu chính giữa của đường xe chạy.
+  // =========================================================================
+  // ─── 2.1. Mặt lòng đường ngõ hẻm / dân sinh nội bộ ───
+  {
+    "id": "smap-road-surface",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 11,
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_SURFACE__", // Màu mặt lòng đường
+      "line-opacity": "__ROAD_SURFACE_OPACITY__", // Độ mờ mặt đường
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ], // [Cấp zoom, Độ dày px]:
+        4,
+        0.3,
+        8,
+        0.8,
+        12,
+        0.7,
+        14,
+        2.0,
+        16,
+        5.2,
+        23,
+        50.5
+      ]
+    }
+  },
+  // ─── 2.2. Mặt lòng đường cao tốc & quốc lộ chính (motorway, trunk) ───
+  {
+    "id": "smap-road-surface-major",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 4,
+    "filter": [
+      "any",
+      [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "motorway"
+      ],
+      [
+        "==",
+        [
+          "get",
+          "class"
+        ],
+        "trunk"
+      ]
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_SURFACE__",
+      "line-opacity": "__ROAD_SURFACE_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.5,
+        8,
+        1.5,
+        12,
+        4.0,
+        14,
+        7.2,
+        16,
+        10.5,
+        23,
+        50.5
+      ]
+    }
+  },
+  // ─── 2.3. Mặt lòng đường trục chính / tỉnh lộ lớn (primary) ───
+  {
+    "id": "smap-road-surface-primary",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 6,
+    "filter": [
+      "==",
+      [
+        "get",
+        "class"
+      ],
+      "primary"
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_SURFACE__",
+      "line-opacity": "__ROAD_SURFACE_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.45,
+        8,
+        1.35,
+        12,
+        3.4,
+        14,
+        6.1,
+        16,
+        10.5,
+        23,
+        50.5
+      ]
+    }
+  },
+  // ─── 2.4. Mặt lòng đường nhánh cấp 2 / liên huyện (secondary) ───
+  {
+    "id": "smap-road-surface-secondary",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 8,
+    "filter": [
+      "==",
+      [
+        "get",
+        "class"
+      ],
+      "secondary"
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_SURFACE__",
+      "line-opacity": "__ROAD_SURFACE_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.4,
+        8,
+        1.1,
+        12,
+        2.8,
+        14,
+        5.0,
+        16,
+        10.5,
+        23,
+        50.5
+      ]
+    }
+  },
+  // ─── 2.5. Mặt lòng đường liên xã / đô thị nhỏ (tertiary) ───
+  {
+    "id": "smap-road-surface-tertiary",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 10,
+    "filter": [
+      "==",
+      [
+        "get",
+        "class"
+      ],
+      "tertiary"
+    ],
+    "layout": {
+      "line-cap": "round",
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__ROAD_SURFACE__",
+      "line-opacity": "__ROAD_SURFACE_OPACITY__",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        4,
+        0.35,
+        8,
+        1.0,
+        12,
+        2.4,
+        14,
+        4.2,
+        16,
+        10.5,
+        23,
+        50.5
+      ]
+    }
+  },
+  // =========================================================================
+  // NHÓM 3: VẠCH KẺ TIM ĐƯỜNG PHÂN LÀN (ROAD CENTERLINE / LANE DIVIDER)
+  // Chỉ xuất hiện ở những mức zoom to cuối cùng (zoom 16+), nét nhỏ mảnh tinh tế
+  // =========================================================================
+  {
+    "id": "smap-road-centerline",
+    "type": "line",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 16, // Chỉ hiện ở những mức zoom to cuối cùng cận cảnh
+    "filter": [
+      "all",
+      [
+        "!=",
+        [
+          "get",
+          "oneway"
+        ],
+        1
+      ],
+      [
+        "!=",
+        [
+          "get",
+          "oneway"
+        ],
+        "1"
+      ],
+      [
+        "!=",
+        [
+          "get",
+          "oneway"
+        ],
+        "yes"
+      ],
+      [
+        "match",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "motorway",
+          "trunk",
+          "primary",
+          "secondary"
+        ],
+        true,
+        false
+      ]
+    ],
+    "layout": {
+      "line-cap": "butt", // Đầu gạch phẳng dứt khoát
+      "line-join": "round"
+    },
+    "paint": {
+      "line-color": "__LABEL_PRIMARY__", // Màu tương phản cao (#374151 ở Light, #CBD6E0 ở Dark)
+      "line-opacity": 0.75,
+      "line-dasharray": [
+        3,
+        4
+      ], // [độ dài vạch sơn, khoảng cách trống]
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        16,
+        0.5, // Nét mảnh nhỏ tinh tế, không chiếm lòng đường
+        18,
+        0.8,
+        19,
+        1.1
+      ]
+    }
+  },
+  // =========================================================================
+  // NHÓM 4: MŨI TÊN CHỈ HƯỚNG ĐƯỜNG MỘT CHIỀU (ONE-WAY TRAFFIC ARROWS)
+  // Mũi tên có đuôi (→ / ←), căn chuẩn chính giữa tim đường, màu tương phản cao
+  // =========================================================================
+  {
+    "id": "smap-road-oneway-arrow",
+    "type": "symbol",
+    "source": "smap-vietnam",
+    "source-layer": "transportation",
+    "minzoom": 16, // Đồng bộ chỉ hiện ở những mức zoom to cuối cùng
+    "filter": [
+      "all",
+      [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "oneway"
+          ],
+          1
+        ],
+        [
+          "==",
+          [
+            "get",
+            "oneway"
+          ],
+          "1"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "oneway"
+          ],
+          "yes"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "oneway"
+          ],
+          -1
+        ],
+        [
+          "==",
+          [
+            "get",
+            "oneway"
+          ],
+          "-1"
+        ]
+      ],
+      [
+        "!=",
+        [
+          "get",
+          "class"
+        ],
+        "path"
+      ],
+      [
+        "!=",
+        [
+          "get",
+          "class"
+        ],
+        "pedestrian"
+      ],
+      [
+        "!=",
+        [
+          "get",
+          "class"
+        ],
+        "steps"
+      ]
+    ],
+    "layout": {
+      "symbol-placement": "line", // Mũi tên uốn lượn chạy dọc theo tim đường
+      "symbol-spacing": 95, // Mật độ đều đặn, không bị rối
+      "text-field": [
+        "case",
+        [
+          "any",
+          [
+            "==",
+            [
+              "get",
+              "oneway"
+            ],
+            -1
+          ],
+          [
+            "==",
+            [
+              "get",
+              "oneway"
+            ],
+            "-1"
+          ]
+        ],
+        "←",
+        "→"
+      ],
+      "text-font": [
+        "Montserrat Regular"
+      ],
+      "text-size": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        16,
+        13.0,
+        18,
+        16.0,
+        19,
+        19.0
+      ],
+      "text-offset": [
+        0,
+        -0.09
+      ], // Bù trừ độ lệch baseline font giúp mũi tên nằm chuẩn chính giữa tim đường
+      "text-keep-upright": false, // Bắt buộc false để mũi tên luôn chỉ theo chiều xe chạy
+      "text-allow-overlap": true, // Cho phép hiện cùng tên đường, không bị collision nuốt mất
+      "text-ignore-placement": true
+    },
+    "paint": {
+      "text-color": "__LABEL_PRIMARY__", // Màu tương phản cao (#374151 ở Light, #CBD6E0 ở Dark)
+      "text-halo-color": "__ROAD_SURFACE__", // Halo viền phát quang tiệp màu lòng đường giúp sắc cạnh
+      "text-halo-width": 1.0,
+      "text-opacity": 0.95
+    }
+  }
+]

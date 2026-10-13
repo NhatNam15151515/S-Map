@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "mien_trung",
+        "description": "Cac tinh Trung Bo (Bac Trung Bo + Nam Trung Bo + Tay Nguyen)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [105.00, 11.50],
+            [109.50, 11.50],
+            [109.50, 19.50],
+            [105.00, 19.50],
+            [105.00, 11.50]
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "metro_hcm",
+        "description": "TP.HCM + Binh Duong + Dong Nai + Long An"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [106.10, 10.35],
+            [107.25, 10.35],
+            [107.25, 11.35],
+            [106.10, 11.35],
+            [106.10, 10.35]
+          ]
+        ]
+      }
+    }
+  ]
+}

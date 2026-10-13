@@ -1,0 +1,82 @@
+# ==============================================================================
+# S-Map Android ProGuard & R8 Configuration
+# ==============================================================================
+
+# Keep attributes needed for Reflection & Generic Type Inference
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,SourceFile,LineNumberTable
+
+# ------------------------------------------------------------------------------
+# GraphHopper Core Rules (Critical: Reflection-based Algorithm/Weighting Factories)
+# ------------------------------------------------------------------------------
+-keep class com.graphhopper.** { *; }
+-dontwarn com.graphhopper.**
+
+# ------------------------------------------------------------------------------
+# High Performance Primitive Collections (HPPC) used by GraphHopper
+# ------------------------------------------------------------------------------
+-keep class com.carrotsearch.hppc.** { *; }
+-dontwarn com.carrotsearch.hppc.**
+
+# ------------------------------------------------------------------------------
+# Logging (SLF4J Android)
+# ------------------------------------------------------------------------------
+-keep class org.slf4j.** { *; }
+-dontwarn org.slf4j.**
+
+# ------------------------------------------------------------------------------
+# Suppress Missing Class Warnings for Optional Transitive GraphHopper Dependencies
+# (StAX XML parsers, Osmosis Protobuf, OSGi Annotations)
+# ------------------------------------------------------------------------------
+-dontwarn aQute.bnd.annotation.spi.ServiceProvider
+-dontwarn com.google.protobuf.**
+-dontwarn javax.xml.stream.**
+-dontwarn org.codehaus.stax2.**
+-dontwarn com.fasterxml.jackson.**
+-dontwarn org.openstreetmap.osmosis.**
+
+# ------------------------------------------------------------------------------
+# S-Map Native Routing Module & Models (Prevent MethodChannel serialization strip)
+# ------------------------------------------------------------------------------
+-keep class com.vnsmap.app.routing.** { *; }
+-keepclassmembers class com.vnsmap.app.routing.models.** { *; }
+-keep class javax.lang.model.** { *; }
+
+# ------------------------------------------------------------------------------
+# Flutter Secure Storage & AndroidX Security Crypto (Prevent R8 stripping KeyStore)
+# ------------------------------------------------------------------------------
+-keep class androidx.security.crypto.** { *; }
+-dontwarn androidx.security.crypto.**
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
+-dontwarn com.it_nomads.fluttersecurestorage.**
+
+# ------------------------------------------------------------------------------
+# Firebase & Google Play Services Rules (Prevent R8 stripping Pigeon & Native SDK)
+# ------------------------------------------------------------------------------
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+-keepclassmembers class com.google.firebase.** { *; }
+-keepclassmembers class com.google.android.gms.** { *; }
+
+# Google Play Services resolves FragmentActivity through its lifecycle bridge.
+# Keep its AndroidX name stable so R8 does not rename it to an internal class
+# name that Play Services cannot resolve at runtime.
+-keep class androidx.fragment.app.FragmentActivity { *; }
+-keep interface androidx.core.app.PictureInPictureProvider { *; }
+
+# ------------------------------------------------------------------------------
+# Flutter Engine, Plugins & Pigeon (MethodChannel / Pigeon IPC)
+# ------------------------------------------------------------------------------
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class dev.flutter.pigeon.** { *; }
+-keepclassmembers class dev.flutter.pigeon.** { *; }
+
+# Suppress warnings for Google Play Core (deferred components not bundled)
+-dontwarn com.google.android.play.core.**
+
+
+
+

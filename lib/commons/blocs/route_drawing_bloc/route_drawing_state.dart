@@ -1,0 +1,98 @@
+import 'package:equatable/equatable.dart';
+import 'package:s_map/constants/constants.dart';
+import 'package:s_map/models/models.dart';
+
+enum RouteDrawingStatus {
+  initial,
+  loading,
+  pointAdded,
+  routeUpdated,
+  warning,
+  error,
+  saved,
+}
+
+class RouteDrawingState extends Equatable {
+  final RouteDrawingStatus status;
+  final List<SnappedRoadPoint> points;
+  final List<RouteResult> segments;
+  final List<RoutePoint> fullPolyline;
+  final double totalDistance;
+  final int totalTime;
+  final String? warningMessageKey;
+  final String? errorMessageKey;
+  final String profile;
+  final int requestGeneration;
+  final CustomRouteModel? savedRoute;
+  final bool isStraightLineMode;
+
+  const RouteDrawingState({
+    this.status = RouteDrawingStatus.initial,
+    this.points = const [],
+    this.segments = const [],
+    this.fullPolyline = const [],
+    this.totalDistance = 0.0,
+    this.totalTime = 0,
+    this.warningMessageKey,
+    this.errorMessageKey,
+    this.profile = RoutingConstants.defaultProfile,
+    this.requestGeneration = 0,
+    this.savedRoute,
+    this.isStraightLineMode = false,
+  });
+
+  bool get hasRoute => fullPolyline.isNotEmpty;
+  bool get isLoading => status == RouteDrawingStatus.loading;
+  int get pointCount => points.length;
+
+  RouteDrawingState copyWith({
+    RouteDrawingStatus? status,
+    List<SnappedRoadPoint>? points,
+    List<RouteResult>? segments,
+    List<RoutePoint>? fullPolyline,
+    double? totalDistance,
+    int? totalTime,
+    String? warningMessageKey,
+    String? errorMessageKey,
+    String? profile,
+    int? requestGeneration,
+    CustomRouteModel? savedRoute,
+    bool? isStraightLineMode,
+    bool clearWarning = false,
+    bool clearError = false,
+    bool clearSavedRoute = false,
+  }) {
+    return RouteDrawingState(
+      status: status ?? this.status,
+      points: points ?? this.points,
+      segments: segments ?? this.segments,
+      fullPolyline: fullPolyline ?? this.fullPolyline,
+      totalDistance: totalDistance ?? this.totalDistance,
+      totalTime: totalTime ?? this.totalTime,
+      warningMessageKey:
+          clearWarning ? null : (warningMessageKey ?? this.warningMessageKey),
+      errorMessageKey:
+          clearError ? null : (errorMessageKey ?? this.errorMessageKey),
+      profile: profile ?? this.profile,
+      requestGeneration: requestGeneration ?? this.requestGeneration,
+      savedRoute: clearSavedRoute ? null : (savedRoute ?? this.savedRoute),
+      isStraightLineMode: isStraightLineMode ?? this.isStraightLineMode,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        status,
+        points,
+        segments,
+        fullPolyline,
+        totalDistance,
+        totalTime,
+        warningMessageKey,
+        errorMessageKey,
+        profile,
+        requestGeneration,
+        savedRoute,
+        isStraightLineMode,
+      ];
+}

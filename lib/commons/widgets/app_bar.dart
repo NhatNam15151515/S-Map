@@ -1,8 +1,7 @@
-import 'package:boilerplate/commons/mixin/app_bar_mixin.dart';
-import 'package:boilerplate/commons/mixin/app_mixin.dart';
-import 'package:boilerplate/commons/styles/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:s_map/commons/mixin/mixin.dart';
+import 'package:s_map/commons/styles/styles.dart';
 
 class AppBarContainer extends StatelessWidget with AppMixin {
   final double height;
@@ -12,17 +11,18 @@ class AppBarContainer extends StatelessWidget with AppMixin {
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: styles.light.appBarTheme.backgroundColor,
-        boxShadow: kElevationToShadow[1],
-        borderRadius: const BorderRadius.only(
-          bottomRight: Radius.circular(32),
-          bottomLeft: Radius.circular(32),
+        color: style.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: style.colorScheme.outline.withAlpha(50),
+            width: 0.5,
+          ),
         ),
       ),
-      clipBehavior: Clip.hardEdge,
       child: Padding(
         padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
         child: child,
@@ -37,29 +37,33 @@ class TitleAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   final Widget? rightWidget;
   final double? percent;
 
-  TitleAppBar({super.key, required this.title, this.leftWidget, this.rightWidget, this.percent});
+  TitleAppBar(
+      {super.key,
+      required this.title,
+      this.leftWidget,
+      this.rightWidget,
+      this.percent});
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return AppBarContainer(
       height: appBarHeight,
       child: Opacity(
-        opacity: (percent != null ? 1-percent! : null) ?? 1,
+        opacity: (percent != null ? 1 - percent! : null) ?? 1,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (leftWidget != null) Positioned(
-                right: 0,
-                child: leftWidget!),
+            if (leftWidget != null) Positioned(left: 0, child: leftWidget!),
             Text(
               title,
-              style: styles.whiteTextColor.textTheme.subTitleStyle.copyWith(
+              style:
+                  style.colorScheme.onSurface.textTheme.subTitleStyle.copyWith(
                 fontSize: 18,
+                fontWeight: AppFontWeight.bold.weight,
               ),
             ),
-            if (rightWidget != null) Positioned(
-                right: 0,
-                child: rightWidget!)
+            if (rightWidget != null) Positioned(right: 0, child: rightWidget!)
           ],
         ),
       ),
@@ -67,8 +71,7 @@ class TitleAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   }
 
   @override
-  double get appBarDesignHeight => 70;
-
+  double get appBarDesignHeight => 56;
 }
 
 class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
@@ -76,39 +79,45 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   final Widget? trailingWidgets;
   final double? percent;
 
-  TitleBackAppBar({super.key, required this.title, this.trailingWidgets, this.percent});
+  TitleBackAppBar(
+      {super.key, required this.title, this.trailingWidgets, this.percent});
 
   @override
   Widget build(BuildContext context) {
+    final style = AppStyle.of(context);
     return AppBarContainer(
       height: appBarHeight,
       child: Opacity(
-        opacity: (percent != null ? 1-percent! : null) ?? 1,
+        opacity: (percent != null ? 1 - percent! : null) ?? 1,
         child: Stack(
           alignment: Alignment.center,
           children: [
             Positioned(
-              left: 0,
+              left: 4,
               child: IconButton(
                 onPressed: () {
                   context.pop();
                 },
                 icon: Icon(
-                  Icons.arrow_back,
-                  size: 22,
-                  color: styles.whiteTextColor,
+                  Icons.arrow_back_rounded,
+                  size: 24,
+                  color: style.colorScheme.onSurface,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.transparent,
                 ),
               ),
             ),
             Text(
               title,
-              style: styles.whiteTextColor.textTheme.subTitleStyle.copyWith(
+              style:
+                  style.colorScheme.onSurface.textTheme.subTitleStyle.copyWith(
                 fontSize: 18,
+                fontWeight: AppFontWeight.bold.weight,
               ),
             ),
-            if (trailingWidgets != null) Positioned(
-                right: 0,
-                child: trailingWidgets!)
+            if (trailingWidgets != null)
+              Positioned(right: 4, child: trailingWidgets!)
           ],
         ),
       ),
@@ -116,40 +125,7 @@ class TitleBackAppBar extends StatelessWidget with AppMixin, AppBarMixin {
   }
 
   @override
-  double get appBarDesignHeight => 70;
+  double get appBarDesignHeight => 56;
 
-  static double designHeight = 70;
-}
-
-class AppSliverBar extends SliverPersistentHeaderDelegate with AppMixin {
-
-  final String title;
-
-  AppSliverBar(this.title);
-
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final percent = shrinkOffset / maxExtent;
-    return TitleBackAppBar(
-      title: title,
-      percent: percent,
-    );
-  }
-
-  double get min => MediaQuery.paddingOf(appContext).top;
-
-  @override
-  // TODO: implement maxExtent
-  double get maxExtent => min + TitleBackAppBar.designHeight;
-
-  @override
-  // TODO: implement minExtent
-  double get minExtent => min;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
-  }
-
+  static double designHeight = 56;
 }

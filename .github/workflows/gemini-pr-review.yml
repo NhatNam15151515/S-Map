@@ -1,0 +1,54 @@
+name: Gemini AI PR Reviewer
+
+# Dùng pull_request cho private repo (chỉ trusted contributors)
+# Nếu chuyển sang public repo, cần đổi sang pull_request_target
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main, dev-w1, dev-w2, dev-w3, dev-w4, dev-w5, dev-w6, dev-w7, dev-w8]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  gemini-review:
+    name: Gemini AI Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-genai
+
+      # Lấy diff qua GitHub API, KHÔNG dùng git diff từ PR code
+      - name: Fetch PR Diff via GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s -L \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3.diff" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
+            > pr_diff.patch
+
+      - name: Run Gemini Review Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python .github/scripts/gemini_review.py

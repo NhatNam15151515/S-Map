@@ -1,45 +1,56 @@
-import 'package:boilerplate/services/api_service/decoder.dart';
-import 'package:boilerplate/services/api_service/interceptors/auth_interceptor.dart';
-
-class User extends Decoder<User>{
-  AuthToken? authToken;
+class User {
+  String? id;
+  String? username;
+  String? email;
+  String? avatarUrl;
+  String? avatarBase64;
   bool init = false;
+
+  User({
+    this.id,
+    this.username,
+    this.email,
+    this.avatarUrl,
+    this.avatarBase64,
+  });
+
   User.getInit({
     this.init = true,
   });
 
-  String? username;
-
-  User({this.username,});
-
   User.fromJson(Map<String, dynamic> json) {
-    username = json['username'];
+    id = json['id']?.toString();
+    username = json['username']?.toString();
+    email = json['email']?.toString();
+    avatarUrl = json['avatarUrl']?.toString();
+    avatarBase64 = json['avatarBase64']?.toString();
     init = false;
-    authToken = AuthToken.fromJson(json);
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    data['username'] = username;
+    if (id != null) data['id'] = id;
+    if (username != null) data['username'] = username;
+    if (email != null) data['email'] = email;
+    if (avatarUrl != null) data['avatarUrl'] = avatarUrl;
+    if (avatarBase64 != null) data['avatarBase64'] = avatarBase64;
     return data;
   }
 
-  @override
-  User decode(Map<String, dynamic> json) {
-    return User.fromJson(json);
-  }
-}
-
-class SignUpResponse extends Decoder<SignUpResponse> {
-  int? id;
-
-  SignUpResponse({this.id});
-  SignUpResponse.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-  }
-
-  @override
-  SignUpResponse decode(Map<String, dynamic> json) {
-    return SignUpResponse.fromJson(json);
+  User copyWith({
+    String? id,
+    String? username,
+    String? email,
+    String? avatarUrl,
+    String? avatarBase64,
+    bool? init,
+  }) {
+    return User(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      avatarBase64: avatarBase64 ?? this.avatarBase64,
+    )..init = init ?? this.init;
   }
 }

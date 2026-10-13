@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "mien_bac",
+        "description": "Cac tinh Bac Bo (Dong Bac + Tay Bac + Dong Bang Song Hong)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [102.10, 19.50],
+            [108.00, 19.50],
+            [108.00, 23.40],
+            [102.10, 23.40],
+            [102.10, 19.50]
+          ]
+        ]
+      }
+    }
+  ]
+}
