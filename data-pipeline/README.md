@@ -2,6 +2,28 @@
 
 Thư mục chứa các file cấu hình và tools để build offline data cho S-Map.
 
+## Tải lại dữ liệu từ GitHub Releases
+
+Các gói dữ liệu lớn đã được phát hành riêng trong GitHub Releases nên không lưu
+trong Git. Sau khi clone repo, có thể tải và giải nén lại package vào các thư mục
+pipeline bằng lệnh:
+
+```powershell
+python data-pipeline/download_release_data.py --region vietnam
+```
+
+Script đọc manifest mới nhất, tải package, xác minh SHA-256 của package và từng
+file dữ liệu, rồi đặt tiles, routing graph, POI DB và trie vào đúng thư mục.
+File hiện có khác bản release sẽ được giữ nguyên; thêm `--force` nếu muốn thay.
+Package ZIP đã tải được lưu tại `data-pipeline/data/vietnam.zip`.
+
+## Dựng routing graph
+
+`build_routing_graph.py` tự tải GraphHopper Web 8.0 từ Maven Central nếu chưa
+có `data-pipeline/graphhopper-web.jar`, đồng thời xác minh SHA-256 theo checksum
+của Maven Central. Phiên bản này phải khớp GraphHopper 8.0 mà Android sử dụng.
+Planetiler cũng được script `build_vector_tiles.py` tải và kiểm tra SHA-256.
+
 ## Cấu trúc
 
 ```text

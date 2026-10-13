@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import zipfile
 import time
+import hashlib
 from pathlib import Path
 
 # Fix Unicode output on Windows terminal
@@ -38,6 +39,11 @@ RAW_PBF = DATA_DIR / "raw" / "vietnam-latest.osm.pbf"
 OUTPUT_DIR = DATA_DIR / "output_ghz"
 GRAPH_CACHE_DIR = DATA_DIR / "graph-cache"
 GH_JAR = Path("data-pipeline/graphhopper-web.jar")
+GRAPHHOPPER_VERSION = "8.0"
+GRAPHHOPPER_JAR_URL = (
+    "https://repo.maven.apache.org/maven2/com/graphhopper/graphhopper-web/"
+    f"{GRAPHHOPPER_VERSION}/graphhopper-web-{GRAPHHOPPER_VERSION}.jar"
+)
 CUSTOM_MODEL = Path("data-pipeline/custom_model_moped.json")
 TOOLS_DIR = Path("data-pipeline/tools")
 MIN_REAL_GHZ_BYTES = 1024 * 1024
@@ -49,6 +55,49 @@ def format_size(size_bytes):
     elif size_bytes >= 1024:
         return f"{size_bytes / 1024:.2f} KB"
     return f"{size_bytes} B"
+
+def download_graphhopper_jar():
+    """Tải đúng phiên bản GraphHopper mà Android đang dùng nếu JAR chưa có."""
+    if GH_JAR.exists():
+        return True
+
+    print(f"\n=== Tải GraphHopper {GRAPHHOPPER_VERSION} ===")
+    GH_JAR.parent.mkdir(parents=True, exist_ok=True)
+    partial_jar = GH_JAR.with_suffix(GH_JAR.suffix + ".part")
+    checksum_url = f"{GRAPHHOPPER_JAR_URL}.sha256"
+
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(checksum_url, timeout=30) as response:
+            expected_hash = response.read().decode("ascii").strip().split()[0].lower()
+        if len(expected_hash) != 64 or any(c not in "0123456789abcdef" for c in expected_hash):
+            raise ValueError("Checksum SHA-256 từ Maven Central không hợp lệ.")
+
+        digest = hashlib.sha256()
+        with urllib.request.urlopen(GRAPHHOPPER_JAR_URL, timeout=60) as response, open(partial_jar, "wb") as output:
+            while chunk := response.read(1024 * 1024):
+                digest.update(chunk)
+                output.write(chunk)
+
+        if digest.hexdigest().lower() != expected_hash:
+            raise ValueError("JAR tải về không khớp SHA-256 do Maven Central cung cấp.")
+
+        # Check the artifact is readable and carries the pinned Maven version.
+        with zipfile.ZipFile(partial_jar) as archive:
+            properties = archive.read(
+                "META-INF/maven/com.graphhopper/graphhopper-web/pom.properties"
+            ).decode("utf-8")
+        if f"version={GRAPHHOPPER_VERSION}" not in properties.splitlines():
+            raise ValueError(f"JAR không phải GraphHopper {GRAPHHOPPER_VERSION}.")
+
+        partial_jar.replace(GH_JAR)
+        print(f"[OK] Đã tải và xác minh {GH_JAR} (SHA-256).")
+        return True
+    except Exception as error:
+        partial_jar.unlink(missing_ok=True)
+        print(f"[ERROR] Không tải được GraphHopper JAR: {error}")
+        return False
 
 def check_tools():
     """Kiểm tra môi trường Java & osmium, trả về (has_java, has_osmium)"""
@@ -72,8 +121,11 @@ def check_tools():
     except Exception:
         print("[INFO] osmium CLI chưa được cài đặt. Sẽ dùng fallback bbox/skip extract nếu chưa có pbf theo vùng.")
 
+    # GraphImporter cần cùng GraphHopper version với Android (8.0).
+    has_graphhopper = download_graphhopper_jar()
+
     # Compile GraphImporter nếu chưa có hoặc source mới hơn class
-    if has_java:
+    if has_java and has_graphhopper:
         importer_class = TOOLS_DIR / "GraphImporter.class"
         importer_java = TOOLS_DIR / "GraphImporter.java"
         if importer_java.exists() and (
@@ -247,7 +299,7 @@ def build_graphhopper_graph(region_id, region_pbf, has_java, force=False):
         return None
     
     if not GH_JAR.exists():
-        print(f"  [SKIP] Không tìm thấy GraphHopper JAR ({GH_JAR}). Cần tải graphhopper-web.jar trước.")
+        print(f"  [SKIP] Không có GraphHopper JAR tại {GH_JAR}; kiểm tra kết nối Maven Central.")
         return None
     
     if region_pbf is None or not region_pbf.exists():

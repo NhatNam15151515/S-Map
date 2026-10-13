@@ -6,7 +6,7 @@
 
 ## ⚡ Mandatory Codebase Intelligence Workflow (`tools/codebase_mcp`)
 
-Mỗi khi tương tác với codebase S-Map, agent **BẮT BUỘC** phải tuân thủ quy trình 3 bước sử dụng bộ công cụ `smap-codebase-intel` tại `c:\Nhat Nam\intern flutter\S-map\tools\codebase_mcp`:
+Mỗi khi tương tác với codebase S-Map, agent **BẮT BUỘC** phải tuân thủ quy trình 3 bước sử dụng bộ công cụ `smap-codebase-intel` tại `tools/codebase_mcp` trong repository:
 
 1. **Khảo sát trước khi viết code (Survey Phase):**
    - Gọi `get_repo_map` để định hình cấu trúc và tầm ảnh hưởng file mà không tốn token đọc toàn bộ source.

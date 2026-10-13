@@ -1,0 +1,81 @@
+# S-Map Architecture Rules
+# Defines allowed and forbidden import relationships between layers.
+# Format: each layer lists which OTHER s_map layers it may NOT import.
+
+project_package: "s_map"
+project_root: "lib"
+
+layers:
+  models:
+    path_pattern: "lib/models/"
+    description: "Pure data classes. Zero project dependencies."
+    forbidden_imports:
+      - "lib/screens/"
+      - "lib/commons/blocs/"
+      - "lib/commons/cubits/"
+      - "lib/repos/"
+      - "lib/services/"
+      - "lib/routers/"
+
+  constants:
+    path_pattern: "lib/constants/"
+    description: "App-wide constants. No logic dependencies."
+    forbidden_imports:
+      - "lib/screens/"
+      - "lib/commons/blocs/"
+      - "lib/commons/cubits/"
+      - "lib/repos/"
+      - "lib/services/"
+      - "lib/routers/"
+      - "lib/models/"
+
+  interfaces:
+    path_pattern: "lib/interfaces/"
+    description: "Abstract contracts. May only reference models."
+    forbidden_imports:
+      - "lib/screens/"
+      - "lib/commons/blocs/"
+      - "lib/commons/cubits/"
+      - "lib/repos/"
+      - "lib/services/"
+      - "lib/routers/"
+
+  services:
+    path_pattern: "lib/services/"
+    description: "Infrastructure layer. Implements interfaces. Must NOT reach up."
+    forbidden_imports:
+      - "lib/screens/"
+      - "lib/commons/blocs/"
+      - "lib/commons/cubits/"
+      - "lib/repos/"
+      - "lib/routers/"
+
+  repos:
+    path_pattern: "lib/repos/"
+    description: "Repository layer. Composes services via interfaces."
+    forbidden_imports:
+      - "lib/screens/"
+      - "lib/commons/blocs/"
+      - "lib/commons/cubits/"
+      - "lib/routers/"
+
+  commons_logic:
+    path_pattern: "lib/commons/"
+    description: "Shared BLoC/Cubit logic. Must NOT import services directly or screens."
+    forbidden_imports:
+      - "lib/screens/"
+      - "lib/services/"
+
+  screens:
+    path_pattern: "lib/screens/"
+    description: "Presentation layer. May import commons, routers, models. Must NOT bypass repos by calling services directly (services should be injected, not referenced in widget build methods)."
+    # screens CAN import services for DI injection at initState level
+    # screens CANNOT call service methods directly in build/event handlers
+    forbidden_imports: []  # Enforced at code-review level, not statically
+
+# Special rule: detect 'god files' (too many imports)
+god_file_threshold:
+  max_imports: 10
+
+# Detect circular dependencies
+check_circular: true
